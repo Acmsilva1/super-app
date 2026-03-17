@@ -47,6 +47,18 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false });
     if (error) return json(res, 500, { error: error.message });
     const somas = calcularSomasPorStatus(data);
+    let receitasFinancas = 0;
+    const { data: rowsFinancas } = await supabase.from('tb_financas').select('valor, tipo, data_lancamento, created_at');
+    if (rowsFinancas && rowsFinancas.length > 0) {
+      const startDate = new Date(ano, mes - 1, 1).toISOString().slice(0, 10);
+      const endDate = new Date(ano, mes, 0).toISOString().slice(0, 10);
+      for (const r of rowsFinancas) {
+        if ((r.tipo || '').toLowerCase() !== 'receita') continue;
+        const d = (r.data_lancamento || (r.created_at && r.created_at.slice(0, 10)) || '').toString().slice(0, 10);
+        if (d >= startDate && d <= endDate) receitasFinancas += Number(r.valor) || 0;
+      }
+      receitasFinancas = Math.round(receitasFinancas * 100) / 100;
+    }
     return json(res, 200, {
       mes_ano,
       rows: data,
@@ -54,6 +66,7 @@ export default async function handler(req, res) {
       soma: somas.soma,
       somaPago: somas.somaPago,
       somaPendente: somas.somaPendente,
+      receitas_financas: receitasFinancas,
     });
   }
   if (req.method === 'POST') {

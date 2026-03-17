@@ -1126,6 +1126,8 @@
                 const soma = data.soma != null ? Number(data.soma) : rows.reduce((a, r) => a + Number(r.valor || 0), 0);
                 const somaPago = data.somaPago != null ? Number(data.somaPago) : rows.filter(r => (r.status || '').toLowerCase() === 'pago').reduce((a, r) => a + Number(r.valor || 0), 0);
                 const somaPendente = data.somaPendente != null ? Number(data.somaPendente) : rows.filter(r => (r.status || '').toLowerCase() !== 'pago').reduce((a, r) => a + Number(r.valor || 0), 0);
+                const receitasFinancas = data.receitas_financas != null ? Number(data.receitas_financas) : 0;
+                const margem = Math.round((receitasFinancas - soma) * 100) / 100;
                 const editId = el.getAttribute('data-edit-id') || '';
                 const mesAno = data.mes_ano || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 const [ano, mes] = mesAno.split('-').map(Number);
@@ -1136,6 +1138,11 @@
                         <label>Mês/Ano</label>
                         <select id="df-mes">${meses.map((m, i) => '<option value="'+(i+1)+'" '+(i+1===mes?'selected':'')+'>'+m+'</option>').join('')}</select>
                         <select id="df-ano">${anos.map(a => '<option value="'+a+'" '+(a===ano?'selected':'')+'>'+a+'</option>').join('')}</select>
+                    </div>
+                    <div class="app-totais" style="margin-bottom:1rem;">
+                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#22c55e;font-size:1.125rem">R$ ${receitasFinancas.toFixed(2)}</div><div class="stat-label">Receitas (Finanças)</div></div>
+                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#1e40af;font-size:1.125rem">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total despesas fixas</div></div>
+                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="font-size:1.125rem;color:${margem >= 0 ? '#16a34a' : '#dc2626'}">R$ ${margem.toFixed(2)}</div><div class="stat-label">Margem</div></div>
                     </div>
                     <div class="app-form">
                         <input type="hidden" id="df-edit-id" value="${escapeHtml(editId)}" />
