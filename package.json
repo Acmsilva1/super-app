@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
+  "scripts": {
+    "update-sw": "node scripts/update-sw-version.js"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
   }
