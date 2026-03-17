@@ -260,6 +260,7 @@
         }
 
         .notification-badge {
+            display: none;
             position: absolute;
             top: 0.25rem;
             right: 0.25rem;
@@ -267,6 +268,10 @@
             height: 0.5rem;
             background: #f97316;
             border-radius: 50%;
+        }
+
+        .notification-badge.visible {
+            display: block;
         }
 
         .menu-toggle {
@@ -871,15 +876,9 @@
                     <button class="header-btn" id="darkModeToggle" title="Modo escuro (alternar)" aria-label="Alternar modo escuro">
                         <i class="fas fa-moon" id="darkModeIcon"></i>
                     </button>
-                    <button class="header-btn" title="Notificações" style="position: relative;">
+                    <button class="header-btn" id="notificationsBtn" title="Notificações" style="position: relative;">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge"></span>
-                    </button>
-                    <button class="header-btn" title="Configurações">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                    <button class="header-btn" title="Perfil">
-                        <i class="fas fa-user"></i>
+                        <span id="notificationBadge" class="notification-badge" aria-hidden="true"></span>
                     </button>
                     <button class="header-btn menu-toggle" title="Menu">
                         <i class="fas fa-bars"></i>
@@ -1826,12 +1825,20 @@
             btn.addEventListener('click', () => {
                 if (pendingWorker) pendingWorker.postMessage({ type: 'SKIP_WAITING' });
                 banner.classList.add('hidden');
+                document.getElementById('notificationBadge')?.classList.remove('visible');
             });
 
             function showUpdateBanner(worker) {
                 pendingWorker = worker;
                 banner.classList.remove('hidden');
+                document.getElementById('notificationBadge')?.classList.add('visible');
             }
+
+            document.getElementById('notificationsBtn')?.addEventListener('click', () => {
+                if (pendingWorker && !banner.classList.contains('hidden')) {
+                    banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            });
 
             navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
                 reg.addEventListener('updatefound', () => {
