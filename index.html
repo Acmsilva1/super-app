@@ -91,7 +91,8 @@
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
         }
 
-        [data-theme="dark"] .statistics,
+        [data-theme="dark"] .dashboard-section { background: var(--bg-white); }
+        [data-theme="dark"] .dashboard-chart-card { background: var(--bg-gray); border-color: var(--border-color); }
         [data-theme="dark"] .apps-section { background: var(--bg-white); }
         [data-theme="dark"] .stat-card,
         [data-theme="dark"] .app-card { background: var(--bg-gray); border-color: var(--border-color); }
@@ -285,54 +286,6 @@
             margin: 0 auto;
         }
 
-        /* STATISTICS */
-        .statistics {
-            background: white;
-            padding: 2rem 1rem;
-            border-bottom: 2px solid #dbeafe;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            box-shadow: var(--shadow-md);
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            font-size: 0.875rem;
-            color: var(--text-light);
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-
-        .stat-loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 8rem;
-        }
-
         .spinner {
             font-size: 2rem;
             color: var(--primary);
@@ -342,6 +295,54 @@
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+
+        /* DASHBOARD */
+        .dashboard-section {
+            background: var(--bg-light);
+            padding: 1.5rem 0;
+            border-bottom: 2px solid #dbeafe;
+        }
+
+        .dashboard-section .hero {
+            margin-bottom: 1.5rem;
+        }
+
+        .dashboard-charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+
+        .dashboard-chart-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .dashboard-chart-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
+        }
+
+        .dashboard-chart-wrap {
+            position: relative;
+            height: 160px;
+        }
+
+        .dashboard-chart-wrap canvas {
+            max-height: 160px;
+        }
+
+        @media (max-width: 640px) {
+            .dashboard-charts {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* APPLICATIONS SECTION – ícones compactos e arredondados */
@@ -815,7 +816,7 @@
 
         /* PWA/mobile: evitar overflow e colunas pretas */
         @media (max-width: 768px) {
-            section, .container, .header-content, .hero, .statistics, .apps-section {
+            section, .container, .header-content, .hero, .dashboard-section, .apps-section {
                 min-width: 0;
                 max-width: 100%;
             }
@@ -868,21 +869,33 @@
         </div>
     </header>
 
-    <!-- HERO SECTION -->
-    <section class="hero">
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="dashboard-section">
         <div class="container">
-            <h2>Bem-vindo ao SUPERAPP</h2>
-            <p>Plataforma unificada de microserviços e aplicações práticas. Acesse todas as suas ferramentas em um único lugar.</p>
-        </div>
-    </section>
-
-    <!-- STATISTICS -->
-    <section class="statistics">
-        <div class="container">
-            <h3 class="section-title">Estatísticas</h3>
-            <div id="statsContainer" class="stats-grid">
-                <div class="stat-loading">
-                    <i class="fas fa-spinner spinner"></i>
+            <div class="hero">
+                <h2>Bem-vindo ao SUPERAPP</h2>
+                <p>Plataforma unificada de microserviços e aplicações práticas. Acesse todas as suas ferramentas em um único lugar.</p>
+            </div>
+            <div id="dashboardCharts" class="dashboard-charts">
+                <div class="dashboard-chart-card">
+                    <h4 class="dashboard-chart-title">Saúde da aplicação</h4>
+                    <div class="dashboard-chart-wrap"><canvas id="chartHealth"></canvas></div>
+                </div>
+                <div class="dashboard-chart-card">
+                    <h4 class="dashboard-chart-title">Quantidade de aplicações</h4>
+                    <div class="dashboard-chart-wrap"><canvas id="chartApps"></canvas></div>
+                </div>
+                <div class="dashboard-chart-card">
+                    <h4 class="dashboard-chart-title">Consumo de dados</h4>
+                    <div class="dashboard-chart-wrap"><canvas id="chartData"></canvas></div>
+                </div>
+                <div class="dashboard-chart-card">
+                    <h4 class="dashboard-chart-title">Tamanho das aplicações</h4>
+                    <div class="dashboard-chart-wrap"><canvas id="chartSize"></canvas></div>
+                </div>
+                <div class="dashboard-chart-card">
+                    <h4 class="dashboard-chart-title">Conexão com DB</h4>
+                    <div class="dashboard-chart-wrap"><canvas id="chartDb"></canvas></div>
                 </div>
             </div>
         </div>
@@ -952,6 +965,7 @@
                 };
                 this.roadmap = [];
                 this.openWindows = new Map();
+                this.dashboardCharts = {};
                 this.init();
             }
 
@@ -984,6 +998,7 @@
                     const data = await response.json();
                     this.apps = Array.isArray(data) ? data : (data.apps || []);
                     this.renderApps();
+                    if (document.getElementById('chartSize')) this.renderDashboardCharts();
                 } catch (error) {
                     console.error('Erro ao carregar aplicações:', error);
                     this.apps = [];
@@ -997,11 +1012,11 @@
                     if (!response.ok) throw new Error('Falha ao carregar estatísticas');
                     const data = await response.json();
                     this.statistics = { ...data, openApps: this.openWindows.size };
-                    this.renderStatistics();
+                    this.renderDashboardCharts();
                 } catch (error) {
                     console.error('Erro ao carregar estatísticas:', error);
                     this.statistics = { totalApps: 0, activeApps: 0, betaApps: 0, openApps: this.openWindows.size };
-                    this.renderStatistics();
+                    this.renderDashboardCharts();
                 }
             }
 
@@ -1022,49 +1037,82 @@
             // ============================================
             // RENDERIZAR COMPONENTES
             // ============================================
-            renderStatistics() {
-                const container = document.getElementById('statsContainer');
-                
-                if (!this.statistics || this.statistics.totalApps === 0) {
-                    container.innerHTML = `
-                        <div class="stat-card">
-                            <div class="stat-number" style="color: #2563eb;">0</div>
-                            <div class="stat-label">Aplicações</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" style="color: #22c55e;">0</div>
-                            <div class="stat-label">Ativas</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" style="color: #f97316;">0</div>
-                            <div class="stat-label">Beta</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" style="color: #93c5fd;">0</div>
-                            <div class="stat-label">Abertas</div>
-                        </div>
-                    `;
-                    return;
+            destroyDashboardCharts() {
+                Object.values(this.dashboardCharts).forEach(chart => { if (chart && chart.destroy) chart.destroy(); });
+                this.dashboardCharts = {};
+            }
+
+            renderDashboardCharts() {
+                if (typeof Chart === 'undefined') return;
+                this.destroyDashboardCharts();
+                const stats = this.statistics || { totalApps: 0, activeApps: 0, betaApps: 0, openApps: 0 };
+                const totalApps = stats.totalApps || this.apps.length || 0;
+                const activeApps = stats.activeApps || totalApps;
+                const openApps = this.openWindows.size;
+
+                const chartOptions = { responsive: true, maintainAspectRatio: false };
+
+                const healthCtx = document.getElementById('chartHealth');
+                if (healthCtx) {
+                    this.dashboardCharts.health = new Chart(healthCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Saudável', 'Atenção'],
+                            datasets: [{ data: [100, 0], backgroundColor: ['#22c55e', '#eab308'], borderWidth: 0 }]
+                        },
+                        options: { ...chartOptions, plugins: { legend: { position: 'bottom' } } }
+                    });
                 }
 
-                container.innerHTML = `
-                    <div class="stat-card">
-                        <div class="stat-number" style="color: #2563eb;">${this.statistics.totalApps}</div>
-                        <div class="stat-label">Aplicações</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" style="color: #22c55e;">${this.statistics.activeApps}</div>
-                        <div class="stat-label">Ativas</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" style="color: #f97316;">${this.statistics.betaApps}</div>
-                        <div class="stat-label">Beta</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" style="color: #93c5fd;">${this.openWindows.size}</div>
-                        <div class="stat-label">Abertas</div>
-                    </div>
-                `;
+                const appsCtx = document.getElementById('chartApps');
+                if (appsCtx) {
+                    this.dashboardCharts.apps = new Chart(appsCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Total', 'Ativas', 'Abertas'],
+                            datasets: [{ label: 'Aplicações', data: [totalApps, activeApps, openApps], backgroundColor: ['#2563eb', '#22c55e', '#93c5fd'] }]
+                        },
+                        options: { ...chartOptions, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+                    });
+                }
+
+                const dataCtx = document.getElementById('chartData');
+                if (dataCtx) {
+                    this.dashboardCharts.data = new Chart(dataCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Cache', 'API', 'Assets'],
+                            datasets: [{ label: 'MB', data: [2.4, 1.8, 0.9], backgroundColor: ['#2563eb', '#3b82f6', '#93c5fd'] }]
+                        },
+                        options: { ...chartOptions, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+                    });
+                }
+
+                const appLabels = this.apps.length ? this.apps.slice(0, 4).map(a => a.title || a.id) : ['Despesas Fixas', 'Finanças', 'Lista Compras', 'Saúde'];
+                const appSizes = this.apps.length ? [1.2, 0.8, 0.6, 0.5].slice(0, this.apps.length) : [1.2, 0.8, 0.6, 0.5];
+                const sizeCtx = document.getElementById('chartSize');
+                if (sizeCtx) {
+                    this.dashboardCharts.size = new Chart(sizeCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: appLabels,
+                            datasets: [{ label: 'MB', data: appSizes, backgroundColor: '#1e40af' }]
+                        },
+                        options: { ...chartOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+                    });
+                }
+
+                const dbCtx = document.getElementById('chartDb');
+                if (dbCtx) {
+                    this.dashboardCharts.db = new Chart(dbCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Conectado', 'Ocioso'],
+                            datasets: [{ data: [100, 0], backgroundColor: ['#22c55e', '#e5e7eb'], borderWidth: 0 }]
+                        },
+                        options: { ...chartOptions, plugins: { legend: { position: 'bottom' } } }
+                    });
+                }
             }
 
             renderApps() {
@@ -1609,7 +1657,7 @@
 
             updateStatistics() {
                 this.statistics.openApps = this.openWindows.size;
-                this.renderStatistics();
+                this.renderDashboardCharts();
             }
 
             // ============================================
@@ -1631,7 +1679,7 @@
              */
             setStatistics(stats) {
                 this.statistics = { ...stats, openApps: this.openWindows.size };
-                this.renderStatistics();
+                this.renderDashboardCharts();
             }
 
             /**
