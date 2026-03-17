@@ -615,6 +615,66 @@
             margin-bottom: 1rem;
         }
 
+        /* APP CONTENT: forms and lists */
+        .app-loading, .app-error {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--text-light);
+        }
+        .app-error { color: #dc2626; }
+        .app-form {
+            display: grid;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .app-form label { font-size: 0.875rem; font-weight: 600; color: var(--text-dark); }
+        .app-form input, .app-form select, .app-form textarea {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .app-form textarea { min-height: 4rem; resize: vertical; }
+        .app-form-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end; }
+        .app-form-row .field { flex: 1; min-width: 120px; }
+        .app-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--primary);
+            color: white;
+        }
+        .app-btn:hover { background: var(--primary-dark); }
+        .app-btn-secondary { background: var(--bg-gray); color: var(--text-dark); }
+        .app-btn-secondary:hover { background: var(--border-color); }
+        .app-list { list-style: none; }
+        .app-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+        }
+        .app-list li:hover { background: var(--bg-light); }
+        .app-list-actions { display: flex; gap: 0.5rem; }
+        .app-list-actions button { padding: 0.25rem 0.5rem; font-size: 0.75rem; cursor: pointer; border-radius: 0.25rem; border: 1px solid var(--border-color); background: white; }
+        .app-list-actions button:hover { background: var(--bg-gray); }
+        .app-totais { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+        .app-totais .totais-card { padding: 0.75rem; border-radius: 0.5rem; background: var(--bg-light); text-align: center; }
+        .app-totais .totais-card .val { font-weight: 700; font-size: 1.125rem; }
+        .app-checkbox { margin-right: 0.5rem; cursor: pointer; }
+        .app-list li.comprado { opacity: 0.7; }
+        .app-list li.comprado .item-text { text-decoration: line-through; }
+
         /* UTILITY CLASSES */
         .text-center {
             text-align: center;
@@ -762,6 +822,12 @@
         // ============================================
         // SUPERAPP - Sistema de Gerenciamento de Apps
         // ============================================
+        function escapeHtml(s) {
+            if (s == null) return '';
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
 
         class SuperApp {
             constructor() {
@@ -801,53 +867,42 @@
 
             async loadApps() {
                 try {
-                    // TODO: Substituir com sua URL de backend
-                    // const response = await fetch('/api/apps');
-                    // const data = await response.json();
-                    // this.apps = data;
-                    
-                    // Por enquanto, deixar vazio
-                    this.apps = [];
+                    const response = await fetch('/api/apps');
+                    if (!response.ok) throw new Error('Falha ao carregar aplicações');
+                    const data = await response.json();
+                    this.apps = Array.isArray(data) ? data : (data.apps || []);
                     this.renderApps();
                 } catch (error) {
                     console.error('Erro ao carregar aplicações:', error);
+                    this.apps = [];
                     this.renderApps();
                 }
             }
 
             async loadStatistics() {
                 try {
-                    // TODO: Substituir com sua URL de backend
-                    // const response = await fetch('/api/statistics');
-                    // const data = await response.json();
-                    // this.statistics = data;
-                    
-                    // Por enquanto, deixar vazio
-                    this.statistics = {
-                        totalApps: 0,
-                        activeApps: 0,
-                        betaApps: 0,
-                        openApps: 0
-                    };
+                    const response = await fetch('/api/statistics');
+                    if (!response.ok) throw new Error('Falha ao carregar estatísticas');
+                    const data = await response.json();
+                    this.statistics = { ...data, openApps: this.openWindows.size };
                     this.renderStatistics();
                 } catch (error) {
                     console.error('Erro ao carregar estatísticas:', error);
+                    this.statistics = { totalApps: 0, activeApps: 0, betaApps: 0, openApps: this.openWindows.size };
                     this.renderStatistics();
                 }
             }
 
             async loadRoadmap() {
                 try {
-                    // TODO: Substituir com sua URL de backend
-                    // const response = await fetch('/api/roadmap');
-                    // const data = await response.json();
-                    // this.roadmap = data;
-                    
-                    // Por enquanto, deixar vazio
-                    this.roadmap = [];
+                    const response = await fetch('/api/roadmap');
+                    if (!response.ok) throw new Error('Falha ao carregar roadmap');
+                    const data = await response.json();
+                    this.roadmap = Array.isArray(data) ? data : (data.roadmap || []);
                     this.renderRoadmap();
                 } catch (error) {
                     console.error('Erro ao carregar roadmap:', error);
+                    this.roadmap = [];
                     this.renderRoadmap();
                 }
             }
@@ -1013,6 +1068,213 @@
                 document.getElementById('windowsContainer').appendChild(windowElement);
                 this.openWindows.set(appId, windowElement);
                 this.updateStatistics();
+                const contentEl = windowElement.querySelector('.window-content');
+                contentEl.setAttribute('data-app-id', appId);
+                this.loadAppContent(appId, contentEl);
+            }
+
+            async loadAppContent(appId, contentEl) {
+                contentEl.innerHTML = '<div class="app-loading"><i class="fas fa-spinner spinner"></i> Carregando...</div>';
+                const apiMap = { notas: 'notas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude' };
+                const path = apiMap[appId];
+                if (!path) return;
+                try {
+                    const url = path === 'financas' ? '/api/financas?bi=1' : path === 'saude' ? '/api/saude' : '/api/' + path;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
+                    if (appId === 'notas') this.renderNotasContent(contentEl, data);
+                    else if (appId === 'financas') this.renderFinancasContent(contentEl, data);
+                    else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
+                    else if (appId === 'saude') this.renderSaudeContent(contentEl, data);
+                } catch (err) {
+                    contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> ' + (err.message || 'Erro ao carregar') + '</div>';
+                }
+            }
+
+            async refreshAppContent(appId) {
+                const win = this.openWindows.get(appId);
+                if (win) {
+                    const contentEl = win.querySelector('.window-content');
+                    if (contentEl) await this.loadAppContent(appId, contentEl);
+                }
+            }
+
+            renderNotasContent(el, data) {
+                const rows = data.rows || data.notas || [];
+                el.innerHTML = `
+                    <div class="app-form">
+                        <label>Título</label>
+                        <input type="text" id="nota-titulo" placeholder="Título da nota" />
+                        <label>Conteúdo</label>
+                        <textarea id="nota-conteudo" placeholder="Conteúdo"></textarea>
+                        <label>Tags (separadas por vírgula)</label>
+                        <input type="text" id="nota-tags" placeholder="ex: trabalho, ideias" />
+                        <button type="button" class="app-btn" data-action="notas-add">Adicionar nota</button>
+                    </div>
+                    <ul class="app-list" id="notas-list"></ul>
+                `;
+                const listEl = el.querySelector('#notas-list');
+                listEl.innerHTML = rows.map(n => `
+                    <li>
+                        <div>
+                            <strong>${escapeHtml(n.titulo || '')}</strong>
+                            ${(n.tags && n.tags.length) ? '<span style="font-size:0.75rem;color:#6b7280"> ' + (Array.isArray(n.tags) ? n.tags.join(', ') : n.tags) + '</span>' : ''}
+                            ${n.conteudo ? '<p style="margin:0.25rem 0 0;font-size:0.8rem">' + escapeHtml(n.conteudo).slice(0, 100) + (n.conteudo.length > 100 ? '...' : '') + '</p>' : ''}
+                        </div>
+                        <div class="app-list-actions"></div>
+                    </li>
+                `).join('') || '<li style="color:#9ca3af">Nenhuma nota ainda.</li>';
+                el.querySelector('[data-action="notas-add"]').onclick = () => this.submitNotasAdd(el);
+            }
+            async submitNotasAdd(el) {
+                const titulo = el.querySelector('#nota-titulo').value.trim();
+                const conteudo = (el.querySelector('#nota-conteudo').value || '').trim();
+                const tagsRaw = (el.querySelector('#nota-tags').value || '').trim();
+                const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+                if (!titulo) { alert('Título é obrigatório'); return; }
+                try {
+                    const res = await fetch('/api/notas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ titulo, conteudo, tags }) });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+                    await this.refreshAppContent('notas');
+                } catch (e) { alert(e.message); }
+            }
+
+            renderFinancasContent(el, data) {
+                const rows = data.rows || [];
+                const totais = data.totais || { receitas: 0, despesas: 0, liquido: 0 };
+                const categorias = ['Alimentação','Habitação','Transporte','Lazer','Saúde','Compras','Contas','Receitas'];
+                el.innerHTML = `
+                    <div class="app-totais">
+                        <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${Number(totais.receitas).toFixed(2)}</div><div class="stat-label">Receitas</div></div>
+                        <div class="totais-card"><div class="val" style="color:#dc2626">R$ ${Number(totais.despesas).toFixed(2)}</div><div class="stat-label">Despesas</div></div>
+                        <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${Number(totais.liquido).toFixed(2)}</div><div class="stat-label">Líquido</div></div>
+                    </div>
+                    <div class="app-form">
+                        <div class="app-form-row">
+                            <div class="field"><label>Descrição</label><input type="text" id="fin-descricao" placeholder="Ex: Supermercado" /></div>
+                            <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="fin-valor" placeholder="0,00" /></div>
+                            <div class="field"><label>Tipo</label><select id="fin-tipo"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
+                            <div class="field"><label>Categoria</label><select id="fin-categoria"><option value="">--</option>${categorias.map(c => '<option value="'+c+'">'+c+'</option>').join('')}</select></div>
+                        </div>
+                        <button type="button" class="app-btn" data-action="financas-add">Registrar</button>
+                    </div>
+                    <ul class="app-list" id="financas-list"></ul>
+                `;
+                const listEl = el.querySelector('#financas-list');
+                listEl.innerHTML = rows.map(r => `
+                    <li>
+                        <div><strong>${escapeHtml(r.descricao || '')}</strong> <span style="color:${r.tipo==='receita'?'#22c55e':'#dc2626'}">${r.tipo==='receita'?'+':'-'} R$ ${Number(r.valor).toFixed(2)}</span> ${r.categoria ? '<span style="font-size:0.75rem;color:#6b7280">'+escapeHtml(r.categoria)+'</span>' : ''}</div>
+                    </li>
+                `).join('') || '<li style="color:#9ca3af">Nenhum lançamento.</li>';
+                el.querySelector('[data-action="financas-add"]').onclick = () => this.submitFinancasAdd(el);
+            }
+            async submitFinancasAdd(el) {
+                const descricao = el.querySelector('#fin-descricao').value.trim();
+                const valor = parseFloat(el.querySelector('#fin-valor').value) || 0;
+                const tipo = el.querySelector('#fin-tipo').value;
+                const categoria = el.querySelector('#fin-categoria').value || null;
+                if (!descricao) { alert('Descrição é obrigatória'); return; }
+                try {
+                    const res = await fetch('/api/financas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descricao, valor, tipo, categoria }) });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+                    await this.refreshAppContent('financas');
+                } catch (e) { alert(e.message); }
+            }
+
+            renderListaComprasContent(el, data) {
+                const rows = data.rows || data.itens || [];
+                el.innerHTML = `
+                    <div class="app-form">
+                        <div class="app-form-row">
+                            <div class="field"><label>Item</label><input type="text" id="lista-item" placeholder="Ex: Leite" /></div>
+                            <div class="field"><label>Qtd</label><input type="number" min="1" id="lista-qtd" value="1" /></div>
+                            <div class="field"><label>Prioridade</label><select id="lista-prioridade"><option value="1">Baixa</option><option value="2">Média</option><option value="3">Alta</option></select></div>
+                        </div>
+                        <button type="button" class="app-btn" data-action="lista-add">Adicionar</button>
+                        <button type="button" class="app-btn app-btn-secondary" data-action="lista-reset">Desmarcar todos</button>
+                    </div>
+                    <ul class="app-list" id="lista-list"></ul>
+                `;
+                const listEl = el.querySelector('#lista-list');
+                listEl.innerHTML = rows.map(r => `
+                    <li class="${r.comprado ? 'comprado' : ''}" data-id="${r.id}">
+                        <div>
+                            <input type="checkbox" class="app-checkbox" data-action="lista-toggle" data-id="${r.id}" ${r.comprado ? 'checked' : ''} />
+                            <span class="item-text">${escapeHtml(r.item || '')}</span> ${r.quantidade > 1 ? ' x ' + r.quantidade : ''} ${r.unidade_medida ? r.unidade_medida : ''}
+                        </div>
+                        <div class="app-list-actions">
+                            <button type="button" data-action="lista-toggle" data-id="${r.id}">${r.comprado ? 'Desmarcar' : 'Marcar'}</button>
+                        </div>
+                    </li>
+                `).join('') || '<li style="color:#9ca3af">Lista vazia.</li>';
+                el.querySelector('[data-action="lista-add"]').onclick = () => this.submitListaAdd(el);
+                el.querySelector('[data-action="lista-reset"]').onclick = () => this.submitListaReset(el);
+                listEl.querySelectorAll('[data-action="lista-toggle"]').forEach(btn => { btn.onclick = () => this.submitListaToggle(btn.dataset.id, el); });
+            }
+            async submitListaAdd(el) {
+                const item = el.querySelector('#lista-item').value.trim();
+                const quantidade = parseInt(el.querySelector('#lista-qtd').value, 10) || 1;
+                const prioridade = parseInt(el.querySelector('#lista-prioridade').value, 10) || 1;
+                if (!item) { alert('Item é obrigatório'); return; }
+                try {
+                    const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade, prioridade }) });
+                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                    await this.refreshAppContent('lista_compras');
+                } catch (e) { alert(e.message); }
+            }
+            async submitListaToggle(id, el) {
+                try {
+                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, toggle: true }) });
+                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                    await this.refreshAppContent('lista_compras');
+                } catch (e) { alert(e.message); }
+            }
+            async submitListaReset(el) {
+                try {
+                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset_checks: true }) });
+                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                    await this.refreshAppContent('lista_compras');
+                } catch (e) { alert(e.message); }
+            }
+
+            renderSaudeContent(el, data) {
+                const rows = data.rows || data.registros || [];
+                const tipos = ['Vacina','Exame','Consulta','Medicamento'];
+                el.innerHTML = `
+                    <div class="app-form">
+                        <div class="app-form-row">
+                            <div class="field"><label>Membro</label><input type="text" id="saude-membro" placeholder="Nome" /></div>
+                            <div class="field"><label>Tipo</label><select id="saude-tipo">${tipos.map(t => '<option value="'+t+'">'+t+'</option>').join('')}</select></div>
+                            <div class="field"><label>Detalhes</label><input type="text" id="saude-detalhes" placeholder="Ex: Dose 1" /></div>
+                            <div class="field"><label>Data</label><input type="date" id="saude-data" /></div>
+                        </div>
+                        <button type="button" class="app-btn" data-action="saude-add">Registrar</button>
+                    </div>
+                    <ul class="app-list" id="saude-list"></ul>
+                `;
+                const listEl = el.querySelector('#saude-list');
+                listEl.innerHTML = rows.map(r => `
+                    <li>
+                        <div><strong>${escapeHtml(r.membro_familia || '')}</strong> – ${escapeHtml(r.tipo_registro || '')} ${r.detalhes ? ': ' + escapeHtml(r.detalhes) : ''} ${r.data_evento ? ' (' + r.data_evento + ')' : ''}</div>
+                    </li>
+                `).join('') || '<li style="color:#9ca3af">Nenhum registro.</li>';
+                el.querySelector('[data-action="saude-add"]').onclick = () => this.submitSaudeAdd(el);
+            }
+            async submitSaudeAdd(el) {
+                const membro_familia = el.querySelector('#saude-membro').value.trim();
+                const tipo_registro = el.querySelector('#saude-tipo').value;
+                const detalhes = (el.querySelector('#saude-detalhes').value || '').trim();
+                const data_evento = el.querySelector('#saude-data').value || null;
+                if (!membro_familia) { alert('Membro é obrigatório'); return; }
+                try {
+                    const res = await fetch('/api/saude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membro_familia, tipo_registro, detalhes, data_evento }) });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+                    await this.refreshAppContent('saude');
+                } catch (e) { alert(e.message); }
             }
 
             closeWindow(windowId) {
