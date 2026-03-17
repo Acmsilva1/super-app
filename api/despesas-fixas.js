@@ -5,7 +5,7 @@ import {
   payloadUpdate,
   calcularSomasPorStatus,
   parseRowsSupabase,
-} from '../despesas_fixas/index.js';
+} from '../modulos/despesas_fixas/index.js';
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');

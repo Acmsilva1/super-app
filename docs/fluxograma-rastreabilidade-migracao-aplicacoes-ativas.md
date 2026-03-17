@@ -1,4 +1,4 @@
-﻿# Diagrama Informativo - Rastreabilidade de Pastas (Migracao aplicacoes ativas)
+# Diagrama Informativo - Rastreabilidade de Pastas (Migracao aplicacoes ativas)
 
 Este documento apresenta apenas a estrutura de pastas e o que existe em cada dominio, sem fluxo de processo.
 
@@ -28,13 +28,13 @@ raiz["super-app (raiz do repositorio)"]:::raiz
 
 raiz --> api["api (recursos compartilhados)"]:::compartilhada
 raiz --> lib["lib (bibliotecas/utilitarios)"]:::compartilhada
-raiz --> supabase["supabase (estrutura de banco)"]:::compartilhada
-raiz --> scripts["scripts (automacoes)"]:::compartilhada
+raiz --> sql["sql.sql (estado do banco)"]:::compartilhada
 
-raiz --> despesas["despesas_fixas"]:::dominio
-raiz --> financas["financas"]:::dominio
-raiz --> lista["lista_compras"]:::dominio
-raiz --> saude["saude"]:::dominio
+raiz --> modulos["modulos"]:::compartilhada
+modulos --> despesas["despesas_fixas"]:::dominio
+modulos --> financas["financas"]:::dominio
+modulos --> lista["lista_compras"]:::dominio
+modulos --> saude["saude"]:::dominio
 
 despesas --> despesasModel["model"]:::pastaInterna
 despesas --> despesasService["service"]:::pastaInterna
@@ -60,8 +60,8 @@ saude --> tbSaude["tb_saude_familiar"]:::tabela
 | Elemento | Significado |
 |---|---|
 | `super-app` | Pasta raiz do repositorio. |
-| `api`, `lib`, `supabase`, `scripts` | Pastas compartilhadas entre os dominios. |
-| `despesas_fixas`, `financas`, `lista_compras`, `saude` | Pastas de dominios/aplicacoes ativas. |
+| `api`, `lib`, `modulos`, `sql.sql` | Estrutura e arquivo único de DDL (alterações de banco atualizam sql.sql). |
+| `modulos/despesas_fixas`, `modulos/financas`, `modulos/lista_compras`, `modulos/saude` | Aplicativos (dominios) dentro de `modulos`. |
 | `model` | Estruturas/modelos de dados do dominio. |
 | `service` | Regras de servico e acesso por dominio. |
 | `tb_*` | Tabela Supabase relacionada ao dominio. |
@@ -70,7 +70,7 @@ saude --> tbSaude["tb_saude_familiar"]:::tabela
 
 ## Mapeamento dominio -> conteudo
 
-| Dominio | Subpastas | Tabela Supabase |
+| Dominio (em `modulos/`) | Subpastas | Tabela Supabase |
 |---|---|---|
 | `despesas_fixas` | `model`, `service` | `tb_despesas_fixas` |
 | `financas` | `model`, `service` | `tb_financas` |

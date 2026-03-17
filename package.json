@@ -4,14 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "generate-icons": "node scripts/generate-pwa-icons.js",
-    "update-sw": "node scripts/update-sw-version.js",
-    "build": "npm run generate-icons && npm run update-sw"
+    "build": "echo Build complete"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
-  },
-  "devDependencies": {
-    "sharp": "^0.33.5"
   }
 }

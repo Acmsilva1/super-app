@@ -6,7 +6,7 @@ import {
   processarBi,
   renderizarExtratoTotais,
   parseRowsSupabase,
-} from '../financas/index.js';
+} from '../modulos/financas/index.js';
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
