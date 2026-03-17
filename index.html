@@ -832,6 +832,9 @@
                 </nav>
 
                 <div class="header-actions">
+                    <button class="header-btn" id="pwaInstallBtn" title="Instalar aplicativo" aria-label="Instalar aplicativo" style="display: none;">
+                        <i class="fas fa-download"></i>
+                    </button>
                     <button class="header-btn" id="darkModeToggle" title="Modo escuro (alternar)" aria-label="Alternar modo escuro">
                         <i class="fas fa-moon" id="darkModeIcon"></i>
                     </button>
@@ -1695,6 +1698,28 @@
             if (data.type === 'roadmap') superApp.setRoadmap(data.payload);
         };
         */
+
+        // PWA: instalação no mobile – mostrar botão quando o navegador permitir instalar
+        let deferredInstallPrompt = null;
+        const pwaInstallBtn = document.getElementById('pwaInstallBtn');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            if (pwaInstallBtn) pwaInstallBtn.style.display = 'block';
+        });
+        window.addEventListener('appinstalled', () => {
+            deferredInstallPrompt = null;
+            if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
+        });
+        if (pwaInstallBtn) {
+            pwaInstallBtn.addEventListener('click', async () => {
+                if (!deferredInstallPrompt) return;
+                deferredInstallPrompt.prompt();
+                const { outcome } = await deferredInstallPrompt.userChoice;
+                deferredInstallPrompt = null;
+                if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
+            });
+        }
 
         // PWA: registrar SW, detectar mudança de versão (deploy) e atualizar cache
         if ('serviceWorker' in navigator) {
