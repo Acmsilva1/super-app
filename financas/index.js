@@ -6,6 +6,7 @@ export {
 } from './model/lancamento.js';
 export {
   payloadInsert,
+  payloadUpdate,
   categorizarBi,
   processarBi,
   renderizarExtratoTotais,

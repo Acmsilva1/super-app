@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase.js';
 import {
   TABLE_NAME,
   payloadInsert,
+  payloadUpdate,
   processarBi,
   renderizarExtratoTotais,
   parseRowsSupabase,
@@ -36,6 +37,23 @@ export default async function handler(req, res) {
     if (error) return json(res, 500, { error: error.message });
     return json(res, 201, data);
   }
-  res.setHeader('Allow', 'GET, POST');
+  if (req.method === 'PATCH') {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+    const { id, descricao, valor, tipo, categoria, data_lancamento, metodo_pagamento } = body;
+    if (!id) return json(res, 400, { error: 'id obrigatório' });
+    const payload = payloadUpdate(descricao, valor, tipo, categoria, data_lancamento, metodo_pagamento);
+    if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
+    const { data, error } = await supabase.from(TABLE_NAME).update(payload).eq('id', id).select().single();
+    if (error) return json(res, 500, { error: error.message });
+    return json(res, 200, data);
+  }
+  if (req.method === 'DELETE') {
+    const id = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {})?.id ?? req.query?.id;
+    if (!id) return json(res, 400, { error: 'id obrigatório' });
+    const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
+    if (error) return json(res, 500, { error: error.message });
+    return json(res, 200, { ok: true });
+  }
+  res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
   return json(res, 405, { error: 'Method Not Allowed' });
 }

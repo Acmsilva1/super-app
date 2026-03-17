@@ -19,6 +19,24 @@ export function payloadInsert(
   return payload;
 }
 
+export function payloadUpdate(
+  descricao = undefined,
+  valor = undefined,
+  tipo = undefined,
+  categoria = undefined,
+  data_lancamento = undefined,
+  metodo_pagamento = undefined
+) {
+  const out = {};
+  if (descricao !== undefined) out.descricao = String(descricao).trim();
+  if (valor !== undefined) out.valor = Math.round(Number(valor) * 100) / 100;
+  if (tipo !== undefined) out.tipo = tipo === 'receita' || tipo === 'despesa' ? tipo : 'despesa';
+  if (categoria !== undefined) out.categoria = categoria || null;
+  if (data_lancamento !== undefined) out.data_lancamento = data_lancamento || null;
+  if (metodo_pagamento !== undefined) out.metodo_pagamento = metodo_pagamento || null;
+  return out;
+}
+
 function dataParaMesBr(row) {
   const d = row?.data_lancamento ?? row?.created_at;
   if (!d) return null;

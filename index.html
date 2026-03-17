@@ -12,7 +12,8 @@
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -674,6 +675,10 @@
         .app-checkbox { margin-right: 0.5rem; cursor: pointer; }
         .app-list li.comprado { opacity: 0.7; }
         .app-list li.comprado .item-text { text-decoration: line-through; }
+        .app-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+        @media (max-width: 640px) { .app-charts { grid-template-columns: 1fr; } }
+        .app-chart-wrap { background: var(--bg-light); border-radius: var(--radius); padding: 1rem; min-height: 220px; }
+        .app-chart-wrap canvas { max-height: 220px; }
 
         /* UTILITY CLASSES */
         .text-center {
@@ -1188,8 +1193,12 @@
             }
 
             renderFinancasContent(el, data) {
+                if (el._chartPie) { el._chartPie.destroy(); el._chartPie = null; }
+                if (el._chartBar) { el._chartBar.destroy(); el._chartBar = null; }
                 const rows = data.rows || [];
                 const totais = data.totais || { receitas: 0, despesas: 0, liquido: 0 };
+                const bi = data.bi || {};
+                const tabelaGastos = bi.tabela_gastos || [];
                 const categorias = ['Alimentação','Habitação','Transporte','Lazer','Saúde','Compras','Contas','Receitas'];
                 el.innerHTML = `
                     <div class="app-totais">
@@ -1198,34 +1207,97 @@
                         <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${Number(totais.liquido).toFixed(2)}</div><div class="stat-label">Líquido</div></div>
                     </div>
                     <div class="app-form">
+                        <input type="hidden" id="fin-edit-id" value="" />
                         <div class="app-form-row">
                             <div class="field"><label>Descrição</label><input type="text" id="fin-descricao" placeholder="Ex: Supermercado" /></div>
                             <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="fin-valor" placeholder="0,00" /></div>
                             <div class="field"><label>Tipo</label><select id="fin-tipo"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
                             <div class="field"><label>Categoria</label><select id="fin-categoria"><option value="">--</option>${categorias.map(c => '<option value="'+c+'">'+c+'</option>').join('')}</select></div>
                         </div>
-                        <button type="button" class="app-btn" data-action="financas-add">Registrar</button>
+                        <button type="button" class="app-btn" data-action="financas-save">Registrar</button>
                     </div>
                     <ul class="app-list" id="financas-list"></ul>
+                    <div class="app-charts">
+                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas</p><canvas id="fin-chart-pie"></canvas></div>
+                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias que mais gastam</p><canvas id="fin-chart-bar"></canvas></div>
+                    </div>
                 `;
                 const listEl = el.querySelector('#financas-list');
                 listEl.innerHTML = rows.map(r => `
                     <li>
                         <div><strong>${escapeHtml(r.descricao || '')}</strong> <span style="color:${r.tipo==='receita'?'#22c55e':'#dc2626'}">${r.tipo==='receita'?'+':'-'} R$ ${Number(r.valor).toFixed(2)}</span> ${r.categoria ? '<span style="font-size:0.75rem;color:#6b7280">'+escapeHtml(r.categoria)+'</span>' : ''}</div>
+                        <div class="app-list-actions">
+                            <button type="button" data-action="fin-edit" data-id="${r.id}" data-descricao="${escapeHtml(r.descricao||'').replace(/"/g,'&quot;')}" data-valor="${Number(r.valor)}" data-tipo="${r.tipo||'despesa'}" data-categoria="${escapeHtml(r.categoria||'')}">Editar</button>
+                            <button type="button" data-action="fin-delete" data-id="${r.id}">Excluir</button>
+                        </div>
                     </li>
                 `).join('') || '<li style="color:#9ca3af">Nenhum lançamento.</li>';
-                el.querySelector('[data-action="financas-add"]').onclick = () => this.submitFinancasAdd(el);
+                el.querySelector('[data-action="financas-save"]').onclick = () => this.submitFinancasSave(el);
+                listEl.querySelectorAll('[data-action="fin-edit"]').forEach(b => {
+                    b.onclick = () => {
+                        el.querySelector('#fin-edit-id').value = b.dataset.id || '';
+                        el.querySelector('#fin-descricao').value = b.dataset.descricao || '';
+                        el.querySelector('#fin-valor').value = b.dataset.valor ?? '';
+                        el.querySelector('#fin-tipo').value = b.dataset.tipo || 'despesa';
+                        el.querySelector('#fin-categoria').value = b.dataset.categoria || '';
+                        el.querySelector('[data-action="financas-save"]').textContent = 'Salvar';
+                    };
+                });
+                listEl.querySelectorAll('[data-action="fin-delete"]').forEach(b => { b.onclick = () => this.submitFinancasDelete(b.dataset.id, el); });
+                if (typeof Chart !== 'undefined') {
+                    const receitas = Number(totais.receitas) || 0;
+                    const despesas = Number(totais.despesas) || 0;
+                    const ctxPie = document.getElementById('fin-chart-pie');
+                    if (ctxPie && (receitas > 0 || despesas > 0)) {
+                        el._chartPie = new Chart(ctxPie, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Receitas', 'Despesas'],
+                                datasets: [{ data: [receitas, despesas], backgroundColor: ['#22c55e', '#dc2626'], borderWidth: 0 }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+                        });
+                    }
+                    const ctxBar = document.getElementById('fin-chart-bar');
+                    if (ctxBar && tabelaGastos.length > 0) {
+                        const labelsBar = tabelaGastos.map(x => x[0]);
+                        const valuesBar = tabelaGastos.map(x => x[1]);
+                        el._chartBar = new Chart(ctxBar, {
+                            type: 'bar',
+                            data: {
+                                labels: labelsBar,
+                                datasets: [{ label: 'Gasto (R$)', data: valuesBar, backgroundColor: '#2563eb', borderRadius: 4 }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+                        });
+                    }
+                }
             }
-            async submitFinancasAdd(el) {
+            async submitFinancasSave(el) {
+                const editId = el.querySelector('#fin-edit-id').value.trim();
                 const descricao = el.querySelector('#fin-descricao').value.trim();
                 const valor = parseFloat(el.querySelector('#fin-valor').value) || 0;
                 const tipo = el.querySelector('#fin-tipo').value;
                 const categoria = el.querySelector('#fin-categoria').value || null;
                 if (!descricao) { alert('Descrição é obrigatória'); return; }
                 try {
-                    const res = await fetch('/api/financas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descricao, valor, tipo, categoria }) });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+                    if (editId) {
+                        const res = await fetch('/api/financas', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, descricao, valor, tipo, categoria }) });
+                        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao salvar'); }
+                    } else {
+                        const res = await fetch('/api/financas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descricao, valor, tipo, categoria }) });
+                        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao salvar'); }
+                    }
+                    el.querySelector('#fin-edit-id').value = '';
+                    el.querySelector('[data-action="financas-save"]').textContent = 'Registrar';
+                    await this.refreshAppContent('financas');
+                } catch (e) { alert(e.message); }
+            }
+            async submitFinancasDelete(id, el) {
+                if (!confirm('Excluir este lançamento?')) return;
+                try {
+                    const res = await fetch('/api/financas?id=' + encodeURIComponent(id), { method: 'DELETE' });
+                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
                     await this.refreshAppContent('financas');
                 } catch (e) { alert(e.message); }
             }
