@@ -7,7 +7,7 @@ const APPS = [
     id: 'notas',
     icon: 'fa-book',
     status: 'active',
-    title: 'Bloco de Notas',
+    title: 'Despesas Fixas',
     description: 'Registro de despesas fixas: descrição, valor, status pago/pendente e soma no final.',
     category: 'Produtividade',
   },
