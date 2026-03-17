@@ -5,7 +5,7 @@ import {
   payloadUpdate,
   toggleComprado,
   resetChecksPayload,
-  ordenarPorPrioridade,
+  ordenarPorCategoria,
   parseRowsSupabase,
 } from '../lista_compras/index.js';
 
@@ -16,23 +16,23 @@ function json(res, status, data) {
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    const { data, error } = await supabase.from(TABLE_NAME).select('*').order('prioridade', { ascending: false });
+    const { data, error } = await supabase.from(TABLE_NAME).select('*').order('categoria').order('created_at', { ascending: false });
     if (error) return json(res, 500, { error: error.message });
-    const ordenados = ordenarPorPrioridade(data, true);
+    const ordenados = ordenarPorCategoria(data);
     return json(res, 200, { rows: ordenados, itens: parseRowsSupabase(ordenados) });
   }
   if (req.method === 'POST') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
-    const { item, quantidade, unidade_medida, comprado, prioridade } = body;
+    const { item, quantidade, unidade_medida, comprado, categoria } = body;
     if (!item) return json(res, 400, { error: 'item obrigatório' });
-    const payload = payloadInsert(item, quantidade, unidade_medida, comprado, prioridade);
+    const payload = payloadInsert(item, quantidade, unidade_medida, comprado, categoria);
     const { data, error } = await supabase.from(TABLE_NAME).insert(payload).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 201, data);
   }
   if (req.method === 'PATCH') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
-    const { id, toggle, reset_checks, item, quantidade, unidade_medida, comprado, prioridade } = body;
+    const { id, toggle, reset_checks, item, quantidade, unidade_medida, comprado, categoria } = body;
     if (!id && !reset_checks) return json(res, 400, { error: 'id ou reset_checks obrigatório' });
     if (reset_checks) {
       const { data: rows } = await supabase.from(TABLE_NAME).select('id');
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       if (error) return json(res, 500, { error: error.message });
       return json(res, 200, data);
     }
-    const payload = payloadUpdate(item, quantidade, unidade_medida, comprado, prioridade);
+    const payload = payloadUpdate(item, quantidade, unidade_medida, comprado, categoria);
     if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
     const { data, error } = await supabase.from(TABLE_NAME).update(payload).eq('id', id).select().single();
     if (error) return json(res, 500, { error: error.message });

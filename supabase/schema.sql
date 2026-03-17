@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.tb_financas (
 
 COMMENT ON TABLE public.tb_financas IS 'Finanças – receitas e despesas';
 
--- 3) Lista de Compras
+-- 3) Lista de Compras (categorias: Mantimentos, Higiene/limpeza, Feira, Carnes)
 CREATE TABLE IF NOT EXISTS public.tb_lista_compras (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
@@ -46,10 +46,10 @@ CREATE TABLE IF NOT EXISTS public.tb_lista_compras (
   quantidade INTEGER NOT NULL DEFAULT 1 CHECK (quantidade >= 1),
   unidade_medida TEXT,
   comprado BOOLEAN NOT NULL DEFAULT false,
-  prioridade INTEGER NOT NULL DEFAULT 1 CHECK (prioridade BETWEEN 1 AND 3)
+  categoria TEXT NOT NULL DEFAULT 'Mantimentos' CHECK (categoria IN ('Mantimentos', 'Higiene / limpeza', 'Feira', 'Carnes'))
 );
 
-COMMENT ON TABLE public.tb_lista_compras IS 'Lista de Compras – prioridade 1=Baixa, 2=Média, 3=Alta';
+COMMENT ON TABLE public.tb_lista_compras IS 'Lista de Compras – categorias: Mantimentos, Higiene/limpeza, Feira, Carnes';
 
 -- 4) Saúde Familiar (LGPD – dados sensíveis)
 CREATE TABLE IF NOT EXISTS public.tb_saude_familiar (
@@ -74,7 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_tb_financas_created_at ON public.tb_financas (cre
 CREATE INDEX IF NOT EXISTS idx_tb_financas_tipo ON public.tb_financas (tipo);
 CREATE INDEX IF NOT EXISTS idx_tb_financas_data_lancamento ON public.tb_financas (data_lancamento) WHERE data_lancamento IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_tb_lista_compras_prioridade ON public.tb_lista_compras (prioridade DESC);
+CREATE INDEX IF NOT EXISTS idx_tb_lista_compras_categoria ON public.tb_lista_compras (categoria);
 CREATE INDEX IF NOT EXISTS idx_tb_lista_compras_comprado ON public.tb_lista_compras (comprado);
 
 CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_membro ON public.tb_saude_familiar (membro_familia);
