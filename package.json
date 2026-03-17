@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "update-sw": "node scripts/update-sw-version.js"
+    "update-sw": "node scripts/update-sw-version.js",
+    "build": "npm run update-sw"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"

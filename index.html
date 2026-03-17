@@ -82,6 +82,33 @@
         [data-theme="dark"] .app-modal { background: var(--bg-white); color: var(--text-dark); }
         [data-theme="dark"] .app-list li:hover { background: var(--bg-gray); }
 
+        .pwa-update-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.9rem;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
+        }
+        .pwa-update-banner.hidden { display: none; }
+        .pwa-update-banner button {
+            padding: 0.5rem 1rem;
+            background: #fff;
+            color: var(--primary);
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f0f9ff 100%);
@@ -1669,18 +1696,37 @@
         };
         */
 
-        // PWA: registrar Service Worker e atualizar quando houver nova versão
+        // PWA: registrar SW, detectar mudança de versão (deploy) e atualizar cache
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').then((reg) => {
+            let pendingWorker = null;
+            const banner = document.createElement('div');
+            banner.className = 'pwa-update-banner hidden';
+            banner.innerHTML = '<span>Nova versão disponível.</span><button type="button">Atualizar</button>';
+            document.body.appendChild(banner);
+            const btn = banner.querySelector('button');
+            btn.addEventListener('click', () => {
+                if (pendingWorker) pendingWorker.postMessage({ type: 'SKIP_WAITING' });
+                banner.classList.add('hidden');
+            });
+
+            function showUpdateBanner(worker) {
+                pendingWorker = worker;
+                banner.classList.remove('hidden');
+            }
+
+            navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
                 reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            if (confirm('Nova versão disponível. Recarregar agora?')) {
-                                newWorker.postMessage({ type: 'SKIP_WAITING' });
-                            }
+                            showUpdateBanner(newWorker);
                         }
                     });
+                });
+                // Verificar nova versão periodicamente e ao voltar para o app
+                setInterval(() => reg.update(), 60 * 1000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') reg.update();
                 });
             });
             navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
