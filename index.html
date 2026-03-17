@@ -682,6 +682,10 @@
         .app-mes-ano { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
         .app-mes-ano label { font-size: 0.875rem; font-weight: 600; }
         .app-mes-ano select { padding: 0.4rem 0.6rem; border-radius: 0.5rem; border: 1px solid var(--border-color); font-size: 0.875rem; }
+        .app-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .app-modal { background: white; border-radius: var(--radius); padding: 1.5rem; min-width: 280px; box-shadow: var(--shadow-lg); }
+        .app-modal h4 { margin-bottom: 1rem; font-size: 1rem; }
+        .app-modal-actions { display: flex; gap: 0.75rem; margin-top: 1rem; justify-content: flex-end; }
 
         /* UTILITY CLASSES */
         .text-center {
@@ -1141,6 +1145,7 @@
                             <div class="field"><label>Status</label><select id="df-status"><option value="pendente">Pendente</option><option value="pago">Pago</option></select></div>
                         </div>
                         <button type="button" class="app-btn" data-action="df-save">Adicionar</button>
+                        <button type="button" class="app-btn app-btn-secondary" data-action="df-exportar">Exportar dados</button>
                     </div>
                     <ul class="app-list" id="df-list"></ul>
                     <div class="app-totais" style="margin-top:1rem;border-top:2px solid var(--primary);padding-top:1rem;">
@@ -1178,6 +1183,7 @@
                 listEl.querySelectorAll('[data-action="df-delete"]').forEach(b => { b.onclick = () => this.submitDespesaFixaDelete(b.dataset.id, el); });
                 el.querySelector('#df-mes').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('notas'); };
                 el.querySelector('#df-ano').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('notas'); };
+                el.querySelector('[data-action="df-exportar"]').onclick = () => this.abrirExportarDespesasFixas(el, mesAno, meses, anos);
                 let _prevMesAno = this.getMesAnoAtual();
                 el._mesCheckInterval = setInterval(() => {
                     const now = this.getMesAnoAtual();
@@ -1219,6 +1225,44 @@
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
                     await this.refreshAppContent('notas');
                 } catch (e) { alert(e.message); }
+            }
+            abrirExportarDespesasFixas(el, fromMesAno, meses, anos) {
+                const [fromAno, fromMes] = fromMesAno.split('-').map(Number);
+                const anosOpts = Array.from({ length: 9 }, (_, i) => new Date().getFullYear() - 2 + i);
+                const overlay = document.createElement('div');
+                overlay.className = 'app-modal-overlay';
+                overlay.innerHTML = `
+                    <div class="app-modal">
+                        <h4>Exportar dados – escolha o mês espelho</h4>
+                        <p style="font-size:0.875rem;color:var(--text-light);margin-bottom:0.75rem;">Copiar despesas de <strong>${meses[fromMes-1]} ${fromAno}</strong> para:</p>
+                        <div class="app-mes-ano">
+                            <label>Mês</label>
+                            <select id="df-export-mes">${meses.map((m, i) => '<option value="'+(i+1)+'">'+m+'</option>').join('')}</select>
+                            <label>Ano</label>
+                            <select id="df-export-ano">${anosOpts.map(a => '<option value="'+a+'" '+(a===fromAno?'selected':'')+'>'+a+'</option>').join('')}</select>
+                        </div>
+                        <div class="app-modal-actions">
+                            <button type="button" class="app-btn app-btn-secondary" data-action="df-export-cancel">Cancelar</button>
+                            <button type="button" class="app-btn" data-action="df-export-confirm">Copiar</button>
+                        </div>
+                    </div>
+                `;
+                overlay.querySelector('[data-action="df-export-cancel"]').onclick = () => overlay.remove();
+                overlay.querySelector('[data-action="df-export-confirm"]').onclick = async () => {
+                    const m = overlay.querySelector('#df-export-mes').value;
+                    const a = overlay.querySelector('#df-export-ano').value;
+                    const toMesAno = a + '-' + m.padStart(2, '0');
+                    if (toMesAno === fromMesAno) { alert('Escolha um mês diferente do mês atual.'); return; }
+                    try {
+                        const res = await fetch('/api/despesas-fixas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ exportar: true, from_mes_ano: fromMesAno, to_mes_ano: toMesAno }) });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Erro ao exportar');
+                        overlay.remove();
+                        alert('Exportado: ' + (data.exported || 0) + ' registro(s) para ' + (data.to_mes_ano || toMesAno).replace('-', '/') + '.');
+                    } catch (e) { alert(e.message); }
+                };
+                overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+                document.body.appendChild(overlay);
             }
 
             renderFinancasContent(el, data) {

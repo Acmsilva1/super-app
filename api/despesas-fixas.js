@@ -58,7 +58,26 @@ export default async function handler(req, res) {
   }
   if (req.method === 'POST') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
-    const { descricao, valor, status } = body;
+    const { exportar, from_mes_ano, to_mes_ano, descricao, valor, status } = body;
+    if (exportar === true && from_mes_ano && to_mes_ano) {
+      const { ano: aFrom, mes: mFrom } = parseMesAno(from_mes_ano);
+      const { ano: aTo, mes: mTo } = parseMesAno(to_mes_ano);
+      const { start, end } = rangeMes(aFrom, mFrom);
+      const { data: rows } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .gte('created_at', start)
+        .lte('created_at', end);
+      if (!rows || rows.length === 0) return json(res, 200, { exported: 0, message: 'Nenhum registro no mês de origem' });
+      const targetStart = new Date(aTo, mTo - 1, 1);
+      let exported = 0;
+      for (const r of rows) {
+        const payload = { descricao: r.descricao, valor: Number(r.valor), status: r.status || 'pendente', created_at: targetStart.toISOString() };
+        const { error } = await supabase.from(TABLE_NAME).insert(payload);
+        if (!error) exported++;
+      }
+      return json(res, 200, { exported, to_mes_ano: `${aTo}-${String(mTo).padStart(2, '0')}` });
+    }
     if (!(descricao != null && descricao !== '')) return json(res, 400, { error: 'descricao obrigatória' });
     const payload = payloadInsert(descricao, valor ?? 0, status);
     const { data, error } = await supabase.from(TABLE_NAME).insert(payload).select().single();
