@@ -42,11 +42,31 @@ export default async function handler(req, res) {
     const { ano, mes } = parseMesAno(query.mes_ano);
     const data = filtrarPorMes(allData, ano, mes);
     const mesBr = `${String(mes).padStart(2, '0')}/${ano}`;
+    const totais = renderizarExtratoTotais(data);
+    let despesasFixas = 0;
+    const start = new Date(ano, mes - 1, 1).toISOString();
+    const end = new Date(ano, mes, 0, 23, 59, 59, 999).toISOString();
+    const { data: rowsDespesasFixas } = await supabase
+      .from('tb_despesas_fixas')
+      .select('valor')
+      .gte('created_at', start)
+      .lte('created_at', end);
+    if (rowsDespesasFixas && rowsDespesasFixas.length > 0) {
+      despesasFixas = Math.round(rowsDespesasFixas.reduce((acc, r) => acc + (Number(r.valor) || 0), 0) * 100) / 100;
+    }
+    const receitas = Number(totais.receitas) || 0;
+    const despesasVariaveis = Number(totais.despesas) || 0;
+    const liquido = Math.round((receitas - despesasVariaveis - despesasFixas) * 100) / 100;
     const result = {
       mes_ano: `${ano}-${String(mes).padStart(2, '0')}`,
       rows: data,
       lancamentos: parseRowsSupabase(data),
-      totais: renderizarExtratoTotais(data),
+      totais: {
+        receitas,
+        despesas: despesasVariaveis,
+        despesas_fixas: despesasFixas,
+        liquido,
+      },
     };
     if (query.bi === '1' || query.bi === 'true') {
       result.bi = processarBi(data, mesBr);

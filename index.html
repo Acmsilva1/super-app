@@ -1494,7 +1494,7 @@
                 if (el._chartBar) { el._chartBar.destroy(); el._chartBar = null; }
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
                 const rows = data.rows || [];
-                const totais = data.totais || { receitas: 0, despesas: 0, liquido: 0 };
+                const totais = data.totais || { receitas: 0, despesas: 0, despesas_fixas: 0, liquido: 0 };
                 const bi = data.bi || {};
                 const tabelaGastos = bi.tabela_gastos || [];
                 const categorias = ['Alimentação','Habitação','Transporte','Lazer','Saúde','Compras','Contas','Receitas'];
@@ -1502,6 +1502,10 @@
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
                 const anos = Array.from({ length: 9 }, (_, i) => new Date().getFullYear() - 2 + i);
+                const receitas = Number(totais.receitas) || 0;
+                const despesasVariaveis = Number(totais.despesas) || 0;
+                const despesasFixas = Number(totais.despesas_fixas) || 0;
+                const liquido = Number(totais.liquido) ?? (receitas - despesasVariaveis - despesasFixas);
                 el.innerHTML = `
                     <div class="app-mes-ano">
                         <label>Mês/Ano</label>
@@ -1509,9 +1513,10 @@
                         <select id="fin-ano">${anos.map(a => '<option value="'+a+'" '+(a===ano?'selected':'')+'>'+a+'</option>').join('')}</select>
                     </div>
                     <div class="app-totais">
-                        <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${Number(totais.receitas).toFixed(2)}</div><div class="stat-label">Receitas</div></div>
-                        <div class="totais-card"><div class="val" style="color:#dc2626">R$ ${Number(totais.despesas).toFixed(2)}</div><div class="stat-label">Despesas</div></div>
-                        <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${Number(totais.liquido).toFixed(2)}</div><div class="stat-label">Líquido</div></div>
+                        <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${receitas.toFixed(2)}</div><div class="stat-label">Receitas</div></div>
+                        <div class="totais-card"><div class="val" style="color:#dc2626">R$ ${despesasVariaveis.toFixed(2)}</div><div class="stat-label">Despesas variáveis</div></div>
+                        <div class="totais-card"><div class="val" style="color:#b91c1c">R$ ${despesasFixas.toFixed(2)}</div><div class="stat-label">Despesas fixas</div></div>
+                        <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${liquido.toFixed(2)}</div><div class="stat-label">Líquido</div></div>
                     </div>
                     <div class="app-form">
                         <input type="hidden" id="fin-edit-id" value="" />
@@ -1525,7 +1530,7 @@
                     </div>
                     <ul class="app-list" id="financas-list"></ul>
                     <div class="app-charts">
-                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas</p><canvas id="fin-chart-pie"></canvas></div>
+                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas variáveis x Despesas fixas</p><canvas id="fin-chart-pie"></canvas></div>
                         <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias que mais gastam</p><canvas id="fin-chart-bar"></canvas></div>
                     </div>
                 `;
@@ -1556,15 +1561,13 @@
                 let _prevMesAnoFin = this.getMesAnoAtual();
                 el._mesCheckInterval = setInterval(() => { const now = this.getMesAnoAtual(); if (now !== _prevMesAnoFin && el.getAttribute('data-mes-ano') === _prevMesAnoFin) { el.setAttribute('data-mes-ano', now); this.refreshAppContent('financas'); } _prevMesAnoFin = now; }, 60000);
                 if (typeof Chart !== 'undefined') {
-                    const receitas = Number(totais.receitas) || 0;
-                    const despesas = Number(totais.despesas) || 0;
                     const ctxPie = document.getElementById('fin-chart-pie');
-                    if (ctxPie && (receitas > 0 || despesas > 0)) {
+                    if (ctxPie && (receitas > 0 || despesasVariaveis > 0 || despesasFixas > 0)) {
                         el._chartPie = new Chart(ctxPie, {
                             type: 'doughnut',
                             data: {
-                                labels: ['Receitas', 'Despesas'],
-                                datasets: [{ data: [receitas, despesas], backgroundColor: ['#22c55e', '#dc2626'], borderWidth: 0 }]
+                                labels: ['Receitas', 'Despesas variáveis', 'Despesas fixas'],
+                                datasets: [{ data: [receitas, despesasVariaveis, despesasFixas], backgroundColor: ['#22c55e', '#dc2626', '#b91c1c'], borderWidth: 0 }]
                             },
                             options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
                         });
