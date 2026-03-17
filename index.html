@@ -42,6 +42,41 @@
             --radius: 1rem;
         }
 
+        [data-theme="dark"] {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --primary-light: #60a5fa;
+            --success: #22c55e;
+            --success-dark: #16a34a;
+            --warning: #fb923c;
+            --warning-dark: #ea580c;
+            --bg-light: #1e293b;
+            --bg-white: #0f172a;
+            --bg-gray: #1e293b;
+            --text-dark: #f1f5f9;
+            --text-light: #94a3b8;
+            --border-color: #334155;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 20px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+        }
+
+        [data-theme="dark"] .statistics,
+        [data-theme="dark"] .apps-section { background: var(--bg-white); }
+        [data-theme="dark"] .stat-card,
+        [data-theme="dark"] .app-card { background: var(--bg-gray); border-color: var(--border-color); }
+        [data-theme="dark"] .app-window .window-content { background: var(--bg-white); }
+        [data-theme="dark"] .app-form input,
+        [data-theme="dark"] .app-form select,
+        [data-theme="dark"] .app-form textarea { background: var(--bg-gray); border-color: var(--border-color); color: var(--text-dark); }
+        [data-theme="dark"] .app-chart-wrap { background: var(--bg-gray); }
+        [data-theme="dark"] .app-modal { background: var(--bg-white); color: var(--text-dark); }
+        [data-theme="dark"] .app-list li:hover { background: var(--bg-gray); }
+
         body {
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f0f9ff 100%);
@@ -765,6 +800,9 @@
                 </nav>
 
                 <div class="header-actions">
+                    <button class="header-btn" id="darkModeToggle" title="Modo escuro (alternar)" aria-label="Alternar modo escuro">
+                        <i class="fas fa-moon" id="darkModeIcon"></i>
+                    </button>
                     <button class="header-btn" title="Notificações" style="position: relative;">
                         <i class="fas fa-bell"></i>
                         <span class="notification-badge"></span>
@@ -834,6 +872,21 @@
         // ============================================
         // SUPERAPP - Sistema de Gerenciamento de Apps
         // ============================================
+        (function initDarkMode() {
+            const stored = localStorage.getItem('superapp-dark-mode');
+            const isDark = stored === 'true' || (!stored && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            const icon = document.getElementById('darkModeIcon');
+            if (icon) icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            document.getElementById('darkModeToggle')?.addEventListener('click', function () {
+                const isDarkNow = document.documentElement.getAttribute('data-theme') === 'dark';
+                document.documentElement.setAttribute('data-theme', isDarkNow ? 'light' : 'dark');
+                localStorage.setItem('superapp-dark-mode', (!isDarkNow).toString());
+                const i = document.getElementById('darkModeIcon');
+                if (i) i.className = isDarkNow ? 'fas fa-moon' : 'fas fa-sun';
+            });
+        })();
+
         function escapeHtml(s) {
             if (s == null) return '';
             const div = document.createElement('div');
