@@ -1075,7 +1075,7 @@
 
             async loadAppContent(appId, contentEl) {
                 contentEl.innerHTML = '<div class="app-loading"><i class="fas fa-spinner spinner"></i> Carregando...</div>';
-                const apiMap = { notas: 'notas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude' };
+                const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude' };
                 const path = apiMap[appId];
                 if (!path) return;
                 try {
@@ -1083,7 +1083,7 @@
                     const res = await fetch(url);
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
-                    if (appId === 'notas') this.renderNotasContent(contentEl, data);
+                    if (appId === 'notas') this.renderDespesasFixasContent(contentEl, data);
                     else if (appId === 'financas') this.renderFinancasContent(contentEl, data);
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
                     else if (appId === 'saude') this.renderSaudeContent(contentEl, data);
@@ -1100,43 +1100,85 @@
                 }
             }
 
-            renderNotasContent(el, data) {
-                const rows = data.rows || data.notas || [];
+            renderDespesasFixasContent(el, data) {
+                const rows = data.rows || data.despesas || [];
+                const soma = data.soma != null ? Number(data.soma) : rows.reduce((a, r) => a + Number(r.valor || 0), 0);
+                const editId = el.getAttribute('data-edit-id') || '';
                 el.innerHTML = `
                     <div class="app-form">
-                        <label>Título</label>
-                        <input type="text" id="nota-titulo" placeholder="Título da nota" />
-                        <label>Conteúdo</label>
-                        <textarea id="nota-conteudo" placeholder="Conteúdo"></textarea>
-                        <label>Tags (separadas por vírgula)</label>
-                        <input type="text" id="nota-tags" placeholder="ex: trabalho, ideias" />
-                        <button type="button" class="app-btn" data-action="notas-add">Adicionar nota</button>
+                        <input type="hidden" id="df-edit-id" value="${escapeHtml(editId)}" />
+                        <div class="app-form-row">
+                            <div class="field"><label>Descrição</label><input type="text" id="df-descricao" placeholder="Ex: Aluguel, Internet" /></div>
+                            <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="df-valor" placeholder="0,00" /></div>
+                            <div class="field"><label>Status</label><select id="df-status"><option value="pendente">Pendente</option><option value="pago">Pago</option></select></div>
+                        </div>
+                        <button type="button" class="app-btn" data-action="df-save">Adicionar</button>
                     </div>
-                    <ul class="app-list" id="notas-list"></ul>
+                    <ul class="app-list" id="df-list"></ul>
+                    <div class="app-totais" style="margin-top:1rem;border-top:2px solid var(--primary);padding-top:1rem;">
+                        <div class="totais-card" style="flex:1;max-width:200px;"><div class="val" style="color:#1e40af;font-size:1.25rem">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total despesas fixas</div></div>
+                    </div>
                 `;
-                const listEl = el.querySelector('#notas-list');
-                listEl.innerHTML = rows.map(n => `
+                const listEl = el.querySelector('#df-list');
+                listEl.innerHTML = rows.map(r => `
                     <li>
                         <div>
-                            <strong>${escapeHtml(n.titulo || '')}</strong>
-                            ${(n.tags && n.tags.length) ? '<span style="font-size:0.75rem;color:#6b7280"> ' + (Array.isArray(n.tags) ? n.tags.join(', ') : n.tags) + '</span>' : ''}
-                            ${n.conteudo ? '<p style="margin:0.25rem 0 0;font-size:0.8rem">' + escapeHtml(n.conteudo).slice(0, 100) + (n.conteudo.length > 100 ? '...' : '') + '</p>' : ''}
+                            <strong>${escapeHtml(r.descricao || '')}</strong>
+                            <span style="color:#1e40af;margin-left:0.5rem">R$ ${Number(r.valor).toFixed(2)}</span>
+                            <span class="badge ${r.status === 'pago' ? 'badge-success' : 'badge-beta'}" style="margin-left:0.5rem;font-size:0.7rem">${r.status === 'pago' ? 'Pago' : 'Pendente'}</span>
                         </div>
-                        <div class="app-list-actions"></div>
+                        <div class="app-list-actions">
+                            <button type="button" data-action="df-toggle" data-id="${r.id}" data-status="${r.status}">${r.status === 'pago' ? 'Marcar pendente' : 'Marcar pago'}</button>
+                            <button type="button" data-action="df-edit" data-id="${r.id}" data-descricao="${escapeHtml(r.descricao || '')}" data-valor="${r.valor}" data-status="${r.status}">Editar</button>
+                            <button type="button" data-action="df-delete" data-id="${r.id}">Excluir</button>
+                        </div>
                     </li>
-                `).join('') || '<li style="color:#9ca3af">Nenhuma nota ainda.</li>';
-                el.querySelector('[data-action="notas-add"]').onclick = () => this.submitNotasAdd(el);
+                `).join('') || '<li style="color:#9ca3af">Nenhuma despesa fixa. Adicione acima.</li>';
+                el.querySelector('[data-action="df-save"]').onclick = () => this.submitDespesaFixaSave(el);
+                listEl.querySelectorAll('[data-action="df-toggle"]').forEach(b => { b.onclick = () => this.submitDespesaFixaToggle(b.dataset.id, b.dataset.status, el); });
+                listEl.querySelectorAll('[data-action="df-edit"]').forEach(b => {
+                    b.onclick = () => {
+                        el.querySelector('#df-descricao').value = b.dataset.descricao || '';
+                        el.querySelector('#df-valor').value = b.dataset.valor ?? '';
+                        el.querySelector('#df-status').value = b.dataset.status || 'pendente';
+                        el.querySelector('#df-edit-id').value = b.dataset.id || '';
+                        el.querySelector('[data-action="df-save"]').textContent = 'Salvar';
+                    };
+                });
+                listEl.querySelectorAll('[data-action="df-delete"]').forEach(b => { b.onclick = () => this.submitDespesaFixaDelete(b.dataset.id, el); });
             }
-            async submitNotasAdd(el) {
-                const titulo = el.querySelector('#nota-titulo').value.trim();
-                const conteudo = (el.querySelector('#nota-conteudo').value || '').trim();
-                const tagsRaw = (el.querySelector('#nota-tags').value || '').trim();
-                const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
-                if (!titulo) { alert('Título é obrigatório'); return; }
+            async submitDespesaFixaSave(el) {
+                const editId = el.querySelector('#df-edit-id').value.trim();
+                const descricao = el.querySelector('#df-descricao').value.trim();
+                const valor = parseFloat(el.querySelector('#df-valor').value) || 0;
+                const status = el.querySelector('#df-status').value;
+                if (!descricao) { alert('Descrição é obrigatória'); return; }
                 try {
-                    const res = await fetch('/api/notas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ titulo, conteudo, tags }) });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+                    if (editId) {
+                        const res = await fetch('/api/despesas-fixas', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, descricao, valor, status }) });
+                        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao salvar'); }
+                    } else {
+                        const res = await fetch('/api/despesas-fixas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descricao, valor, status }) });
+                        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao salvar'); }
+                    }
+                    el.querySelector('#df-edit-id').value = '';
+                    el.querySelector('[data-action="df-save"]').textContent = 'Adicionar';
+                    await this.refreshAppContent('notas');
+                } catch (e) { alert(e.message); }
+            }
+            async submitDespesaFixaToggle(id, currentStatus, el) {
+                const newStatus = currentStatus === 'pago' ? 'pendente' : 'pago';
+                try {
+                    const res = await fetch('/api/despesas-fixas', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: newStatus }) });
+                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                    await this.refreshAppContent('notas');
+                } catch (e) { alert(e.message); }
+            }
+            async submitDespesaFixaDelete(id, el) {
+                if (!confirm('Excluir esta despesa?')) return;
+                try {
+                    const res = await fetch('/api/despesas-fixas?id=' + encodeURIComponent(id), { method: 'DELETE' });
+                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
                     await this.refreshAppContent('notas');
                 } catch (e) { alert(e.message); }
             }

@@ -1,7 +1,18 @@
 -- Schema único para o Super App (Supabase). Rodar no SQL Editor.
 -- Cria tb_notas, tb_financas, tb_lista_compras, tb_saude_familiar.
 
--- 1) Bloco de Notas
+-- 1) Bloco de Notas (despesas fixas: descrição, valor, status pago/pendente, soma no final)
+CREATE TABLE IF NOT EXISTS public.tb_despesas_fixas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  descricao TEXT NOT NULL DEFAULT '',
+  valor NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pago', 'pendente'))
+);
+
+COMMENT ON TABLE public.tb_despesas_fixas IS 'Bloco de Notas – registro de despesas fixas (descrição, valor, pago/pendente)';
+
+-- Legado: tabela de notas livre (opcional)
 CREATE TABLE IF NOT EXISTS public.tb_notas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
@@ -11,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.tb_notas (
   usuario_id UUID
 );
 
-COMMENT ON TABLE public.tb_notas IS 'Bloco de Notas – Super App';
+COMMENT ON TABLE public.tb_notas IS 'Notas livres (legado)';
 
 -- 2) Finanças (input manual: descrição, valor, tipo, categoria)
 CREATE TABLE IF NOT EXISTS public.tb_financas (
@@ -54,6 +65,8 @@ CREATE TABLE IF NOT EXISTS public.tb_saude_familiar (
 COMMENT ON TABLE public.tb_saude_familiar IS 'Saúde Familiar – Vacina, Exame, Consulta, Medicamento';
 
 -- Índices opcionais (melhoram listagens e filtros)
+CREATE INDEX IF NOT EXISTS idx_tb_despesas_fixas_created_at ON public.tb_despesas_fixas (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tb_despesas_fixas_status ON public.tb_despesas_fixas (status);
 CREATE INDEX IF NOT EXISTS idx_tb_notas_created_at ON public.tb_notas (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tb_notas_usuario_id ON public.tb_notas (usuario_id) WHERE usuario_id IS NOT NULL;
 

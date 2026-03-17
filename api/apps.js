@@ -8,7 +8,7 @@ const APPS = [
     icon: 'fa-book',
     status: 'active',
     title: 'Bloco de Notas',
-    description: 'Anote ideias, tarefas e textos com tags e organização.',
+    description: 'Registro de despesas fixas: descrição, valor, status pago/pendente e soma no final.',
     category: 'Produtividade',
   },
   {
