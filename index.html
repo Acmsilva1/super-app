@@ -855,7 +855,7 @@
     </section>
 
     <!-- APPLICATIONS -->
-    <section class="apps-section">
+    <section id="apps" class="apps-section">
         <div class="container">
             <h3 class="section-title">Aplicações Disponíveis</h3>
             <div id="appsContainer" class="apps-grid">
@@ -1106,9 +1106,9 @@
                 const windowId = `window-${appId}`;
                 const windowElement = document.createElement('div');
                 windowElement.id = windowId;
-                windowElement.className = 'app-window';
+                windowElement.className = 'app-window maximized';
                 windowElement.innerHTML = `
-                    <div class="window-header">
+                    <div class="window-header maximized">
                         <div class="window-title-group">
                             <i class="fas ${app.icon}"></i>
                             <div>
@@ -1117,15 +1117,15 @@
                             </div>
                         </div>
                         <div class="window-controls">
-                            <button class="window-btn" onclick="superApp.toggleMaximize('${windowId}')" title="Maximizar">
-                                <i class="fas fa-expand"></i>
+                            <button class="window-btn" onclick="superApp.goHome('${windowId}')" title="Voltar ao início">
+                                <i class="fas fa-home"></i>
                             </button>
                             <button class="window-btn" onclick="superApp.closeWindow('${windowId}')" title="Fechar">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="window-content">
+                    <div class="window-content maximized">
                         <div class="window-placeholder">
                             <i class="fas ${app.icon}"></i>
                             <p style="font-weight: 600; margin-bottom: 0.5rem;">${app.title}</p>
@@ -1571,15 +1571,10 @@
                 }
             }
 
-            toggleMaximize(windowId) {
-                const element = document.getElementById(windowId);
-                if (element) {
-                    element.classList.toggle('maximized');
-                    const header = element.querySelector('.window-header');
-                    const content = element.querySelector('.window-content');
-                    header.classList.toggle('maximized');
-                    content.classList.toggle('maximized');
-                }
+            goHome(windowId) {
+                this.closeWindow(windowId);
+                const appsEl = document.getElementById('apps');
+                if (appsEl) appsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
 
             updateStatistics() {
