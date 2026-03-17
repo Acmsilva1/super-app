@@ -2,19 +2,22 @@
  * Service Worker – SUPERAPP PWA
  * Incrementar CACHE_VERSION a cada deploy/commit para invalidar cache e forçar atualização.
  */
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_VERSION = '3dda7d8';
 const CACHE_NAME = 'superapp-' + CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/icon.png',
-  '/manifest.json'
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.allSettled(ASSETS_TO_CACHE.map((url) => cache.add(url).catch(() => {})))
+    ).then(() => self.skipWaiting())
   );
 });
 
