@@ -1,6 +1,6 @@
 /**
  * Lista de aplicações do Super App (usada pelo index.html no Vercel).
- * Cada app corresponde a uma API: /api/notas, /api/financas, /api/lista-compras, /api/saude.
+ * Cada app corresponde a uma API: /api/despesas-fixas (Bloco de Notas), /api/financas, /api/lista-compras, /api/saude.
  */
 const APPS = [
   {
