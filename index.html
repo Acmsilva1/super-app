@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUPERAPP</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Cores SUPERAPP */
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --primary-light: #3b82f6;
+            --success: #22c55e;
+            --success-dark: #16a34a;
+            --warning: #fed7aa;
+            --warning-dark: #92400e;
+            --bg-light: #f0f9ff;
+            --bg-white: #ffffff;
+            --bg-gray: #f3f4f6;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 20px 25px rgba(0, 0, 0, 0.15);
+            --radius: 1rem;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #f0f9ff 100%);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(to right, #2563eb, #1e40af);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .logo-icon {
+            width: 3rem;
+            height: 3rem;
+            background: white;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--primary);
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .logo-text p {
+            font-size: 0.75rem;
+            color: #dbeafe;
+            font-weight: 600;
+        }
+
+        nav {
+            display: flex;
+            gap: 2rem;
+            flex-grow: 1;
+        }
+
+        nav a {
+            color: #dbeafe;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: white;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .header-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 1.25rem;
+            transition: background 0.3s ease;
+            border-radius: 0.5rem;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            width: 0.5rem;
+            height: 0.5rem;
+            background: #f97316;
+            border-radius: 50%;
+        }
+
+        .menu-toggle {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                display: none;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .header-content {
+                gap: 1rem;
+            }
+        }
+
+        /* HERO SECTION */
+        .hero {
+            background: linear-gradient(to right, #2563eb, #1e40af);
+            color: white;
+            padding: 3rem 1rem;
+            text-align: center;
+        }
+
+        .hero h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: #dbeafe;
+            max-width: 42rem;
+            margin: 0 auto;
+        }
+
+        /* STATISTICS */
+        .statistics {
+            background: white;
+            padding: 2rem 1rem;
+            border-bottom: 2px solid #dbeafe;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .stat-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 8rem;
+        }
+
+        .spinner {
+            font-size: 2rem;
+            color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* APPLICATIONS SECTION */
+        .apps-section {
+            padding: 3rem 1rem;
+        }
+
+        .section-title {
+            font-size: 1.875rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .app-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .app-card:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-md);
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .app-icon-box {
+            width: 4rem;
+            height: 4rem;
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            transition: transform 0.3s ease;
+        }
+
+        .app-card:hover .app-icon-box {
+            transform: scale(1.1);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-beta {
+            background: #fed7aa;
+            color: #92400e;
+        }
+
+        .badge-maintenance {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .app-title {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .app-description {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .app-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .app-category {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+
+        .app-arrow {
+            font-size: 1.25rem;
+            transition: transform 0.3s ease;
+        }
+
+        .app-card:hover .app-arrow {
+            transform: translateX(0.25rem);
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 16rem;
+            background: #f0f9ff;
+            border: 2px dashed #dbeafe;
+            border-radius: var(--radius);
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 2.5rem;
+            color: #93c5fd;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state-text {
+            color: var(--text-light);
+            font-weight: 600;
+        }
+
+        /* ROADMAP SECTION */
+        .roadmap-section {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 3rem 1rem;
+        }
+
+        .roadmap-section .section-title {
+            color: white;
+        }
+
+        .timeline {
+            margin-top: 2rem;
+            position: relative;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 1rem;
+            padding-bottom: 2rem;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 1.5rem;
+            top: 3rem;
+            width: 0.25rem;
+            height: 3rem;
+            background: #bfdbfe;
+        }
+
+        .timeline-item:last-child::before {
+            display: none;
+        }
+
+        .timeline-indicator {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            background: white;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .timeline-content h4 {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .timeline-content p {
+            color: #dbeafe;
+        }
+
+        .roadmap-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 16rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: var(--radius);
+            text-align: center;
+        }
+
+        .roadmap-empty-icon {
+            font-size: 2.5rem;
+            color: #bfdbfe;
+            margin-bottom: 1rem;
+        }
+
+        .roadmap-empty-text {
+            color: #dbeafe;
+            font-weight: 600;
+        }
+
+        /* FOOTER */
+        footer {
+            background: #1e3a8a;
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+
+        footer p {
+            margin-bottom: 0.5rem;
+        }
+
+        footer .heart {
+            color: #ef4444;
+        }
+
+        /* APP WINDOWS */
+        .app-window {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            width: 24rem;
+            height: 24rem;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            z-index: 50;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .app-window.maximized {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            bottom: auto;
+            right: auto;
+        }
+
+        .window-header {
+            background: linear-gradient(to right, #2563eb, #1e40af);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--radius) var(--radius) 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .window-header.maximized {
+            border-radius: 0;
+        }
+
+        .window-title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .window-title-group i {
+            font-size: 1rem;
+        }
+
+        .window-title {
+            font-weight: bold;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        .window-subtitle {
+            font-size: 0.75rem;
+            color: #dbeafe;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .window-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            transition: background 0.3s ease;
+            border-radius: 0.25rem;
+        }
+
+        .window-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .window-content {
+            flex: 1;
+            overflow: auto;
+            padding: 1rem;
+            background: white;
+        }
+
+        .window-content.maximized {
+            border-radius: 0;
+        }
+
+        .window-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .window-placeholder i {
+            font-size: 2.5rem;
+            color: #93c5fd;
+            margin-bottom: 1rem;
+        }
+
+        /* UTILITY CLASSES */
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-2 {
+            margin-top: 0.5rem;
+        }
+
+        .mt-4 {
+            margin-top: 1rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-8 {
+            margin-bottom: 2rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .hero h2 {
+                font-size: 1.875rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .apps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .app-window {
+                width: 100%;
+                height: 100%;
+                bottom: 0;
+                right: 0;
+                border-radius: 0;
+            }
+
+            .app-window.maximized {
+                inset: 0;
+            }
+
+            nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>SUPERAPP</h1>
+                        <p>Plataforma de Microserviços</p>
+                    </div>
+                </div>
+
+                <nav>
+                    <a href="#dashboard">Dashboard</a>
+                    <a href="#apps">Aplicações</a>
+                    <a href="#docs">Documentação</a>
+                </nav>
+
+                <div class="header-actions">
+                    <button class="header-btn" title="Notificações" style="position: relative;">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge"></span>
+                    </button>
+                    <button class="header-btn" title="Configurações">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button class="header-btn" title="Perfil">
+                        <i class="fas fa-user"></i>
+                    </button>
+                    <button class="header-btn menu-toggle" title="Menu">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="container">
+            <h2>Bem-vindo ao SUPERAPP</h2>
+            <p>Plataforma unificada de microserviços e aplicações práticas. Acesse todas as suas ferramentas em um único lugar.</p>
+        </div>
+    </section>
+
+    <!-- STATISTICS -->
+    <section class="statistics">
+        <div class="container">
+            <h3 class="section-title">Estatísticas</h3>
+            <div id="statsContainer" class="stats-grid">
+                <div class="stat-loading">
+                    <i class="fas fa-spinner spinner"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- APPLICATIONS -->
+    <section class="apps-section">
+        <div class="container">
+            <h3 class="section-title">Aplicações Disponíveis</h3>
+            <div id="appsContainer" class="apps-grid">
+                <div class="empty-state">
+                    <div>
+                        <div class="empty-state-icon">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <p class="empty-state-text">Nenhuma aplicação disponível</p>
+                        <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>© 2026 SUPERAPP - Plataforma de Microserviços</p>
+        <p>Desenvolvido para produtividade</p>
+    </footer>
+
+    <!-- APP WINDOWS CONTAINER -->
+    <div id="windowsContainer"></div>
+
+    <script>
+        // ============================================
+        // SUPERAPP - Sistema de Gerenciamento de Apps
+        // ============================================
+
+        class SuperApp {
+            constructor() {
+                this.apps = [];
+                this.statistics = {
+                    totalApps: 0,
+                    activeApps: 0,
+                    betaApps: 0,
+                    openApps: 0
+                };
+                this.roadmap = [];
+                this.openWindows = new Map();
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadData();
+            }
+
+            setupEventListeners() {
+                // Menu toggle
+                document.querySelector('.menu-toggle').addEventListener('click', () => {
+                    const nav = document.querySelector('nav');
+                    nav.style.display = nav.style.display === 'flex' ? 'none' : 'flex';
+                });
+            }
+
+            // ============================================
+            // CARREGAR DADOS DO BACKEND
+            // ============================================
+            loadData() {
+                this.loadApps();
+                this.loadStatistics();
+                this.loadRoadmap();
+            }
+
+            async loadApps() {
+                try {
+                    // TODO: Substituir com sua URL de backend
+                    // const response = await fetch('/api/apps');
+                    // const data = await response.json();
+                    // this.apps = data;
+                    
+                    // Por enquanto, deixar vazio
+                    this.apps = [];
+                    this.renderApps();
+                } catch (error) {
+                    console.error('Erro ao carregar aplicações:', error);
+                    this.renderApps();
+                }
+            }
+
+            async loadStatistics() {
+                try {
+                    // TODO: Substituir com sua URL de backend
+                    // const response = await fetch('/api/statistics');
+                    // const data = await response.json();
+                    // this.statistics = data;
+                    
+                    // Por enquanto, deixar vazio
+                    this.statistics = {
+                        totalApps: 0,
+                        activeApps: 0,
+                        betaApps: 0,
+                        openApps: 0
+                    };
+                    this.renderStatistics();
+                } catch (error) {
+                    console.error('Erro ao carregar estatísticas:', error);
+                    this.renderStatistics();
+                }
+            }
+
+            async loadRoadmap() {
+                try {
+                    // TODO: Substituir com sua URL de backend
+                    // const response = await fetch('/api/roadmap');
+                    // const data = await response.json();
+                    // this.roadmap = data;
+                    
+                    // Por enquanto, deixar vazio
+                    this.roadmap = [];
+                    this.renderRoadmap();
+                } catch (error) {
+                    console.error('Erro ao carregar roadmap:', error);
+                    this.renderRoadmap();
+                }
+            }
+
+            // ============================================
+            // RENDERIZAR COMPONENTES
+            // ============================================
+            renderStatistics() {
+                const container = document.getElementById('statsContainer');
+                
+                if (!this.statistics || this.statistics.totalApps === 0) {
+                    container.innerHTML = `
+                        <div class="stat-card">
+                            <div class="stat-number" style="color: #2563eb;">0</div>
+                            <div class="stat-label">Aplicações</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" style="color: #22c55e;">0</div>
+                            <div class="stat-label">Ativas</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" style="color: #f97316;">0</div>
+                            <div class="stat-label">Beta</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" style="color: #93c5fd;">0</div>
+                            <div class="stat-label">Abertas</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number" style="color: #2563eb;">${this.statistics.totalApps}</div>
+                        <div class="stat-label">Aplicações</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" style="color: #22c55e;">${this.statistics.activeApps}</div>
+                        <div class="stat-label">Ativas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" style="color: #f97316;">${this.statistics.betaApps}</div>
+                        <div class="stat-label">Beta</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" style="color: #93c5fd;">${this.openWindows.size}</div>
+                        <div class="stat-label">Abertas</div>
+                    </div>
+                `;
+            }
+
+            renderApps() {
+                const container = document.getElementById('appsContainer');
+
+                if (this.apps.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div>
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-inbox"></i>
+                                </div>
+                                <p class="empty-state-text">Nenhuma aplicação disponível</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.apps.map(app => `
+                    <div class="app-card" onclick="superApp.launchApp('${app.id}')">
+                        <div class="app-header">
+                            <div class="app-icon-box">
+                                <i class="fas ${app.icon}"></i>
+                            </div>
+                            <span class="badge badge-${app.status}">
+                                ${app.status === 'active' ? 'ATIVO' : app.status === 'beta' ? 'BETA' : 'MANUTENÇÃO'}
+                            </span>
+                        </div>
+                        <h4 class="app-title">${app.title}</h4>
+                        <p class="app-description">${app.description}</p>
+                        <div class="app-footer">
+                            <span class="app-category">${app.category}</span>
+                            <span class="app-arrow">→</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderRoadmap() {
+                const container = document.getElementById('roadmapContainer');
+
+                if (this.roadmap.length === 0) {
+                    container.innerHTML = `
+                        <div class="roadmap-empty">
+                            <div>
+                                <div class="roadmap-empty-icon">
+                                    <i class="fas fa-map"></i>
+                                </div>
+                                <p class="roadmap-empty-text">Roadmap não carregado</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap será carregado do backend</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.roadmap.map(item => `
+                    <div class="timeline-item">
+                        <div class="timeline-indicator">${item.step}</div>
+                        <div class="timeline-content">
+                            <h4>${item.title}</h4>
+                            <p>${item.description}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // ============================================
+            // GERENCIAR JANELAS DE APPS
+            // ============================================
+            launchApp(appId) {
+                if (this.openWindows.has(appId)) {
+                    return;
+                }
+
+                const app = this.apps.find(a => a.id === appId);
+                if (!app) return;
+
+                const windowId = `window-${appId}`;
+                const windowElement = document.createElement('div');
+                windowElement.id = windowId;
+                windowElement.className = 'app-window';
+                windowElement.innerHTML = `
+                    <div class="window-header">
+                        <div class="window-title-group">
+                            <i class="fas ${app.icon}"></i>
+                            <div>
+                                <div class="window-title">${app.title}</div>
+                                <div class="window-subtitle">${app.description}</div>
+                            </div>
+                        </div>
+                        <div class="window-controls">
+                            <button class="window-btn" onclick="superApp.toggleMaximize('${windowId}')" title="Maximizar">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                            <button class="window-btn" onclick="superApp.closeWindow('${windowId}')" title="Fechar">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="window-content">
+                        <div class="window-placeholder">
+                            <i class="fas ${app.icon}"></i>
+                            <p style="font-weight: 600; margin-bottom: 0.5rem;">${app.title}</p>
+                            <p style="font-size: 0.875rem;">${app.description}</p>
+                            <p style="font-size: 0.75rem; margin-top: 1rem; color: #d1d5db;">Conteúdo será carregado do backend</p>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('windowsContainer').appendChild(windowElement);
+                this.openWindows.set(appId, windowElement);
+                this.updateStatistics();
+            }
+
+            closeWindow(windowId) {
+                const element = document.getElementById(windowId);
+                if (element) {
+                    element.remove();
+                    const appId = windowId.replace('window-', '');
+                    this.openWindows.delete(appId);
+                    this.updateStatistics();
+                }
+            }
+
+            toggleMaximize(windowId) {
+                const element = document.getElementById(windowId);
+                if (element) {
+                    element.classList.toggle('maximized');
+                    const header = element.querySelector('.window-header');
+                    const content = element.querySelector('.window-content');
+                    header.classList.toggle('maximized');
+                    content.classList.toggle('maximized');
+                }
+            }
+
+            updateStatistics() {
+                this.statistics.openApps = this.openWindows.size;
+                this.renderStatistics();
+            }
+
+            // ============================================
+            // MÉTODOS PARA INTEGRAÇÃO COM BACKEND
+            // ============================================
+            
+            /**
+             * Método para você chamar quando receber dados do backend
+             * Exemplo: superApp.setApps(dataFromBackend)
+             */
+            setApps(apps) {
+                this.apps = apps;
+                this.renderApps();
+            }
+
+            /**
+             * Método para você chamar quando receber estatísticas do backend
+             * Exemplo: superApp.setStatistics(statsFromBackend)
+             */
+            setStatistics(stats) {
+                this.statistics = { ...stats, openApps: this.openWindows.size };
+                this.renderStatistics();
+            }
+
+            /**
+             * Método para você chamar quando receber roadmap do backend
+             * Exemplo: superApp.setRoadmap(roadmapFromBackend)
+             */
+            setRoadmap(roadmap) {
+                this.roadmap = roadmap;
+                this.renderRoadmap();
+            }
+        }
+
+        // Inicializar SUPERAPP
+        const superApp = new SuperApp();
+
+        // ============================================
+        // EXEMPLO DE COMO INTEGRAR COM BACKEND
+        // ============================================
+        
+        /*
+        // Exemplo 1: Carregar dados quando página carrega
+        window.addEventListener('load', async () => {
+            try {
+                const [appsRes, statsRes, roadmapRes] = await Promise.all([
+                    fetch('/api/apps'),
+                    fetch('/api/statistics'),
+                    fetch('/api/roadmap')
+                ]);
+
+                const apps = await appsRes.json();
+                const stats = await statsRes.json();
+                const roadmap = await roadmapRes.json();
+
+                superApp.setApps(apps);
+                superApp.setStatistics(stats);
+                superApp.setRoadmap(roadmap);
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            }
+        });
+
+        // Exemplo 2: Atualizar dados a cada 30 segundos
+        setInterval(async () => {
+            try {
+                const response = await fetch('/api/statistics');
+                const stats = await response.json();
+                superApp.setStatistics(stats);
+            } catch (error) {
+                console.error('Erro ao atualizar estatísticas:', error);
+            }
+        }, 30000);
+
+        // Exemplo 3: Usar WebSocket para atualizações em tempo real
+        const ws = new WebSocket('ws://seu-backend.com/api/updates');
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'apps') superApp.setApps(data.payload);
+            if (data.type === 'statistics') superApp.setStatistics(data.payload);
+            if (data.type === 'roadmap') superApp.setRoadmap(data.payload);
+        };
+        */
+    </script>
+</body>
+</html>
