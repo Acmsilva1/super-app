@@ -218,6 +218,27 @@
             color: white;
         }
 
+        nav a.nav-link.active {
+            color: white;
+            text-decoration: underline;
+        }
+
+        body.view-apps #dashboard {
+            display: none;
+        }
+
+        body.view-apps #apps {
+            display: block;
+        }
+
+        body.view-dashboard #dashboard {
+            display: block;
+        }
+
+        body.view-dashboard #apps {
+            display: none;
+        }
+
         .header-actions {
             display: flex;
             gap: 1rem;
@@ -823,7 +844,7 @@
         }
     </style>
 </head>
-<body>
+<body class="view-apps">
     <!-- HEADER -->
     <header>
         <div class="container">
@@ -839,9 +860,8 @@
                 </div>
 
                 <nav>
-                    <a href="#dashboard">Dashboard</a>
-                    <a href="#apps">Aplicações</a>
-                    <a href="#docs">Documentação</a>
+                    <a href="#dashboard" id="navDashboard" class="nav-link">Dashboard</a>
+                    <a href="#apps" id="navApps" class="nav-link active">Aplicações</a>
                 </nav>
 
                 <div class="header-actions">
@@ -975,7 +995,27 @@
             }
 
             setupEventListeners() {
-                // Menu toggle
+                const navDashboard = document.getElementById('navDashboard');
+                const navApps = document.getElementById('navApps');
+                if (navDashboard) {
+                    navDashboard.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        document.body.classList.remove('view-apps');
+                        document.body.classList.add('view-dashboard');
+                        navDashboard.classList.add('active');
+                        if (navApps) navApps.classList.remove('active');
+                        setTimeout(() => this.renderDashboardCharts(), 50);
+                    });
+                }
+                if (navApps) {
+                    navApps.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        document.body.classList.remove('view-dashboard');
+                        document.body.classList.add('view-apps');
+                        navApps.classList.add('active');
+                        if (navDashboard) navDashboard.classList.remove('active');
+                    });
+                }
                 document.querySelector('.menu-toggle').addEventListener('click', () => {
                     const nav = document.querySelector('nav');
                     nav.style.display = nav.style.display === 'flex' ? 'none' : 'flex';
