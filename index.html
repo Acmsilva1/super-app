@@ -1103,6 +1103,8 @@
             renderDespesasFixasContent(el, data) {
                 const rows = data.rows || data.despesas || [];
                 const soma = data.soma != null ? Number(data.soma) : rows.reduce((a, r) => a + Number(r.valor || 0), 0);
+                const somaPago = data.somaPago != null ? Number(data.somaPago) : rows.filter(r => (r.status || '').toLowerCase() === 'pago').reduce((a, r) => a + Number(r.valor || 0), 0);
+                const somaPendente = data.somaPendente != null ? Number(data.somaPendente) : rows.filter(r => (r.status || '').toLowerCase() !== 'pago').reduce((a, r) => a + Number(r.valor || 0), 0);
                 const editId = el.getAttribute('data-edit-id') || '';
                 el.innerHTML = `
                     <div class="app-form">
@@ -1116,7 +1118,9 @@
                     </div>
                     <ul class="app-list" id="df-list"></ul>
                     <div class="app-totais" style="margin-top:1rem;border-top:2px solid var(--primary);padding-top:1rem;">
-                        <div class="totais-card" style="flex:1;max-width:200px;"><div class="val" style="color:#1e40af;font-size:1.25rem">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total despesas fixas</div></div>
+                        <div class="totais-card" style="flex:1;max-width:200px;"><div class="val" style="color:#1e40af;font-size:1.25rem">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total</div></div>
+                        <div class="totais-card" style="flex:1;max-width:200px;"><div class="val" style="color:#16a34a;font-size:1.25rem">R$ ${somaPago.toFixed(2)}</div><div class="stat-label">Pagos</div></div>
+                        <div class="totais-card" style="flex:1;max-width:200px;"><div class="val" style="color:#dc2626;font-size:1.25rem">R$ ${somaPendente.toFixed(2)}</div><div class="stat-label">Pendentes</div></div>
                     </div>
                 `;
                 const listEl = el.querySelector('#df-list');

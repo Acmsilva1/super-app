@@ -8,5 +8,6 @@ export {
   payloadInsert,
   payloadUpdate,
   calcularSoma,
+  calcularSomasPorStatus,
   parseRowsSupabase,
 } from './service/despesasFixasService.js';

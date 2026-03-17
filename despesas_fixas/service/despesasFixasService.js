@@ -20,6 +20,22 @@ export function calcularSoma(rows) {
   return (rows || []).reduce((acc, r) => acc + Number(r?.valor ?? 0), 0);
 }
 
+export function calcularSomasPorStatus(rows) {
+  const list = rows || [];
+  let somaPago = 0;
+  let somaPendente = 0;
+  for (const r of list) {
+    const v = Number(r?.valor ?? 0);
+    if ((r?.status || '').toLowerCase() === 'pago') somaPago += v;
+    else somaPendente += v;
+  }
+  return {
+    soma: Math.round((somaPago + somaPendente) * 100) / 100,
+    somaPago: Math.round(somaPago * 100) / 100,
+    somaPendente: Math.round(somaPendente * 100) / 100,
+  };
+}
+
 export function parseRowsSupabase(rows) {
   return (rows || []).map((r) => DespesaFixa.fromRow(r));
 }

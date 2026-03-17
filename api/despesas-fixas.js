@@ -3,7 +3,7 @@ import {
   TABLE_NAME,
   payloadInsert,
   payloadUpdate,
-  calcularSoma,
+  calcularSomasPorStatus,
   parseRowsSupabase,
 } from '../despesas_fixas/index.js';
 
@@ -16,8 +16,14 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { data, error } = await supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: false });
     if (error) return json(res, 500, { error: error.message });
-    const soma = calcularSoma(data);
-    return json(res, 200, { rows: data, despesas: parseRowsSupabase(data), soma: Math.round(soma * 100) / 100 });
+    const somas = calcularSomasPorStatus(data);
+    return json(res, 200, {
+      rows: data,
+      despesas: parseRowsSupabase(data),
+      soma: somas.soma,
+      somaPago: somas.somaPago,
+      somaPendente: somas.somaPendente,
+    });
   }
   if (req.method === 'POST') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
