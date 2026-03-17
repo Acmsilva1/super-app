@@ -12,12 +12,43 @@ function json(res, status, data) {
   res.status(status).end(JSON.stringify(data));
 }
 
+function parseMesAno(mesAno) {
+  const now = new Date();
+  let ano = now.getFullYear();
+  let mes = now.getMonth() + 1;
+  if (mesAno && /^\d{4}-\d{2}$/.test(mesAno)) {
+    const [a, m] = mesAno.split('-').map(Number);
+    ano = a;
+    mes = m;
+  }
+  return { ano, mes };
+}
+
+function rangeMes(ano, mes) {
+  const start = new Date(ano, mes - 1, 1);
+  const end = new Date(ano, mes, 0, 23, 59, 59, 999);
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+    mes_ano: `${ano}-${String(mes).padStart(2, '0')}`,
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    const { data, error } = await supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: false });
+    const query = req.query || {};
+    const { ano, mes } = parseMesAno(query.mes_ano);
+    const { start, end, mes_ano } = rangeMes(ano, mes);
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .gte('created_at', start)
+      .lte('created_at', end)
+      .order('created_at', { ascending: false });
     if (error) return json(res, 500, { error: error.message });
     const somas = calcularSomasPorStatus(data);
     return json(res, 200, {
+      mes_ano,
       rows: data,
       despesas: parseRowsSupabase(data),
       soma: somas.soma,

@@ -679,6 +679,9 @@
         @media (max-width: 640px) { .app-charts { grid-template-columns: 1fr; } }
         .app-chart-wrap { background: var(--bg-light); border-radius: var(--radius); padding: 1rem; min-height: 220px; }
         .app-chart-wrap canvas { max-height: 220px; }
+        .app-mes-ano { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .app-mes-ano label { font-size: 0.875rem; font-weight: 600; }
+        .app-mes-ano select { padding: 0.4rem 0.6rem; border-radius: 0.5rem; border: 1px solid var(--border-color); font-size: 0.875rem; }
 
         /* UTILITY CLASSES */
         .text-center {
@@ -1078,18 +1081,26 @@
                 this.loadAppContent(appId, contentEl);
             }
 
+            getMesAnoAtual() {
+                const d = new Date();
+                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            }
             async loadAppContent(appId, contentEl) {
                 contentEl.innerHTML = '<div class="app-loading"><i class="fas fa-spinner spinner"></i> Carregando...</div>';
                 const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude' };
                 const path = apiMap[appId];
                 if (!path) return;
+                let mesAno = contentEl.getAttribute('data-mes-ano');
+                if ((appId === 'notas' || appId === 'financas') && !mesAno) mesAno = this.getMesAnoAtual();
                 try {
-                    const url = path === 'financas' ? '/api/financas?bi=1' : path === 'saude' ? '/api/saude' : '/api/' + path;
+                    let url = path === 'saude' ? '/api/saude' : '/api/' + path;
+                    if (appId === 'notas') url = '/api/despesas-fixas?mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
+                    else if (appId === 'financas') url = '/api/financas?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     const res = await fetch(url);
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
-                    if (appId === 'notas') this.renderDespesasFixasContent(contentEl, data);
-                    else if (appId === 'financas') this.renderFinancasContent(contentEl, data);
+                    if (appId === 'notas') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderDespesasFixasContent(contentEl, data); }
+                    else if (appId === 'financas') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinancasContent(contentEl, data); }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
                     else if (appId === 'saude') this.renderSaudeContent(contentEl, data);
                 } catch (err) {
@@ -1106,12 +1117,22 @@
             }
 
             renderDespesasFixasContent(el, data) {
+                if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
                 const rows = data.rows || data.despesas || [];
                 const soma = data.soma != null ? Number(data.soma) : rows.reduce((a, r) => a + Number(r.valor || 0), 0);
                 const somaPago = data.somaPago != null ? Number(data.somaPago) : rows.filter(r => (r.status || '').toLowerCase() === 'pago').reduce((a, r) => a + Number(r.valor || 0), 0);
                 const somaPendente = data.somaPendente != null ? Number(data.somaPendente) : rows.filter(r => (r.status || '').toLowerCase() !== 'pago').reduce((a, r) => a + Number(r.valor || 0), 0);
                 const editId = el.getAttribute('data-edit-id') || '';
+                const mesAno = data.mes_ano || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
+                const [ano, mes] = mesAno.split('-').map(Number);
+                const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+                const anos = Array.from({ length: 9 }, (_, i) => new Date().getFullYear() - 2 + i);
                 el.innerHTML = `
+                    <div class="app-mes-ano">
+                        <label>Mês/Ano</label>
+                        <select id="df-mes">${meses.map((m, i) => '<option value="'+(i+1)+'" '+(i+1===mes?'selected':'')+'>'+m+'</option>').join('')}</select>
+                        <select id="df-ano">${anos.map(a => '<option value="'+a+'" '+(a===ano?'selected':'')+'>'+a+'</option>').join('')}</select>
+                    </div>
                     <div class="app-form">
                         <input type="hidden" id="df-edit-id" value="${escapeHtml(editId)}" />
                         <div class="app-form-row">
@@ -1155,6 +1176,14 @@
                     };
                 });
                 listEl.querySelectorAll('[data-action="df-delete"]').forEach(b => { b.onclick = () => this.submitDespesaFixaDelete(b.dataset.id, el); });
+                el.querySelector('#df-mes').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('notas'); };
+                el.querySelector('#df-ano').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('notas'); };
+                let _prevMesAno = this.getMesAnoAtual();
+                el._mesCheckInterval = setInterval(() => {
+                    const now = this.getMesAnoAtual();
+                    if (now !== _prevMesAno && el.getAttribute('data-mes-ano') === _prevMesAno) { el.setAttribute('data-mes-ano', now); this.refreshAppContent('notas'); }
+                    _prevMesAno = now;
+                }, 60000);
             }
             async submitDespesaFixaSave(el) {
                 const editId = el.querySelector('#df-edit-id').value.trim();
@@ -1195,12 +1224,22 @@
             renderFinancasContent(el, data) {
                 if (el._chartPie) { el._chartPie.destroy(); el._chartPie = null; }
                 if (el._chartBar) { el._chartBar.destroy(); el._chartBar = null; }
+                if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
                 const rows = data.rows || [];
                 const totais = data.totais || { receitas: 0, despesas: 0, liquido: 0 };
                 const bi = data.bi || {};
                 const tabelaGastos = bi.tabela_gastos || [];
                 const categorias = ['Alimentação','Habitação','Transporte','Lazer','Saúde','Compras','Contas','Receitas'];
+                const mesAno = data.mes_ano || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
+                const [ano, mes] = mesAno.split('-').map(Number);
+                const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+                const anos = Array.from({ length: 9 }, (_, i) => new Date().getFullYear() - 2 + i);
                 el.innerHTML = `
+                    <div class="app-mes-ano">
+                        <label>Mês/Ano</label>
+                        <select id="fin-mes">${meses.map((m, i) => '<option value="'+(i+1)+'" '+(i+1===mes?'selected':'')+'>'+m+'</option>').join('')}</select>
+                        <select id="fin-ano">${anos.map(a => '<option value="'+a+'" '+(a===ano?'selected':'')+'>'+a+'</option>').join('')}</select>
+                    </div>
                     <div class="app-totais">
                         <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${Number(totais.receitas).toFixed(2)}</div><div class="stat-label">Receitas</div></div>
                         <div class="totais-card"><div class="val" style="color:#dc2626">R$ ${Number(totais.despesas).toFixed(2)}</div><div class="stat-label">Despesas</div></div>
@@ -1244,6 +1283,10 @@
                     };
                 });
                 listEl.querySelectorAll('[data-action="fin-delete"]').forEach(b => { b.onclick = () => this.submitFinancasDelete(b.dataset.id, el); });
+                el.querySelector('#fin-mes').onchange = () => { const m = el.querySelector('#fin-mes').value; const a = el.querySelector('#fin-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('financas'); };
+                el.querySelector('#fin-ano').onchange = () => { const m = el.querySelector('#fin-mes').value; const a = el.querySelector('#fin-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('financas'); };
+                let _prevMesAnoFin = this.getMesAnoAtual();
+                el._mesCheckInterval = setInterval(() => { const now = this.getMesAnoAtual(); if (now !== _prevMesAnoFin && el.getAttribute('data-mes-ano') === _prevMesAnoFin) { el.setAttribute('data-mes-ano', now); this.refreshAppContent('financas'); } _prevMesAnoFin = now; }, 60000);
                 if (typeof Chart !== 'undefined') {
                     const receitas = Number(totais.receitas) || 0;
                     const despesas = Number(totais.despesas) || 0;
@@ -1410,6 +1453,8 @@
             closeWindow(windowId) {
                 const element = document.getElementById(windowId);
                 if (element) {
+                    const contentEl = element.querySelector('.window-content');
+                    if (contentEl && contentEl._mesCheckInterval) clearInterval(contentEl._mesCheckInterval);
                     element.remove();
                     const appId = windowId.replace('window-', '');
                     this.openWindows.delete(appId);
