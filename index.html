@@ -1304,13 +1304,12 @@
 
             renderListaComprasContent(el, data) {
                 const rows = data.rows || data.itens || [];
-                const categorias = ['Mantimentos', 'Higiene / limpeza', 'Feira', 'Carnes'];
                 el.innerHTML = `
                     <div class="app-form">
                         <div class="app-form-row">
                             <div class="field"><label>Item</label><input type="text" id="lista-item" placeholder="Ex: Leite" /></div>
                             <div class="field"><label>Qtd</label><input type="number" min="1" id="lista-qtd" value="1" /></div>
-                            <div class="field"><label>Categoria</label><select id="lista-categoria">${categorias.map(c => '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>').join('')}</select></div>
+                            <div class="field"><label>Prioridade</label><select id="lista-prioridade"><option value="1">Baixa</option><option value="2">Média</option><option value="3">Alta</option></select></div>
                         </div>
                         <button type="button" class="app-btn" data-action="lista-add">Adicionar</button>
                         <button type="button" class="app-btn app-btn-secondary" data-action="lista-reset">Desmarcar todos</button>
@@ -1324,7 +1323,6 @@
                         <div>
                             <input type="checkbox" class="app-checkbox" data-action="lista-toggle" data-id="${r.id}" ${r.comprado ? 'checked' : ''} />
                             <span class="item-text">${escapeHtml(r.item || '')}</span> ${r.quantidade > 1 ? ' x ' + r.quantidade : ''} ${r.unidade_medida ? r.unidade_medida : ''}
-                            ${r.categoria ? '<span style="font-size:0.75rem;color:#6b7280;margin-left:0.5rem">['+escapeHtml(r.categoria)+']</span>' : ''}
                         </div>
                         <div class="app-list-actions">
                             <button type="button" data-action="lista-toggle" data-id="${r.id}">${r.comprado ? 'Desmarcar' : 'Marcar'}</button>
@@ -1339,10 +1337,10 @@
             async submitListaAdd(el) {
                 const item = el.querySelector('#lista-item').value.trim();
                 const quantidade = parseInt(el.querySelector('#lista-qtd').value, 10) || 1;
-                const categoria = el.querySelector('#lista-categoria').value || 'Mantimentos';
+                const prioridade = parseInt(el.querySelector('#lista-prioridade').value, 10) || 1;
                 if (!item) { alert('Item é obrigatório'); return; }
                 try {
-                    const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade, categoria }) });
+                    const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade, prioridade }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
                     await this.refreshAppContent('lista_compras');
                 } catch (e) { alert(e.message); }

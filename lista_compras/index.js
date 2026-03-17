@@ -1,6 +1,8 @@
 export {
   TABLE_NAME,
-  CATEGORIAS_LISTA,
+  PRIORIDADE_BAIXA,
+  PRIORIDADE_MEDIA,
+  PRIORIDADE_ALTA,
   ItemLista,
 } from './model/itemLista.js';
 export {
@@ -10,6 +12,6 @@ export {
   resetChecksPayload,
   contarComprados,
   contarPendentes,
-  ordenarPorCategoria,
+  ordenarPorPrioridade,
   parseRowsSupabase,
 } from './service/listaComprasService.js';
