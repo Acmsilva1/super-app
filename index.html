@@ -1684,6 +1684,7 @@
             renderSaudeContent(el, data) {
                 const rows = data.rows || data.registros || [];
                 const tipos = ['Vacina','Exame','Consulta','Medicamento'];
+                delete el.dataset.saudeEditingId;
                 el.innerHTML = `
                     <div class="app-form">
                         <div class="app-form-row">
@@ -1692,17 +1693,34 @@
                             <div class="field"><label>Detalhes</label><input type="text" id="saude-detalhes" placeholder="Ex: Dose 1" /></div>
                             <div class="field"><label>Data</label><input type="date" id="saude-data" /></div>
                         </div>
-                        <button type="button" class="app-btn" data-action="saude-add">Registrar</button>
+                        <button type="button" class="app-btn" data-action="saude-submit">Registrar</button>
                     </div>
                     <ul class="app-list" id="saude-list"></ul>
                 `;
                 const listEl = el.querySelector('#saude-list');
                 listEl.innerHTML = rows.map(r => `
-                    <li>
+                    <li data-id="${escapeHtml(r.id || '')}">
                         <div><strong>${escapeHtml(r.membro_familia || '')}</strong> – ${escapeHtml(r.tipo_registro || '')} ${r.detalhes ? ': ' + escapeHtml(r.detalhes) : ''} ${r.data_evento ? ' (' + r.data_evento + ')' : ''}</div>
+                        <div class="app-list-actions">
+                            <button type="button" data-action="saude-edit" data-id="${escapeHtml(r.id || '')}">Editar</button>
+                            <button type="button" data-action="saude-delete" data-id="${escapeHtml(r.id || '')}" style="background:#fef2f2;color:#dc2626">Excluir</button>
+                        </div>
                     </li>
                 `).join('') || '<li style="color:#9ca3af">Nenhum registro.</li>';
-                el.querySelector('[data-action="saude-add"]').onclick = () => this.submitSaudeAdd(el);
+                el.querySelector('[data-action="saude-submit"]').onclick = () => this.submitSaudeAdd(el);
+                listEl.querySelectorAll('[data-action="saude-edit"]').forEach(btn => { btn.onclick = () => this.saudeEdit(el, btn.dataset.id, rows); });
+                listEl.querySelectorAll('[data-action="saude-delete"]').forEach(btn => { btn.onclick = () => this.submitSaudeDelete(btn.dataset.id, el); });
+            }
+            saudeEdit(el, id, rows) {
+                const r = rows.find(x => x.id === id) || rows.find(x => x.id === String(id));
+                if (!r) return;
+                el.querySelector('#saude-membro').value = r.membro_familia || '';
+                el.querySelector('#saude-tipo').value = r.tipo_registro || '';
+                el.querySelector('#saude-detalhes').value = r.detalhes || '';
+                el.querySelector('#saude-data').value = r.data_evento || '';
+                el.dataset.saudeEditingId = id;
+                const btn = el.querySelector('[data-action="saude-submit"]');
+                if (btn) btn.textContent = 'Atualizar';
             }
             async submitSaudeAdd(el) {
                 const membro_familia = el.querySelector('#saude-membro').value.trim();
@@ -1710,10 +1728,40 @@
                 const detalhes = (el.querySelector('#saude-detalhes').value || '').trim();
                 const data_evento = el.querySelector('#saude-data').value || null;
                 if (!membro_familia) { alert('Membro é obrigatório'); return; }
+                const editingId = el.dataset.saudeEditingId;
                 try {
-                    const res = await fetch('/api/saude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membro_familia, tipo_registro, detalhes, data_evento }) });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+                    if (editingId) {
+                        const res = await fetch('/api/saude', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingId, membro_familia, tipo_registro, detalhes, data_evento }) });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Erro ao atualizar');
+                        delete el.dataset.saudeEditingId;
+                        el.querySelector('[data-action="saude-submit"]').textContent = 'Registrar';
+                        el.querySelector('#saude-membro').value = '';
+                        el.querySelector('#saude-tipo').value = 'Vacina';
+                        el.querySelector('#saude-detalhes').value = '';
+                        el.querySelector('#saude-data').value = '';
+                    } else {
+                        const res = await fetch('/api/saude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membro_familia, tipo_registro, detalhes, data_evento }) });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+                    }
+                    await this.refreshAppContent('saude');
+                } catch (e) { alert(e.message); }
+            }
+            async submitSaudeDelete(id, el) {
+                if (!id) return;
+                if (!confirm('Excluir este registro? Não é possível desfazer.')) return;
+                try {
+                    const res = await fetch('/api/saude', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
+                    if (el.dataset.saudeEditingId === id) {
+                        delete el.dataset.saudeEditingId;
+                        el.querySelector('[data-action="saude-submit"]').textContent = 'Registrar';
+                        el.querySelector('#saude-membro').value = '';
+                        el.querySelector('#saude-tipo').value = 'Vacina';
+                        el.querySelector('#saude-detalhes').value = '';
+                        el.querySelector('#saude-data').value = '';
+                    }
                     await this.refreshAppContent('saude');
                 } catch (e) { alert(e.message); }
             }

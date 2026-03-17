@@ -42,6 +42,14 @@ export default async function handler(req, res) {
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, data);
   }
-  res.setHeader('Allow', 'GET, POST, PATCH');
+  if (req.method === 'DELETE') {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+    const id = body.id ?? req.query?.id;
+    if (!id) return json(res, 400, { error: 'id obrigatório' });
+    const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
+    if (error) return json(res, 500, { error: error.message });
+    return json(res, 200, { ok: true });
+  }
+  res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
   return json(res, 405, { error: 'Method Not Allowed' });
 }

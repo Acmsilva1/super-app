@@ -7,4 +7,5 @@ export {
   obterUltimoPorTipo,
   renderizarResumo,
   parseRowsSupabase,
+  idParaExclusao,
 } from './service/saudeService.js';

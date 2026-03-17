@@ -80,3 +80,10 @@ export function renderizarResumo(rows, membro_familia) {
 export function parseRowsSupabase(rows) {
   return (rows || []).map((r) => RegistroSaude.fromRow(r));
 }
+
+/** Retorna o id do registro para uso em exclusão (DELETE). */
+export function idParaExclusao(registro) {
+  if (registro instanceof RegistroSaude) return registro.id ?? null;
+  if (registro && typeof registro === 'object' && 'id' in registro) return registro.id ?? null;
+  return null;
+}

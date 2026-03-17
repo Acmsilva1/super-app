@@ -33,6 +33,18 @@ export class RegistroSaude {
     return payload;
   }
 
+  /** Monta objeto para UPDATE (editar). */
+  toUpdate() {
+    const payload = {
+      membro_familia: (this.membro_familia || '').trim(),
+      tipo_registro: (this.tipo_registro || '').trim(),
+      detalhes: (this.detalhes || '').trim(),
+    };
+    if (this.data_evento !== undefined && this.data_evento !== null) payload.data_evento = this.data_evento;
+    if (this.anexo_url !== undefined && this.anexo_url !== null) payload.anexo_url = this.anexo_url;
+    return payload;
+  }
+
   static fromRow(row) {
     return new RegistroSaude({
       id: row?.id,
