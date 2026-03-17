@@ -1699,13 +1699,20 @@
         };
         */
 
-        // PWA: instalação no mobile – mostrar botão quando o navegador permitir instalar
+        // PWA: instalação no mobile como app (não só atalho)
         let deferredInstallPrompt = null;
         const pwaInstallBtn = document.getElementById('pwaInstallBtn');
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && window.innerWidth < 1024);
+        function updateInstallButton() {
+            if (!pwaInstallBtn) return;
+            if (isStandalone) { pwaInstallBtn.style.display = 'none'; return; }
+            if (deferredInstallPrompt || isMobile) pwaInstallBtn.style.display = 'block';
+        }
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredInstallPrompt = e;
-            if (pwaInstallBtn) pwaInstallBtn.style.display = 'block';
+            updateInstallButton();
         });
         window.addEventListener('appinstalled', () => {
             deferredInstallPrompt = null;
@@ -1713,13 +1720,17 @@
         });
         if (pwaInstallBtn) {
             pwaInstallBtn.addEventListener('click', async () => {
-                if (!deferredInstallPrompt) return;
-                deferredInstallPrompt.prompt();
-                const { outcome } = await deferredInstallPrompt.userChoice;
-                deferredInstallPrompt = null;
-                if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
+                if (deferredInstallPrompt) {
+                    deferredInstallPrompt.prompt();
+                    const { outcome } = await deferredInstallPrompt.userChoice;
+                    deferredInstallPrompt = null;
+                    if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
+                } else if (isMobile) {
+                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (⋮ ou ⋯)\n2. Escolha "Instalar app" ou "Adicionar à tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
+                }
             });
         }
+        updateInstallButton();
 
         // PWA: registrar SW, detectar mudança de versão (deploy) e atualizar cache
         if ('serviceWorker' in navigator) {
