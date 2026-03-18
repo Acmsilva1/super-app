@@ -93,6 +93,11 @@ export default async function handler(req, res) {
     }
     if (!(descricao != null && descricao !== '')) return json(res, 400, { error: 'descricao obrigatória' });
     const payload = payloadInsert(descricao, valor ?? 0, status);
+    const mesRef = body.mes_ano;
+    if (mesRef && /^\d{4}-\d{2}$/.test(String(mesRef))) {
+      const { ano: a, mes: m } = parseMesAno(mesRef);
+      payload.created_at = new Date(a, m - 1, 1, 12, 0, 0, 0).toISOString();
+    }
     const { data, error } = await supabase.from(TABLE_NAME).insert(payload).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 201, data);
