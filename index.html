@@ -820,6 +820,20 @@
         .app-checkbox { margin-right: 0.5rem; cursor: pointer; }
         .app-list li.comprado { opacity: 0.7; }
         .app-list li.comprado .item-text { text-decoration: line-through; }
+        .lista-compras-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; margin-top: 1rem; align-items: start; }
+        .lista-compras-col { background: var(--bg-light); border-radius: var(--radius); border: 1px solid var(--border-color); overflow: hidden; min-width: 0; }
+        .lista-compras-col-head { width: 100%; display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.85rem; background: var(--bg-gray); border: none; border-bottom: 1px solid var(--border-color); cursor: pointer; font-weight: 600; font-size: 0.875rem; text-align: left; color: inherit; font-family: inherit; }
+        .lista-compras-col-head:hover { filter: brightness(1.05); }
+        .lista-compras-col-title { flex: 1; min-width: 0; line-height: 1.25; }
+        .lista-compras-col-badge { flex-shrink: 0; background: var(--border-color); border-radius: 999px; padding: 0.12rem 0.5rem; font-size: 0.72rem; font-weight: 600; }
+        .lista-compras-col-chevron { flex-shrink: 0; font-size: 0.65rem; opacity: 0.85; transition: transform 0.2s ease; }
+        .lista-compras-col.is-collapsed .lista-compras-col-chevron { transform: rotate(-90deg); }
+        .lista-compras-col-body { max-height: 420px; overflow-y: auto; }
+        .lista-compras-col.is-collapsed .lista-compras-col-body { display: none; }
+        .lista-compras-col-list { margin: 0; border: none; border-radius: 0; }
+        .lista-compras-col-list li { border-bottom: 1px solid var(--border-color); }
+        .lista-compras-col-list li:last-child { border-bottom: none; }
+        .lista-compras-cols li.lista-compras-empty { display: block; width: 100%; text-align: center; color: #9ca3af; padding: 0.85rem; font-size: 0.875rem; border: none; list-style: none; }
         .app-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
         @media (max-width: 640px) { .app-charts { grid-template-columns: 1fr; } }
         .app-chart-wrap { background: var(--bg-light); border-radius: var(--radius); padding: 1rem; min-height: 220px; }
@@ -1628,6 +1642,43 @@
             renderListaComprasContent(el, data) {
                 const rows = data.rows || data.itens || [];
                 const categorias = ['Mantimentos', 'Higiene / limpeza', 'Feira', 'Carnes'];
+                const LS_COLS = 'lista_compras_colunas_collapsed';
+                let collapsedMap = {};
+                try { collapsedMap = JSON.parse(localStorage.getItem(LS_COLS) || '{}'); } catch (e) { collapsedMap = {}; }
+                const byCat = {};
+                categorias.forEach((c) => { byCat[c] = []; });
+                rows.forEach((r) => {
+                    const c = categorias.includes(r.categoria) ? r.categoria : categorias[0];
+                    byCat[c].push(r);
+                });
+                const itemRow = (r) => `
+                    <li class="${r.comprado ? 'comprado' : ''}" data-id="${r.id}">
+                        <div>
+                            <input type="checkbox" class="app-checkbox" data-action="lista-toggle" data-id="${r.id}" ${r.comprado ? 'checked' : ''} />
+                            <span class="item-text">${escapeHtml(r.item || '')}</span> ${r.quantidade > 1 ? ' x ' + r.quantidade : ''} ${r.unidade_medida ? escapeHtml(String(r.unidade_medida)) : ''}
+                        </div>
+                        <div class="app-list-actions">
+                            <button type="button" data-action="lista-toggle" data-id="${r.id}">${r.comprado ? 'Desmarcar' : 'Marcar'}</button>
+                        </div>
+                    </li>`;
+                const colsHtml = categorias.map((cat) => {
+                    const items = byCat[cat];
+                    const isCollapsed = collapsedMap[cat] === true;
+                    const inner = items.length
+                        ? items.map(itemRow).join('')
+                        : '<li class="lista-compras-empty">Nenhum item nesta categoria.</li>';
+                    const safeAttr = String(cat).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                    return `<div class="lista-compras-col${isCollapsed ? ' is-collapsed' : ''}" data-lista-categoria="${safeAttr}">
+                        <button type="button" class="lista-compras-col-head" aria-expanded="${!isCollapsed}">
+                            <span class="lista-compras-col-title">${escapeHtml(cat)}</span>
+                            <span class="lista-compras-col-badge">${items.length}</span>
+                            <span class="lista-compras-col-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="lista-compras-col-body">
+                            <ul class="app-list lista-compras-col-list">${inner}</ul>
+                        </div>
+                    </div>`;
+                }).join('');
                 el.innerHTML = `
                     <div class="app-form">
                         <div class="app-form-row">
@@ -1639,25 +1690,27 @@
                         <button type="button" class="app-btn app-btn-secondary" data-action="lista-reset">Desmarcar todos</button>
                         <button type="button" class="app-btn app-btn-secondary" data-action="lista-delete-all" style="background:#fef2f2;color:#dc2626">Apagar todos</button>
                     </div>
-                    <ul class="app-list" id="lista-list"></ul>
+                    <div class="lista-compras-cols" id="lista-compras-cols">${colsHtml}</div>
                 `;
-                const listEl = el.querySelector('#lista-list');
-                listEl.innerHTML = rows.map(r => `
-                    <li class="${r.comprado ? 'comprado' : ''}" data-id="${r.id}">
-                        <div>
-                            <input type="checkbox" class="app-checkbox" data-action="lista-toggle" data-id="${r.id}" ${r.comprado ? 'checked' : ''} />
-                            <span class="item-text">${escapeHtml(r.item || '')}</span> ${r.quantidade > 1 ? ' x ' + r.quantidade : ''} ${r.unidade_medida ? r.unidade_medida : ''}
-                            ${r.categoria ? '<span style="font-size:0.75rem;color:#6b7280;margin-left:0.5rem">['+escapeHtml(r.categoria)+']</span>' : ''}
-                        </div>
-                        <div class="app-list-actions">
-                            <button type="button" data-action="lista-toggle" data-id="${r.id}">${r.comprado ? 'Desmarcar' : 'Marcar'}</button>
-                        </div>
-                    </li>
-                `).join('') || '<li style="color:#9ca3af">Lista vazia.</li>';
                 el.querySelector('[data-action="lista-add"]').onclick = () => this.submitListaAdd(el);
                 el.querySelector('[data-action="lista-reset"]').onclick = () => this.submitListaReset(el);
                 el.querySelector('[data-action="lista-delete-all"]').onclick = () => this.submitListaDeleteAll(el);
-                listEl.querySelectorAll('[data-action="lista-toggle"]').forEach(btn => { btn.onclick = () => this.submitListaToggle(btn.dataset.id, el); });
+                el.querySelectorAll('.lista-compras-col-head').forEach((btn) => {
+                    btn.onclick = () => {
+                        const col = btn.closest('.lista-compras-col');
+                        const cat = col.getAttribute('data-lista-categoria') || '';
+                        col.classList.toggle('is-collapsed');
+                        const nowCollapsed = col.classList.contains('is-collapsed');
+                        btn.setAttribute('aria-expanded', !nowCollapsed);
+                        let m = {};
+                        try { m = JSON.parse(localStorage.getItem(LS_COLS) || '{}'); } catch (e) { m = {}; }
+                        m[cat] = nowCollapsed;
+                        localStorage.setItem(LS_COLS, JSON.stringify(m));
+                    };
+                });
+                el.querySelectorAll('#lista-compras-cols [data-action="lista-toggle"]').forEach((btn) => {
+                    btn.onclick = (e) => { e.stopPropagation(); this.submitListaToggle(btn.dataset.id, el); };
+                });
             }
             async submitListaAdd(el) {
                 const item = el.querySelector('#lista-item').value.trim();
