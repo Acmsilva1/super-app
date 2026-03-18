@@ -1898,87 +1898,204 @@
                     await this.refreshAppContent('lista_compras');
                 } catch (e) { alert(e.message); }
             }
+            saudeFmtDataBR(d) {
+                if (!d) return '';
+                const s = String(d).slice(0, 10);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+                const [y, m, day] = s.split('-');
+                return `${day}-${m}-${y}`;
+            },
+            saudeParseDataBR(v) {
+                const t = (v || '').trim();
+                if (!t) return null;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+                const m = t.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+                if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+                const m2 = t.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                if (m2) return `${m2[3]}-${m2[2]}-${m2[1]}`;
+                return null;
+            },
+            saudeFmtHora(h) {
+                if (h == null || h === '') return '';
+                const s = String(h).trim();
+                return s.length >= 5 ? s.slice(0, 5) : s;
+            },
             renderSaudeContent(el, data) {
                 const rows = data.rows || data.registros || [];
-                const tipos = ['Vacina','Exame','Consulta','Medicamento'];
+                const tipos = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
+                const tiposCol = [...tipos, 'Outros'];
+                const LS_SAU = 'saude_colunas_collapsed';
+                let collapsedMap = {};
+                try { collapsedMap = JSON.parse(localStorage.getItem(LS_SAU) || '{}'); } catch (e) { collapsedMap = {}; }
+                const byTipo = {};
+                tiposCol.forEach((t) => { byTipo[t] = []; });
+                rows.forEach((r) => {
+                    const c = tipos.includes(r.tipo_registro) ? r.tipo_registro : 'Outros';
+                    byTipo[c].push(r);
+                });
+                tiposCol.forEach((t) => {
+                    byTipo[t].sort((a, b) => {
+                        const da = (a.data_evento || a.created_at || '').slice(0, 10);
+                        const db = (b.data_evento || b.created_at || '').slice(0, 10);
+                        return db.localeCompare(da);
+                    });
+                });
                 delete el.dataset.saudeEditingId;
                 el.innerHTML = `
                     <div class="app-form">
                         <div class="app-form-row">
                             <div class="field"><label>Membro</label><input type="text" id="saude-membro" placeholder="Nome" /></div>
-                            <div class="field"><label>Tipo</label><select id="saude-tipo">${tipos.map(t => '<option value="'+t+'">'+t+'</option>').join('')}</select></div>
+                            <div class="field"><label>Tipo</label><select id="saude-tipo">${tipos.map((t) => '<option value="' + t + '">' + t + '</option>').join('')}</select></div>
                             <div class="field"><label>Detalhes</label><input type="text" id="saude-detalhes" placeholder="Ex: Dose 1" /></div>
-                            <div class="field"><label>Data</label><input type="date" id="saude-data" /></div>
+                            <div class="field"><label>Data (dd-mm-aaaa)</label><input type="text" id="saude-data" placeholder="dd-mm-aaaa" inputmode="numeric" autocomplete="off" /></div>
+                            <div class="field"><label>Hora</label><input type="time" id="saude-hora" step="60" /></div>
                         </div>
-                        <button type="button" class="app-btn" data-action="saude-submit">Registrar</button>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+                            <button type="button" class="app-btn" data-action="saude-submit">Registrar</button>
+                            <button type="button" class="app-btn app-btn-secondary" data-action="saude-cancel" style="display:none">Cancelar</button>
+                        </div>
                     </div>
-                    <ul class="app-list" id="saude-list"></ul>
+                    <div class="lista-compras-cols" id="saude-cols"></div>
                 `;
-                const listEl = el.querySelector('#saude-list');
-                listEl.innerHTML = rows.map(r => `
-                    <li data-id="${escapeHtml(r.id || '')}">
-                        <div><strong>${escapeHtml(r.membro_familia || '')}</strong> – ${escapeHtml(r.tipo_registro || '')} ${r.detalhes ? ': ' + escapeHtml(r.detalhes) : ''} ${r.data_evento ? ' (' + r.data_evento + ')' : ''}</div>
+                const fmtDataBR = (d) => this.saudeFmtDataBR(d);
+                const fmtHora = (h) => this.saudeFmtHora(h);
+                const itemLi = (r, colTipo) => {
+                    const dataBr = fmtDataBR(r.data_evento);
+                    const hora = fmtHora(r.hora_evento);
+                    const quando = [dataBr || null, hora ? 'às ' + hora : null].filter(Boolean).join(' · ');
+                    const rotuloOutros = colTipo === 'Outros' && r.tipo_registro ? ' <span style="font-size:0.75rem;color:#9ca3af">(' + escapeHtml(r.tipo_registro) + ')</span>' : '';
+                    return `<li data-id="${escapeHtml(r.id || '')}">
+                        <div><strong>${escapeHtml(r.membro_familia || '')}</strong>${rotuloOutros}${r.detalhes ? ' — ' + escapeHtml(r.detalhes) : ''}${quando ? '<br/><span style="font-size:0.8rem;color:#9ca3af">' + escapeHtml(quando) + '</span>' : ''}</div>
                         <div class="app-list-actions">
                             <button type="button" data-action="saude-edit" data-id="${escapeHtml(r.id || '')}">Editar</button>
                             <button type="button" data-action="saude-delete" data-id="${escapeHtml(r.id || '')}" style="background:#fef2f2;color:#dc2626">Excluir</button>
                         </div>
-                    </li>
-                `).join('') || '<li style="color:#9ca3af">Nenhum registro.</li>';
+                    </li>`;
+                };
+                const colsHtml = tiposCol.map((tipoNome) => {
+                    const items = byTipo[tipoNome];
+                    const isCollapsed = collapsedMap[tipoNome] === true;
+                    const safeAttr = String(tipoNome).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                    const inner = items.length
+                        ? items.map((r) => itemLi(r, tipoNome)).join('')
+                        : '<li class="lista-compras-empty">Nenhum registro.</li>';
+                    return `<div class="lista-compras-col${isCollapsed ? ' is-collapsed' : ''}" data-saude-tipo="${safeAttr}">
+                        <button type="button" class="lista-compras-col-head" aria-expanded="${!isCollapsed}">
+                            <span class="lista-compras-col-title">${escapeHtml(tipoNome)}</span>
+                            <span class="lista-compras-col-badge">${items.length}</span>
+                            <span class="lista-compras-col-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="lista-compras-col-body"><ul class="app-list lista-compras-col-list">${inner}</ul></div>
+                    </div>`;
+                }).join('');
+                el.querySelector('#saude-cols').innerHTML = colsHtml;
+                const wireSaudeCol = (root) => {
+                    root.querySelectorAll('[data-action="saude-edit"]').forEach((btn) => {
+                        btn.onclick = () => this.saudeEdit(el, btn.dataset.id, rows);
+                    });
+                    root.querySelectorAll('[data-action="saude-delete"]').forEach((btn) => {
+                        btn.onclick = () => this.submitSaudeDelete(btn.dataset.id, el);
+                    });
+                };
+                wireSaudeCol(el.querySelector('#saude-cols'));
+                el.querySelectorAll('#saude-cols .lista-compras-col-head').forEach((btn) => {
+                    btn.onclick = () => {
+                        const col = btn.closest('.lista-compras-col');
+                        const tipo = col.getAttribute('data-saude-tipo') || '';
+                        col.classList.toggle('is-collapsed');
+                        const nowCollapsed = col.classList.contains('is-collapsed');
+                        btn.setAttribute('aria-expanded', !nowCollapsed);
+                        let m = {};
+                        try { m = JSON.parse(localStorage.getItem(LS_SAU) || '{}'); } catch (e) { m = {}; }
+                        m[tipo] = nowCollapsed;
+                        localStorage.setItem(LS_SAU, JSON.stringify(m));
+                    };
+                });
                 el.querySelector('[data-action="saude-submit"]').onclick = () => this.submitSaudeAdd(el);
-                listEl.querySelectorAll('[data-action="saude-edit"]').forEach(btn => { btn.onclick = () => this.saudeEdit(el, btn.dataset.id, rows); });
-                listEl.querySelectorAll('[data-action="saude-delete"]').forEach(btn => { btn.onclick = () => this.submitSaudeDelete(btn.dataset.id, el); });
-            }
+                el.querySelector('[data-action="saude-cancel"]').onclick = () => this.saudeCancelForm(el);
+            },
+            saudeCancelForm(el) {
+                const tiposStd = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
+                const sel = el.querySelector('#saude-tipo');
+                if (sel) sel.querySelectorAll('option').forEach((o) => { if (!tiposStd.includes(o.value)) o.remove(); });
+                delete el.dataset.saudeEditingId;
+                el.querySelector('#saude-membro').value = '';
+                el.querySelector('#saude-tipo').value = 'Vacina';
+                el.querySelector('#saude-detalhes').value = '';
+                el.querySelector('#saude-data').value = '';
+                const h = el.querySelector('#saude-hora');
+                if (h) h.value = '';
+                const btn = el.querySelector('[data-action="saude-submit"]');
+                if (btn) btn.textContent = 'Registrar';
+                const c = el.querySelector('[data-action="saude-cancel"]');
+                if (c) c.style.display = 'none';
+            },
             saudeEdit(el, id, rows) {
-                const r = rows.find(x => x.id === id) || rows.find(x => x.id === String(id));
+                const tiposStd = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
+                const r = rows.find((x) => x.id === id) || rows.find((x) => x.id === String(id));
                 if (!r) return;
+                const sel = el.querySelector('#saude-tipo');
+                sel.querySelectorAll('option').forEach((o) => {
+                    if (!tiposStd.includes(o.value)) o.remove();
+                });
                 el.querySelector('#saude-membro').value = r.membro_familia || '';
-                el.querySelector('#saude-tipo').value = r.tipo_registro || '';
+                if (!tiposStd.includes(r.tipo_registro) && r.tipo_registro) {
+                    const o = document.createElement('option');
+                    o.value = r.tipo_registro;
+                    o.textContent = r.tipo_registro;
+                    sel.appendChild(o);
+                }
+                sel.value = r.tipo_registro || 'Vacina';
                 el.querySelector('#saude-detalhes').value = r.detalhes || '';
-                el.querySelector('#saude-data').value = r.data_evento || '';
+                el.querySelector('#saude-data').value = r.data_evento ? this.saudeFmtDataBR(r.data_evento) : '';
+                const hi = el.querySelector('#saude-hora');
+                if (hi) hi.value = r.hora_evento ? this.saudeFmtHora(r.hora_evento) : '';
                 el.dataset.saudeEditingId = id;
                 const btn = el.querySelector('[data-action="saude-submit"]');
                 if (btn) btn.textContent = 'Atualizar';
-            }
+                const c = el.querySelector('[data-action="saude-cancel"]');
+                if (c) c.style.display = '';
+            },
             async submitSaudeAdd(el) {
                 const membro_familia = el.querySelector('#saude-membro').value.trim();
                 const tipo_registro = el.querySelector('#saude-tipo').value;
                 const detalhes = (el.querySelector('#saude-detalhes').value || '').trim();
-                const data_evento = el.querySelector('#saude-data').value || null;
+                const dataRaw = (el.querySelector('#saude-data').value || '').trim();
+                const data_evento = dataRaw ? this.saudeParseDataBR(dataRaw) : null;
+                if (dataRaw && !data_evento) {
+                    alert('Data inválida. Use dd-mm-aaaa (ex.: 15-02-2026).');
+                    return;
+                }
+                const horaVal = (el.querySelector('#saude-hora') && el.querySelector('#saude-hora').value) || '';
+                const hora_evento = horaVal.trim() ? horaVal.trim().slice(0, 5) : null;
                 if (!membro_familia) { alert('Membro é obrigatório'); return; }
                 const editingId = el.dataset.saudeEditingId;
                 try {
                     if (editingId) {
-                        const res = await fetch('/api/saude', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingId, membro_familia, tipo_registro, detalhes, data_evento }) });
+                        const res = await fetch('/api/saude', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingId, membro_familia, tipo_registro, detalhes, data_evento, hora_evento }) });
                         const data = await res.json();
                         if (!res.ok) throw new Error(data.error || 'Erro ao atualizar');
-                        delete el.dataset.saudeEditingId;
-                        el.querySelector('[data-action="saude-submit"]').textContent = 'Registrar';
+                        this.saudeCancelForm(el);
+                    } else {
+                        const res = await fetch('/api/saude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membro_familia, tipo_registro, detalhes, data_evento, hora_evento: hora_evento || undefined }) });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
                         el.querySelector('#saude-membro').value = '';
                         el.querySelector('#saude-tipo').value = 'Vacina';
                         el.querySelector('#saude-detalhes').value = '';
                         el.querySelector('#saude-data').value = '';
-                    } else {
-                        const res = await fetch('/api/saude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membro_familia, tipo_registro, detalhes, data_evento }) });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+                        if (el.querySelector('#saude-hora')) el.querySelector('#saude-hora').value = '';
                     }
                     await this.refreshAppContent('saude');
                 } catch (e) { alert(e.message); }
-            }
+            },
             async submitSaudeDelete(id, el) {
                 if (!id) return;
                 if (!confirm('Excluir este registro? Não é possível desfazer.')) return;
                 try {
                     const res = await fetch('/api/saude', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
-                    if (el.dataset.saudeEditingId === id) {
-                        delete el.dataset.saudeEditingId;
-                        el.querySelector('[data-action="saude-submit"]').textContent = 'Registrar';
-                        el.querySelector('#saude-membro').value = '';
-                        el.querySelector('#saude-tipo').value = 'Vacina';
-                        el.querySelector('#saude-detalhes').value = '';
-                        el.querySelector('#saude-data').value = '';
-                    }
+                    if (el.dataset.saudeEditingId === id) this.saudeCancelForm(el);
                     await this.refreshAppContent('saude');
                 } catch (e) { alert(e.message); }
             }

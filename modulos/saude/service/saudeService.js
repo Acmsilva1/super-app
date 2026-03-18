@@ -5,6 +5,7 @@ export function payloadInsert(
   tipo_registro,
   detalhes = '',
   data_evento = null,
+  hora_evento = null,
   anexo_url = null
 ) {
   const payload = {
@@ -13,8 +14,14 @@ export function payloadInsert(
     detalhes: (detalhes || '').trim(),
   };
   if (data_evento) payload.data_evento = data_evento;
+  if (hora_evento != null && String(hora_evento).trim()) outHora(payload, hora_evento);
   if (anexo_url) payload.anexo_url = anexo_url;
   return payload;
+}
+
+function outHora(payload, hora_evento) {
+  const h = String(hora_evento).trim().slice(0, 8);
+  if (/^\d{1,2}:\d{2}/.test(h)) payload.hora_evento = h.length === 5 ? h : h.slice(0, 5);
 }
 
 export function payloadUpdate(
@@ -22,6 +29,7 @@ export function payloadUpdate(
   tipo_registro = undefined,
   detalhes = undefined,
   data_evento = undefined,
+  hora_evento = undefined,
   anexo_url = undefined
 ) {
   const out = {};
@@ -29,6 +37,12 @@ export function payloadUpdate(
   if (tipo_registro !== undefined) out.tipo_registro = String(tipo_registro).trim();
   if (detalhes !== undefined) out.detalhes = String(detalhes).trim();
   if (data_evento !== undefined) out.data_evento = data_evento;
+  if (hora_evento !== undefined) {
+    out.hora_evento =
+      hora_evento != null && String(hora_evento).trim()
+        ? String(hora_evento).trim().slice(0, 5)
+        : null;
+  }
   if (anexo_url !== undefined) out.anexo_url = anexo_url;
   return out;
 }
