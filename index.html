@@ -811,6 +811,12 @@
         .app-totais { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
         .app-totais .totais-card { padding: 0.75rem; border-radius: 0.5rem; background: var(--bg-light); text-align: center; }
         .app-totais .totais-card .val { font-weight: 700; font-size: 1.125rem; }
+        .app-totais .totais-card--despesas { text-align: left; min-width: 0; }
+        .app-totais .totais-card--despesas .despesas-titulo { text-align: center; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted, #9ca3af); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.02em; }
+        .app-totais .totais-card--despesas .despesa-linha { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.35rem 0; border-top: 1px solid var(--border-color); font-size: 0.8125rem; }
+        .app-totais .totais-card--despesas .despesa-linha:first-of-type { border-top: none; padding-top: 0; }
+        .app-totais .totais-card--despesas .despesa-linha .despesa-nome { color: var(--text, #e5e7eb); flex: 1; }
+        .app-totais .totais-card--despesas .despesa-linha .val { font-size: 1rem; white-space: nowrap; }
         .app-checkbox { margin-right: 0.5rem; cursor: pointer; }
         .app-list li.comprado { opacity: 0.7; }
         .app-list li.comprado .item-text { text-decoration: line-through; }
@@ -1514,8 +1520,11 @@
                     </div>
                     <div class="app-totais">
                         <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${receitas.toFixed(2)}</div><div class="stat-label">Receitas</div></div>
-                        <div class="totais-card"><div class="val" style="color:#dc2626">R$ ${despesasVariaveis.toFixed(2)}</div><div class="stat-label">Despesas variáveis</div></div>
-                        <div class="totais-card"><div class="val" style="color:#b91c1c">R$ ${despesasFixas.toFixed(2)}</div><div class="stat-label">Despesas fixas</div></div>
+                        <div class="totais-card totais-card--despesas">
+                            <div class="despesas-titulo">Despesas</div>
+                            <div class="despesa-linha"><span class="despesa-nome">Despesas fixas</span><span class="val" style="color:#b91c1c">R$ ${despesasFixas.toFixed(2)}</span></div>
+                            <div class="despesa-linha"><span class="despesa-nome">Despesas variáveis</span><span class="val" style="color:#dc2626">R$ ${despesasVariaveis.toFixed(2)}</span></div>
+                        </div>
                         <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${liquido.toFixed(2)}</div><div class="stat-label">Líquido</div></div>
                     </div>
                     <div class="app-form">
