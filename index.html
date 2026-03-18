@@ -1923,17 +1923,16 @@
             renderSaudeContent(el, data) {
                 const rows = data.rows || data.registros || [];
                 const tipos = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
-                const tiposCol = [...tipos, 'Outros'];
                 const LS_SAU = 'saude_colunas_collapsed';
                 let collapsedMap = {};
                 try { collapsedMap = JSON.parse(localStorage.getItem(LS_SAU) || '{}'); } catch (e) { collapsedMap = {}; }
                 const byTipo = {};
-                tiposCol.forEach((t) => { byTipo[t] = []; });
+                tipos.forEach((t) => { byTipo[t] = []; });
                 rows.forEach((r) => {
-                    const c = tipos.includes(r.tipo_registro) ? r.tipo_registro : 'Outros';
+                    const c = tipos.includes(r.tipo_registro) ? r.tipo_registro : 'Consulta';
                     byTipo[c].push(r);
                 });
-                tiposCol.forEach((t) => {
+                tipos.forEach((t) => {
                     byTipo[t].sort((a, b) => {
                         const da = (a.data_evento || a.created_at || '').slice(0, 10);
                         const db = (b.data_evento || b.created_at || '').slice(0, 10);
@@ -1963,16 +1962,16 @@
                     const dataBr = fmtDataBR(r.data_evento);
                     const hora = fmtHora(r.hora_evento);
                     const quando = [dataBr || null, hora ? 'às ' + hora : null].filter(Boolean).join(' · ');
-                    const rotuloOutros = colTipo === 'Outros' && r.tipo_registro ? ' <span style="font-size:0.75rem;color:#9ca3af">(' + escapeHtml(r.tipo_registro) + ')</span>' : '';
+                    const rotuloTipo = colTipo === 'Consulta' && r.tipo_registro && r.tipo_registro !== 'Consulta' ? ' <span style="font-size:0.75rem;color:#9ca3af">(' + escapeHtml(r.tipo_registro) + ')</span>' : '';
                     return `<li data-id="${escapeHtml(r.id || '')}">
-                        <div><strong>${escapeHtml(r.membro_familia || '')}</strong>${rotuloOutros}${r.detalhes ? ' — ' + escapeHtml(r.detalhes) : ''}${quando ? '<br/><span style="font-size:0.8rem;color:#9ca3af">' + escapeHtml(quando) + '</span>' : ''}</div>
+                        <div><strong>${escapeHtml(r.membro_familia || '')}</strong>${rotuloTipo}${r.detalhes ? ' — ' + escapeHtml(r.detalhes) : ''}${quando ? '<br/><span style="font-size:0.8rem;color:#9ca3af">' + escapeHtml(quando) + '</span>' : ''}</div>
                         <div class="app-list-actions">
                             <button type="button" data-action="saude-edit" data-id="${escapeHtml(r.id || '')}">Editar</button>
                             <button type="button" data-action="saude-delete" data-id="${escapeHtml(r.id || '')}" style="background:#fef2f2;color:#dc2626">Excluir</button>
                         </div>
                     </li>`;
                 };
-                const colsHtml = tiposCol.map((tipoNome) => {
+                const colsHtml = tipos.map((tipoNome) => {
                     const items = byTipo[tipoNome];
                     const isCollapsed = collapsedMap[tipoNome] === true;
                     const safeAttr = String(tipoNome).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
