@@ -1904,7 +1904,7 @@
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
                 const [y, m, day] = s.split('-');
                 return `${day}-${m}-${y}`;
-            },
+            }
             saudeParseDataBR(v) {
                 const t = (v || '').trim();
                 if (!t) return null;
@@ -1914,12 +1914,12 @@
                 const m2 = t.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
                 if (m2) return `${m2[3]}-${m2[2]}-${m2[1]}`;
                 return null;
-            },
+            }
             saudeFmtHora(h) {
                 if (h == null || h === '') return '';
                 const s = String(h).trim();
                 return s.length >= 5 ? s.slice(0, 5) : s;
-            },
+            }
             renderSaudeContent(el, data) {
                 const rows = data.rows || data.registros || [];
                 const tipos = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
@@ -2013,7 +2013,7 @@
                 });
                 el.querySelector('[data-action="saude-submit"]').onclick = () => this.submitSaudeAdd(el);
                 el.querySelector('[data-action="saude-cancel"]').onclick = () => this.saudeCancelForm(el);
-            },
+            }
             saudeCancelForm(el) {
                 const tiposStd = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
                 const sel = el.querySelector('#saude-tipo');
@@ -2029,7 +2029,7 @@
                 if (btn) btn.textContent = 'Registrar';
                 const c = el.querySelector('[data-action="saude-cancel"]');
                 if (c) c.style.display = 'none';
-            },
+            }
             saudeEdit(el, id, rows) {
                 const tiposStd = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
                 const r = rows.find((x) => x.id === id) || rows.find((x) => x.id === String(id));
@@ -2055,7 +2055,7 @@
                 if (btn) btn.textContent = 'Atualizar';
                 const c = el.querySelector('[data-action="saude-cancel"]');
                 if (c) c.style.display = '';
-            },
+            }
             async submitSaudeAdd(el) {
                 const membro_familia = el.querySelector('#saude-membro').value.trim();
                 const tipo_registro = el.querySelector('#saude-tipo').value;
@@ -2088,7 +2088,7 @@
                     }
                     await this.refreshAppContent('saude');
                 } catch (e) { alert(e.message); }
-            },
+            }
             async submitSaudeDelete(id, el) {
                 if (!id) return;
                 if (!confirm('Excluir este registro? Não é possível desfazer.')) return;
