@@ -834,6 +834,20 @@
         .lista-compras-col-list li { border-bottom: 1px solid var(--border-color); }
         .lista-compras-col-list li:last-child { border-bottom: none; }
         .lista-compras-cols li.lista-compras-empty { display: block; width: 100%; text-align: center; color: #9ca3af; padding: 0.85rem; font-size: 0.875rem; border: none; list-style: none; }
+        .df-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem; align-items: start; }
+        @media (max-width: 768px) { .df-colunas { grid-template-columns: 1fr; } }
+        .df-col { background: var(--bg-light); border-radius: var(--radius); border: 1px solid var(--border-color); overflow: hidden; min-width: 0; }
+        .df-col-titulo { margin: 0; padding: 0.65rem 1rem; font-size: 0.875rem; font-weight: 700; border-bottom: 1px solid var(--border-color); letter-spacing: 0.02em; }
+        .df-col--pagos .df-col-titulo { color: #22c55e; background: rgba(34, 197, 94, 0.08); }
+        .df-col--pendentes .df-col-titulo { color: #ef4444; background: rgba(239, 68, 68, 0.08); }
+        .df-col .app-list { margin: 0; border-radius: 0; }
+        .df-col .app-list li:last-child { border-bottom: none; }
+        .df-val-pago { color: #22c55e; font-weight: 700; }
+        .df-val-pendente { color: #ef4444; font-weight: 700; }
+        .df-totais-rodape { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 2px solid var(--border-color); }
+        .df-total-card { padding: 0.85rem 1rem; border-radius: var(--radius); background: var(--bg-light); border: 1px solid var(--border-color); text-align: center; }
+        .df-total-card .df-total-val { font-size: 1.2rem; font-weight: 800; display: block; margin-bottom: 0.25rem; }
+        .df-total-card .df-total-lbl { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted, #9ca3af); }
         .lista-compras-col-list .lista-btn-del { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
         .app-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
         @media (max-width: 640px) { .app-charts { grid-template-columns: 1fr; } }
@@ -1379,7 +1393,7 @@
                     </div>
                     <div class="app-totais" style="margin-bottom:1rem;">
                         <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#22c55e;font-size:1.125rem">R$ ${receitasFinancas.toFixed(2)}</div><div class="stat-label">Receitas (Finanças)</div></div>
-                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#1e40af;font-size:1.125rem">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total despesas fixas</div></div>
+                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#2563eb;font-size:1.125rem">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total geral (mês)</div></div>
                         <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="font-size:1.125rem;color:${margem >= 0 ? '#16a34a' : '#dc2626'}">R$ ${margem.toFixed(2)}</div><div class="stat-label">Margem</div></div>
                     </div>
                     <div class="app-form">
@@ -1392,40 +1406,65 @@
                         <button type="button" class="app-btn" data-action="df-save">Adicionar</button>
                         <button type="button" class="app-btn app-btn-secondary" data-action="df-exportar">Exportar dados</button>
                     </div>
-                    <ul class="app-list" id="df-list"></ul>
-                    <div class="app-totais" style="margin-top:1rem;border-top:2px solid var(--primary);padding-top:1rem;">
-                        <div class="totais-card" style="flex:1;max-width:200px;"><div class="val" style="color:#1e40af;font-size:1.25rem">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total</div></div>
-                        <div class="totais-card" style="flex:1;max-width:200px;"><div class="val" style="color:#16a34a;font-size:1.25rem">R$ ${somaPago.toFixed(2)}</div><div class="stat-label">Pagos</div></div>
-                        <div class="totais-card" style="flex:1;max-width:200px;"><div class="val" style="color:#dc2626;font-size:1.25rem">R$ ${somaPendente.toFixed(2)}</div><div class="stat-label">Pendentes</div></div>
+                    <div class="df-colunas">
+                        <div class="df-col df-col--pagos">
+                            <p class="df-col-titulo">Pagos</p>
+                            <ul class="app-list" id="df-list-pagos"></ul>
+                        </div>
+                        <div class="df-col df-col--pendentes">
+                            <p class="df-col-titulo">Pendentes</p>
+                            <ul class="app-list" id="df-list-pendentes"></ul>
+                        </div>
+                    </div>
+                    <div class="df-totais-rodape">
+                        <div class="df-total-card"><span class="df-total-val" style="color:#22c55e">R$ ${somaPago.toFixed(2)}</span><span class="df-total-lbl">Total pagos</span></div>
+                        <div class="df-total-card"><span class="df-total-val" style="color:#ef4444">R$ ${somaPendente.toFixed(2)}</span><span class="df-total-lbl">Total pendentes</span></div>
+                        <div class="df-total-card"><span class="df-total-val" style="color:#2563eb">R$ ${soma.toFixed(2)}</span><span class="df-total-lbl">Total geral</span></div>
                     </div>
                 `;
-                const listEl = el.querySelector('#df-list');
-                listEl.innerHTML = rows.map(r => `
+                const isPago = (r) => (r.status || '').toLowerCase() === 'pago';
+                const rowsPago = rows.filter(isPago);
+                const rowsPend = rows.filter((r) => !isPago(r));
+                const itemLi = (r, colPago) => `
                     <li>
                         <div>
                             <strong>${escapeHtml(r.descricao || '')}</strong>
-                            <span style="color:#1e40af;margin-left:0.5rem">R$ ${Number(r.valor).toFixed(2)}</span>
-                            <span class="badge ${r.status === 'pago' ? 'badge-success' : 'badge-beta'}" style="margin-left:0.5rem;font-size:0.7rem">${r.status === 'pago' ? 'Pago' : 'Pendente'}</span>
+                            <span class="${colPago ? 'df-val-pago' : 'df-val-pendente'}" style="margin-left:0.5rem">R$ ${Number(r.valor).toFixed(2)}</span>
                         </div>
                         <div class="app-list-actions">
                             <button type="button" data-action="df-toggle" data-id="${r.id}" data-status="${r.status}">${r.status === 'pago' ? 'Marcar pendente' : 'Marcar pago'}</button>
-                            <button type="button" data-action="df-edit" data-id="${r.id}" data-descricao="${escapeHtml(r.descricao || '')}" data-valor="${r.valor}" data-status="${r.status}">Editar</button>
+                            <button type="button" data-action="df-edit" data-id="${r.id}" data-valor="${r.valor}" data-status="${r.status}">Editar</button>
                             <button type="button" data-action="df-delete" data-id="${r.id}">Excluir</button>
                         </div>
-                    </li>
-                `).join('') || '<li style="color:#9ca3af">Nenhuma despesa fixa. Adicione acima.</li>';
+                    </li>`;
+                const listPago = el.querySelector('#df-list-pagos');
+                const listPend = el.querySelector('#df-list-pendentes');
+                if (rows.length === 0) {
+                    const vazio = '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhuma despesa fixa. Adicione acima.</li>';
+                    listPago.innerHTML = vazio;
+                    listPend.innerHTML = vazio;
+                } else {
+                    listPago.innerHTML = rowsPago.length ? rowsPago.map((r) => itemLi(r, true)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhum pago.</li>';
+                    listPend.innerHTML = rowsPend.length ? rowsPend.map((r) => itemLi(r, false)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhum pendente.</li>';
+                }
+                const wireList = (root) => {
+                    root.querySelectorAll('[data-action="df-toggle"]').forEach((b) => { b.onclick = () => this.submitDespesaFixaToggle(b.dataset.id, b.dataset.status, el); });
+                    root.querySelectorAll('[data-action="df-edit"]').forEach((b) => {
+                        b.onclick = () => {
+                            const id = b.dataset.id;
+                            const r = rows.find((x) => String(x.id) === String(id));
+                            el.querySelector('#df-descricao').value = r ? (r.descricao || '') : '';
+                            el.querySelector('#df-valor').value = b.dataset.valor ?? '';
+                            el.querySelector('#df-status').value = b.dataset.status || 'pendente';
+                            el.querySelector('#df-edit-id').value = id || '';
+                            el.querySelector('[data-action="df-save"]').textContent = 'Salvar';
+                        };
+                    });
+                    root.querySelectorAll('[data-action="df-delete"]').forEach((b) => { b.onclick = () => this.submitDespesaFixaDelete(b.dataset.id, el); });
+                };
                 el.querySelector('[data-action="df-save"]').onclick = () => this.submitDespesaFixaSave(el);
-                listEl.querySelectorAll('[data-action="df-toggle"]').forEach(b => { b.onclick = () => this.submitDespesaFixaToggle(b.dataset.id, b.dataset.status, el); });
-                listEl.querySelectorAll('[data-action="df-edit"]').forEach(b => {
-                    b.onclick = () => {
-                        el.querySelector('#df-descricao').value = b.dataset.descricao || '';
-                        el.querySelector('#df-valor').value = b.dataset.valor ?? '';
-                        el.querySelector('#df-status').value = b.dataset.status || 'pendente';
-                        el.querySelector('#df-edit-id').value = b.dataset.id || '';
-                        el.querySelector('[data-action="df-save"]').textContent = 'Salvar';
-                    };
-                });
-                listEl.querySelectorAll('[data-action="df-delete"]').forEach(b => { b.onclick = () => this.submitDespesaFixaDelete(b.dataset.id, el); });
+                wireList(listPago);
+                wireList(listPend);
                 el.querySelector('#df-mes').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('notas'); };
                 el.querySelector('#df-ano').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('notas'); };
                 el.querySelector('[data-action="df-exportar"]').onclick = () => this.abrirExportarDespesasFixas(el, mesAno, meses, anos);
