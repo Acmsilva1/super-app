@@ -1432,8 +1432,9 @@
                     </div>
                 `;
                 const isPago = (r) => (r.status || '').toLowerCase() === 'pago';
-                const rowsPago = rows.filter(isPago);
-                const rowsPend = rows.filter((r) => !isPago(r));
+                const ordemValor = (a, b) => Number(b.valor || 0) - Number(a.valor || 0);
+                const rowsPago = rows.filter(isPago).sort(ordemValor);
+                const rowsPend = rows.filter((r) => !isPago(r)).sort(ordemValor);
                 const itemLi = (r, colPago) => `
                     <li>
                         <div>
@@ -1619,8 +1620,9 @@
                     </div>
                 `;
                 const isReceita = (r) => (r.tipo || '').toLowerCase() === 'receita';
-                const rowsRec = rows.filter(isReceita);
-                const rowsDesp = rows.filter((r) => !isReceita(r));
+                const ordemValorFin = (a, b) => Number(b.valor || 0) - Number(a.valor || 0);
+                const rowsRec = rows.filter(isReceita).sort(ordemValorFin);
+                const rowsDesp = rows.filter((r) => !isReceita(r)).sort(ordemValorFin);
                 const itemLiFin = (r, rec) => `
                     <li>
                         <div><strong>${escapeHtml(r.descricao || '')}</strong> <span style="color:${rec ? '#22c55e' : '#dc2626'}">${rec ? '+' : '-'} R$ ${Number(r.valor).toFixed(2)}</span> ${r.categoria ? '<span style="font-size:0.75rem;color:#6b7280">' + escapeHtml(r.categoria) + '</span>' : ''}</div>
