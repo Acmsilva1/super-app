@@ -1687,7 +1687,7 @@
                         <div class="app-form-row">
                             <div class="field"><label>Item</label><input type="text" id="lista-item" placeholder="Ex: Leite" /></div>
                             <div class="field"><label>Qtd</label><input type="number" min="1" id="lista-qtd" value="1" /></div>
-                            <div class="field"><label>Unidade</label><input type="text" id="lista-unidade" placeholder="kg, L, pct…" /></div>
+                            <div class="field"><label>Unidade</label><select id="lista-unidade"><option value="">—</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
                             <div class="field"><label>Categoria</label><select id="lista-categoria">${categorias.map(c => '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>').join('')}</select></div>
                         </div>
                         <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
@@ -1737,7 +1737,7 @@
                         el.querySelector('#lista-edit-id').value = id;
                         el.querySelector('#lista-item').value = r.item || '';
                         el.querySelector('#lista-qtd').value = r.quantidade || 1;
-                        el.querySelector('#lista-unidade').value = r.unidade_medida || '';
+                        { const u = (r.unidade_medida || '').trim(); const opts = ['Kg', 'L', 'g', 'UN']; const hit = opts.find((o) => o.toLowerCase() === u.toLowerCase()); el.querySelector('#lista-unidade').value = hit || (opts.includes(u) ? u : ''); }
                         el.querySelector('#lista-categoria').value = categorias.includes(r.categoria) ? r.categoria : categorias[0];
                         el.querySelector('[data-action="lista-save"]').textContent = 'Salvar';
                         el.querySelector('[data-action="lista-cancel"]').style.display = '';
