@@ -834,6 +834,7 @@
         .lista-compras-col-list li { border-bottom: 1px solid var(--border-color); }
         .lista-compras-col-list li:last-child { border-bottom: none; }
         .lista-compras-cols li.lista-compras-empty { display: block; width: 100%; text-align: center; color: #9ca3af; padding: 0.85rem; font-size: 0.875rem; border: none; list-style: none; }
+        .lista-compras-col-list .lista-btn-del { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
         .app-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
         @media (max-width: 640px) { .app-charts { grid-template-columns: 1fr; } }
         .app-chart-wrap { background: var(--bg-light); border-radius: var(--radius); padding: 1rem; min-height: 220px; }
@@ -1654,11 +1655,12 @@
                 const itemRow = (r) => `
                     <li class="${r.comprado ? 'comprado' : ''}" data-id="${r.id}">
                         <div>
-                            <input type="checkbox" class="app-checkbox" data-action="lista-toggle" data-id="${r.id}" ${r.comprado ? 'checked' : ''} />
+                            <input type="checkbox" class="app-checkbox lista-compras-chk" data-id="${r.id}" ${r.comprado ? 'checked' : ''} title="Comprado" />
                             <span class="item-text">${escapeHtml(r.item || '')}</span> ${r.quantidade > 1 ? ' x ' + r.quantidade : ''} ${r.unidade_medida ? escapeHtml(String(r.unidade_medida)) : ''}
                         </div>
                         <div class="app-list-actions">
-                            <button type="button" data-action="lista-toggle" data-id="${r.id}">${r.comprado ? 'Desmarcar' : 'Marcar'}</button>
+                            <button type="button" data-action="lista-edit" data-id="${r.id}">Editar</button>
+                            <button type="button" class="lista-btn-del" data-action="lista-delete-item" data-id="${r.id}">Excluir</button>
                         </div>
                     </li>`;
                 const colsHtml = categorias.map((cat) => {
@@ -1681,19 +1683,31 @@
                 }).join('');
                 el.innerHTML = `
                     <div class="app-form">
+                        <input type="hidden" id="lista-edit-id" value="" />
                         <div class="app-form-row">
                             <div class="field"><label>Item</label><input type="text" id="lista-item" placeholder="Ex: Leite" /></div>
                             <div class="field"><label>Qtd</label><input type="number" min="1" id="lista-qtd" value="1" /></div>
+                            <div class="field"><label>Unidade</label><input type="text" id="lista-unidade" placeholder="kg, L, pct…" /></div>
                             <div class="field"><label>Categoria</label><select id="lista-categoria">${categorias.map(c => '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>').join('')}</select></div>
                         </div>
-                        <button type="button" class="app-btn" data-action="lista-add">Adicionar</button>
-                        <button type="button" class="app-btn app-btn-secondary" data-action="lista-reset">Desmarcar todos</button>
-                        <button type="button" class="app-btn app-btn-secondary" data-action="lista-delete-all" style="background:#fef2f2;color:#dc2626">Apagar todos</button>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+                            <button type="button" class="app-btn" data-action="lista-save">Adicionar</button>
+                            <button type="button" class="app-btn app-btn-secondary" data-action="lista-cancel" style="display:none">Cancelar</button>
+                            <button type="button" class="app-btn app-btn-secondary" data-action="lista-delete-all" style="background:#fef2f2;color:#dc2626;margin-left:auto">Apagar todos</button>
+                        </div>
                     </div>
                     <div class="lista-compras-cols" id="lista-compras-cols">${colsHtml}</div>
                 `;
-                el.querySelector('[data-action="lista-add"]').onclick = () => this.submitListaAdd(el);
-                el.querySelector('[data-action="lista-reset"]').onclick = () => this.submitListaReset(el);
+                const clearListaForm = () => {
+                    el.querySelector('#lista-edit-id').value = '';
+                    el.querySelector('#lista-item').value = '';
+                    el.querySelector('#lista-qtd').value = '1';
+                    el.querySelector('#lista-unidade').value = '';
+                    el.querySelector('[data-action="lista-save"]').textContent = 'Adicionar';
+                    el.querySelector('[data-action="lista-cancel"]').style.display = 'none';
+                };
+                el.querySelector('[data-action="lista-save"]').onclick = () => this.submitListaSave(el, clearListaForm);
+                el.querySelector('[data-action="lista-cancel"]').onclick = () => clearListaForm();
                 el.querySelector('[data-action="lista-delete-all"]').onclick = () => this.submitListaDeleteAll(el);
                 el.querySelectorAll('.lista-compras-col-head').forEach((btn) => {
                     btn.onclick = () => {
@@ -1708,17 +1722,65 @@
                         localStorage.setItem(LS_COLS, JSON.stringify(m));
                     };
                 });
-                el.querySelectorAll('#lista-compras-cols [data-action="lista-toggle"]').forEach((btn) => {
-                    btn.onclick = (e) => { e.stopPropagation(); this.submitListaToggle(btn.dataset.id, el); };
+                el.querySelectorAll('.lista-compras-chk').forEach((chk) => {
+                    chk.addEventListener('change', (e) => {
+                        e.stopPropagation();
+                        this.submitListaSetComprado(chk.dataset.id, chk.checked, el);
+                    });
+                });
+                el.querySelectorAll('[data-action="lista-edit"]').forEach((btn) => {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        const id = btn.dataset.id;
+                        const r = rows.find((x) => String(x.id) === String(id));
+                        if (!r) return;
+                        el.querySelector('#lista-edit-id').value = id;
+                        el.querySelector('#lista-item').value = r.item || '';
+                        el.querySelector('#lista-qtd').value = r.quantidade || 1;
+                        el.querySelector('#lista-unidade').value = r.unidade_medida || '';
+                        el.querySelector('#lista-categoria').value = categorias.includes(r.categoria) ? r.categoria : categorias[0];
+                        el.querySelector('[data-action="lista-save"]').textContent = 'Salvar';
+                        el.querySelector('[data-action="lista-cancel"]').style.display = '';
+                        el.querySelector('#lista-item').focus();
+                    };
+                });
+                el.querySelectorAll('[data-action="lista-delete-item"]').forEach((btn) => {
+                    btn.onclick = (e) => { e.stopPropagation(); this.submitListaItemDelete(btn.dataset.id, el); };
                 });
             }
-            async submitListaAdd(el) {
+            async submitListaSetComprado(id, comprado, el) {
+                try {
+                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, comprado }) });
+                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                    await this.refreshAppContent('lista_compras');
+                } catch (e) {
+                    alert(e.message);
+                    await this.refreshAppContent('lista_compras');
+                }
+            }
+            async submitListaSave(el, clearListaForm) {
+                const editId = (el.querySelector('#lista-edit-id').value || '').trim();
                 const item = el.querySelector('#lista-item').value.trim();
                 const quantidade = parseInt(el.querySelector('#lista-qtd').value, 10) || 1;
                 const categoria = el.querySelector('#lista-categoria').value || 'Mantimentos';
+                const unidade = (el.querySelector('#lista-unidade').value || '').trim();
                 if (!item) { alert('Item é obrigatório'); return; }
                 try {
-                    const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade, categoria }) });
+                    if (editId) {
+                        const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, item, quantidade, categoria, unidade_medida: unidade }) });
+                        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                    } else {
+                        const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade, categoria, unidade_medida: unidade || undefined }) });
+                        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                    }
+                    if (typeof clearListaForm === 'function') clearListaForm();
+                    await this.refreshAppContent('lista_compras');
+                } catch (e) { alert(e.message); }
+            }
+            async submitListaItemDelete(id, el) {
+                if (!confirm('Excluir este item da lista?')) return;
+                try {
+                    const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
                     await this.refreshAppContent('lista_compras');
                 } catch (e) { alert(e.message); }
@@ -1731,21 +1793,6 @@
                     await this.refreshAppContent('lista_compras');
                 } catch (e) { alert(e.message); }
             }
-            async submitListaToggle(id, el) {
-                try {
-                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, toggle: true }) });
-                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
-                    await this.refreshAppContent('lista_compras');
-                } catch (e) { alert(e.message); }
-            }
-            async submitListaReset(el) {
-                try {
-                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset_checks: true }) });
-                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
-                    await this.refreshAppContent('lista_compras');
-                } catch (e) { alert(e.message); }
-            }
-
             renderSaudeContent(el, data) {
                 const rows = data.rows || data.registros || [];
                 const tipos = ['Vacina','Exame','Consulta','Medicamento'];
