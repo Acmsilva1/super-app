@@ -1413,7 +1413,15 @@
                                 <div class="field"><label>Data</label><input type="date" id="cal-date" /></div>
                                 <div class="field"><label>Início</label><input type="time" id="cal-start" /></div>
                                 <div class="field"><label>Fim</label><input type="time" id="cal-end" /></div>
-                                <div class="field"><label>Categoria</label><input type="text" id="cal-category" placeholder="Produtividade" /></div>
+                                <div class="field">
+                                    <label>Categoria</label>
+                                    <select id="cal-category" style="padding:0.4rem;border-radius:4px;border:1px solid #ccc;width:100%;">
+                                        <option value="Trabalho">Trabalho</option>
+                                        <option value="Lazer">Lazer</option>
+                                        <option value="Compromisso">Compromisso</option>
+                                        <option value="Evento">Evento</option>
+                                    </select>
+                                </div>
                             </div>
                             <button class="app-btn" id="cal-save-btn">Salvar Evento</button>
                             <button class="app-btn app-btn-secondary" id="cal-cancel-btn" style="display:none;">Cancelar Edição / Excluir</button>
