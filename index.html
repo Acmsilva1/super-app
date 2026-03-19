@@ -1141,6 +1141,8 @@
                 this.dashboardCharts = {};
                 this.notificationItems = [];
                 this.notificationTimer = null;
+                this.notificationDismissed = { targetDate: '', keys: [] };
+                this.NOTIFICATION_DISMISS_KEY = 'superapp_notifications_dismissed_v1';
                 this.init();
             }
 
@@ -2430,6 +2432,38 @@
                 if (br) return `${br[3]}-${br[2]}-${br[1]}`;
                 return null;
             }
+            notificationItemKey(item) {
+                return [item?.source || '', item?.date || '', item?.time || '', item?.title || '', item?.details || ''].join('||');
+            }
+            loadDismissedNotifications(targetDate) {
+                let parsed = null;
+                try {
+                    const raw = localStorage.getItem(this.NOTIFICATION_DISMISS_KEY);
+                    parsed = raw ? JSON.parse(raw) : null;
+                } catch (e) {
+                    parsed = null;
+                }
+                if (parsed && parsed.targetDate === targetDate && Array.isArray(parsed.keys)) {
+                    this.notificationDismissed = { targetDate, keys: parsed.keys };
+                    return;
+                }
+                this.notificationDismissed = { targetDate, keys: [] };
+                this.saveDismissedNotifications();
+            }
+            saveDismissedNotifications() {
+                try {
+                    localStorage.setItem(this.NOTIFICATION_DISMISS_KEY, JSON.stringify(this.notificationDismissed));
+                } catch (e) {}
+            }
+            clearEventNotifications() {
+                const currentItems = this.notificationItems || [];
+                const currentKeys = currentItems.map((item) => this.notificationItemKey(item));
+                const merged = new Set([...(this.notificationDismissed.keys || []), ...currentKeys]);
+                this.notificationDismissed.keys = Array.from(merged);
+                this.saveDismissedNotifications();
+                this.notificationItems = [];
+                this.refreshNotificationBadge();
+            }
             startNotificationCenter() {
                 this.refreshEventNotifications();
                 if (this.notificationTimer) clearInterval(this.notificationTimer);
@@ -2470,12 +2504,16 @@
             async refreshEventNotifications() {
                 const today = this.getBrazilDateIsoFrom(new Date());
                 const tomorrow = this.addDaysToIso(today, 1);
+                this.loadDismissedNotifications(tomorrow);
                 try {
                     const [agendaItems, saudeItems] = await Promise.all([
                         this.buildCalendarNotificationItems(tomorrow),
                         this.buildSaudeNotificationItems(tomorrow)
                     ]);
-                    this.notificationItems = [...agendaItems, ...saudeItems].sort((a, b) => {
+                    const dismissed = new Set(this.notificationDismissed.keys || []);
+                    this.notificationItems = [...agendaItems, ...saudeItems]
+                        .filter((item) => !dismissed.has(this.notificationItemKey(item)))
+                        .sort((a, b) => {
                         const ta = (a.time || '23:59');
                         const tb = (b.time || '23:59');
                         if (ta === tb) return a.source.localeCompare(b.source);
@@ -2502,6 +2540,7 @@
             }
             openNotificationsModal() {
                 const items = [...(this.notificationItems || [])];
+                const hasEventItems = items.length > 0;
                 if (window._superappPwaUpdatePending === true) {
                     items.unshift({
                         source: 'sistema',
@@ -2528,10 +2567,17 @@
                         <h4>Notificacoes de eventos</h4>
                         ${content}
                         <div class="app-modal-actions">
+                            ${hasEventItems ? '<button type="button" class="app-btn app-btn-secondary" data-action="clear-notifications">Limpar notificacoes</button>' : ''}
                             <button type="button" class="app-btn app-btn-secondary" data-action="close-notifications">Fechar</button>
                         </div>
                     </div>
                 `;
+                if (hasEventItems) {
+                    overlay.querySelector('[data-action="clear-notifications"]').onclick = () => {
+                        this.clearEventNotifications();
+                        overlay.remove();
+                    };
+                }
                 overlay.querySelector('[data-action="close-notifications"]').onclick = () => overlay.remove();
                 overlay.onclick = (evt) => { if (evt.target === overlay) overlay.remove(); };
                 document.body.appendChild(overlay);
