@@ -921,22 +921,25 @@
         .cal-day-modal-item:hover { border-color: var(--primary); background: #eff6ff; }
         .cal-day-modal-title { display: block; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.15rem; }
         .cal-day-modal-meta { display: block; font-size: 0.78rem; color: var(--text-light); }
-        .cal-grid-scroll { width: 100%; overflow-x: auto; padding-bottom: 0.25rem; }
+        .cal-grid-scroll { width: 100%; overflow-x: hidden; padding-bottom: 0.1rem; }
         .cal-weekdays-grid,
         .cal-days-grid {
-            min-width: 420px;
+            width: 100%;
+            min-width: 0;
             display: grid;
             grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 0.5rem;
+            gap: 0.4rem;
         }
-        .cal-weekdays-grid { text-align: center; margin-top: 1rem; font-weight: bold; font-size: 0.8rem; color: var(--text-light); }
+        .cal-weekdays-grid { text-align: center; margin-top: 1rem; font-weight: bold; font-size: 0.78rem; color: var(--text-light); }
+        .cal-weekdays-grid > div { white-space: nowrap; overflow: hidden; }
         .cal-days-grid { text-align: left; margin-top: 0.5rem; }
         @media (max-width: 640px) {
             .cal-weekdays-grid,
-            .cal-days-grid { min-width: 392px; gap: 0.3rem; }
-            .cal-day-cell { min-height: 72px; padding: 0.35rem; }
-            .cal-day-number { font-size: 0.88rem; }
-            .cal-day-summary { min-width: 42px; padding: 0.15rem 0.35rem; font-size: 0.68rem; gap: 0.25rem; }
+            .cal-days-grid { gap: 0.22rem; }
+            .cal-weekdays-grid { font-size: 0.62rem; margin-top: 0.75rem; }
+            .cal-day-cell { min-height: 60px; padding: 0.2rem; border-radius: 3px; }
+            .cal-day-number { font-size: 0.78rem; }
+            .cal-day-summary { min-width: 0; padding: 0.1rem 0.22rem; font-size: 0.58rem; gap: 0.16rem; border-radius: 999px; }
             .cal-day-summary-icon { font-size: 0.62rem; }
         }
 
