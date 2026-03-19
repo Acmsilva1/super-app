@@ -1,2 +1,2 @@
 export { Event } from './model/event.js';
-export { calendarService } from './service/calendarService.js';
+export { calendarService, payloadInsertEvent, payloadUpdateEvent } from './service/calendarService.js';

@@ -25,4 +25,25 @@ class CalendarService {
 }
 
 const calendarService = new CalendarService();
+
+export function payloadInsertEvent(title, date, startTime, endTime, category) {
+  return {
+    title: title || '',
+    date: date,
+    start_time: startTime || null,
+    end_time: endTime || null,
+    category: category || ''
+  };
+}
+
+export function payloadUpdateEvent(title, date, startTime, endTime, category) {
+  const p = {};
+  if (title !== undefined) p.title = title;
+  if (date !== undefined) p.date = date;
+  if (startTime !== undefined) p.start_time = startTime;
+  if (endTime !== undefined) p.end_time = endTime;
+  if (category !== undefined) p.category = category;
+  return p;
+}
+
 export { calendarService };
