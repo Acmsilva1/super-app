@@ -34,13 +34,34 @@ function filtrarPorMes(rows, ano, mes) {
   });
 }
 
+function getBrazilTodayIso() {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return fmt.format(new Date());
+}
+
+function sortCronologia(rows) {
+  const onlyDate = (r) => (r?.data_lancamento || (r?.created_at && String(r.created_at).slice(0, 10)) || '').slice(0, 10);
+  const stamp = (r) => String(r?.created_at || '').trim();
+  return [...(rows || [])].sort((a, b) => {
+    const da = onlyDate(a);
+    const db = onlyDate(b);
+    if (da !== db) return da.localeCompare(db);
+    return stamp(a).localeCompare(stamp(b));
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { data: allData, error } = await supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: false });
     if (error) return json(res, 500, { error: error.message });
     const query = req.query || {};
     const { ano, mes } = parseMesAno(query.mes_ano);
-    const data = filtrarPorMes(allData, ano, mes);
+    const data = sortCronologia(filtrarPorMes(allData, ano, mes));
     const mesBr = `${String(mes).padStart(2, '0')}/${ano}`;
     const totais = renderizarExtratoTotais(data);
     let despesasFixas = 0;
@@ -77,7 +98,7 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { descricao, valor, tipo, categoria, data_lancamento, metodo_pagamento } = body;
     if (descricao == null || valor == null) return json(res, 400, { error: 'descricao e valor obrigatórios' });
-    const payload = payloadInsert(descricao, valor, tipo, categoria, data_lancamento, metodo_pagamento);
+    const payload = payloadInsert(descricao, valor, tipo, categoria, data_lancamento || getBrazilTodayIso(), metodo_pagamento);
     const { data, error } = await supabase.from(TABLE_NAME).insert(payload).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 201, data);
