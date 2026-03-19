@@ -1427,7 +1427,10 @@
                             <button class="app-btn app-btn-secondary" id="cal-cancel-btn" style="display:none;">Cancelar Edição / Excluir</button>
                         </div>
                         <div style="font-size:0.8rem;color:green;margin-bottom:0.5rem;" id="cal-status"></div>
-                        <div id="cal-grid-container" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; text-align: left; margin-top: 1rem;"></div>
+                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; text-align: center; margin-top: 1rem; font-weight: bold; font-size: 0.8rem; color: var(--text-light);">
+                            <div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div style="color:#ef4444;">Sáb</div><div style="color:#ef4444;">Dom</div>
+                        </div>
+                        <div id="cal-grid-container" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; text-align: left; margin-top: 0.5rem;"></div>
                     </div>
                 `;
 
@@ -1520,13 +1523,17 @@
                         const monthData = await res.json();
                         if (!res.ok) throw new Error(monthData.error || 'Erro ao carregar o mês');
                         currentEvents = monthData.events || [];
-                        container.innerHTML = monthData.days.map(d => 
-                            '<div style="border: 1px solid var(--border-color); border-radius: 4px; padding: 0.4rem; background: var(--bg-light); min-height: 80px;" ' +
+                        container.innerHTML = monthData.days.map(d => {
+                            if (d.empty) return '<div style="background: transparent;"></div>';
+                            const bg = d.isWeekend ? '#fee2e2' : 'var(--bg-light)';
+                            const border = d.isWeekend ? '#fecaca' : 'var(--border-color)';
+                            const color = d.isWeekend ? '#ef4444' : 'var(--text-dark)';
+                            return '<div style="border: 1px solid '+border+'; border-radius: 4px; padding: 0.4rem; background: '+bg+'; min-height: 80px;" ' +
                               "onclick=\"if(event.target === this) { document.getElementById('cal-date').value='" + d.fullDate + "'; document.getElementById('cal-title').focus(); }\">" +
-                                '<strong style="display: block; font-size: 1rem; color: var(--text-dark); pointer-events: none;">' + d.day + '</strong>' +
+                                '<strong style="display: block; font-size: 1rem; color: '+color+'; pointer-events: none;">' + d.day + '</strong>' +
                                 renderEventsList(d.fullDate) +
-                            '</div>'
-                        ).join('');
+                            '</div>';
+                        }).join('');
                     } catch (err) {
                         container.innerHTML = '<div style="grid-column: span 7; color: red;">' + err.message + '</div>';
                     }

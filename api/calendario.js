@@ -34,8 +34,9 @@ export default async function handler(req, res) {
       const gMonth = parseInt(month) - 1;
       const grid = calendarService.generateCalendarGrid(gMonth);
       
-      const startDate = grid[0].fullDate;
-      const endDate = grid[grid.length - 1].fullDate;
+      const validDays = grid.filter(d => !d.empty);
+      const startDate = validDays[0].fullDate;
+      const endDate = validDays[validDays.length - 1].fullDate;
       
       const { data: events, error } = await supabase
         .from('tb_calendario')

@@ -14,9 +14,21 @@ class CalendarService {
         const days = this.getDaysInMonth(year, month);
         const grid = [];
         
+        const firstDay = new Date(year, month, 1).getDay();
+        const emptyCells = firstDay === 0 ? 6 : firstDay - 1;
+        
+        for (let i = 0; i < emptyCells; i++) {
+            grid.push({ empty: true });
+        }
+        
         for (let i = 1; i <= days; i++) {
+            const dateObj = new Date(year, month, i);
+            const wDay = dateObj.getDay();
+            const isWeekend = wDay === 0 || wDay === 6;
             grid.push({
+                empty: false,
                 day: i,
+                isWeekend: isWeekend,
                 fullDate: `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`
             });
         }
