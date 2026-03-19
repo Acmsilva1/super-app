@@ -15,7 +15,7 @@ class CalendarService {
         const grid = [];
         
         const firstDay = new Date(year, month, 1).getDay();
-        const emptyCells = firstDay === 0 ? 6 : firstDay - 1;
+        const emptyCells = firstDay;
         
         for (let i = 0; i < emptyCells; i++) {
             grid.push({ empty: true });
