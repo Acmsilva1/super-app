@@ -868,6 +868,57 @@
         .app-modal { background: white; border-radius: var(--radius); padding: 1.5rem; min-width: 280px; box-shadow: var(--shadow-lg); }
         .app-modal h4 { margin-bottom: 1rem; font-size: 1rem; }
         .app-modal-actions { display: flex; gap: 0.75rem; margin-top: 1rem; justify-content: flex-end; }
+        .cal-day-cell {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0.5rem;
+            min-height: 84px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 0.4rem;
+            cursor: pointer;
+            transition: filter 0.15s ease;
+        }
+        .cal-day-cell:hover { filter: brightness(0.98); }
+        .cal-day-cell.is-weekend { background: #fee2e2; border-color: #fecaca; }
+        .cal-day-number { display: block; font-size: 1rem; color: var(--text-dark); pointer-events: none; }
+        .cal-day-cell.is-weekend .cal-day-number { color: #ef4444; }
+        .cal-day-summary {
+            width: fit-content;
+            min-width: 52px;
+            padding: 0.2rem 0.45rem;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border: 1px solid var(--border-color);
+            background: white;
+            color: var(--text-dark);
+            pointer-events: none;
+        }
+        .cal-day-summary.has-events { background: var(--primary); border-color: var(--primary); color: white; }
+        .cal-day-summary-icon { font-size: 0.7rem; line-height: 1; }
+        .cal-day-modal { width: min(560px, calc(100vw - 2rem)); max-height: 80vh; overflow-y: auto; }
+        .cal-day-modal-date { margin: -0.35rem 0 1rem; color: var(--text-light); font-size: 0.85rem; }
+        .cal-day-modal-list { display: grid; gap: 0.5rem; }
+        .cal-day-modal-item {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: var(--bg-light);
+            text-align: left;
+            padding: 0.65rem 0.75rem;
+            cursor: pointer;
+            font-family: inherit;
+            color: inherit;
+        }
+        .cal-day-modal-item:hover { border-color: var(--primary); background: #eff6ff; }
+        .cal-day-modal-title { display: block; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.15rem; }
+        .cal-day-modal-meta { display: block; font-size: 0.78rem; color: var(--text-light); }
 
         /* UTILITY CLASSES */
         .text-center {
@@ -1496,24 +1547,65 @@
                     } catch (e) { alert(e.message); }
                 };
 
-                const renderEventsList = (dateStr) => {
-                    const evts = currentEvents.filter(e => e.date === dateStr);
-                    if (!evts.length) return '';
-                    return evts.map(e => {
-                        const sTime = e.start_time ? e.start_time.substring(0,5) : '';
-                        const timeStr = sTime ? ' (' + sTime + ')' : '';
-                        return "<div style='background:var(--primary);color:white;font-size:0.7rem;padding:0.2rem;border-radius:4px;margin-top:0.2rem;cursor:pointer;' " +
-                               "onclick='document._calEditEvent(\"" + e.id + "\")'>" + 
-                               e.title + timeStr + "</div>";
-                    }).join('');
+                const formatEventTime = (ev) => {
+                    const sTime = ev.start_time ? ev.start_time.substring(0, 5) : '';
+                    const eTime = ev.end_time ? ev.end_time.substring(0, 5) : '';
+                    if (sTime && eTime) return sTime + ' - ' + eTime;
+                    return sTime || eTime || 'Horario nao informado';
                 };
 
-                if (!document._calEditEvent) {
-                    document._calEditEvent = (evtId) => {
-                        const ev = currentEvents.find(e => String(e.id) === String(evtId));
-                        if (ev) fillForm(ev.id, ev.title, ev.date, ev.start_time, ev.end_time, ev.category);
-                    };
-                }
+                const formatDateLabel = (dateStr) => {
+                    const parsed = new Date(dateStr + 'T00:00:00');
+                    if (Number.isNaN(parsed.getTime())) return dateStr;
+                    return parsed.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+                };
+
+                const openDayEventsModal = (dateStr) => {
+                    const dayEvents = currentEvents.filter(e => e.date === dateStr);
+                    if (!dayEvents.length) {
+                        const currentCategory = el.querySelector('#cal-category').value || 'Compromisso';
+                        fillForm('', '', dateStr, '', '', currentCategory);
+                        el.querySelector('#cal-title').focus();
+                        return;
+                    }
+                    const overlay = document.createElement('div');
+                    overlay.className = 'app-modal-overlay';
+                    overlay.innerHTML = `
+                        <div class="app-modal cal-day-modal">
+                            <h4>Agendamentos do dia</h4>
+                            <p class="cal-day-modal-date">${escapeHtml(formatDateLabel(dateStr))}</p>
+                            <div class="cal-day-modal-list">
+                                ${dayEvents.map((e) => {
+                                    const category = e.category || 'Sem categoria';
+                                    const meta = formatEventTime(e) + ' - ' + category;
+                                    return `
+                                        <button type="button" class="cal-day-modal-item" data-cal-event-id="${escapeHtml(String(e.id || ''))}">
+                                            <span class="cal-day-modal-title">${escapeHtml(e.title || 'Sem titulo')}</span>
+                                            <span class="cal-day-modal-meta">${escapeHtml(meta)}</span>
+                                        </button>
+                                    `;
+                                }).join('')}
+                            </div>
+                            <div class="app-modal-actions">
+                                <button type="button" class="app-btn app-btn-secondary" data-action="cal-modal-close">Fechar</button>
+                            </div>
+                        </div>
+                    `;
+                    overlay.querySelector('[data-action="cal-modal-close"]').onclick = () => overlay.remove();
+                    overlay.querySelectorAll('[data-cal-event-id]').forEach((btn) => {
+                        btn.onclick = () => {
+                            const eventId = btn.getAttribute('data-cal-event-id');
+                            const ev = dayEvents.find((item) => String(item.id) === String(eventId));
+                            if (ev) {
+                                fillForm(ev.id, ev.title, ev.date, ev.start_time, ev.end_time, ev.category);
+                                el.querySelector('#cal-title').focus();
+                            }
+                            overlay.remove();
+                        };
+                    });
+                    overlay.onclick = (evt) => { if (evt.target === overlay) overlay.remove(); };
+                    document.body.appendChild(overlay);
+                };
 
                 const loadGrid = async (month) => {
                     const container = el.querySelector('#cal-grid-container');
@@ -1523,17 +1615,26 @@
                         const monthData = await res.json();
                         if (!res.ok) throw new Error(monthData.error || 'Erro ao carregar o mês');
                         currentEvents = monthData.events || [];
+                        const eventsCountByDate = currentEvents.reduce((acc, ev) => {
+                            const key = ev.date || '';
+                            if (key) acc[key] = (acc[key] || 0) + 1;
+                            return acc;
+                        }, {});
                         container.innerHTML = monthData.days.map(d => {
                             if (d.empty) return '<div style="background: transparent;"></div>';
-                            const bg = d.isWeekend ? '#fee2e2' : 'var(--bg-light)';
-                            const border = d.isWeekend ? '#fecaca' : 'var(--border-color)';
-                            const color = d.isWeekend ? '#ef4444' : 'var(--text-dark)';
-                            return '<div style="border: 1px solid '+border+'; border-radius: 4px; padding: 0.4rem; background: '+bg+'; min-height: 80px;" ' +
-                              "onclick=\"if(event.target === this) { document.getElementById('cal-date').value='" + d.fullDate + "'; document.getElementById('cal-title').focus(); }\">" +
-                                '<strong style="display: block; font-size: 1rem; color: '+color+'; pointer-events: none;">' + d.day + '</strong>' +
-                                renderEventsList(d.fullDate) +
+                            const count = eventsCountByDate[d.fullDate] || 0;
+                            const summaryClass = count > 0 ? 'cal-day-summary has-events' : 'cal-day-summary';
+                            return '<div class="cal-day-cell ' + (d.isWeekend ? 'is-weekend' : '') + '" data-cal-day="' + d.fullDate + '">' +
+                                '<strong class="cal-day-number">' + d.day + '</strong>' +
+                                '<span class="' + summaryClass + '"><span class="cal-day-summary-icon"><i class="fas fa-calendar-check"></i></span><span>' + count + '</span></span>' +
                             '</div>';
                         }).join('');
+                        container.querySelectorAll('[data-cal-day]').forEach((dayCell) => {
+                            dayCell.onclick = () => {
+                                const dateStr = dayCell.getAttribute('data-cal-day');
+                                openDayEventsModal(dateStr);
+                            };
+                        });
                     } catch (err) {
                         container.innerHTML = '<div style="grid-column: span 7; color: red;">' + err.message + '</div>';
                     }
