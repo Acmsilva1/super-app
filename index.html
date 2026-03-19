@@ -1139,12 +1139,15 @@
                 this.roadmap = [];
                 this.openWindows = new Map();
                 this.dashboardCharts = {};
+                this.notificationItems = [];
+                this.notificationTimer = null;
                 this.init();
             }
 
             init() {
                 this.setupEventListeners();
                 this.loadData();
+                this.startNotificationCenter();
             }
 
             setupEventListeners() {
@@ -1177,6 +1180,9 @@
                     link.addEventListener('click', () => {
                         if (window.innerWidth <= 768) document.querySelector('nav').classList.remove('nav-open');
                     });
+                });
+                document.getElementById('notificationsBtn')?.addEventListener('click', () => {
+                    this.openNotificationsModal();
                 });
             }
 
@@ -1541,6 +1547,7 @@
                         setTimeout(() => el.querySelector('#cal-status').innerText='', 2000);
                         fillForm();
                         el.querySelector('#cal-load-btn').click();
+                        this.refreshEventNotifications();
                     } catch (e) { alert(e.message); }
                 };
 
@@ -1569,6 +1576,7 @@
                         setTimeout(() => el.querySelector('#cal-status').innerText='', 2000);
                         fillForm();
                         el.querySelector('#cal-load-btn').click();
+                        this.refreshEventNotifications();
                     } catch (e) { alert(e.message); }
                 };
 
@@ -2382,6 +2390,7 @@
                         if (el.querySelector('#saude-hora')) el.querySelector('#saude-hora').value = '';
                     }
                     await this.refreshAppContent('saude');
+                    this.refreshEventNotifications();
                 } catch (e) { alert(e.message); }
             }
             async submitSaudeDelete(id, el) {
@@ -2392,7 +2401,140 @@
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
                     if (el.dataset.saudeEditingId === id) this.saudeCancelForm(el);
                     await this.refreshAppContent('saude');
+                    this.refreshEventNotifications();
                 } catch (e) { alert(e.message); }
+            }
+
+            getBrazilDateIsoFrom(dateInput) {
+                const d = dateInput instanceof Date ? dateInput : new Date(dateInput || Date.now());
+                const fmt = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                return fmt.format(d);
+            }
+            addDaysToIso(isoDate, amount) {
+                const m = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (!m) return isoDate;
+                const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+                dt.setUTCDate(dt.getUTCDate() + amount);
+                return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0') + '-' + String(dt.getUTCDate()).padStart(2, '0');
+            }
+            normalizeIsoDate(v) {
+                const t = String(v || '').trim();
+                if (!t) return null;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+                const br = t.match(/^(\d{2})[-\/](\d{2})[-\/](\d{4})$/);
+                if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+                return null;
+            }
+            startNotificationCenter() {
+                this.refreshEventNotifications();
+                if (this.notificationTimer) clearInterval(this.notificationTimer);
+                this.notificationTimer = setInterval(() => this.refreshEventNotifications(), 5 * 60 * 1000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') this.refreshEventNotifications();
+                });
+            }
+            async buildCalendarNotificationItems(targetDate) {
+                const month = Number(targetDate.slice(5, 7));
+                if (!Number.isFinite(month) || month < 1 || month > 12) return [];
+                const res = await fetch('/api/calendario?action=view&month=' + month);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Falha ao carregar agenda');
+                const events = (data.events || []).filter((e) => e.date === targetDate);
+                return events.map((e) => ({
+                    source: 'agenda',
+                    date: targetDate,
+                    time: (e.start_time || '').slice(0, 5),
+                    title: e.title || 'Evento sem titulo',
+                    details: e.category || 'Sem categoria'
+                }));
+            }
+            async buildSaudeNotificationItems(targetDate) {
+                const res = await fetch('/api/saude');
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Falha ao carregar saude familiar');
+                const rows = data.rows || data.registros || [];
+                const due = rows.filter((r) => this.normalizeIsoDate(r.data_evento) === targetDate);
+                return due.map((r) => ({
+                    source: 'saude',
+                    date: targetDate,
+                    time: (r.hora_evento || '').slice(0, 5),
+                    title: (r.tipo_registro || 'Registro') + ' - ' + (r.membro_familia || 'Familiar'),
+                    details: r.detalhes || ''
+                }));
+            }
+            async refreshEventNotifications() {
+                const today = this.getBrazilDateIsoFrom(new Date());
+                const tomorrow = this.addDaysToIso(today, 1);
+                try {
+                    const [agendaItems, saudeItems] = await Promise.all([
+                        this.buildCalendarNotificationItems(tomorrow),
+                        this.buildSaudeNotificationItems(tomorrow)
+                    ]);
+                    this.notificationItems = [...agendaItems, ...saudeItems].sort((a, b) => {
+                        const ta = (a.time || '23:59');
+                        const tb = (b.time || '23:59');
+                        if (ta === tb) return a.source.localeCompare(b.source);
+                        return ta.localeCompare(tb);
+                    });
+                } catch (err) {
+                    console.error('Erro ao carregar notificacoes de eventos:', err);
+                    this.notificationItems = [];
+                }
+                this.refreshNotificationBadge();
+            }
+            refreshNotificationBadge() {
+                const badge = document.getElementById('notificationBadge');
+                if (!badge) return;
+                const pwaPending = window._superappPwaUpdatePending === true;
+                const hasEvents = (this.notificationItems || []).length > 0;
+                if (pwaPending || hasEvents) badge.classList.add('visible');
+                else badge.classList.remove('visible');
+            }
+            formatDateBr(isoDate) {
+                const m = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (!m) return isoDate || '';
+                return `${m[3]}/${m[2]}/${m[1]}`;
+            }
+            openNotificationsModal() {
+                const items = [...(this.notificationItems || [])];
+                if (window._superappPwaUpdatePending === true) {
+                    items.unshift({
+                        source: 'sistema',
+                        date: '',
+                        time: '',
+                        title: 'Nova versao do app disponivel',
+                        details: 'Use o botao Atualizar no aviso exibido na tela.'
+                    });
+                }
+                const overlay = document.createElement('div');
+                overlay.className = 'app-modal-overlay';
+                const content = items.length
+                    ? `<ul class="app-list" style="max-height:50vh;overflow:auto;border:1px solid var(--border-color);border-radius:8px;">
+                        ${items.map((item, idx) => {
+                            const modulo = item.source === 'agenda' ? 'Agenda' : (item.source === 'saude' ? 'Saude familiar' : 'Sistema');
+                            const quando = [this.formatDateBr(item.date), item.time].filter(Boolean).join(' - ');
+                            const detalhes = [modulo, quando, item.details].filter(Boolean).join(' | ');
+                            return `<li><div><strong>${idx + 1}. ${escapeHtml(item.title || '')}</strong><br/><span style="font-size:0.8rem;color:#9ca3af;">${escapeHtml(detalhes)}</span></div></li>`;
+                        }).join('')}
+                       </ul>`
+                    : '<p style="font-size:0.9rem;color:var(--text-light);">Nenhum evento para amanha.</p>';
+                overlay.innerHTML = `
+                    <div class="app-modal" style="width:min(680px,calc(100vw - 2rem));">
+                        <h4>Notificacoes de eventos</h4>
+                        ${content}
+                        <div class="app-modal-actions">
+                            <button type="button" class="app-btn app-btn-secondary" data-action="close-notifications">Fechar</button>
+                        </div>
+                    </div>
+                `;
+                overlay.querySelector('[data-action="close-notifications"]').onclick = () => overlay.remove();
+                overlay.onclick = (evt) => { if (evt.target === overlay) overlay.remove(); };
+                document.body.appendChild(overlay);
             }
 
             closeWindow(windowId) {
@@ -2452,6 +2594,7 @@
 
         // Inicializar SUPERAPP
         const superApp = new SuperApp();
+        window._superappPwaUpdatePending = false;
 
         // ============================================
         // EXEMPLO DE COMO INTEGRAR COM BACKEND
@@ -2544,20 +2687,16 @@
             btn.addEventListener('click', () => {
                 if (pendingWorker) pendingWorker.postMessage({ type: 'SKIP_WAITING' });
                 banner.classList.add('hidden');
-                document.getElementById('notificationBadge')?.classList.remove('visible');
+                window._superappPwaUpdatePending = false;
+                superApp.refreshNotificationBadge();
             });
 
             function showUpdateBanner(worker) {
                 pendingWorker = worker;
                 banner.classList.remove('hidden');
-                document.getElementById('notificationBadge')?.classList.add('visible');
+                window._superappPwaUpdatePending = true;
+                superApp.refreshNotificationBadge();
             }
-
-            document.getElementById('notificationsBtn')?.addEventListener('click', () => {
-                if (pendingWorker && !banner.classList.contains('hidden')) {
-                    banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-            });
 
             navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
                 reg.addEventListener('updatefound', () => {
