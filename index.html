@@ -495,7 +495,7 @@
             font-weight: 600;
             margin: 0;
             line-height: 1.2;
-            display: -webkit-box;
+            line-clamp: 2;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
@@ -1385,7 +1385,7 @@
             async renderCalendarioContent(el, data) {
                 el.innerHTML = `
                     <div style="padding: 1rem;">
-                        <h4 style="margin-bottom: 1rem;">Calendário 2026</h4>
+                        <h4 style="margin-bottom: 1rem;">Agenda</h4>
                         <div class="app-form-row" style="margin-bottom: 1rem;">
                             <div class="field">
                                 <label>Selecione o mês:</label>

@@ -39,7 +39,7 @@ const APPS = [
     id: 'calendario',
     icon: 'fa-calendar-days',
     status: 'active',
-    title: 'Calendário 2026',
+    title: 'Agenda',
     description: 'Módulo de agendamento integrado ao ecossistema 2026',
     category: 'Produtividade',
   },
