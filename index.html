@@ -1938,6 +1938,7 @@
                     if (da !== db) return da.localeCompare(db);
                     return createdStamp(a).localeCompare(createdStamp(b));
                 };
+                const ordemCronologicaFinDesc = (a, b) => -ordemCronologicaFin(a, b);
                 const fmtDataBrFin = (isoDate) => {
                     const m = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
                     return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
@@ -1951,7 +1952,7 @@
                     }
                 };
                 const rowsRec = rows.filter(isReceita).sort(ordemCronologicaFin);
-                const rowsDesp = rows.filter((r) => !isReceita(r)).sort(ordemCronologicaFin);
+                const rowsDesp = rows.filter((r) => !isReceita(r)).sort(ordemCronologicaFinDesc);
                 const itemLiFin = (r, rec) => `
                     <li>
                         <div>
