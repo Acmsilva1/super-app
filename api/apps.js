@@ -35,6 +35,14 @@ const APPS = [
     description: 'Vacinas, consultas, exames e medicamentos por membro da família.',
     category: 'Saúde',
   },
+  {
+    id: 'calendario',
+    icon: 'fa-calendar-days',
+    status: 'active',
+    title: 'Calendário 2026',
+    description: 'Módulo de agendamento integrado ao ecossistema 2026',
+    category: 'Produtividade',
+  },
 ];
 
 function json(res, status, data) {

@@ -1351,7 +1351,7 @@
             }
             async loadAppContent(appId, contentEl) {
                 contentEl.innerHTML = '<div class="app-loading"><i class="fas fa-spinner spinner"></i> Carregando...</div>';
-                const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude' };
+                const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude', calendario: 'calendario' };
                 const path = apiMap[appId];
                 if (!path) return;
                 let mesAno = contentEl.getAttribute('data-mes-ano');
@@ -1360,6 +1360,7 @@
                     let url = path === 'saude' ? '/api/saude' : '/api/' + path;
                     if (appId === 'notas') url = '/api/despesas-fixas?mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     else if (appId === 'financas') url = '/api/financas?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
+                    else if (appId === 'calendario') url = '/api/calendario?action=config';
                     const res = await fetch(url);
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
@@ -1367,6 +1368,7 @@
                     else if (appId === 'financas') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinancasContent(contentEl, data); }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
                     else if (appId === 'saude') this.renderSaudeContent(contentEl, data);
+                    else if (appId === 'calendario') this.renderCalendarioContent(contentEl, data);
                 } catch (err) {
                     contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> ' + (err.message || 'Erro ao carregar') + '</div>';
                 }
@@ -1378,6 +1380,66 @@
                     const contentEl = win.querySelector('.window-content');
                     if (contentEl) await this.loadAppContent(appId, contentEl);
                 }
+            }
+
+            async renderCalendarioContent(el, data) {
+                el.innerHTML = `
+                    <div style="padding: 1rem;">
+                        <h4 style="margin-bottom: 1rem;">Calendário 2026</h4>
+                        <p style="margin-bottom: 1rem;">Status: ${data.status} | Agora: ${data.now}</p>
+                        <div class="app-form-row" style="margin-bottom: 1rem;">
+                            <div class="field">
+                                <label>Selecione o mês:</label>
+                                <select id="cal-month-select" class="app-form-control">
+                                    <option value="1">Janeiro</option>
+                                    <option value="2">Fevereiro</option>
+                                    <option value="3">Março</option>
+                                    <option value="4">Abril</option>
+                                    <option value="5">Maio</option>
+                                    <option value="6">Junho</option>
+                                    <option value="7">Julho</option>
+                                    <option value="8">Agosto</option>
+                                    <option value="9">Setembro</option>
+                                    <option value="10">Outubro</option>
+                                    <option value="11">Novembro</option>
+                                    <option value="12">Dezembro</option>
+                                </select>
+                            </div>
+                            <button class="app-btn" id="cal-load-btn">Ver Mês</button>
+                        </div>
+                        <div id="cal-grid-container" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; text-align: center;"></div>
+                    </div>
+                `;
+
+                const loadGrid = async (month) => {
+                    const container = el.querySelector('#cal-grid-container');
+                    container.innerHTML = '<div style="grid-column: span 7;">Carregando...</div>';
+                    try {
+                        const res = await fetch('/api/calendario?action=view&month=' + month);
+                        const monthData = await res.json();
+                        if (!res.ok) throw new Error(monthData.error || 'Erro ao carregar o mês');
+                        
+                        container.innerHTML = monthData.days.map(d => 
+                            '<div style="border: 1px solid var(--border-color); border-radius: 4px; padding: 0.5rem; background: var(--bg-light);">' +
+                                '<strong style="display: block; font-size: 1.2rem;">' + d.day + '</strong>' +
+                                '<small style="color: var(--text-light); font-size: 0.7rem;">' + d.fullDate + '</small>' +
+                            '</div>'
+                        ).join('');
+                    } catch (err) {
+                        container.innerHTML = '<div style="grid-column: span 7; color: red;">' + err.message + '</div>';
+                    }
+                };
+
+                el.querySelector('#cal-load-btn').addEventListener('click', () => {
+                    const month = el.querySelector('#cal-month-select').value;
+                    loadGrid(month);
+                });
+                
+                // Pré-carrega o mês atual se disponível, ou Janeiro
+                const d = new Date();
+                const currentMonth = d.getFullYear() === 2026 ? d.getMonth() + 1 : 1;
+                el.querySelector('#cal-month-select').value = currentMonth;
+                loadGrid(currentMonth);
             }
 
             renderDespesasFixasContent(el, data) {
