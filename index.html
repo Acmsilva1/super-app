@@ -903,6 +903,7 @@
             pointer-events: none;
         }
         .cal-day-summary.has-events { background: var(--primary); border-color: var(--primary); color: white; }
+        .cal-day-summary.has-events.is-saude { background: #dc2626; border-color: #dc2626; }
         .cal-day-summary-icon { font-size: 0.7rem; line-height: 1; }
         .cal-day-modal { width: min(560px, calc(100vw - 2rem)); max-height: 80vh; overflow-y: auto; }
         .cal-day-modal-date { margin: -0.35rem 0 1rem; color: var(--text-light); font-size: 0.85rem; }
@@ -1502,6 +1503,7 @@
                                         <option value="Lazer">Lazer</option>
                                         <option value="Compromisso">Compromisso</option>
                                         <option value="Evento">Evento</option>
+                                        <option value="Saúde">Saúde</option>
                                     </select>
                                 </div>
                             </div>
@@ -1650,16 +1652,18 @@
                         const monthData = await res.json();
                         if (!res.ok) throw new Error(monthData.error || 'Erro ao carregar o mês');
                         currentEvents = monthData.events || [];
-                        const eventsCountByDate = currentEvents.reduce((acc, ev) => {
-                            const key = ev.date || '';
-                            if (key) acc[key] = (acc[key] || 0) + 1;
-                            return acc;
-                        }, {});
                         container.innerHTML = monthData.days.map(d => {
                             if (d.empty) return '<div style="background: transparent;"></div>';
-                            const count = eventsCountByDate[d.fullDate] || 0;
-                            const summaryClass = count > 0 ? 'cal-day-summary has-events' : 'cal-day-summary';
-                            return '<div class="cal-day-cell ' + (d.isWeekend ? 'is-weekend' : '') + '" data-cal-day="' + d.fullDate + '">' +
+                            const dayEvents = currentEvents.filter(e => e.date === d.fullDate);
+                            const count = dayEvents.length;
+                            const titles = dayEvents.map(e => (e.start_time ? e.start_time.substring(0, 5) + ' ' : '') + e.title).join('\n');
+                            const hasSaude = dayEvents.some(e => e.category === 'Saúde');
+                            let summaryClass = 'cal-day-summary';
+                            if (count > 0) {
+                                summaryClass += ' has-events';
+                                if (hasSaude) summaryClass += ' is-saude';
+                            }
+                            return '<div class="cal-day-cell ' + (d.isWeekend ? 'is-weekend' : '') + '" data-cal-day="' + d.fullDate + '" title="' + escapeHtml(titles) + '">' +
                                 '<strong class="cal-day-number">' + d.day + '</strong>' +
                                 '<span class="' + summaryClass + '"><span class="cal-day-summary-icon"><i class="fas fa-calendar-check"></i></span><span>' + count + '</span></span>' +
                             '</div>';
@@ -2433,6 +2437,25 @@
                         const res = await fetch('/api/saude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membro_familia, tipo_registro, detalhes, data_evento, hora_evento: hora_evento || undefined }) });
                         const data = await res.json();
                         if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+                        
+                        // Integração automática com o calendário para consultas
+                        if (tipo_registro === 'Consulta' && data_evento) {
+                            try {
+                                await fetch('/api/calendario', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        title: `Consulta: ${membro_familia}${detalhes ? ' - ' + detalhes : ''}`,
+                                        date: data_evento,
+                                        start_time: hora_evento,
+                                        category: 'Saúde'
+                                    })
+                                });
+                            } catch (calErr) {
+                                console.error('Erro ao registrar consulta no calendário:', calErr);
+                            }
+                        }
+
                         el.querySelector('#saude-membro').value = '';
                         el.querySelector('#saude-tipo').value = 'Vacina';
                         el.querySelector('#saude-detalhes').value = '';
