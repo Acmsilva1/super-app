@@ -1,6 +1,6 @@
 /**
  * Lista de aplicações do Super App (usada pelo index.html no Vercel).
- * Cada app corresponde a uma API: /api/despesas-fixas (Bloco de Notas), /api/financas, /api/lista-compras, /api/saude.
+ * Cada app costuma ter uma API, exceto fluxograma (só front + localStorage).
  */
 const APPS = [
   {
@@ -41,6 +41,14 @@ const APPS = [
     status: 'active',
     title: 'Agenda',
     description: 'Módulo de agendamento integrado ao ecossistema 2026',
+    category: 'Produtividade',
+  },
+  {
+    id: 'fluxograma',
+    icon: 'fa-diagram-project',
+    status: 'active',
+    title: 'Fluxograma',
+    description: 'Crie fluxogramas com nós e conexões; rascunho local e projetos salvos na nuvem (Supabase).',
     category: 'Produtividade',
   },
 ];

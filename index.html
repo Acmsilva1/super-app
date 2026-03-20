@@ -755,6 +755,360 @@
             margin-bottom: 1rem;
         }
 
+        /* Módulo Fluxograma (escopo isolado; tema escuro não afeta o body do SUPERAPP) */
+        .window-content.fluxograma-window-content {
+            padding: 0 !important;
+            overflow: hidden !important;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .fluxograma-root {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f7f8fa;
+            color: #222;
+        }
+        .flux-hub-screen {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: auto;
+            padding: 1rem 1rem 1.5rem;
+            gap: 1rem;
+        }
+        .flux-hub-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .flux-hub-top h1 {
+            font-size: 1.35rem;
+            color: #214f83;
+            font-family: inherit;
+            text-transform: none;
+            letter-spacing: normal;
+            margin-bottom: 0.25rem;
+        }
+        .flux-hub-top p { font-size: 0.9rem; color: #667; }
+        .flux-hub-status { font-size: 0.82rem; color: #6b7280; align-self: center; }
+        .flux-hub-error { font-size: 0.85rem; color: #b91c1c; padding: 0.5rem 0; }
+        .flux-hub-cards-wrap {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 0.85rem;
+            align-content: start;
+        }
+        .fluxograma-root .flux-project-card {
+            position: relative;
+            text-align: left;
+            padding: 1rem 1.15rem 1rem 1rem;
+            background: #fff;
+            border: 1px solid #e3e6ea;
+            border-radius: 0.65rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06);
+            cursor: pointer;
+            min-height: 108px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.35rem;
+            font: inherit;
+        }
+        .fluxograma-root .flux-project-card:hover {
+            border-color: #214f83;
+            box-shadow: 0 4px 14px rgba(33,79,131,.12);
+        }
+        .fluxograma-root .flux-project-card--new {
+            border-style: dashed;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 120px;
+        }
+        .fluxograma-root .flux-project-card--new .flux-card-new-icon {
+            font-size: 2rem;
+            line-height: 1;
+            color: #214f83;
+            margin-bottom: 0.35rem;
+        }
+        .flux-card-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1e3a5f;
+            width: 100%;
+            padding-right: 1.75rem;
+            line-height: 1.3;
+        }
+        .flux-card-meta { font-size: 0.78rem; color: #6b7280; }
+        .fluxograma-root .flux-project-card .flux-card-del {
+            position: absolute;
+            top: 0.35rem;
+            right: 0.35rem;
+            width: 30px;
+            height: 30px;
+            border-radius: 0.4rem;
+            padding: 0;
+            font-size: 1.15rem;
+            line-height: 1;
+            background: transparent;
+            color: #9ca3af;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fluxograma-root .flux-project-card .flux-card-del:hover {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .flux-editor-screen {
+            display: none;
+            flex: 1;
+            min-height: 0;
+            flex-direction: column;
+        }
+        .flux-fc-editor-top {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.65rem;
+        }
+        .fluxograma-root header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: #fff;
+            border-bottom: 1px solid #e3e6ea;
+            padding: 1rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08);
+        }
+        .fluxograma-root .flux-fc-header-wrap {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: .8rem;
+            flex-wrap: wrap;
+        }
+        .fluxograma-root .flux-fc-header-wrap h1 { font-size: 1.35rem; color: #214f83; font-family: inherit; text-transform: none; letter-spacing: normal; }
+        .fluxograma-root .flux-fc-header-wrap p { font-size: .9rem; color: #667; }
+        .fluxograma-root .menu-tools {
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+            flex-wrap: wrap;
+            background: #f6f8fb;
+            border: 1px solid #dce1e8;
+            border-radius: .55rem;
+            padding: .35rem .45rem;
+        }
+        .fluxograma-root .menu-tools label { font-size: .74rem; color: #5d6775; }
+        .fluxograma-root .menu-tools select,
+        .fluxograma-root .menu-tools input[type=color] {
+            height: 30px;
+            border: 1px solid #dce1e8;
+            border-radius: .45rem;
+            background: #fff;
+            color: #223;
+            font-size: .78rem;
+            padding: 0 .4rem;
+        }
+        .fluxograma-root .menu-tools input[type=color] { width: 34px; padding: 0; }
+        .fluxograma-root .menu-tools .mini { height: 30px; padding: .2rem .55rem; font-size: .76rem; }
+        .fluxograma-root .flux-fc-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+        .fluxograma-root .flux-fc-stats { display: flex; gap: .75rem; flex-wrap: wrap; font-size: .82rem; color: #4b5563; }
+        .fluxograma-root .flux-fc-stats b { color: #1f2937; }
+        .fluxograma-root .flux-fc-container { flex: 1; min-height: 0; padding: .75rem; overflow: hidden; }
+        .fluxograma-root .flux-fc-grid { display: grid; grid-template-columns: 1fr; gap: .75rem; height: 100%; }
+        .fluxograma-root .flux-fc-card {
+            background: #fff;
+            border: 1px solid #e3e6ea;
+            border-radius: .6rem;
+            padding: .75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,.04);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .fluxograma-root .flux-fc-card h2 { font-size: 1.06rem; margin-bottom: .7rem; text-transform: none; letter-spacing: normal; }
+        .fluxograma-root .canvas-wrap { position: relative; }
+        .fluxograma-root .canvas-scroll {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            border: 1px solid #d9dee6;
+            border-radius: .6rem;
+            background: #f7f8fa;
+        }
+        .fluxograma-root #flux-canvas,
+        .fluxograma-root #flux-renderView { display: block; background: #f7f8fa; }
+        .fluxograma-root #flux-canvas { cursor: crosshair; touch-action: none; }
+        .fluxograma-root #flux-renderView { display: none; overflow: hidden; }
+        .fluxograma-root #flux-nodeEditText {
+            position: absolute;
+            display: none;
+            resize: none;
+            border: 2px solid #214f83;
+            border-radius: .45rem;
+            padding: .45rem .5rem;
+            font: 600 16px "Segoe UI", sans-serif;
+            line-height: 1.25;
+            color: #1a1f28;
+            outline: none;
+            background: #fff;
+            z-index: 2;
+        }
+        .fluxograma-root .group { display: flex; flex-direction: column; gap: .5rem; }
+        .fluxograma-root button {
+            padding: .56rem .9rem;
+            border: none;
+            border-radius: .5rem;
+            font-size: .86rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fluxograma-root button:disabled { opacity: .5; cursor: not-allowed; }
+        .fluxograma-root .pri { background: #214f83; color: #fff; }
+        .fluxograma-root .pri:hover:not(:disabled) { background: #173a62; }
+        .fluxograma-root .sec { background: #f1f3f7; color: #223; border: 1px solid #dce1e8; }
+        .fluxograma-root .sec:hover:not(:disabled) { background: #e8edf4; }
+        .fluxograma-root .theme-btn { width: 34px; height: 34px; padding: 0; border-radius: 999px; font-size: 1rem; }
+        .fluxograma-root .danger { background: #cf4a47; color: #fff; }
+        .fluxograma-root .danger:hover:not(:disabled) { background: #b63a37; }
+        .fluxograma-root textarea,
+        .fluxograma-root input[type=text] {
+            width: 100%;
+            padding: .6rem;
+            border: 1px solid #dce1e8;
+            border-radius: .5rem;
+            font: inherit;
+            font-size: .9rem;
+        }
+        .fluxograma-root textarea { min-height: 100px; resize: vertical; }
+        .fluxograma-root textarea:focus,
+        .fluxograma-root input:focus { outline: none; border-color: #214f83; box-shadow: 0 0 0 3px rgba(33,79,131,.14); }
+        .fluxograma-root .status {
+            position: absolute;
+            left: 50%;
+            bottom: 1rem;
+            transform: translateX(-50%) translateY(10px);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 60;
+            min-width: 220px;
+            max-width: min(92vw, 420px);
+            font-size: .84rem;
+            padding: .65rem .8rem;
+            border-radius: .55rem;
+            box-shadow: 0 10px 24px rgba(0,0,0,.16);
+            transition: opacity .35s ease, transform .35s ease;
+        }
+        .fluxograma-root .status.active { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .fluxograma-root .status.success { background: rgba(212,237,218,.96); color: #155724; border: 1px solid #c3e6cb; }
+        .fluxograma-root .status.error { background: rgba(248,215,218,.96); color: #721c24; border: 1px solid #f5c6cb; }
+        .fluxograma-root .status.info { background: rgba(209,236,241,.96); color: #0c5460; border: 1px solid #bee5eb; }
+        .fluxograma-root .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .fluxograma-root .modal > div {
+            background: #fff;
+            width: 92%;
+            max-width: 420px;
+            border-radius: 10px;
+            padding: 1.2rem;
+        }
+        .fluxograma-root .fab-wrap {
+            position: fixed;
+            right: 1rem;
+            bottom: 1rem;
+            z-index: 150;
+            display: flex;
+            flex-direction: column;
+            gap: .6rem;
+        }
+        .fluxograma-root .fab {
+            width: 56px;
+            height: 56px;
+            border-radius: 999px;
+            border: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,.2);
+            font-size: 1.4rem;
+            line-height: 1;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fluxograma-root .fab-add { background: #214f83; }
+        .fluxograma-root .fab-dl { background: #0f766e; }
+        .fluxograma-root .fab-del { background: #b91c1c; }
+        .fluxograma-root .fab-center { background: #4b5563; }
+        .fluxograma-root .fab-link { background: #7c3aed; }
+        .fluxograma-root.dark { background: #101419; color: #e5e7eb; }
+        .fluxograma-root.dark header { background: #0f1720; border-bottom-color: #27313d; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+        .fluxograma-root.dark .flux-fc-header-wrap h1 { color: #9cc3ff; }
+        .fluxograma-root.dark .flux-fc-header-wrap p { color: #9aa8b8; }
+        .fluxograma-root.dark .flux-fc-stats { color: #b6c2d0; }
+        .fluxograma-root.dark .flux-fc-stats b { color: #e5e7eb; }
+        .fluxograma-root.dark .flux-fc-card { background: #111b26; border-color: #27313d; box-shadow: none; }
+        .fluxograma-root.dark .flux-fc-card .canvas-scroll,
+        .fluxograma-root.dark .flux-fc-card #flux-canvas,
+        .fluxograma-root.dark .flux-fc-card #flux-renderView {
+            background: #f7f8fa !important;
+        }
+        .fluxograma-root.dark #flux-nodeEditText {
+            background: #fff;
+            color: #1a1f28;
+            border-color: #214f83;
+        }
+        .fluxograma-root.dark .sec { background: #192330; color: #e5e7eb; border-color: #2b3745; }
+        .fluxograma-root.dark .sec:hover:not(:disabled) { background: #223043; }
+        .fluxograma-root.dark .modal > div { background: #111b26; color: #e5e7eb; }
+        .fluxograma-root.dark input[type=text],
+        .fluxograma-root.dark textarea { background: #101923; color: #e5e7eb; border-color: #2b3745; }
+        .fluxograma-root.dark .menu-tools { background: #131d2a; border-color: #2b3745; }
+        .fluxograma-root.dark .menu-tools label { color: #b6c2d0; }
+        .fluxograma-root.dark .menu-tools select,
+        .fluxograma-root.dark .menu-tools input[type=color] { background: #0f1720; color: #e5e7eb; border-color: #2b3745; }
+        .fluxograma-root.dark .flux-hub-top h1 { color: #9cc3ff; }
+        .fluxograma-root.dark .flux-hub-top p,
+        .fluxograma-root.dark .flux-hub-status { color: #9aa8b8; }
+        .fluxograma-root.dark .flux-project-card { background: #111b26; border-color: #27313d; }
+        .fluxograma-root.dark .flux-project-card--new { background: #0f172a; border-color: #334155; justify-content: center; align-items: center; }
+        .fluxograma-root.dark .flux-card-title { color: #e5e7eb; }
+        .fluxograma-root.dark .flux-card-meta { color: #94a3b8; }
+        .fluxograma-root.dark #flux-autosave-status { color: #94a3b8; }
+        @media (max-width: 768px) {
+            .fluxograma-root header { padding: .75rem; }
+            .fluxograma-root .flux-fc-container { padding: .5rem; }
+            .fluxograma-root .flux-fc-header-wrap { align-items: flex-start; }
+            .fluxograma-root .menu-tools { width: 100%; }
+            .fluxograma-root .flux-fc-stats { width: 100%; }
+            .fluxograma-root .fab-wrap { right: .75rem; bottom: .75rem; }
+        }
+
         /* APP CONTENT: forms and lists */
         .app-loading, .app-error {
             display: flex;
@@ -1433,7 +1787,17 @@
                 return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
             }
             async loadAppContent(appId, contentEl) {
+                const prevRoot = contentEl.querySelector('#fluxograma-root');
+                if (prevRoot && prevRoot._fluxOnResize) {
+                    window.removeEventListener('resize', prevRoot._fluxOnResize);
+                }
+                contentEl.classList.remove('fluxograma-window-content');
                 contentEl.innerHTML = '<div class="app-loading"><i class="fas fa-spinner spinner"></i> Carregando...</div>';
+                if (appId === 'fluxograma') {
+                    contentEl.classList.add('fluxograma-window-content');
+                    await this.renderFluxogramaContent(contentEl);
+                    return;
+                }
                 const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude', calendario: 'calendario' };
                 const path = apiMap[appId];
                 if (!path) return;
@@ -1462,6 +1826,113 @@
                 if (win) {
                     const contentEl = win.querySelector('.window-content');
                     if (contentEl) await this.loadAppContent(appId, contentEl);
+                }
+            }
+
+            async renderFluxogramaContent(el) {
+                window.__SUPERAPP_FLUX_EMBED__ = true;
+                el.innerHTML = `
+                    <div id="fluxograma-root" class="fluxograma-root">
+                        <div id="flux-hub-screen" class="flux-hub-screen">
+                            <div class="flux-hub-top">
+                                <div>
+                                    <h1>Fluxogramas</h1>
+                                    <p>Abra um projeto ou crie um novo — alterações são salvas na nuvem automaticamente</p>
+                                </div>
+                                <span id="flux-hub-status" class="flux-hub-status"></span>
+                            </div>
+                            <div id="flux-hub-error" class="flux-hub-error" role="alert"></div>
+                            <div id="flux-hub-cards-wrap" class="flux-hub-cards-wrap">
+                                <button type="button" id="flux-hub-new" class="flux-project-card flux-project-card--new">
+                                    <span class="flux-card-new-icon" aria-hidden="true">+</span>
+                                    <span class="flux-card-title">Novo projeto</span>
+                                    <span class="flux-card-meta">Canvas em branco</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="flux-editor-screen" class="flux-editor-screen">
+                        <header>
+                            <div class="flux-fc-editor-top">
+                                <button type="button" class="sec mini" id="flux-back-hub">Meus projetos</button>
+                                <span id="flux-autosave-status" style="font-size:0.78rem;flex:1;min-width:120px;"></span>
+                            </div>
+                            <div class="flux-fc-header-wrap">
+                                <div>
+                                    <h1>Criador de Fluxograma</h1>
+                                    <p>Organize suas ideias</p>
+                                </div>
+                                <div class="menu-tools">
+                                    <label>Forma</label>
+                                    <select id="flux-nodeShapeSelect">
+                                        <option value="rect">Retangulo</option>
+                                        <option value="ellipse">Elipse</option>
+                                        <option value="diamond">Losango</option>
+                                        <option value="hexagon">Hexagono</option>
+                                    </select>
+                                    <label>Conexao</label>
+                                    <select id="flux-connectionTypeSelect">
+                                        <option value="arrow">Seta ida</option>
+                                        <option value="both">Seta ida/volta</option>
+                                        <option value="line">Fio direto</option>
+                                        <option value="curve">Curva suave</option>
+                                    </select>
+                                    <button type="button" class="sec mini" id="flux-disconnectActionBtn" onclick="toggleDisconnectFromMenu()" title="Selecione um no, clique em Desconectar nos e depois toque no no destino">Desconectar nos</button>
+                                    <label>Cor</label>
+                                    <input type="color" id="flux-nodeColorInput" value="#ffffff" aria-label="Cor do no">
+                                </div>
+                                <div class="flux-fc-stats">
+                                    <span>Nos: <b id="flux-totalNodes">0</b></span>
+                                    <span>Conexoes: <b id="flux-totalConnections">0</b></span>
+                                    <span>Conectados: <b id="flux-connectedNodes">0</b></span>
+                                </div>
+                                <div class="flux-fc-actions">
+                                    <button type="button" class="sec theme-btn" id="flux-themeToggleBtn" onclick="toggleTheme()" aria-label="Ativar modo escuro">&#127774;</button>
+                                    <button type="button" class="sec" onclick="renameProject()">Renomear Projeto</button>
+                                    <button type="button" class="sec" id="flux-viewModeBtn" onclick="toggleViewMode()">Visualizar</button>
+                                </div>
+                            </div>
+                        </header>
+                        <div class="flux-fc-container">
+                            <div class="flux-fc-grid">
+                                <div class="flux-fc-card">
+                                    <h2>Canvas do Fluxograma</h2>
+                                    <div id="flux-statusMessage" class="status"></div>
+                                    <div class="canvas-scroll" id="flux-canvasScroll">
+                                        <div class="canvas-wrap" id="flux-canvasWrap">
+                                            <canvas id="flux-canvas"></canvas>
+                                            <textarea id="flux-nodeEditText" spellcheck="false"></textarea>
+                                            <div id="flux-renderView"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="fab-wrap">
+                            <button type="button" class="fab fab-add" onclick="addNode()" aria-label="Adicionar no">+</button>
+                            <button type="button" class="fab fab-link" onclick="toggleConnectionFromMenu()" aria-label="Conectar nos" title="Conectar nos">&#128279;</button>
+                            <button type="button" class="fab fab-center" onclick="centerView()" aria-label="Centralizar visao">&#9678;</button>
+                            <button type="button" class="fab fab-del" onclick="deleteNode()" aria-label="Apagar no selecionado">&#128465;</button>
+                            <button type="button" class="fab fab-dl" onclick="exportToPNG()" aria-label="Baixar PNG">&#8681;</button>
+                        </div>
+                        <div id="flux-renameModal" class="modal">
+                            <div>
+                                <div style="font-size:1.08rem;font-weight:700;margin-bottom:.8rem">Renomear Projeto</div>
+                                <input id="flux-projectNameInput" type="text" placeholder="Nome do projeto">
+                                <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem">
+                                    <button type="button" class="sec" onclick="closeRenameModal()">Cancelar</button>
+                                    <button type="button" class="pri" onclick="saveProjectName()">Salvar</button>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>`;
+                try {
+                    const mod = await import('./modulos/fluxograma/index.js');
+                    const shell = await import('./modulos/fluxograma/cloudSync.js');
+                    await shell.initFluxogramaApp(mod);
+                } catch (err) {
+                    console.error(err);
+                    el.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Não foi possível carregar o Fluxograma. Verifique o console.</div>';
                 }
             }
 
@@ -2658,6 +3129,10 @@
                 if (element) {
                     const contentEl = element.querySelector('.window-content');
                     if (contentEl && contentEl._mesCheckInterval) clearInterval(contentEl._mesCheckInterval);
+                    const fluxRoot = contentEl && contentEl.querySelector('#fluxograma-root');
+                    if (fluxRoot && fluxRoot._fluxOnResize) {
+                        window.removeEventListener('resize', fluxRoot._fluxOnResize);
+                    }
                     element.remove();
                     const appId = windowId.replace('window-', '');
                     this.openWindows.delete(appId);

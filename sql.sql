@@ -61,3 +61,20 @@ COMMENT ON TABLE public.tb_saude_familiar IS 'Saúde Familiar – Vacina, Exame,
 CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_membro ON public.tb_saude_familiar (membro_familia);
 CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_tipo ON public.tb_saude_familiar (tipo_registro);
 CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_data_evento ON public.tb_saude_familiar (data_evento) WHERE data_evento IS NOT NULL;
+
+-- 5) Fluxograma (projetos: grafo em JSONB)
+CREATE TABLE IF NOT EXISTS public.tb_fluxograma_projetos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  nome TEXT NOT NULL DEFAULT 'Novo Fluxograma',
+  dados JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+COMMENT ON TABLE public.tb_fluxograma_projetos IS 'Fluxograma SUPERAPP – nós, conexões e metadados (JSON em dados)';
+
+CREATE INDEX IF NOT EXISTS idx_tb_fluxograma_projetos_updated ON public.tb_fluxograma_projetos (updated_at DESC);
+
+-- Se usar RLS, crie políticas para o papel que a API usa (ex.: anon via SUPABASE_ANON_KEY no Vercel).
+-- Exemplo: permitir tudo para anon (ajuste conforme sua política de segurança):
+-- ALTER TABLE public.tb_fluxograma_projetos ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "fluxograma_anon_all" ON public.tb_fluxograma_projetos FOR ALL TO anon USING (true) WITH CHECK (true);
