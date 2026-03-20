@@ -2304,7 +2304,7 @@
                             <div class="field"><label>Membro</label><input type="text" id="saude-membro" placeholder="Nome" /></div>
                             <div class="field"><label>Tipo</label><select id="saude-tipo">${tipos.map((t) => '<option value="' + t + '">' + t + '</option>').join('')}</select></div>
                             <div class="field"><label>Detalhes</label><input type="text" id="saude-detalhes" placeholder="Ex: Dose 1" /></div>
-                            <div class="field"><label>Data (dd-mm-aaaa)</label><input type="text" id="saude-data" placeholder="dd-mm-aaaa" inputmode="numeric" autocomplete="off" /></div>
+                            <div class="field"><label>Data</label><input type="date" id="saude-data" autocomplete="off" /></div>
                             <div class="field"><label>Hora</label><input type="time" id="saude-hora" step="60" /></div>
                         </div>
                         <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
@@ -2404,7 +2404,7 @@
                 }
                 sel.value = r.tipo_registro || 'Vacina';
                 el.querySelector('#saude-detalhes').value = r.detalhes || '';
-                el.querySelector('#saude-data').value = r.data_evento ? this.saudeFmtDataBR(r.data_evento) : '';
+                el.querySelector('#saude-data').value = r.data_evento ? String(r.data_evento).slice(0,10) : '';
                 const hi = el.querySelector('#saude-hora');
                 if (hi) hi.value = r.hora_evento ? this.saudeFmtHora(r.hora_evento) : '';
                 el.dataset.saudeEditingId = id;
@@ -2417,10 +2417,9 @@
                 const membro_familia = el.querySelector('#saude-membro').value.trim();
                 const tipo_registro = el.querySelector('#saude-tipo').value;
                 const detalhes = (el.querySelector('#saude-detalhes').value || '').trim();
-                const dataRaw = (el.querySelector('#saude-data').value || '').trim();
-                const data_evento = dataRaw ? this.saudeParseDataBR(dataRaw) : null;
-                if (dataRaw && !data_evento) {
-                    alert('Data inválida. Use dd-mm-aaaa (ex.: 15-02-2026).');
+                const data_evento = (el.querySelector('#saude-data').value || '').trim() || null;
+                if (data_evento && !/^\d{4}-\d{2}-\d{2}$/.test(data_evento)) {
+                    alert('Data inválida.');
                     return;
                 }
                 const horaVal = (el.querySelector('#saude-hora') && el.querySelector('#saude-hora').value) || '';
