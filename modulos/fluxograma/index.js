@@ -21,24 +21,6 @@ function fluxRoot() {
 
 // --- UI Orchestration Functions ---
 
-function applyTheme() {
-    const root = fluxRoot();
-    if (root) root.classList.toggle("dark", state.isDark);
-    const btn = el("themeToggleBtn");
-    if (btn) {
-        btn.innerHTML = state.isDark ? "&#127769;" : "&#127774;";
-        btn.setAttribute("aria-label", state.isDark ? "Ativar modo claro" : "Ativar modo escuro");
-    }
-}
-
-function toggleTheme() {
-    state.isDark = !state.isDark;
-    applyTheme();
-    saveToLocalStorage();
-    drawCanvas();
-    if (state.isViewMode) renderReadOnlyView();
-}
-
 function setProjectTitle() {
     if (!window.__SUPERAPP_FLUX_EMBED__) {
         document.title = `${state.projectName} - Flowchart Creator`;
@@ -519,7 +501,6 @@ window.toggleConnectionFromMenu = toggleConnectionFromMenu;
 window.centerView = centerView;
 window.deleteNode = deleteNode;
 window.exportToPNG = exportToPNG;
-window.toggleTheme = toggleTheme;
 window.renameProject = renameProject;
 window.toggleViewMode = toggleViewMode;
 window.toggleDisconnectFromMenu = toggleDisconnectFromMenu;
@@ -540,7 +521,6 @@ export function bootFluxograma(opts = {}) {
     if (opts.skipLocalLoad !== true) {
         loadFromLocalStorage();
     }
-    applyTheme();
     setProjectTitle();
     resizeCanvas(false);
     setupCanvasInteractions();
@@ -575,7 +555,6 @@ export function bootFluxograma(opts = {}) {
 
 export function afterExternalHydrate() {
     hideInlineEditor(false);
-    applyTheme();
     setProjectTitle();
     if (el("canvasScroll")) resizeCanvas(false);
     updateUI();

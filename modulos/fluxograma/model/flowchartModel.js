@@ -23,7 +23,6 @@ export const state = {
     isDisconnecting: false,
     disconnectFrom: null,
     isViewMode: false,
-    isDark: false,
     projectName: "Novo Fluxograma",
     draggingNodeId: null,
     dragOffsetX: 0,
@@ -83,7 +82,6 @@ export function getGraphPayload() {
         })),
         nextId: state.nextId,
         projectName: state.projectName,
-        isDark: !!state.isDark,
         cameraX: state.cameraX,
         cameraY: state.cameraY
     };
@@ -114,12 +112,11 @@ export function applyPersistedData(d) {
     state.projectName = typeof d.projectName === "string" && d.projectName.trim()
         ? d.projectName.trim()
         : "Novo Fluxograma";
-    state.isDark = !!d.isDark;
     state.cameraX = Number(d.cameraX) || 0;
     state.cameraY = Number(d.cameraY) || 0;
 }
 
-/** Novo rascunho vazio (mantém tema claro/escuro atual). */
+/** Novo rascunho vazio. */
 export function resetGraphState() {
     clearInteractionState();
     state.nodes = [];
@@ -158,36 +155,4 @@ export function loadFromLocalStorage() {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(LEGACY_STORAGE_KEY);
     }
-}
-
-export function getTheme() {
-    return state.isDark ? {
-        bg: "#0f1720",
-        grid: "#253041",
-        line: "#8ab4ff",
-        node: "#111b26",
-        nodeStroke: "#2b3745",
-        text: "#e5e7eb",
-        muted: "#aab7c7",
-        rulerBg: "rgba(15,23,32,.92)",
-        rulerLine: "rgba(172,184,198,.35)",
-        rulerText: "#aab7c7",
-        rulerCorner: "#1a2430",
-        selected: "#3b82f6",
-        from: "#22c55e"
-    } : {
-        bg: "#f7f8fa",
-        grid: "#e4e8ef",
-        line: "#214f83",
-        node: "#ffffff",
-        nodeStroke: "#cfd6e2",
-        text: "#1a1f28",
-        muted: "#6b7280",
-        rulerBg: "rgba(247,248,250,.92)",
-        rulerLine: "rgba(110,118,129,.35)",
-        rulerText: "#6b7280",
-        rulerCorner: "#dfe3e9",
-        selected: "#214f83",
-        from: "#3d8d43"
-    };
 }
