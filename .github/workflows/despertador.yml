@@ -1,12 +1,13 @@
-# Nome do processo no painel Actions do GitHub
+# Nome do processo que aparece na aba "Actions" do GitHub
 name: Despertador do Super App
 
 on:
   schedule:
-    # Roda de hora em hora (Minuto 0)
+    # Este Cron roda no minuto 0 de cada hora (ex: 01:00, 02:00...)
+    # Lembre-se: O GitHub usa UTC. 09:00 UTC = 06:00 em Vila Velha.
     - cron: '0 * * * *'
   
-  # Permite que você teste clicando num botão no GitHub
+  # Este comando permite que você teste o botão "Run Workflow" manualmente
   workflow_dispatch:
 
 jobs:
@@ -15,6 +16,6 @@ jobs:
     steps:
       - name: Enviando o sinal para o Porteiro na Vercel
         run: |
-          curl -X POST "https://super-app-zeta-virid.vercel.app/api/index" \
+          curl -X POST "https://super-app-zeta-virid.vercel.app/api/notificar" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
           -H "Content-Type: application/json"
