@@ -1,5 +1,5 @@
--- Super App – estado atual do banco (Supabase).
--- Qualquer alteração de estrutura: edite este arquivo e execute no SQL Editor do Supabase.
+-- Super App - estado atual do banco (Supabase).
+-- Qualquer alteracao de estrutura: edite este arquivo e execute no SQL Editor do Supabase.
 
 -- 1) Despesas fixas (Bloco de Notas)
 CREATE TABLE IF NOT EXISTS public.tb_despesas_fixas (
@@ -9,12 +9,12 @@ CREATE TABLE IF NOT EXISTS public.tb_despesas_fixas (
   valor NUMERIC(12, 2) NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pago', 'pendente'))
 );
-COMMENT ON TABLE public.tb_despesas_fixas IS 'Despesas fixas – descrição, valor, pago/pendente';
+COMMENT ON TABLE public.tb_despesas_fixas IS 'Despesas fixas - descricao, valor, pago/pendente';
 
 CREATE INDEX IF NOT EXISTS idx_tb_despesas_fixas_created_at ON public.tb_despesas_fixas (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tb_despesas_fixas_status ON public.tb_despesas_fixas (status);
 
--- 2) Finanças
+-- 2) Financas
 CREATE TABLE IF NOT EXISTS public.tb_financas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
@@ -25,13 +25,33 @@ CREATE TABLE IF NOT EXISTS public.tb_financas (
   data_lancamento DATE,
   metodo_pagamento TEXT
 );
-COMMENT ON TABLE public.tb_financas IS 'Finanças – receitas e despesas';
+COMMENT ON TABLE public.tb_financas IS 'Financas - receitas e despesas';
 
 CREATE INDEX IF NOT EXISTS idx_tb_financas_created_at ON public.tb_financas (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tb_financas_tipo ON public.tb_financas (tipo);
 CREATE INDEX IF NOT EXISTS idx_tb_financas_data_lancamento ON public.tb_financas (data_lancamento) WHERE data_lancamento IS NOT NULL;
 
--- 3) Lista de Compras (categoria: Mantimentos, Higiene / limpeza, Feira, Carnes)
+-- 3) Calendario
+CREATE TABLE IF NOT EXISTS public.tb_calendario (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  date DATE NOT NULL,
+  start_time TIME,
+  end_time TIME,
+  category TEXT DEFAULT '',
+  telegram_sent BOOLEAN NOT NULL DEFAULT false,
+  telegram_sent_at TIMESTAMPTZ
+);
+COMMENT ON TABLE public.tb_calendario IS 'Calendario do SUPERAPP com suporte a envio de lembrete no Telegram';
+
+ALTER TABLE public.tb_calendario ADD COLUMN IF NOT EXISTS telegram_sent BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.tb_calendario ADD COLUMN IF NOT EXISTS telegram_sent_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_tb_calendario_date ON public.tb_calendario (date);
+CREATE INDEX IF NOT EXISTS idx_tb_calendario_telegram_sent ON public.tb_calendario (telegram_sent);
+
+-- 4) Lista de Compras (categoria: Mantimentos, Higiene / limpeza, Feira, Carnes)
 CREATE TABLE IF NOT EXISTS public.tb_lista_compras (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
@@ -41,12 +61,12 @@ CREATE TABLE IF NOT EXISTS public.tb_lista_compras (
   comprado BOOLEAN NOT NULL DEFAULT false,
   categoria TEXT NOT NULL DEFAULT 'Mantimentos' CHECK (categoria IN ('Mantimentos', 'Higiene / limpeza', 'Feira', 'Carnes'))
 );
-COMMENT ON TABLE public.tb_lista_compras IS 'Lista de Compras – categorias: Mantimentos, Higiene/limpeza, Feira, Carnes';
+COMMENT ON TABLE public.tb_lista_compras IS 'Lista de Compras - categorias: Mantimentos, Higiene/limpeza, Feira, Carnes';
 
 CREATE INDEX IF NOT EXISTS idx_tb_lista_compras_categoria ON public.tb_lista_compras (categoria);
 CREATE INDEX IF NOT EXISTS idx_tb_lista_compras_comprado ON public.tb_lista_compras (comprado);
 
--- 4) Saúde familiar (LGPD – dados sensíveis)
+-- 5) Saude familiar (LGPD - dados sensiveis)
 CREATE TABLE IF NOT EXISTS public.tb_saude_familiar (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
@@ -54,15 +74,23 @@ CREATE TABLE IF NOT EXISTS public.tb_saude_familiar (
   tipo_registro TEXT NOT NULL DEFAULT '' CHECK (tipo_registro IN ('Vacina', 'Exame', 'Consulta', 'Medicamento')),
   detalhes TEXT DEFAULT '',
   data_evento DATE,
+  hora_evento TIME,
+  telegram_sent BOOLEAN NOT NULL DEFAULT false,
+  telegram_sent_at TIMESTAMPTZ,
   anexo_url TEXT
 );
-COMMENT ON TABLE public.tb_saude_familiar IS 'Saúde Familiar – Vacina, Exame, Consulta, Medicamento';
+COMMENT ON TABLE public.tb_saude_familiar IS 'Saude Familiar - Vacina, Exame, Consulta, Medicamento';
+
+ALTER TABLE public.tb_saude_familiar ADD COLUMN IF NOT EXISTS hora_evento TIME;
+ALTER TABLE public.tb_saude_familiar ADD COLUMN IF NOT EXISTS telegram_sent BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.tb_saude_familiar ADD COLUMN IF NOT EXISTS telegram_sent_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_membro ON public.tb_saude_familiar (membro_familia);
 CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_tipo ON public.tb_saude_familiar (tipo_registro);
 CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_data_evento ON public.tb_saude_familiar (data_evento) WHERE data_evento IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_telegram_sent ON public.tb_saude_familiar (telegram_sent);
 
--- 5) Fluxograma (projetos: grafo em JSONB)
+-- 6) Fluxograma (projetos: grafo em JSONB)
 CREATE TABLE IF NOT EXISTS public.tb_fluxograma_projetos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
@@ -70,11 +98,11 @@ CREATE TABLE IF NOT EXISTS public.tb_fluxograma_projetos (
   nome TEXT NOT NULL DEFAULT 'Novo Fluxograma',
   dados JSONB NOT NULL DEFAULT '{}'::jsonb
 );
-COMMENT ON TABLE public.tb_fluxograma_projetos IS 'Fluxograma SUPERAPP – nós, conexões e metadados (JSON em dados)';
+COMMENT ON TABLE public.tb_fluxograma_projetos IS 'Fluxograma SUPERAPP - nos, conexoes e metadados (JSON em dados)';
 
 CREATE INDEX IF NOT EXISTS idx_tb_fluxograma_projetos_updated ON public.tb_fluxograma_projetos (updated_at DESC);
 
--- Se usar RLS, crie políticas para o papel que a API usa (ex.: anon via SUPABASE_ANON_KEY no Vercel).
--- Exemplo: permitir tudo para anon (ajuste conforme sua política de segurança):
+-- Se usar RLS, crie politicas para o papel que a API usa (ex.: anon via SUPABASE_ANON_KEY no Vercel).
+-- Exemplo: permitir tudo para anon (ajuste conforme sua politica de seguranca):
 -- ALTER TABLE public.tb_fluxograma_projetos ENABLE ROW LEVEL SECURITY;
 -- CREATE POLICY "fluxograma_anon_all" ON public.tb_fluxograma_projetos FOR ALL TO anon USING (true) WITH CHECK (true);
