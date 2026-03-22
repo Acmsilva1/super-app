@@ -100,7 +100,7 @@ function updateMenuForSelection() {
     const n = getSelectedNode(), shapeEl = el("nodeShapeSelect"), colorEl = el("nodeColorInput"), connEl = el("connectionTypeSelect"), selectedConn = state.selectedConnectionIndex !== null ? state.connections[state.selectedConnectionIndex] : null;
     if (!shapeEl || !colorEl || !connEl) return;
     shapeEl.disabled = !n || state.isViewMode;
-    colorEl.disabled = state.isViewMode || (!n && !selectedConn);
+    colorEl.disabled = state.isViewMode || (!n && !selectedConn && !state.isConnecting);
     connEl.disabled = state.isViewMode;
     if (selectedConn) {
         connEl.value = selectedConn.type || "arrow";
@@ -190,6 +190,20 @@ function startConnection() {
     if (colorEl) colorEl.value = "#000000";
     updateUI();
     showStatus("Selecione o no de destino.", "info");
+}
+
+function syncConnectionColorInput() {
+    const colorEl = el("nodeColorInput");
+    if (!colorEl) return;
+    if (state.selectedConnectionIndex !== null && state.connections[state.selectedConnectionIndex]) {
+        colorEl.value = state.connections[state.selectedConnectionIndex].color || "#000000";
+        return;
+    }
+    if (state.isConnecting) {
+        colorEl.value = "#000000";
+        return;
+    }
+    colorEl.value = "#000000";
 }
 
 function cancelConnection() {
@@ -382,6 +396,7 @@ function updateUI() {
     state.connections.forEach(c => { connected.add(c.from); connected.add(c.to); });
     el("totalNodes").textContent = state.nodes.length; el("totalConnections").textContent = state.connections.length; el("connectedNodes").textContent = connected.size;
     updateDisconnectActionBtn(); updateMenuForSelection();
+    syncConnectionColorInput();
     if (state.isViewMode) { hideInlineEditor(false); el("canvas").style.display = "none"; el("renderView").style.display = "block"; renderReadOnlyView(); }
     else { el("renderView").style.display = "none"; el("canvas").style.display = "block"; positionInlineEditor(); }
 }
@@ -555,6 +570,7 @@ export function bootFluxograma(opts = {}) {
     }
     root._fluxOnResize = onWindowResize;
     window.addEventListener("resize", root._fluxOnResize);
+    syncConnectionColorInput();
     updateUI();
     showStatus("Pronto para criar seu fluxograma.", "success");
 }
