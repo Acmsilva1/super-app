@@ -104,7 +104,7 @@ function updateMenuForSelection() {
     connEl.disabled = state.isViewMode;
     if (selectedConn) {
         connEl.value = selectedConn.type || "arrow";
-        colorEl.value = selectedConn.color || "#214f83";
+        colorEl.value = selectedConn.color || "#000000";
     } else if (n) {
         shapeEl.value = n.shape || "rect";
         colorEl.value = n.color || "#ffffff";
@@ -124,7 +124,7 @@ function setSelectedNodeColor(v) {
     if (state.isViewMode) return;
     const selectedConn = state.selectedConnectionIndex !== null ? state.connections[state.selectedConnectionIndex] : null;
     if (selectedConn) {
-        selectedConn.color = v || "#214f83";
+        selectedConn.color = v || "#000000";
         saveToLocalStorage();
         updateUI();
         showStatus("Cor da conexao atualizada.", "success");
@@ -225,7 +225,7 @@ function finishConnection(to) {
     if (!state.isConnecting || state.connectingFrom === null) return;
     if (state.connectingFrom === to) return showStatus("Nao e possivel conectar um no a ele mesmo.", "error");
     if (state.connections.some(c => c.from === state.connectingFrom && c.to === to && ((c.type || "arrow") === (el("connectionTypeSelect")?.value || "arrow")))) return showStatus("Essa conexao ja existe.", "info");
-    state.connections.push({ from: state.connectingFrom, to, type: (el("connectionTypeSelect")?.value || "arrow"), color: (el("nodeColorInput")?.value || "#214f83") });
+    state.connections.push({ from: state.connectingFrom, to, type: (el("connectionTypeSelect")?.value || "arrow"), color: "#000000" });
     state.isConnecting = false;
     state.connectingFrom = null;
     saveToLocalStorage();
@@ -304,7 +304,7 @@ function drawCanvas() {
         const g = getConnectionGeometry(state, cn);
         if (!g) return;
         const fx = g.x1 - state.cameraX, fy = g.y1 - state.cameraY, tx = g.x2 - state.cameraX, ty = g.y2 - state.cameraY, c1x = g.c1x - state.cameraX, c1y = g.c1y - state.cameraY, c2x = g.c2x - state.cameraX, c2y = g.c2y - state.cameraY;
-        const sel = idx === state.selectedConnectionIndex, type = cn.type || "arrow", base = cn.color || "#214f83";
+        const sel = idx === state.selectedConnectionIndex, type = cn.type || "arrow", base = cn.color || "#000000";
         ctx.strokeStyle = sel ? "#f59e0b" : base; ctx.fillStyle = sel ? "#f59e0b" : base; ctx.lineWidth = sel ? 4 : 2.5; ctx.setLineDash(type === "line" ? [10, 6] : []); ctx.beginPath(); ctx.moveTo(fx, fy); if (type === "curve") ctx.bezierCurveTo(c1x, c1y, c2x, c2y, tx, ty); else ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]);
         const endA = type === "curve" ? Math.atan2(ty - c2y, tx - c2x) : Math.atan2(ty - fy, tx - fx), startA = type === "curve" ? Math.atan2(c1y - fy, c1x - fx) : endA + Math.PI, s = 14;
         if (type === "arrow" || type === "both" || type === "curve") drawArrowHead(ctx, tx, ty, endA, s); if (type === "both") drawArrowHead(ctx, fx, fy, startA, s);
@@ -334,7 +334,7 @@ function renderReadOnlyView() {
     state.connections.forEach(cn => {
         const g = getConnectionGeometry(state, cn);
         if (!g) return;
-        const type = cn.type || "arrow", base = cn.color || "#214f83";
+        const type = cn.type || "arrow", base = cn.color || "#000000";
         let edge; if (type === "curve") { edge = document.createElementNS(ns, "path"); edge.setAttribute("d", `M ${g.x1 - state.cameraX} ${g.y1 - state.cameraY} C ${g.c1x - state.cameraX} ${g.c1y - state.cameraY}, ${g.c2x - state.cameraX} ${g.c2y - state.cameraY}, ${g.x2 - state.cameraX} ${g.y2 - state.cameraY}`); } else { edge = document.createElementNS(ns, "line"); edge.setAttribute("x1", String(g.x1 - state.cameraX)); edge.setAttribute("y1", String(g.y1 - state.cameraY)); edge.setAttribute("x2", String(g.x2 - state.cameraX)); edge.setAttribute("y2", String(g.y2 - state.cameraY)); }
         edge.setAttribute("fill", "none"); edge.setAttribute("stroke", base); edge.setAttribute("stroke-width", "2.5"); if (type === "line") edge.setAttribute("stroke-dasharray", "10 6"); if (type === "arrow" || type === "both" || type === "curve") edge.setAttribute("marker-end", "url(#arrow)"); if (type === "both") edge.setAttribute("marker-start", "url(#arrowStart)"); svg.appendChild(edge);
     });
@@ -560,4 +560,3 @@ export function afterExternalHydrate() {
     updateUI();
     saveToLocalStorage();
 }
-

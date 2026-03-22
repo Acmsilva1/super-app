@@ -78,7 +78,7 @@ export function getGraphPayload() {
             from: c.from,
             to: c.to,
             type: c.type || "arrow",
-            color: c.color || "#214f83"
+            color: c.color || "#000000"
         })),
         nextId: state.nextId,
         projectName: state.projectName,
@@ -106,7 +106,7 @@ export function applyPersistedData(d) {
         from: c.from,
         to: c.to,
         type: typeof c.type === "string" ? c.type : "arrow",
-        color: typeof c.color === "string" ? c.color : "#214f83"
+        color: typeof c.color === "string" ? c.color : "#000000"
     })) : [];
     state.nextId = Number.isInteger(d.nextId) ? d.nextId : 1;
     state.projectName = typeof d.projectName === "string" && d.projectName.trim()
