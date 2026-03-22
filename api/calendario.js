@@ -69,6 +69,8 @@ export default async function handler(req, res) {
     if (!id) return json(res, 400, { error: 'id obrigatório' });
     const payload = payloadUpdateEvent(title, date, start_time, end_time, category);
     if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
+    payload.telegram_sent = false;
+    payload.telegram_sent_at = null;
     const { data, error } = await supabase.from('tb_calendario').update(payload).eq('id', id).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, data);
