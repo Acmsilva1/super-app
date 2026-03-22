@@ -109,7 +109,9 @@ function updateMenuForSelection() {
         colorEl.value = "#000000";
     } else if (n) {
         shapeEl.value = n.shape || "rect";
-        colorEl.value = n.color || "#ffffff";
+        colorEl.value = "#000000";
+    } else {
+        colorEl.value = "#000000";
     }
 }
 
