@@ -105,6 +105,8 @@ function updateMenuForSelection() {
     if (selectedConn) {
         connEl.value = selectedConn.type || "arrow";
         colorEl.value = selectedConn.color || "#000000";
+    } else if (state.isConnecting) {
+        colorEl.value = "#000000";
     } else if (n) {
         shapeEl.value = n.shape || "rect";
         colorEl.value = n.color || "#ffffff";
@@ -182,6 +184,8 @@ function startConnection() {
     state.disconnectFrom = null;
     state.isConnecting = true;
     state.connectingFrom = state.selectedNode;
+    const colorEl = el("nodeColorInput");
+    if (colorEl) colorEl.value = "#000000";
     updateUI();
     showStatus("Selecione o no de destino.", "info");
 }
