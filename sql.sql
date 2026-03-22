@@ -51,6 +51,41 @@ ALTER TABLE public.tb_calendario ADD COLUMN IF NOT EXISTS telegram_sent_at TIMES
 CREATE INDEX IF NOT EXISTS idx_tb_calendario_date ON public.tb_calendario (date);
 CREATE INDEX IF NOT EXISTS idx_tb_calendario_telegram_sent ON public.tb_calendario (telegram_sent);
 
+CREATE OR REPLACE FUNCTION public.reset_telegram_alert_flags()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF TG_TABLE_NAME = 'tb_calendario' THEN
+    IF NEW.title IS DISTINCT FROM OLD.title
+      OR NEW.date IS DISTINCT FROM OLD.date
+      OR NEW.start_time IS DISTINCT FROM OLD.start_time
+      OR NEW.end_time IS DISTINCT FROM OLD.end_time
+      OR NEW.category IS DISTINCT FROM OLD.category THEN
+      NEW.telegram_sent := false;
+      NEW.telegram_sent_at := null;
+    END IF;
+  ELSIF TG_TABLE_NAME = 'tb_saude_familiar' THEN
+    IF NEW.membro_familia IS DISTINCT FROM OLD.membro_familia
+      OR NEW.tipo_registro IS DISTINCT FROM OLD.tipo_registro
+      OR NEW.detalhes IS DISTINCT FROM OLD.detalhes
+      OR NEW.data_evento IS DISTINCT FROM OLD.data_evento
+      OR NEW.hora_evento IS DISTINCT FROM OLD.hora_evento
+      OR NEW.anexo_url IS DISTINCT FROM OLD.anexo_url THEN
+      NEW.telegram_sent := false;
+      NEW.telegram_sent_at := null;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_tb_calendario_reset_telegram_alert_flags ON public.tb_calendario;
+CREATE TRIGGER trg_tb_calendario_reset_telegram_alert_flags
+BEFORE UPDATE ON public.tb_calendario
+FOR EACH ROW
+EXECUTE FUNCTION public.reset_telegram_alert_flags();
+
 -- 4) Lista de Compras (categoria: Mantimentos, Higiene / limpeza, Feira, Carnes)
 CREATE TABLE IF NOT EXISTS public.tb_lista_compras (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -89,6 +124,12 @@ CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_membro ON public.tb_saude_famil
 CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_tipo ON public.tb_saude_familiar (tipo_registro);
 CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_data_evento ON public.tb_saude_familiar (data_evento) WHERE data_evento IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_tb_saude_familiar_telegram_sent ON public.tb_saude_familiar (telegram_sent);
+
+DROP TRIGGER IF EXISTS trg_tb_saude_familiar_reset_telegram_alert_flags ON public.tb_saude_familiar;
+CREATE TRIGGER trg_tb_saude_familiar_reset_telegram_alert_flags
+BEFORE UPDATE ON public.tb_saude_familiar
+FOR EACH ROW
+EXECUTE FUNCTION public.reset_telegram_alert_flags();
 
 -- 6) Fluxograma (projetos: grafo em JSONB)
 CREATE TABLE IF NOT EXISTS public.tb_fluxograma_projetos (
