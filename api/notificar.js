@@ -48,6 +48,19 @@ function formatDateTime(dateValue, timeValue) {
   return time ? `${date} ${time}` : `${date} 00:00`;
 }
 
+function toBrazilInstant(dateValue, timeValue) {
+  if (!dateValue) return null;
+  const date = String(dateValue).slice(0, 10);
+  const time = timeValue ? String(timeValue).slice(0, 5) : '00:00';
+  return new Date(`${date}T${time}:00-03:00`);
+}
+
+function isWithinNext24Hours(dateValue, timeValue, now, windowEnd) {
+  const instant = toBrazilInstant(dateValue, timeValue);
+  if (!instant || Number.isNaN(instant.getTime())) return false;
+  return instant >= now && instant <= windowEnd;
+}
+
 function escapeTelegramMarkdown(text) {
   return String(text ?? '').replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
 }
@@ -69,8 +82,8 @@ async function sendTelegramMessage(text) {
   }
 }
 
-async function processRows(config, startDate, endDate) {
-  const query = supabase
+async function processRows(config, startDate, endDate, now, windowEnd) {
+  const { data, error } = await supabase
     .from(config.table)
     .select(config.select)
     .eq('telegram_sent', false)
@@ -78,12 +91,11 @@ async function processRows(config, startDate, endDate) {
     .lt(config.dateColumn, endDate)
     .order(config.dateColumn, { ascending: true });
 
-  const { data, error } = await query;
   if (error) throw new Error(`Erro ao consultar ${config.table}: ${error.message}`);
 
   let sent = 0;
 
-  for (const row of data || []) {
+  for (const row of (data || []).filter((row) => isWithinNext24Hours(row[config.dateColumn], row[config.timeColumn], now, windowEnd))) {
     const text = config.message(row);
     await sendTelegramMessage(text);
 
@@ -110,14 +122,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const startDate = brazilDate();
-    const endDate = addDays(startDate, 1);
+    const now = new Date();
+    const windowEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const today = brazilDate(now);
+    const endDate = addDays(addDays(today, 1), 1);
 
     const sources = [
       {
         table: 'tb_calendario',
         select: 'id,title,date,start_time,category',
         dateColumn: 'date',
+        timeColumn: 'start_time',
         message: (row) =>
           [
             '*📅 CALENDÁRIO*',
@@ -132,6 +147,7 @@ export default async function handler(req, res) {
         table: 'tb_saude_familiar',
         select: 'id,membro_familia,tipo_registro,detalhes,data_evento,hora_evento',
         dateColumn: 'data_evento',
+        timeColumn: 'hora_evento',
         message: (row) =>
           [
             '*🏥 SAÚDE*',
@@ -144,11 +160,17 @@ export default async function handler(req, res) {
     ];
 
     let totalEnviados = 0;
-    for (const source of sources) totalEnviados += await processRows(source, startDate, endDate);
+    for (const source of sources) totalEnviados += await processRows(source, today, endDate, now, windowEnd);
 
     return json(res, 200, {
       status: 'ok',
-      periodo: { inicio: startDate, fim_exclusivo: endDate, timezone: TZ },
+      periodo: {
+        referencia: today,
+        janela_inicio: now.toISOString(),
+        janela_fim: windowEnd.toISOString(),
+        datas_consultadas: { inicio: today, fim_exclusivo: endDate },
+        timezone: TZ,
+      },
       enviados: totalEnviados,
     });
   } catch (err) {
