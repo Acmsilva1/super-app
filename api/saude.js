@@ -6,6 +6,7 @@ import {
   renderizarResumo,
   parseRowsSupabase,
 } from '../modulos/saude/index.js';
+import { markTelegramPending } from '../lib/telegramAlertState.js';
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { membro_familia, tipo_registro, detalhes, data_evento, hora_evento, anexo_url } = body;
     if (!membro_familia || !tipo_registro) return json(res, 400, { error: 'membro_familia e tipo_registro obrigatórios' });
-    const payload = payloadInsert(membro_familia, tipo_registro, detalhes, data_evento, hora_evento, anexo_url);
+    const payload = markTelegramPending(payloadInsert(membro_familia, tipo_registro, detalhes, data_evento, hora_evento, anexo_url));
     const { data, error } = await supabase.from(TABLE_NAME).insert(payload).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 201, data);
@@ -36,10 +37,8 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { id, membro_familia, tipo_registro, detalhes, data_evento, hora_evento, anexo_url } = body;
     if (!id) return json(res, 400, { error: 'id obrigatório' });
-    const payload = payloadUpdate(membro_familia, tipo_registro, detalhes, data_evento, hora_evento, anexo_url);
+    const payload = markTelegramPending(payloadUpdate(membro_familia, tipo_registro, detalhes, data_evento, hora_evento, anexo_url));
     if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
-    payload.telegram_sent = false;
-    payload.telegram_sent_at = null;
     const { data, error } = await supabase.from(TABLE_NAME).update(payload).eq('id', id).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, data);

@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import { calendarService, payloadInsertEvent, payloadUpdateEvent } from '../modulos/calendario/index.js';
+import { markTelegramPending } from '../lib/telegramAlertState.js';
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
@@ -57,7 +58,7 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { title, date, start_time, end_time, category } = body;
     if (!title || !date) return json(res, 400, { error: 'title e date são obrigatórios' });
-    const payload = payloadInsertEvent(title, date, start_time, end_time, category);
+    const payload = markTelegramPending(payloadInsertEvent(title, date, start_time, end_time, category));
     const { data, error } = await supabase.from('tb_calendario').insert(payload).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 201, data);
@@ -67,10 +68,8 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { id, title, date, start_time, end_time, category } = body;
     if (!id) return json(res, 400, { error: 'id obrigatório' });
-    const payload = payloadUpdateEvent(title, date, start_time, end_time, category);
+    const payload = markTelegramPending(payloadUpdateEvent(title, date, start_time, end_time, category));
     if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
-    payload.telegram_sent = false;
-    payload.telegram_sent_at = null;
     const { data, error } = await supabase.from('tb_calendario').update(payload).eq('id', id).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, data);
