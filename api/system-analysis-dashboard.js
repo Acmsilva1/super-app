@@ -1,6 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
 const TABLE_NAME = process.env.SYSTEM_ANALYSIS_TABLE || "system_analysis_logs";
+const STORAGE_TABLES = [
+  { app: "Despesas Fixas", table: "tb_despesas_fixas" },
+  { app: "Financas", table: "tb_financas" },
+  { app: "Lista de Compras", table: "tb_lista_compras" },
+  { app: "Saude Familiar", table: "tb_saude_familiar" },
+  { app: "Agenda", table: "tb_calendario" },
+  { app: "Fluxograma", table: "tb_fluxograma_projetos" },
+];
 
 function json(res, status, data) {
   res.setHeader("Content-Type", "application/json");
@@ -45,7 +53,7 @@ function buildDashboardPayload(rows) {
       health: { healthy: 0, attention: 100 },
       services: { labels: ["Total", "Saudaveis", "Falhas"], values: [0, 0, 0] },
       latency_current: { labels: [], values: [] },
-      slow_endpoints: { labels: [], values: [] },
+      storage_by_app: { labels: [], values: [] },
       db: { connected: 0, unstable: 100 },
       history: [],
     };
@@ -54,26 +62,6 @@ function buildDashboardPayload(rows) {
   const latest = rows[0];
   const latestEndpoints = Array.isArray(latest.endpoints) ? latest.endpoints : [];
   const latestApiEndpoints = latestEndpoints.filter((x) => x.endpoint_name !== "db_connection");
-
-  const aggregation = new Map();
-  rows.forEach((row) => {
-    const list = Array.isArray(row.endpoints) ? row.endpoints : [];
-    list.forEach((endpoint) => {
-      if (endpoint.endpoint_name === "db_connection") return;
-      const key = endpoint.endpoint_name || endpoint.endpoint_path || "desconhecido";
-      if (!aggregation.has(key)) {
-        aggregation.set(key, { key, label: normalizeLabel(endpoint), totalLatency: 0, samples: 0 });
-      }
-      const item = aggregation.get(key);
-      item.totalLatency += toNumber(endpoint.latency_ms, 0);
-      item.samples += 1;
-    });
-  });
-
-  const slowEndpoints = [...aggregation.values()]
-    .map((item) => ({ label: item.label, avgLatency: item.samples ? item.totalLatency / item.samples : 0 }))
-    .sort((a, b) => b.avgLatency - a.avgLatency)
-    .slice(0, 5);
 
   const dbRows = rows
     .map((row) => {
@@ -112,10 +100,7 @@ function buildDashboardPayload(rows) {
       labels: latestApiEndpoints.map((x) => normalizeLabel(x)),
       values: latestApiEndpoints.map((x) => toNumber(x.latency_ms, 0)),
     },
-    slow_endpoints: {
-      labels: slowEndpoints.map((x) => x.label),
-      values: slowEndpoints.map((x) => round(x.avgLatency, 0)),
-    },
+    storage_by_app: { labels: [], values: [] },
     db: {
       connected: dbConnected,
       unstable: Math.max(0, round(100 - dbConnected, 2)),
@@ -129,6 +114,24 @@ function buildDashboardPayload(rows) {
         error_rate_percent: toNumber(row.error_rate_percent, 0),
         p95_latency_ms: toNumber(row.p95_latency_ms, 0),
       })),
+  };
+}
+
+async function fetchStorageByApp(supabase) {
+  const counts = await Promise.all(
+    STORAGE_TABLES.map(async (item) => {
+      const { count, error } = await supabase.from(item.table).select("id", { count: "exact", head: true });
+      if (error) {
+        return { label: item.app, value: 0 };
+      }
+      return { label: item.app, value: toNumber(count, 0) };
+    })
+  );
+
+  counts.sort((a, b) => b.value - a.value);
+  return {
+    labels: counts.map((x) => x.label),
+    values: counts.map((x) => x.value),
   };
 }
 
@@ -155,7 +158,9 @@ export default async function handler(req, res) {
 
     if (error) throw new Error(error.message);
 
-    return json(res, 200, buildDashboardPayload(data || []));
+    const payload = buildDashboardPayload(data || []);
+    payload.storage_by_app = await fetchStorageByApp(supabase);
+    return json(res, 200, payload);
   } catch (error) {
     return json(res, 500, { error: error.message || "Falha ao carregar dashboard de analise." });
   }

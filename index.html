@@ -1438,7 +1438,7 @@
                     <div class="dashboard-chart-wrap"><canvas id="chartData"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Top endpoints mais lentos (media)</h4>
+                    <h4 class="dashboard-chart-title">Dados armazenados por aplicacao</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartSize"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
@@ -1518,7 +1518,7 @@
                     health: { healthy: 0, attention: 100 },
                     services: { labels: ['Total', 'Saudaveis', 'Falhas'], values: [0, 0, 0] },
                     latency_current: { labels: [], values: [] },
-                    slow_endpoints: { labels: [], values: [] },
+                    storage_by_app: { labels: [], values: [] },
                     db: { connected: 0, unstable: 100 },
                     history: []
                 };
@@ -1660,7 +1660,7 @@
                 const health = metrics.health || { healthy: 0, attention: 100 };
                 const services = metrics.services || { labels: ['Total', 'Saudaveis', 'Falhas'], values: [0, 0, 0] };
                 const latencyCurrent = metrics.latency_current || { labels: [], values: [] };
-                const slowEndpoints = metrics.slow_endpoints || { labels: [], values: [] };
+                const storageByApp = metrics.storage_by_app || { labels: [], values: [] };
                 const db = metrics.db || { connected: 0, unstable: 100 };
 
                 const chartOptions = { responsive: true, maintainAspectRatio: false };
@@ -1766,14 +1766,14 @@
                         type: 'bar',
                         plugins: [dashboardValuePlugin],
                         data: {
-                            labels: (slowEndpoints.labels && slowEndpoints.labels.length ? slowEndpoints.labels : ['Sem dados']),
-                            datasets: [{ label: 'Media (ms)', data: (slowEndpoints.values && slowEndpoints.values.length ? slowEndpoints.values : [0]), backgroundColor: '#1e40af' }]
+                            labels: (storageByApp.labels && storageByApp.labels.length ? storageByApp.labels : ['Sem dados']),
+                            datasets: [{ label: 'Registros', data: (storageByApp.values && storageByApp.values.length ? storageByApp.values : [0]), backgroundColor: '#1e40af' }]
                         },
                         options: {
                             ...chartOptions,
                             indexAxis: 'y',
                             scales: { x: { beginAtZero: true } },
-                            plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}ms` } }
+                            plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}` } }
                         }
                     });
                 }
