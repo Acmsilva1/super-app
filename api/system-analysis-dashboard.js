@@ -33,10 +33,21 @@ function getSupabaseServerClient() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-function getRangeDays(req) {
-  const queryDays = Number(req.query?.rangeDays || req.query?.dias || 7);
-  if (!Number.isFinite(queryDays) || queryDays <= 0) return 7;
-  return Math.min(queryDays, 90);
+function getProfile(req) {
+  const profile = String(req.query?.profile || "").toLowerCase();
+  if (profile === "monthly") return "monthly";
+  if (profile === "total") return "total";
+  return "weekly";
+}
+
+function getProfileWindow(profile) {
+  if (profile === "monthly") {
+    return { rangeDays: 30, fromIso: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() };
+  }
+  if (profile === "total") {
+    return { rangeDays: null, fromIso: null };
+  }
+  return { rangeDays: 7, fromIso: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() };
 }
 
 function normalizeLabel(endpoint) {
@@ -117,10 +128,12 @@ function buildDashboardPayload(rows) {
   };
 }
 
-async function fetchStorageByApp(supabase) {
+async function fetchStorageByApp(supabase, fromIso = null) {
   const counts = await Promise.all(
     STORAGE_TABLES.map(async (item) => {
-      const { count, error } = await supabase.from(item.table).select("id", { count: "exact", head: true });
+      let query = supabase.from(item.table).select("id", { count: "exact", head: true });
+      if (fromIso) query = query.gte("created_at", fromIso);
+      const { count, error } = await query;
       if (error) {
         return { label: item.app, value: 0 };
       }
@@ -143,23 +156,26 @@ export default async function handler(req, res) {
 
   try {
     const supabase = getSupabaseServerClient();
-    const rangeDays = getRangeDays(req);
-    const fromIso = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000).toISOString();
-    const limit = Math.max(24, Math.min(rangeDays * 24, 500));
+    const profile = getProfile(req);
+    const { rangeDays, fromIso } = getProfileWindow(profile);
+    const limit = rangeDays ? Math.max(24, Math.min(rangeDays * 24, 500)) : 1000;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from(TABLE_NAME)
       .select(
         "measured_at,status,checks_total,checks_success,checks_failed,uptime_percent,error_rate_percent,p95_latency_ms,endpoints"
       )
-      .gte("measured_at", fromIso)
       .order("measured_at", { ascending: false })
       .limit(limit);
+    if (fromIso) query = query.gte("measured_at", fromIso);
+
+    const { data, error } = await query;
 
     if (error) throw new Error(error.message);
 
     const payload = buildDashboardPayload(data || []);
-    payload.storage_by_app = await fetchStorageByApp(supabase);
+    payload.profile = profile;
+    payload.storage_by_app = await fetchStorageByApp(supabase, fromIso);
     return json(res, 200, payload);
   } catch (error) {
     return json(res, 500, { error: error.message || "Falha ao carregar dashboard de analise." });

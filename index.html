@@ -381,6 +381,33 @@
             color: #94a3b8;
         }
 
+        .dashboard-controls {
+            margin-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-controls label {
+            font-size: 0.8125rem;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        .dashboard-profile-select {
+            min-width: 170px;
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 0.45rem 0.6rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
         .dashboard-charts {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1422,6 +1449,14 @@
             <div class="hero">
                 <h2>Bem-vindo ao SUPERAPP</h2>
                 <p>Plataforma unificada de microservicos e aplicacoes praticas. Acesse todas as suas ferramentas em um unico lugar.</p>
+                <div class="dashboard-controls">
+                    <label for="dashboardProfileSelect">Perfil:</label>
+                    <select id="dashboardProfileSelect" class="dashboard-profile-select">
+                        <option value="weekly">Semanal</option>
+                        <option value="monthly">Mensal</option>
+                        <option value="total">Total</option>
+                    </select>
+                </div>
                 <p id="dashboardLastUpdate" class="dashboard-last-update">Ultima analise: carregando...</p>
             </div>
             <div id="dashboardCharts" class="dashboard-charts">
@@ -1505,6 +1540,7 @@
         class SuperApp {
             constructor() {
                 this.apps = [];
+                this.dashboardProfile = localStorage.getItem('superapp-dashboard-profile') || 'weekly';
                 this.statistics = {
                     totalApps: 0,
                     activeApps: 0,
@@ -1541,6 +1577,16 @@
             setupEventListeners() {
                 const navDashboard = document.getElementById('navDashboard');
                 const navApps = document.getElementById('navApps');
+                const profileSelect = document.getElementById('dashboardProfileSelect');
+                if (profileSelect) {
+                    profileSelect.value = this.dashboardProfile;
+                    profileSelect.addEventListener('change', (e) => {
+                        const selected = e.target.value || 'weekly';
+                        this.dashboardProfile = selected;
+                        localStorage.setItem('superapp-dashboard-profile', selected);
+                        this.loadDashboardAnalysis(true);
+                    });
+                }
                 if (navDashboard) {
                     navDashboard.addEventListener('click', (e) => {
                         e.preventDefault();
@@ -1630,9 +1676,10 @@
 
             async loadDashboardAnalysis(forceRefresh = false) {
                 try {
+                    const profile = this.dashboardProfile || 'weekly';
                     const url = forceRefresh
-                        ? `/api/system-analysis-dashboard?rangeDays=7&t=${Date.now()}`
-                        : '/api/system-analysis-dashboard?rangeDays=7';
+                        ? `/api/system-analysis-dashboard?profile=${encodeURIComponent(profile)}&t=${Date.now()}`
+                        : `/api/system-analysis-dashboard?profile=${encodeURIComponent(profile)}`;
                     const response = await fetch(url);
                     if (!response.ok) throw new Error('Falha ao carregar analise do sistema');
                     const data = await response.json();
@@ -1801,21 +1848,23 @@
             renderDashboardLastUpdate(fallbackText = null) {
                 const el = document.getElementById('dashboardLastUpdate');
                 if (!el) return;
+                const profileMap = { weekly: 'Semanal', monthly: 'Mensal', total: 'Total' };
+                const profileLabel = profileMap[this.dashboardProfile] || 'Semanal';
                 if (fallbackText) {
-                    el.textContent = fallbackText;
+                    el.textContent = `${fallbackText} (${profileLabel})`;
                     return;
                 }
                 const latestAt = this.dashboardMetrics?.latest_at;
                 if (!latestAt) {
-                    el.textContent = 'Ultima analise: sem dados';
+                    el.textContent = `Ultima analise: sem dados (${profileLabel})`;
                     return;
                 }
                 const dt = new Date(latestAt);
                 if (Number.isNaN(dt.getTime())) {
-                    el.textContent = 'Ultima analise: sem dados';
+                    el.textContent = `Ultima analise: sem dados (${profileLabel})`;
                     return;
                 }
-                el.textContent = `Ultima analise: ${dt.toLocaleString('pt-BR')}`;
+                el.textContent = `Ultima analise: ${dt.toLocaleString('pt-BR')} (${profileLabel})`;
             }
 
             renderApps() {
