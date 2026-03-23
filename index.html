@@ -2511,6 +2511,33 @@
                     }
                 }, 60000);
                 if (typeof Chart !== 'undefined') {
+                    const formatMoneyLabel = (value) => `R$ ${Number(value || 0).toFixed(2)}`;
+                    const inlineValueLabelsPlugin = {
+                        id: 'inlineValueLabels',
+                        afterDatasetsDraw(chart) {
+                            const dataset = chart.data.datasets[0];
+                            const meta = chart.getDatasetMeta(0);
+                            const { ctx } = chart;
+                            ctx.save();
+                            ctx.font = '600 12px Arial';
+                            ctx.fillStyle = '#111827';
+                            ctx.textBaseline = 'middle';
+                            meta.data.forEach((element, index) => {
+                                const rawValue = dataset && dataset.data ? dataset.data[index] : 0;
+                                if (!(Number(rawValue) > 0)) return;
+                                const label = formatMoneyLabel(rawValue);
+                                const pos = element.tooltipPosition();
+                                if (chart.config.type === 'bar') {
+                                    ctx.textAlign = 'left';
+                                    ctx.fillText(label, pos.x + 8, pos.y);
+                                } else {
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText(label, pos.x, pos.y);
+                                }
+                            });
+                            ctx.restore();
+                        }
+                    };
                     const ctxPie = document.getElementById('fin-chart-pie');
                     if (ctxPie && (receitas > 0 || despesasVariaveis > 0 || despesasFixas > 0)) {
                         el._chartPie = new Chart(ctxPie, {
@@ -2519,7 +2546,8 @@
                                 labels: ['Receitas', 'Despesas variáveis', 'Despesas fixas'],
                                 datasets: [{ data: [receitas, despesasVariaveis, despesasFixas], backgroundColor: ['#22c55e', '#dc2626', '#b91c1c'], borderWidth: 0 }]
                             },
-                            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+                            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } },
+                            plugins: [inlineValueLabelsPlugin]
                         });
                     }
                     const ctxBar = document.getElementById('fin-chart-bar');
@@ -2532,7 +2560,8 @@
                                 labels: labelsBar,
                                 datasets: [{ label: 'Gasto (R$)', data: valuesBar, backgroundColor: '#2563eb', borderRadius: 4 }]
                             },
-                            options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+                            options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
+                            plugins: [inlineValueLabelsPlugin]
                         });
                     }
                 }
