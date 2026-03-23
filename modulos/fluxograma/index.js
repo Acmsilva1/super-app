@@ -48,6 +48,7 @@ function resizeCanvas(scale = true) {
     state.viewportHeight = h;
     applyCanvasSize();
     positionInlineEditor();
+    positionInlineTextEditor();
 }
 
 function addNode() {
@@ -72,6 +73,43 @@ function addNode() {
     showStatus("Novo no criado.", "success");
 }
 
+function getTextFont(t) {
+    return `700 ${Math.max(16, Number(t?.fontSize) || 24)}px Segoe UI`;
+}
+
+function updateTextMetrics(ctx, t) {
+    ctx.font = getTextFont(t);
+    const value = (t?.text || "Texto").trim() || "Texto";
+    t.text = value;
+    t.w = Math.max(40, Math.ceil(ctx.measureText(value).width));
+    t.h = Math.max(28, Math.ceil((Number(t?.fontSize) || 24) * 1.2));
+}
+
+function addTextLabel() {
+    if (state.isViewMode) return;
+    hideInlineEditor(true);
+    hideInlineTextEditor(true);
+    const ctx = el("canvas").getContext("2d");
+    const t = {
+        id: state.nextId,
+        x: state.cameraX + 80,
+        y: state.cameraY + 90,
+        text: "Texto",
+        color: "#1a1f28",
+        fontSize: 24
+    };
+    updateTextMetrics(ctx, t);
+    state.texts.push(t);
+    state.nextId++;
+    state.selectedNode = null;
+    state.selectedConnectionIndex = null;
+    state.selectedTextId = t.id;
+    saveToLocalStorage();
+    updateUI();
+    startInlineTextEdit(t.id);
+    showStatus("Texto criado.", "success");
+}
+
 function onNodeTextInput() {
     if (state.inlineEditNodeId === null) return;
     const n = state.nodes.find(x => x.id === state.inlineEditNodeId);
@@ -85,8 +123,24 @@ function onNodeTextInput() {
     if (state.isViewMode) renderReadOnlyView();
 }
 
+function onInlineTextInput() {
+    if (state.inlineEditTextId === null) return;
+    const t = state.texts.find(x => x.id === state.inlineEditTextId);
+    if (!t) return;
+    t.text = el("freeTextEdit").value;
+    updateTextMetrics(el("canvas").getContext("2d"), t);
+    positionInlineTextEditor();
+    saveToLocalStorage();
+    drawCanvas();
+    if (state.isViewMode) renderReadOnlyView();
+}
+
 function getSelectedNode() {
     return state.selectedNode === null ? null : state.nodes.find(n => n.id === state.selectedNode) || null;
+}
+
+function getSelectedText() {
+    return state.selectedTextId === null ? null : state.texts.find(t => t.id === state.selectedTextId) || null;
 }
 
 function updateDisconnectActionBtn() {
@@ -97,14 +151,16 @@ function updateDisconnectActionBtn() {
 }
 
 function updateMenuForSelection() {
-    const n = getSelectedNode(), shapeEl = el("nodeShapeSelect"), colorEl = el("nodeColorInput"), connEl = el("connectionTypeSelect"), selectedConn = state.selectedConnectionIndex !== null ? state.connections[state.selectedConnectionIndex] : null;
+    const n = getSelectedNode(), t = getSelectedText(), shapeEl = el("nodeShapeSelect"), colorEl = el("nodeColorInput"), connEl = el("connectionTypeSelect"), selectedConn = state.selectedConnectionIndex !== null ? state.connections[state.selectedConnectionIndex] : null;
     if (!shapeEl || !colorEl || !connEl) return;
     shapeEl.disabled = !n || state.isViewMode;
-    colorEl.disabled = state.isViewMode || (!n && !selectedConn && !state.isConnecting);
+    colorEl.disabled = state.isViewMode || (!n && !t && !selectedConn && !state.isConnecting);
     connEl.disabled = state.isViewMode;
     if (selectedConn) {
         connEl.value = selectedConn.type || "arrow";
         colorEl.value = selectedConn.color || "#000000";
+    } else if (t) {
+        colorEl.value = t.color || "#1a1f28";
     } else if (state.isConnecting) {
         colorEl.value = "#000000";
     } else if (n) {
@@ -132,6 +188,14 @@ function setSelectedNodeColor(v) {
         saveToLocalStorage();
         updateUI();
         showStatus("Cor da conexao atualizada.", "success");
+        return;
+    }
+    const t = getSelectedText();
+    if (t) {
+        t.color = v || "#1a1f28";
+        saveToLocalStorage();
+        drawCanvas();
+        if (state.isViewMode) renderReadOnlyView();
         return;
     }
     const n = getSelectedNode();
@@ -162,6 +226,15 @@ function toggleDisconnectFromMenu() {
 }
 
 function deleteNode() {
+    if (state.selectedTextId !== null) {
+        state.texts = state.texts.filter(t => t.id !== state.selectedTextId);
+        state.selectedTextId = null;
+        hideInlineTextEditor(false);
+        saveToLocalStorage();
+        updateUI();
+        showStatus("Texto excluido.", "success");
+        return;
+    }
     if (state.selectedNode === null) return;
     const id = state.selectedNode;
     state.nodes = state.nodes.filter(n => n.id !== id);
@@ -275,6 +348,16 @@ function getNodeAtPosition(x, y) {
     return null;
 }
 
+function getTextAtPosition(x, y) {
+    for (let i = state.texts.length - 1; i >= 0; i--) {
+        const t = state.texts[i];
+        const tw = Number(t.w) || 0;
+        const th = Number(t.h) || 0;
+        if (x >= t.x && x <= t.x + tw && y >= t.y && y <= t.y + th) return t;
+    }
+    return null;
+}
+
 function getConnectionAtPosition(x, y, threshold = 14) {
     for (let i = state.connections.length - 1; i >= 0; i--) {
         const cn = state.connections[i], g = getConnectionGeometry(state, cn);
@@ -310,6 +393,7 @@ function drawCanvas() {
     for (let x = startX; x < state.canvasWidth; x += grid) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, state.canvasHeight); ctx.stroke(); }
     for (let y = startY; y < state.canvasHeight; y += grid) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(state.canvasWidth, y); ctx.stroke(); }
     state.nodes.forEach(n => updateNodeMetrics(ctx, n));
+    state.texts.forEach(t => updateTextMetrics(ctx, t));
     state.nodes.forEach(n => {
         const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
         if (sx + nw < 0 || sy + nh < 0 || sx > state.canvasWidth || sy > state.canvasHeight) return;
@@ -329,6 +413,22 @@ function drawCanvas() {
         const endA = type === "curve" ? Math.atan2(ty - c2y, tx - c2x) : Math.atan2(ty - fy, tx - fx), startA = type === "curve" ? Math.atan2(c1y - fy, c1x - fx) : endA + Math.PI, s = 14;
         if (type === "arrow" || type === "both" || type === "curve") drawArrowHead(ctx, tx, ty, endA, s); if (type === "both") drawArrowHead(ctx, fx, fy, startA, s);
     });
+    state.texts.forEach(t => {
+        const sx = t.x - state.cameraX, sy = t.y - state.cameraY, tw = Number(t.w) || 0, th = Number(t.h) || 0;
+        if (sx + tw < 0 || sy + th < 0 || sx > state.canvasWidth || sy > state.canvasHeight) return;
+        ctx.font = getTextFont(t);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = t.color || "#1a1f28";
+        ctx.fillText(t.text || "Texto", sx, sy);
+        if (t.id === state.selectedTextId && !state.isViewMode) {
+            ctx.save();
+            ctx.strokeStyle = "#214f83";
+            ctx.setLineDash([5, 4]);
+            ctx.strokeRect(sx - 4, sy - 4, tw + 8, th + 8);
+            ctx.restore();
+        }
+    });
     ctx.fillStyle = "rgba(247,248,250,.92)"; ctx.fillRect(0, 0, state.canvasWidth, RULER_SIZE); ctx.fillRect(0, 0, RULER_SIZE, state.canvasHeight); ctx.strokeStyle = "rgba(110,118,129,.35)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, RULER_SIZE + .5); ctx.lineTo(state.canvasWidth, RULER_SIZE + .5); ctx.stroke(); ctx.beginPath(); ctx.moveTo(RULER_SIZE + .5, 0); ctx.lineTo(RULER_SIZE + .5, state.canvasHeight); ctx.stroke(); ctx.fillStyle = "#dfe3e9"; ctx.fillRect(0, 0, RULER_SIZE, RULER_SIZE); ctx.font = "10px Segoe UI"; ctx.fillStyle = "#6b7280"; ctx.textAlign = "left"; ctx.textBaseline = "top";
     const rulerStartX = -((state.cameraX % RULER_STEP) + RULER_STEP) % RULER_STEP;
     for (let x = rulerStartX; x < state.canvasWidth; x += RULER_STEP) { if (x < RULER_SIZE) continue; const worldX = Math.round(state.cameraX + x); ctx.strokeStyle = "rgba(110,118,129,.35)"; ctx.beginPath(); ctx.moveTo(x + .5, RULER_SIZE); ctx.lineTo(x + .5, RULER_SIZE - 6); ctx.stroke(); ctx.fillText(String(worldX), x + 2, 2); }
@@ -343,6 +443,7 @@ function renderReadOnlyView() {
     const defs = document.createElementNS(ns, "defs"), marker = document.createElementNS(ns, "marker"), markerStart = document.createElementNS(ns, "marker"), path = document.createElementNS(ns, "path"), pathStart = document.createElementNS(ns, "path");
     marker.setAttribute("id", "arrow"); marker.setAttribute("markerWidth", "12"); marker.setAttribute("markerHeight", "9"); marker.setAttribute("refX", "12"); marker.setAttribute("refY", "4.5"); marker.setAttribute("orient", "auto"); marker.setAttribute("markerUnits", "strokeWidth"); path.setAttribute("d", "M0,0 L12,4.5 L0,9 z"); path.setAttribute("fill", "context-stroke"); marker.appendChild(path); markerStart.setAttribute("id", "arrowStart"); markerStart.setAttribute("markerWidth", "12"); markerStart.setAttribute("markerHeight", "9"); markerStart.setAttribute("refX", "0"); markerStart.setAttribute("refY", "4.5"); markerStart.setAttribute("orient", "auto"); markerStart.setAttribute("markerUnits", "strokeWidth"); pathStart.setAttribute("d", "M12,0 L0,4.5 L12,9 z"); pathStart.setAttribute("fill", "context-stroke"); markerStart.appendChild(pathStart); defs.appendChild(marker); defs.appendChild(markerStart); svg.appendChild(defs);
     state.nodes.forEach(n => updateNodeMetrics(ctx, n));
+    state.texts.forEach(t => updateTextMetrics(ctx, t));
     state.nodes.forEach(n => {
         const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
         if (sx + nw < 0 || sy + nh < 0 || sx > state.viewportWidth || sy > state.viewportHeight) return;
@@ -357,6 +458,19 @@ function renderReadOnlyView() {
         const type = cn.type || "arrow", base = cn.color || "#000000";
         let edge; if (type === "curve") { edge = document.createElementNS(ns, "path"); edge.setAttribute("d", `M ${g.x1 - state.cameraX} ${g.y1 - state.cameraY} C ${g.c1x - state.cameraX} ${g.c1y - state.cameraY}, ${g.c2x - state.cameraX} ${g.c2y - state.cameraY}, ${g.x2 - state.cameraX} ${g.y2 - state.cameraY}`); } else { edge = document.createElementNS(ns, "line"); edge.setAttribute("x1", String(g.x1 - state.cameraX)); edge.setAttribute("y1", String(g.y1 - state.cameraY)); edge.setAttribute("x2", String(g.x2 - state.cameraX)); edge.setAttribute("y2", String(g.y2 - state.cameraY)); }
         edge.setAttribute("fill", "none"); edge.setAttribute("stroke", base); edge.setAttribute("stroke-width", "2.5"); if (type === "line") edge.setAttribute("stroke-dasharray", "10 6"); if (type === "arrow" || type === "both" || type === "curve") edge.setAttribute("marker-end", "url(#arrow)"); if (type === "both") edge.setAttribute("marker-start", "url(#arrowStart)"); svg.appendChild(edge);
+    });
+    state.texts.forEach(t => {
+        const sx = t.x - state.cameraX, sy = t.y - state.cameraY;
+        if (sx + (Number(t.w) || 0) < 0 || sy + (Number(t.h) || 0) < 0 || sx > state.viewportWidth || sy > state.viewportHeight) return;
+        const label = document.createElementNS(ns, "text");
+        label.setAttribute("x", String(sx));
+        label.setAttribute("y", String(sy + (Number(t.fontSize) || 24)));
+        label.setAttribute("fill", t.color || "#1a1f28");
+        label.setAttribute("font-size", String(Number(t.fontSize) || 24));
+        label.setAttribute("font-weight", "700");
+        label.setAttribute("font-family", "Segoe UI, sans-serif");
+        label.textContent = t.text || "Texto";
+        svg.appendChild(label);
     });
     box.appendChild(svg);
 }
@@ -375,13 +489,45 @@ function positionInlineEditor() {
     i.style.left = `${sx}px`; i.style.top = `${sy}px`; i.style.width = `${nw}px`; i.style.height = `${nh}px`; i.style.display = "block";
 }
 
+function positionInlineTextEditor() {
+    if (state.inlineEditTextId === null) return;
+    const t = state.texts.find(x => x.id === state.inlineEditTextId), i = el("freeTextEdit");
+    if (!t || state.isViewMode) { i.style.display = "none"; return; }
+    const sx = t.x - state.cameraX, sy = t.y - state.cameraY;
+    if (sx + (Number(t.w) || 0) < 0 || sy + (Number(t.h) || 0) < 0 || sx > state.viewportWidth || sy > state.viewportHeight) { i.style.display = "none"; return; }
+    i.style.left = `${sx}px`;
+    i.style.top = `${sy}px`;
+    i.style.width = `${Math.max(80, (Number(t.w) || 0) + 24)}px`;
+    i.style.height = `${Math.max(30, (Number(t.h) || 0) + 8)}px`;
+    i.style.font = getTextFont(t);
+    i.style.color = t.color || "#1a1f28";
+    i.style.display = "block";
+}
+
 function startInlineEdit(nodeId) {
     if (state.isViewMode) return;
+    hideInlineTextEditor(true);
     const n = state.nodes.find(x => x.id === nodeId);
     if (!n) return;
     updateNodeMetrics(el("canvas").getContext("2d"), n);
     state.inlineEditNodeId = nodeId;
     const i = el("nodeEditText"); i.value = n.text || ""; i.style.display = "block"; positionInlineEditor(); focusNodeEditor(); drawCanvas();
+}
+
+function startInlineTextEdit(textId) {
+    if (state.isViewMode) return;
+    hideInlineEditor(true);
+    const t = state.texts.find(x => x.id === textId);
+    if (!t) return;
+    updateTextMetrics(el("canvas").getContext("2d"), t);
+    state.inlineEditTextId = textId;
+    const i = el("freeTextEdit");
+    i.value = t.text || "";
+    i.style.display = "block";
+    positionInlineTextEditor();
+    i.focus();
+    i.setSelectionRange(i.value.length, i.value.length);
+    drawCanvas();
 }
 
 function hideInlineEditor(commit = true) {
@@ -391,14 +537,28 @@ function hideInlineEditor(commit = true) {
     state.inlineEditNodeId = null; i.style.display = "none"; saveToLocalStorage(); drawCanvas();
 }
 
+function hideInlineTextEditor(commit = true) {
+    const i = el("freeTextEdit");
+    if (state.inlineEditTextId === null) { i.style.display = "none"; return; }
+    const t = state.texts.find(x => x.id === state.inlineEditTextId);
+    if (commit && t) {
+        t.text = i.value.trim() || "Texto";
+        updateTextMetrics(el("canvas").getContext("2d"), t);
+    }
+    state.inlineEditTextId = null;
+    i.style.display = "none";
+    saveToLocalStorage();
+    drawCanvas();
+}
+
 function updateUI() {
     drawCanvas(); const connected = new Set();
     state.connections.forEach(c => { connected.add(c.from); connected.add(c.to); });
     el("totalNodes").textContent = state.nodes.length; el("totalConnections").textContent = state.connections.length; el("connectedNodes").textContent = connected.size;
     updateDisconnectActionBtn(); updateMenuForSelection();
     syncConnectionColorInput();
-    if (state.isViewMode) { hideInlineEditor(false); el("canvas").style.display = "none"; el("renderView").style.display = "block"; renderReadOnlyView(); }
-    else { el("renderView").style.display = "none"; el("canvas").style.display = "block"; positionInlineEditor(); }
+    if (state.isViewMode) { hideInlineEditor(false); hideInlineTextEditor(false); el("canvas").style.display = "none"; el("renderView").style.display = "block"; renderReadOnlyView(); }
+    else { el("renderView").style.display = "none"; el("canvas").style.display = "block"; positionInlineEditor(); positionInlineTextEditor(); }
 }
 
 function toggleViewMode() {
@@ -415,9 +575,11 @@ function closeRenameModal() { el("renameModal").style.display = "none"; }
 function saveProjectName() { const n = el("projectNameInput").value.trim(); if (!n) return; state.projectName = n; setProjectTitle(); saveToLocalStorage(); closeRenameModal(); showStatus(`Projeto renomeado para "${n}".`, "success"); }
 
 function centerView() {
-    hideInlineEditor(false); if (!state.nodes.length) { state.cameraX = 0; state.cameraY = 0; updateUI(); showStatus("Visao centralizada no ponto inicial.", "info"); return; }
+    hideInlineEditor(false); hideInlineTextEditor(false);
+    if (!state.nodes.length && !state.texts.length) { state.cameraX = 0; state.cameraY = 0; updateUI(); showStatus("Visao centralizada no ponto inicial.", "info"); return; }
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     state.nodes.forEach(n => { const nw = getNodeWidth(n), nh = getNodeHeight(n); minX = Math.min(minX, n.x); minY = Math.min(minY, n.y); maxX = Math.max(maxX, n.x + nw); maxY = Math.max(maxY, n.y + nh); });
+    state.texts.forEach(t => { minX = Math.min(minX, t.x); minY = Math.min(minY, t.y); maxX = Math.max(maxX, t.x + (Number(t.w) || 0)); maxY = Math.max(maxY, t.y + (Number(t.h) || 0)); });
     const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
     state.cameraX = cx - state.viewportWidth / 2; state.cameraY = cy - state.viewportHeight / 2; updateUI(); showStatus("Visao centralizada nos dados.", "success");
 }
@@ -436,13 +598,14 @@ function exportToPNG() {
 }
 
 function setupCanvasInteractions() {
-    const c = el("canvas"), i = el("nodeEditText");
-    let activePointerId = null, startX = 0, startY = 0, downNodeId = null, downConnectionIndex = null, wasSelectedOnDown = false, isPanning = false, panStartClientX = 0, panStartClientY = 0, panStartCameraX = 0, panStartCameraY = 0, isResizing = false, resizeNodeId = null, resizeHandle = null, resizeStart = { x: 0, y: 0, w: 0, h: 0, nx: 0, ny: 0 }, pointerMap = new Map(), isPinching = false, pinchNodeId = null, pinchStartDist = 0, pinchStart = { w: 0, h: 0, x: 0, y: 0 };
+    const c = el("canvas"), i = el("nodeEditText"), tInput = el("freeTextEdit");
+    let activePointerId = null, startX = 0, startY = 0, downNodeId = null, downTextId = null, downConnectionIndex = null, wasSelectedOnDown = false, wasTextSelectedOnDown = false, isPanning = false, panStartClientX = 0, panStartClientY = 0, panStartCameraX = 0, panStartCameraY = 0, isResizing = false, resizeNodeId = null, resizeHandle = null, resizeStart = { x: 0, y: 0, w: 0, h: 0, nx: 0, ny: 0 }, pointerMap = new Map(), isPinching = false, pinchNodeId = null, pinchStartDist = 0, pinchStart = { w: 0, h: 0, x: 0, y: 0 };
     i.addEventListener("input", onNodeTextInput); i.addEventListener("blur", () => hideInlineEditor(true)); i.addEventListener("pointerdown", e => e.stopPropagation());
+    tInput.addEventListener("input", onInlineTextInput); tInput.addEventListener("blur", () => hideInlineTextEditor(true)); tInput.addEventListener("pointerdown", e => e.stopPropagation());
     c.addEventListener("pointerdown", e => {
         if (state.isViewMode) return;
-        pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY }); const { x, y } = getCanvasPoint(e), n = getNodeAtPosition(x, y);
-        startX = x; startY = y; downNodeId = n ? n.id : null; wasSelectedOnDown = !!n && state.selectedNode === n.id;
+        pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY }); const { x, y } = getCanvasPoint(e), n = getNodeAtPosition(x, y), t = n ? null : getTextAtPosition(x, y);
+        startX = x; startY = y; downNodeId = n ? n.id : null; downTextId = t ? t.id : null; wasSelectedOnDown = !!n && state.selectedNode === n.id; wasTextSelectedOnDown = !!t && state.selectedTextId === t.id;
         if (state.isConnecting) { if (n) finishConnection(n.id); else showStatus("Toque em um no para conectar.", "info"); return; }
         if (state.isDisconnecting) { if (n) finishDisconnect(n.id); else showStatus("Toque em um no para desconectar.", "info"); return; }
         if (pointerMap.size === 2 && state.selectedNode !== null) {
@@ -457,13 +620,31 @@ function setupCanvasInteractions() {
                 if (in1 && in2) { isPinching = true; pinchNodeId = sn.id; pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1; pinchStart = { w: w, h: h, x: sn.x, y: sn.y }; sn.manualSize = true; c.style.cursor = "grabbing"; return; }
             }
         }
-        if (!n) {
+        if (!n && !t) {
             downConnectionIndex = getConnectionAtPosition(x, y); activePointerId = e.pointerId; panStartClientX = e.clientX; panStartClientY = e.clientY; panStartCameraX = state.cameraX; panStartCameraY = state.cameraY; c.setPointerCapture(e.pointerId);
             if (downConnectionIndex !== null) { c.style.cursor = "pointer"; return; }
-            state.selectedNode = null; state.selectedConnectionIndex = null; hideInlineEditor(true); updateUI(); isPanning = true; c.style.cursor = "grabbing"; return;
+            state.selectedNode = null; state.selectedTextId = null; state.selectedConnectionIndex = null; hideInlineEditor(true); hideInlineTextEditor(true); updateUI(); isPanning = true; c.style.cursor = "grabbing"; return;
+        }
+        if (t) {
+            if (state.inlineEditTextId !== t.id) hideInlineTextEditor(true);
+            hideInlineEditor(true);
+            state.selectedNode = null;
+            state.selectedConnectionIndex = null;
+            state.selectedTextId = t.id;
+            state.draggingTextId = t.id;
+            state.dragOffsetX = x - t.x;
+            state.dragOffsetY = y - t.y;
+            state.hasDragged = false;
+            activePointerId = e.pointerId;
+            c.setPointerCapture(e.pointerId);
+            c.style.cursor = "grabbing";
+            drawCanvas();
+            return;
         }
         if (state.inlineEditNodeId !== n.id) hideInlineEditor(true);
+        hideInlineTextEditor(true);
         state.selectedConnectionIndex = null;
+        state.selectedTextId = null;
         if (state.selectedNode === n.id) {
             const handle = getResizeHandleAt(n, x, y);
             if (handle) { isResizing = true; resizeNodeId = n.id; resizeHandle = handle; resizeStart = { x, y, w: getNodeWidth(n), h: getNodeHeight(n), nx: n.x, ny: n.y }; n.manualSize = true; activePointerId = e.pointerId; c.setPointerCapture(e.pointerId); c.style.cursor = "nwse-resize"; return; }
@@ -483,7 +664,7 @@ function setupCanvasInteractions() {
         }
         if (activePointerId !== e.pointerId) return;
         if (!isPanning && downConnectionIndex !== null) { const moved = Math.hypot(e.clientX - panStartClientX, e.clientY - panStartClientY) > 6; if (moved) { isPanning = true; c.style.cursor = "grabbing"; } }
-        if (isPanning) { const dx = e.clientX - panStartClientX, dy = e.clientY - panStartClientY; state.cameraX = panStartCameraX - dx; state.cameraY = panStartCameraY - dy; positionInlineEditor(); drawCanvas(); return; }
+        if (isPanning) { const dx = e.clientX - panStartClientX, dy = e.clientY - panStartClientY; state.cameraX = panStartCameraX - dx; state.cameraY = panStartCameraY - dy; positionInlineEditor(); positionInlineTextEditor(); drawCanvas(); return; }
         if (isResizing && resizeNodeId !== null) {
             const n = state.nodes.find(v => v.id === resizeNodeId); if (!n) return;
             const p = { x: e.clientX - r.left + state.cameraX, y: e.clientY - r.top + state.cameraY }, dx = p.x - resizeStart.x, dy = p.y - resizeStart.y;
@@ -494,6 +675,11 @@ function setupCanvasInteractions() {
             if (resizeHandle === "nw") { w = resizeStart.w - dx; h = resizeStart.h - dy; x = resizeStart.nx + dx; y = resizeStart.ny + dy; }
             n.w = Math.max(NODE_MIN_WIDTH, Math.min(NODE_MAX_WIDTH_MANUAL, w)); n.h = Math.max(NODE_MIN_HEIGHT, Math.min(NODE_MAX_HEIGHT_MANUAL, h)); n.x = x; n.y = y; updateNodeMetrics(el("canvas").getContext("2d"), n); positionInlineEditor(); drawCanvas(); return;
         }
+        if (state.draggingTextId !== null) {
+            const t = state.texts.find(x => x.id === state.draggingTextId); if (!t) return;
+            const { x, y } = getCanvasPoint(e), nx = x - state.dragOffsetX, ny = y - state.dragOffsetY;
+            if (Math.abs(t.x - nx) > 1 || Math.abs(t.y - ny) > 1) state.hasDragged = true; t.x = nx; t.y = ny; positionInlineTextEditor(); drawCanvas(); return;
+        }
         if (state.draggingNodeId === null) return;
         const n = state.nodes.find(x => x.id === state.draggingNodeId); if (!n) return;
         const { x, y } = getCanvasPoint(e), nx = x - state.dragOffsetX, ny = y - state.dragOffsetY;
@@ -502,22 +688,25 @@ function setupCanvasInteractions() {
     const endPointer = (e) => {
         pointerMap.delete(e.pointerId); if (isPinching && pointerMap.size < 2) { isPinching = false; pinchNodeId = null; saveToLocalStorage(); drawCanvas(); return; }
         if (activePointerId !== e.pointerId) return;
-        if (isPanning) { isPanning = false; activePointerId = null; downNodeId = null; downConnectionIndex = null; wasSelectedOnDown = false; c.style.cursor = "crosshair"; return; }
+        if (isPanning) { isPanning = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; c.style.cursor = "crosshair"; return; }
         if (isResizing) { isResizing = false; resizeNodeId = null; resizeHandle = null; activePointerId = null; saveToLocalStorage(); drawCanvas(); c.style.cursor = "crosshair"; return; }
-        const p = getCanvasPoint(e), moved = Math.hypot(p.x - startX, p.y - startY) > 6; if (state.draggingNodeId !== null && state.hasDragged) saveToLocalStorage();
+        const p = getCanvasPoint(e), moved = Math.hypot(p.x - startX, p.y - startY) > 6; if ((state.draggingNodeId !== null || state.draggingTextId !== null) && state.hasDragged) saveToLocalStorage();
         if (!moved && downConnectionIndex !== null && !state.isViewMode && !state.isConnecting) {
-            hideInlineEditor(false); state.selectedNode = null; state.selectedConnectionIndex = downConnectionIndex; updateUI();
+            hideInlineEditor(false); hideInlineTextEditor(false); state.selectedNode = null; state.selectedTextId = null; state.selectedConnectionIndex = downConnectionIndex; updateUI();
+        } else if (!moved && downTextId !== null && !state.isViewMode && !state.isConnecting) {
+            if (wasTextSelectedOnDown) { startInlineTextEdit(downTextId); } else { hideInlineEditor(false); hideInlineTextEditor(false); state.selectedNode = null; state.selectedTextId = downTextId; state.selectedConnectionIndex = null; updateUI(); }
         } else if (!moved && downNodeId !== null && !state.isViewMode && !state.isConnecting) {
-            if (wasSelectedOnDown) { startInlineEdit(downNodeId); } else { hideInlineEditor(false); state.selectedNode = downNodeId; state.selectedConnectionIndex = null; updateUI(); }
+            if (wasSelectedOnDown) { startInlineEdit(downNodeId); } else { hideInlineEditor(false); hideInlineTextEditor(false); state.selectedNode = downNodeId; state.selectedTextId = null; state.selectedConnectionIndex = null; updateUI(); }
         }
-        state.draggingNodeId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downConnectionIndex = null; wasSelectedOnDown = false; c.style.cursor = "crosshair";
+        state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; c.style.cursor = "crosshair";
     };
     c.addEventListener("pointerup", endPointer); c.addEventListener("pointercancel", endPointer);
-    c.addEventListener("lostpointercapture", () => { state.draggingNodeId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downConnectionIndex = null; wasSelectedOnDown = false; isPanning = false; isResizing = false; isPinching = false; resizeNodeId = null; resizeHandle = null; pinchNodeId = null; pointerMap.clear(); c.style.cursor = "crosshair"; });
+    c.addEventListener("lostpointercapture", () => { state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; isPanning = false; isResizing = false; isPinching = false; resizeNodeId = null; resizeHandle = null; pinchNodeId = null; pointerMap.clear(); c.style.cursor = "crosshair"; });
 }
 
 // Global Exports for HTML
 window.addNode = addNode;
+window.addTextLabel = addTextLabel;
 window.toggleConnectionFromMenu = toggleConnectionFromMenu;
 window.centerView = centerView;
 window.deleteNode = deleteNode;
@@ -577,6 +766,7 @@ export function bootFluxograma(opts = {}) {
 
 export function afterExternalHydrate() {
     hideInlineEditor(false);
+    hideInlineTextEditor(false);
     setProjectTitle();
     if (el("canvasScroll")) resizeCanvas(false);
     updateUI();

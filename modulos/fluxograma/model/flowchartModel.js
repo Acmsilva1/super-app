@@ -14,8 +14,10 @@ export const RULER_STEP = 100;
 
 export const state = {
     nodes: [],
+    texts: [],
     connections: [],
     selectedNode: null,
+    selectedTextId: null,
     selectedConnectionIndex: null,
     nextId: 1,
     isConnecting: false,
@@ -35,7 +37,9 @@ export const state = {
     viewportHeight: 700,
     cameraX: 0,
     cameraY: 0,
-    inlineEditNodeId: null
+    inlineEditNodeId: null,
+    inlineEditTextId: null,
+    draggingTextId: null
 };
 
 const STORAGE_KEY = "superapp_fluxograma_v1";
@@ -50,13 +54,16 @@ export function setGraphPersistListener(fn) {
 
 function clearInteractionState() {
     state.selectedNode = null;
+    state.selectedTextId = null;
     state.selectedConnectionIndex = null;
     state.isConnecting = false;
     state.connectingFrom = null;
     state.isDisconnecting = false;
     state.disconnectFrom = null;
     state.inlineEditNodeId = null;
+    state.inlineEditTextId = null;
     state.draggingNodeId = null;
+    state.draggingTextId = null;
     state.hasDragged = false;
 }
 
@@ -73,6 +80,14 @@ export function getGraphPayload() {
             manualSize: !!n.manualSize,
             shape: n.shape || "rect",
             color: n.color || "#ffffff"
+        })),
+        texts: state.texts.map(t => ({
+            id: t.id,
+            x: t.x,
+            y: t.y,
+            text: t.text || "",
+            color: t.color || "#1a1f28",
+            fontSize: Number(t.fontSize) || 24
         })),
         connections: state.connections.map(c => ({
             from: c.from,
@@ -102,6 +117,14 @@ export function applyPersistedData(d) {
         shape: typeof n.shape === "string" ? n.shape : "rect",
         color: typeof n.color === "string" ? n.color : "#ffffff"
     })) : [];
+    state.texts = Array.isArray(d.texts) ? d.texts.map(t => ({
+        id: t.id,
+        x: Number(t.x) || 0,
+        y: Number(t.y) || 0,
+        text: typeof t.text === "string" ? t.text : "",
+        color: typeof t.color === "string" ? t.color : "#1a1f28",
+        fontSize: Number(t.fontSize) || 24
+    })) : [];
     state.connections = Array.isArray(d.connections) ? d.connections.map(c => ({
         from: c.from,
         to: c.to,
@@ -120,6 +143,7 @@ export function applyPersistedData(d) {
 export function resetGraphState() {
     clearInteractionState();
     state.nodes = [];
+    state.texts = [];
     state.connections = [];
     state.nextId = 1;
     state.projectName = "Novo Fluxograma";

@@ -971,6 +971,20 @@
             background: #fff;
             z-index: 2;
         }
+        .fluxograma-root #flux-freeTextEdit {
+            position: absolute;
+            display: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            font: 700 24px "Segoe UI", sans-serif;
+            line-height: 1.1;
+            color: #1a1f28;
+            outline: none;
+            background: transparent;
+            box-shadow: none;
+            z-index: 3;
+        }
         .fluxograma-root .group { display: flex; flex-direction: column; gap: .5rem; }
         .fluxograma-root button {
             padding: .56rem .9rem;
@@ -1899,6 +1913,7 @@
                                         <div class="canvas-wrap" id="flux-canvasWrap">
                                             <canvas id="flux-canvas"></canvas>
                                             <textarea id="flux-nodeEditText" spellcheck="false"></textarea>
+                                            <input id="flux-freeTextEdit" type="text" spellcheck="false" maxlength="80">
                                             <div id="flux-renderView"></div>
                                         </div>
                                     </div>
@@ -1907,6 +1922,7 @@
                         </div>
                         <div class="fab-wrap">
                             <button type="button" class="fab fab-add" onclick="addNode()" aria-label="Adicionar no">+</button>
+                            <button type="button" class="fab sec" onclick="addTextLabel()" aria-label="Adicionar texto curto" title="Adicionar texto curto" style="width:auto;padding:0 .9rem;border-radius:999px;font-size:.8rem;font-weight:700;">TEXTO</button>
                             <button type="button" class="fab fab-link" onclick="toggleConnectionFromMenu()" aria-label="Conectar nos" title="Conectar nos">&#128279;</button>
                             <button type="button" class="fab fab-center" onclick="centerView()" aria-label="Centralizar visao">&#9678;</button>
                             <button type="button" class="fab fab-del" onclick="deleteNode()" aria-label="Apagar no selecionado">&#128465;</button>
