@@ -2389,6 +2389,10 @@
                         <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:-0.25rem 0 0.5rem 0">O lançamento aparece no mês/ano escolhido no topo, conforme esta data.</p>
                         <button type="button" class="app-btn" data-action="financas-save">Registrar</button>
                     </div>
+                    <div class="app-charts">
+                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas variÃ¡veis x Despesas fixas</p><canvas id="fin-chart-pie"></canvas></div>
+                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias que mais gastam</p><canvas id="fin-chart-bar"></canvas></div>
+                    </div>
                     <div class="fin-colunas">
                         <div class="fin-col fin-col--receitas">
                             <p class="fin-col-titulo">Receitas</p>
@@ -2398,10 +2402,6 @@
                             <p class="fin-col-titulo">Despesas</p>
                             <ul class="app-list" id="fin-list-despesas"></ul>
                         </div>
-                    </div>
-                    <div class="app-charts">
-                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas variáveis x Despesas fixas</p><canvas id="fin-chart-pie"></canvas></div>
-                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias que mais gastam</p><canvas id="fin-chart-bar"></canvas></div>
                     </div>
                 `;
                 const isReceita = (r) => (r.tipo || '').toLowerCase() === 'receita';
