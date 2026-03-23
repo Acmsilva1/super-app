@@ -85,7 +85,7 @@ export default async function handler(req, res) {
       const targetStart = new Date(aTo, mTo - 1, 1);
       let exported = 0;
       for (const r of rows) {
-        const payload = { descricao: r.descricao, valor: Number(r.valor), status: r.status || 'pendente', created_at: targetStart.toISOString() };
+        const payload = { descricao: r.descricao, valor: Number(r.valor), status: 'pendente', created_at: targetStart.toISOString() };
         const { error } = await supabase.from(TABLE_NAME).insert(payload);
         if (!error) exported++;
       }

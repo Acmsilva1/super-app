@@ -2332,7 +2332,9 @@
                         const data = await res.json();
                         if (!res.ok) throw new Error(data.error || 'Erro ao exportar');
                         overlay.remove();
-                        alert('Exportado: ' + (data.exported || 0) + ' registro(s) para ' + (data.to_mes_ano || toMesAno).replace('-', '/') + '.');
+                        el.setAttribute('data-mes-ano', data.to_mes_ano || toMesAno);
+                        await this.refreshAppContent('notas');
+                        alert('Exportado: ' + (data.exported || 0) + ' registro(s) para ' + (data.to_mes_ano || toMesAno).replace('-', '/') + ' com status pendente.');
                     } catch (e) { alert(e.message); }
                 };
                 overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
