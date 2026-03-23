@@ -1664,16 +1664,65 @@
                 const db = metrics.db || { connected: 0, unstable: 100 };
 
                 const chartOptions = { responsive: true, maintainAspectRatio: false };
+                const dashboardValuePlugin = {
+                    id: 'dashboardValuePlugin',
+                    afterDatasetsDraw(chart, _args, opts) {
+                        const dataset = chart.data?.datasets?.[0];
+                        if (!dataset) return;
+                        const meta = chart.getDatasetMeta(0);
+                        if (!meta?.data?.length) return;
+                        const { ctx } = chart;
+                        const type = chart.config.type;
+                        const color = opts?.color || '#e2e8f0';
+                        const formatter = typeof opts?.formatter === 'function'
+                            ? opts.formatter
+                            : (value) => `${Math.round(value)}`;
+
+                        ctx.save();
+                        ctx.fillStyle = color;
+                        ctx.font = '600 11px Poppins, sans-serif';
+                        ctx.textBaseline = 'middle';
+
+                        meta.data.forEach((element, index) => {
+                            const value = Number(dataset.data?.[index] ?? 0);
+                            if (!Number.isFinite(value)) return;
+                            const point = element.tooltipPosition();
+                            if (type === 'doughnut') {
+                                if (value <= 0) return;
+                                ctx.textAlign = 'center';
+                                ctx.fillText(formatter(value, type, index), point.x, point.y);
+                                return;
+                            }
+
+                            if (type === 'bar') {
+                                const isHorizontal = chart.options?.indexAxis === 'y';
+                                ctx.textAlign = isHorizontal ? 'left' : 'center';
+                                const x = isHorizontal ? point.x + 8 : point.x;
+                                const y = isHorizontal ? point.y : point.y - 10;
+                                ctx.fillText(formatter(value, type, index), x, y);
+                            }
+                        });
+
+                        ctx.restore();
+                    }
+                };
 
                 const healthCtx = document.getElementById('chartHealth');
                 if (healthCtx) {
                     this.dashboardCharts.health = new Chart(healthCtx, {
                         type: 'doughnut',
+                        plugins: [dashboardValuePlugin],
                         data: {
                             labels: ['Saudavel', 'Atencao'],
                             datasets: [{ data: [Number(health.healthy || 0), Number(health.attention || 0)], backgroundColor: ['#22c55e', '#eab308'], borderWidth: 0 }]
                         },
-                        options: { ...chartOptions, plugins: { legend: { position: 'bottom' } } }
+                        options: {
+                            ...chartOptions,
+                            plugins: {
+                                legend: { position: 'bottom' },
+                                dashboardValuePlugin: { color: '#ffffff', formatter: (v) => `${v.toFixed(1)}%` }
+                            }
+                        }
                     });
                 }
 
@@ -1681,11 +1730,16 @@
                 if (appsCtx) {
                     this.dashboardCharts.apps = new Chart(appsCtx, {
                         type: 'bar',
+                        plugins: [dashboardValuePlugin],
                         data: {
                             labels: services.labels || ['Total', 'Saudaveis', 'Falhas'],
                             datasets: [{ label: 'Servicos', data: services.values || [0, 0, 0], backgroundColor: ['#2563eb', '#22c55e', '#ef4444'] }]
                         },
-                        options: { ...chartOptions, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+                        options: {
+                            ...chartOptions,
+                            scales: { y: { beginAtZero: true } },
+                            plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}` } }
+                        }
                     });
                 }
 
@@ -1693,11 +1747,16 @@
                 if (dataCtx) {
                     this.dashboardCharts.data = new Chart(dataCtx, {
                         type: 'bar',
+                        plugins: [dashboardValuePlugin],
                         data: {
                             labels: (latencyCurrent.labels && latencyCurrent.labels.length ? latencyCurrent.labels : ['Sem dados']),
                             datasets: [{ label: 'Latencia (ms)', data: (latencyCurrent.values && latencyCurrent.values.length ? latencyCurrent.values : [0]), backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'] }]
                         },
-                        options: { ...chartOptions, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+                        options: {
+                            ...chartOptions,
+                            scales: { y: { beginAtZero: true } },
+                            plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}ms` } }
+                        }
                     });
                 }
 
@@ -1705,11 +1764,17 @@
                 if (sizeCtx) {
                     this.dashboardCharts.size = new Chart(sizeCtx, {
                         type: 'bar',
+                        plugins: [dashboardValuePlugin],
                         data: {
                             labels: (slowEndpoints.labels && slowEndpoints.labels.length ? slowEndpoints.labels : ['Sem dados']),
                             datasets: [{ label: 'Media (ms)', data: (slowEndpoints.values && slowEndpoints.values.length ? slowEndpoints.values : [0]), backgroundColor: '#1e40af' }]
                         },
-                        options: { ...chartOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+                        options: {
+                            ...chartOptions,
+                            indexAxis: 'y',
+                            scales: { x: { beginAtZero: true } },
+                            plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}ms` } }
+                        }
                     });
                 }
 
@@ -1717,11 +1782,18 @@
                 if (dbCtx) {
                     this.dashboardCharts.db = new Chart(dbCtx, {
                         type: 'doughnut',
+                        plugins: [dashboardValuePlugin],
                         data: {
                             labels: ['Conectado', 'Instavel'],
                             datasets: [{ data: [Number(db.connected || 0), Number(db.unstable || 0)], backgroundColor: ['#22c55e', '#e5e7eb'], borderWidth: 0 }]
                         },
-                        options: { ...chartOptions, plugins: { legend: { position: 'bottom' } } }
+                        options: {
+                            ...chartOptions,
+                            plugins: {
+                                legend: { position: 'bottom' },
+                                dashboardValuePlugin: { color: '#111827', formatter: (v) => `${v.toFixed(1)}%` }
+                            }
+                        }
                     });
                 }
             }
