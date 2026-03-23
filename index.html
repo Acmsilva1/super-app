@@ -375,6 +375,12 @@
             margin-bottom: 1.5rem;
         }
 
+        .dashboard-last-update {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+
         .dashboard-charts {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1415,27 +1421,28 @@
         <div class="container">
             <div class="hero">
                 <h2>Bem-vindo ao SUPERAPP</h2>
-                <p>Plataforma unificada de microserviços e aplicações práticas. Acesse todas as suas ferramentas em um único lugar.</p>
+                <p>Plataforma unificada de microservicos e aplicacoes praticas. Acesse todas as suas ferramentas em um unico lugar.</p>
+                <p id="dashboardLastUpdate" class="dashboard-last-update">Ultima analise: carregando...</p>
             </div>
             <div id="dashboardCharts" class="dashboard-charts">
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Saúde da aplicação</h4>
+                    <h4 class="dashboard-chart-title">Saude da aplicacao</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartHealth"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Quantidade de aplicações</h4>
+                    <h4 class="dashboard-chart-title">Status dos servicos</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartApps"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Consumo de dados</h4>
+                    <h4 class="dashboard-chart-title">Latencia atual por endpoint</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartData"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Tamanho das aplicações</h4>
+                    <h4 class="dashboard-chart-title">Top endpoints mais lentos (media)</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartSize"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Conexão com DB</h4>
+                    <h4 class="dashboard-chart-title">Conexao com DB</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartDb"></canvas></div>
                 </div>
             </div>
@@ -1504,6 +1511,17 @@
                     betaApps: 0,
                     openApps: 0
                 };
+                this.dashboardMetrics = {
+                    generated_at: null,
+                    latest_at: null,
+                    summary: { status: 'no_data', uptime_percent: 0, error_rate_percent: 0, p95_latency_ms: 0, checks_total: 0, checks_success: 0, checks_failed: 0 },
+                    health: { healthy: 0, attention: 100 },
+                    services: { labels: ['Total', 'Saudaveis', 'Falhas'], values: [0, 0, 0] },
+                    latency_current: { labels: [], values: [] },
+                    slow_endpoints: { labels: [], values: [] },
+                    db: { connected: 0, unstable: 100 },
+                    history: []
+                };
                 this.roadmap = [];
                 this.openWindows = new Map();
                 this.dashboardCharts = {};
@@ -1530,6 +1548,7 @@
                         document.body.classList.add('view-dashboard');
                         navDashboard.classList.add('active');
                         if (navApps) navApps.classList.remove('active');
+                        this.loadDashboardAnalysis(true);
                         setTimeout(() => this.renderDashboardCharts(), 50);
                     });
                 }
@@ -1563,6 +1582,7 @@
                 this.loadApps();
                 this.loadStatistics();
                 this.loadRoadmap();
+                this.loadDashboardAnalysis();
             }
 
             async loadApps() {
@@ -1608,21 +1628,40 @@
                 }
             }
 
+            async loadDashboardAnalysis(forceRefresh = false) {
+                try {
+                    const url = forceRefresh
+                        ? `/api/system-analysis-dashboard?rangeDays=7&t=${Date.now()}`
+                        : '/api/system-analysis-dashboard?rangeDays=7';
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Falha ao carregar analise do sistema');
+                    const data = await response.json();
+                    this.dashboardMetrics = data || this.dashboardMetrics;
+                    this.renderDashboardLastUpdate();
+                    this.renderDashboardCharts();
+                } catch (error) {
+                    console.error('Erro ao carregar analise do sistema:', error);
+                    this.renderDashboardLastUpdate('Ultima analise: sem dados');
+                    this.renderDashboardCharts();
+                }
+            }
+
             // ============================================
             // RENDERIZAR COMPONENTES
             // ============================================
             destroyDashboardCharts() {
                 Object.values(this.dashboardCharts).forEach(chart => { if (chart && chart.destroy) chart.destroy(); });
                 this.dashboardCharts = {};
-            }
-
+            }
             renderDashboardCharts() {
                 if (typeof Chart === 'undefined') return;
                 this.destroyDashboardCharts();
-                const stats = this.statistics || { totalApps: 0, activeApps: 0, betaApps: 0, openApps: 0 };
-                const totalApps = stats.totalApps || this.apps.length || 0;
-                const activeApps = stats.activeApps || totalApps;
-                const openApps = this.openWindows.size;
+                const metrics = this.dashboardMetrics || {};
+                const health = metrics.health || { healthy: 0, attention: 100 };
+                const services = metrics.services || { labels: ['Total', 'Saudaveis', 'Falhas'], values: [0, 0, 0] };
+                const latencyCurrent = metrics.latency_current || { labels: [], values: [] };
+                const slowEndpoints = metrics.slow_endpoints || { labels: [], values: [] };
+                const db = metrics.db || { connected: 0, unstable: 100 };
 
                 const chartOptions = { responsive: true, maintainAspectRatio: false };
 
@@ -1631,8 +1670,8 @@
                     this.dashboardCharts.health = new Chart(healthCtx, {
                         type: 'doughnut',
                         data: {
-                            labels: ['Saudável', 'Atenção'],
-                            datasets: [{ data: [100, 0], backgroundColor: ['#22c55e', '#eab308'], borderWidth: 0 }]
+                            labels: ['Saudavel', 'Atencao'],
+                            datasets: [{ data: [Number(health.healthy || 0), Number(health.attention || 0)], backgroundColor: ['#22c55e', '#eab308'], borderWidth: 0 }]
                         },
                         options: { ...chartOptions, plugins: { legend: { position: 'bottom' } } }
                     });
@@ -1643,8 +1682,8 @@
                     this.dashboardCharts.apps = new Chart(appsCtx, {
                         type: 'bar',
                         data: {
-                            labels: ['Total', 'Ativas', 'Abertas'],
-                            datasets: [{ label: 'Aplicações', data: [totalApps, activeApps, openApps], backgroundColor: ['#2563eb', '#22c55e', '#93c5fd'] }]
+                            labels: services.labels || ['Total', 'Saudaveis', 'Falhas'],
+                            datasets: [{ label: 'Servicos', data: services.values || [0, 0, 0], backgroundColor: ['#2563eb', '#22c55e', '#ef4444'] }]
                         },
                         options: { ...chartOptions, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
                     });
@@ -1655,22 +1694,20 @@
                     this.dashboardCharts.data = new Chart(dataCtx, {
                         type: 'bar',
                         data: {
-                            labels: ['Cache', 'API', 'Assets'],
-                            datasets: [{ label: 'MB', data: [2.4, 1.8, 0.9], backgroundColor: ['#2563eb', '#3b82f6', '#93c5fd'] }]
+                            labels: (latencyCurrent.labels && latencyCurrent.labels.length ? latencyCurrent.labels : ['Sem dados']),
+                            datasets: [{ label: 'Latencia (ms)', data: (latencyCurrent.values && latencyCurrent.values.length ? latencyCurrent.values : [0]), backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'] }]
                         },
                         options: { ...chartOptions, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
                     });
                 }
 
-                const appLabels = this.apps.length ? this.apps.slice(0, 4).map(a => a.title || a.id) : ['Despesas Fixas', 'Finanças', 'Lista Compras', 'Saúde'];
-                const appSizes = this.apps.length ? [1.2, 0.8, 0.6, 0.5].slice(0, this.apps.length) : [1.2, 0.8, 0.6, 0.5];
                 const sizeCtx = document.getElementById('chartSize');
                 if (sizeCtx) {
                     this.dashboardCharts.size = new Chart(sizeCtx, {
                         type: 'bar',
                         data: {
-                            labels: appLabels,
-                            datasets: [{ label: 'MB', data: appSizes, backgroundColor: '#1e40af' }]
+                            labels: (slowEndpoints.labels && slowEndpoints.labels.length ? slowEndpoints.labels : ['Sem dados']),
+                            datasets: [{ label: 'Media (ms)', data: (slowEndpoints.values && slowEndpoints.values.length ? slowEndpoints.values : [0]), backgroundColor: '#1e40af' }]
                         },
                         options: { ...chartOptions, indexAxis: 'y', scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false } } }
                     });
@@ -1681,12 +1718,32 @@
                     this.dashboardCharts.db = new Chart(dbCtx, {
                         type: 'doughnut',
                         data: {
-                            labels: ['Conectado', 'Ocioso'],
-                            datasets: [{ data: [100, 0], backgroundColor: ['#22c55e', '#e5e7eb'], borderWidth: 0 }]
+                            labels: ['Conectado', 'Instavel'],
+                            datasets: [{ data: [Number(db.connected || 0), Number(db.unstable || 0)], backgroundColor: ['#22c55e', '#e5e7eb'], borderWidth: 0 }]
                         },
                         options: { ...chartOptions, plugins: { legend: { position: 'bottom' } } }
                     });
                 }
+            }
+
+            renderDashboardLastUpdate(fallbackText = null) {
+                const el = document.getElementById('dashboardLastUpdate');
+                if (!el) return;
+                if (fallbackText) {
+                    el.textContent = fallbackText;
+                    return;
+                }
+                const latestAt = this.dashboardMetrics?.latest_at;
+                if (!latestAt) {
+                    el.textContent = 'Ultima analise: sem dados';
+                    return;
+                }
+                const dt = new Date(latestAt);
+                if (Number.isNaN(dt.getTime())) {
+                    el.textContent = 'Ultima analise: sem dados';
+                    return;
+                }
+                el.textContent = `Ultima analise: ${dt.toLocaleString('pt-BR')}`;
             }
 
             renderApps() {
@@ -3355,3 +3412,8 @@
     </script>
 </body>
 </html>
+
+
+
+
+

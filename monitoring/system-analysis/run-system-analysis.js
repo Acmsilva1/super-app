@@ -10,9 +10,10 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const ENDPOINTS = [
   { name: "apps", path: "/api/apps", expectedStatus: 200, critical: true },
   { name: "statistics", path: "/api/statistics", expectedStatus: 200, critical: true },
+  { name: "roadmap", path: "/api/roadmap", expectedStatus: 200, critical: false },
   { name: "saude", path: "/api/saude", expectedStatus: 200, critical: false },
-  { name: "notificar", path: "/api/notificar", method: "POST", expectedStatus: 200, critical: false },
 ];
+const DEFAULT_DB_TABLE = process.env.SYSTEM_ANALYSIS_DB_TABLE || "tb_calendario";
 
 function nowIso() {
   return new Date().toISOString();
@@ -72,6 +73,44 @@ async function testEndpoint(baseUrl, endpoint) {
   }
 }
 
+async function testDatabaseConnection(supabase, tableName = DEFAULT_DB_TABLE) {
+  const startedAt = nowIso();
+  const hrStart = process.hrtime.bigint();
+
+  try {
+    const { error } = await supabase.from(tableName).select("id", { count: "exact", head: true }).limit(1);
+    const latencyMs = msDiff(hrStart);
+    const success = !error;
+
+    return {
+      endpoint_name: "db_connection",
+      endpoint_path: `supabase:${tableName}`,
+      method: "QUERY",
+      started_at: startedAt,
+      finished_at: nowIso(),
+      latency_ms: Math.round(latencyMs),
+      status_code: success ? 200 : 500,
+      success,
+      critical: true,
+      error_message: success ? null : error.message,
+    };
+  } catch (error) {
+    const latencyMs = msDiff(hrStart);
+    return {
+      endpoint_name: "db_connection",
+      endpoint_path: `supabase:${tableName}`,
+      method: "QUERY",
+      started_at: startedAt,
+      finished_at: nowIso(),
+      latency_ms: Math.round(latencyMs),
+      status_code: null,
+      success: false,
+      critical: true,
+      error_message: String(error?.message || error),
+    };
+  }
+}
+
 function percentile(values, p) {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -124,6 +163,7 @@ export async function runSystemAnalysis(options = {}) {
     options.supabaseServiceRoleKey || SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
   const table = options.table || DEFAULT_TABLE;
   const endpoints = options.endpoints || ENDPOINTS;
+  const dbTable = options.dbTable || DEFAULT_DB_TABLE;
 
   if (!appBaseUrl) throw new Error("APP_BASE_URL nao definido.");
   if (!supabaseUrl) throw new Error("SUPABASE_URL nao definido.");
@@ -138,6 +178,7 @@ export async function runSystemAnalysis(options = {}) {
     const result = await testEndpoint(appBaseUrl, endpoint);
     results.push(result);
   }
+  results.push(await testDatabaseConnection(supabase, dbTable));
 
   const snapshot = buildSnapshot(results);
   await insertSnapshot(supabase, table, snapshot);
