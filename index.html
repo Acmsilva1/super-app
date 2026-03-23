@@ -2518,9 +2518,10 @@
                             const dataset = chart.data.datasets[0];
                             const meta = chart.getDatasetMeta(0);
                             const { ctx } = chart;
+                            const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
                             ctx.save();
                             ctx.font = '600 12px Arial';
-                            ctx.fillStyle = '#111827';
+                            ctx.fillStyle = isDarkTheme ? '#ffffff' : '#111827';
                             ctx.textBaseline = 'middle';
                             meta.data.forEach((element, index) => {
                                 const rawValue = dataset && dataset.data ? dataset.data[index] : 0;
