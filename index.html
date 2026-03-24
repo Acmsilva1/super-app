@@ -1309,8 +1309,23 @@
         }
         .cal-day-cell:hover { filter: brightness(0.98); }
         .cal-day-cell.is-weekend { background: #fee2e2; border-color: #fecaca; }
+        .cal-day-top { display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; }
         .cal-day-number { display: block; font-size: 1rem; color: var(--text-dark); pointer-events: none; }
         .cal-day-cell.is-weekend .cal-day-number { color: #ef4444; }
+        .cal-day-number-q {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            background: #dc2626;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            pointer-events: none;
+        }
         .cal-day-summary {
             width: fit-content;
             min-width: 52px;
@@ -1330,6 +1345,19 @@
         .cal-day-summary.has-events { background: var(--primary); border-color: var(--primary); color: white; }
         .cal-day-summary.has-events.is-saude { background: #dc2626; border-color: #dc2626; }
         .cal-day-summary-icon { font-size: 0.7rem; line-height: 1; }
+        .cal-day-summary-q {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 0.92rem;
+            height: 0.92rem;
+            border-radius: 999px;
+            font-size: 0.64rem;
+            font-weight: 800;
+            line-height: 1;
+            background: #ef4444;
+            color: #fff;
+        }
         .cal-day-modal { width: min(560px, calc(100vw - 2rem)); max-height: 80vh; overflow-y: auto; }
         .cal-day-modal-date { margin: -0.35rem 0 1rem; color: var(--text-light); font-size: 0.85rem; }
         .cal-day-modal-list { display: grid; gap: 0.5rem; }
@@ -1367,27 +1395,34 @@
         .cal-check-btn {
             border: 1px solid var(--border-color);
             border-radius: 0.45rem;
-            background: white;
-            font-size: 0.75rem;
-            font-weight: 700;
+            background: var(--bg-white);
+            font-size: 0.78rem;
+            font-weight: 800;
             line-height: 1;
-            height: 1.45rem;
-            min-width: 1.45rem;
+            height: 1.6rem;
+            min-width: 1.6rem;
             cursor: pointer;
             color: var(--text-dark);
         }
+        .cal-check-btn.confirmar { border-color: #86efac; color: #166534; background: #f0fdf4; }
+        .cal-check-btn.negar { border-color: #fca5a5; color: #991b1b; background: #fef2f2; }
+        .cal-check-btn:hover { filter: brightness(0.97); }
+        .cal-check-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
         .cal-check-btn.active.confirmar { background: #16a34a; border-color: #16a34a; color: white; }
         .cal-check-btn.active.negar { background: #dc2626; border-color: #dc2626; color: white; }
         .cal-edit-btn {
             border: 1px solid var(--border-color);
             border-radius: 0.45rem;
-            background: white;
+            background: var(--bg-white);
             font-size: 0.72rem;
             padding: 0.18rem 0.5rem;
             cursor: pointer;
             color: var(--text-dark);
             margin-left: auto;
         }
+        [data-theme="dark"] .cal-check-btn.confirmar { border-color: #166534; background: rgba(22, 163, 74, 0.2); color: #86efac; }
+        [data-theme="dark"] .cal-check-btn.negar { border-color: #991b1b; background: rgba(220, 38, 38, 0.2); color: #fca5a5; }
+        [data-theme="dark"] .cal-day-modal-item:hover { background: rgba(59, 130, 246, 0.12); }
         .cal-grid-scroll { width: 100%; overflow-x: hidden; padding-bottom: 0.1rem; }
         .cal-weekdays-grid,
         .cal-days-grid {
@@ -2438,6 +2473,7 @@
                             if (d.empty) return '<div style="background: transparent;"></div>';
                             const dayEvents = currentEvents.filter(e => e.date === d.fullDate);
                             const count = dayEvents.length;
+                            const pendingChecksCount = dayEvents.filter((e) => this.isCalendarEventOverdueForCheck(e) && !this.getCalendarEventCheckStatus(e)).length;
                             const titles = dayEvents.map(e => (e.start_time ? e.start_time.substring(0, 5) + ' ' : '') + e.title).join('\n');
                             const hasSaúde = dayEvents.some(e => e.category === 'Saúde');
                             let summaryClass = 'cal-day-summary';
@@ -2445,9 +2481,11 @@
                                 summaryClass += ' has-events';
                                 if (hasSaúde) summaryClass += ' is-saude';
                             }
+                            const qTop = pendingChecksCount > 0 ? '<span class="cal-day-number-q" title="Checagem pendente">?</span>' : '';
+                            const qSummary = pendingChecksCount > 0 ? '<span class="cal-day-summary-q" title="Checagem pendente">?</span>' : '';
                             return '<div class="cal-day-cell ' + (d.isWeekend ? 'is-weekend' : '') + '" data-cal-day="' + d.fullDate + '" title="' + escapeHtml(titles) + '">' +
-                                '<strong class="cal-day-number">' + d.day + '</strong>' +
-                                '<span class="' + summaryClass + '"><span class="cal-day-summary-icon"><i class="fas fa-calendar-check"></i></span><span>' + count + '</span></span>' +
+                                '<div class="cal-day-top"><strong class="cal-day-number">' + d.day + '</strong>' + qTop + '</div>' +
+                                '<span class="' + summaryClass + '"><span class="cal-day-summary-icon"><i class="fas fa-calendar-check"></i></span>' + qSummary + '<span>' + count + '</span></span>' +
                             '</div>';
                         }).join('');
                         container.querySelectorAll('[data-cal-day]').forEach((dayCell) => {
