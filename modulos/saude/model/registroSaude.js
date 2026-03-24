@@ -3,7 +3,7 @@ export const TABLE_NAME = 'tb_saude_familiar';
 
 export const TIPOS_REGISTRO = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
 
-export class RegistroSaude {
+export class RegistroSaúde {
   constructor({
     membro_familia,
     tipo_registro,
@@ -50,7 +50,7 @@ export class RegistroSaude {
   }
 
   static fromRow(row) {
-    return new RegistroSaude({
+    return new RegistroSaúde({
       id: row?.id,
       created_at: row?.created_at,
       membro_familia: row?.membro_familia || '',

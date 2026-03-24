@@ -1,4 +1,4 @@
-import { RegistroSaude } from '../model/registroSaude.js';
+import { RegistroSaúde } from '../model/registroSaúde.js';
 
 export function payloadInsert(
   membro_familia,
@@ -92,12 +92,12 @@ export function renderizarResumo(rows, membro_familia) {
 }
 
 export function parseRowsSupabase(rows) {
-  return (rows || []).map((r) => RegistroSaude.fromRow(r));
+  return (rows || []).map((r) => RegistroSaúde.fromRow(r));
 }
 
 /** Retorna o id do registro para uso em exclusão (DELETE). */
 export function idParaExclusao(registro) {
-  if (registro instanceof RegistroSaude) return registro.id ?? null;
+  if (registro instanceof RegistroSaúde) return registro.id ?? null;
   if (registro && typeof registro === 'object' && 'id' in registro) return registro.id ?? null;
   return null;
 }

@@ -50,7 +50,7 @@ lista --> tbLista["tb_lista_compras"]:::tabela
 
 saude --> saudeModel["model"]:::pastaInterna
 saude --> saudeService["service"]:::pastaInterna
-saude --> tbSaude["tb_saude_familiar"]:::tabela
+saude --> tbSaúde["tb_saude_familiar"]:::tabela
 ```
 
 ---

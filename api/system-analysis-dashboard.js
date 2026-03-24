@@ -5,7 +5,7 @@ const STORAGE_TABLES = [
   { app: "Despesas Fixas", table: "tb_despesas_fixas" },
   { app: "Financas", table: "tb_financas" },
   { app: "Lista de Compras", table: "tb_lista_compras" },
-  { app: "Saude Familiar", table: "tb_saude_familiar" },
+  { app: "Saúde Familiar", table: "tb_saude_familiar" },
   { app: "Agenda", table: "tb_calendario" },
   { app: "Fluxograma", table: "tb_fluxograma_projetos" },
 ];

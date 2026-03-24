@@ -1,4 +1,4 @@
-export { TABLE_NAME, TIPOS_REGISTRO, RegistroSaude } from './model/registroSaude.js';
+export { TABLE_NAME, TIPOS_REGISTRO, RegistroSaúde } from './model/registroSaúde.js';
 export {
   payloadInsert,
   payloadUpdate,
