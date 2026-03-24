@@ -2450,13 +2450,16 @@
                         };
                     });
                     overlay.querySelectorAll('[data-cal-check-index]').forEach((btn) => {
-                        btn.onclick = () => {
+                        btn.onclick = async () => {
                             const idx = Number(btn.getAttribute('data-cal-check-index'));
                             const status = btn.getAttribute('data-cal-check-status');
                             const ev = dayEvents[idx];
                             if (!ev || !status) return;
                             this.setCalendarEventCheckStatus(ev, status);
-                            this.refreshCalendarCheckState();
+                            await Promise.all([
+                                this.refreshCalendarCheckState(),
+                                loadSelectedMonth()
+                            ]);
                             overlay.remove();
                             openDayEventsModal(dateStr);
                         };
@@ -2524,7 +2527,7 @@
 
                 const loadSelectedMonth = () => {
                     const month = el.querySelector('#cal-month-select').value;
-                    loadGrid(month);
+                    return loadGrid(month);
                 };
                 
                 const d = new Date();
