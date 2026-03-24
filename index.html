@@ -3368,6 +3368,24 @@
                 });
                 return fmt.format(d);
             }
+            getBrazilNowDateTime() {
+                const fmt = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                const parts = fmt.formatToParts(new Date());
+                const map = {};
+                parts.forEach((p) => { map[p.type] = p.value; });
+                return {
+                    date: `${map.year}-${map.month}-${map.day}`,
+                    time: `${map.hour}:${map.minute}`
+                };
+            }
             addDaysToIso(isoDate, amount) {
                 const m = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
                 if (!m) return isoDate;
@@ -3426,8 +3444,12 @@
             isCalendarEventOverdueForCheck(ev) {
                 const eventDate = this.normalizeIsoDate(ev && ev.date);
                 if (!eventDate) return false;
-                const today = this.getBrazilDateIsoFrom(new Date());
-                return eventDate < today;
+                const nowBr = this.getBrazilNowDateTime();
+                if (eventDate < nowBr.date) return true;
+                if (eventDate > nowBr.date) return false;
+                const eventTime = String((ev && (ev.start_time || ev.end_time)) || '').slice(0, 5);
+                if (!eventTime) return false;
+                return eventTime < nowBr.time;
             }
             async buildCalendarPendingCheckItems(todayIso) {
                 const month = Number(String(todayIso || '').slice(5, 7));
