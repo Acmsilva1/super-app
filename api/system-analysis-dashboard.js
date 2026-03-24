@@ -26,6 +26,15 @@ function round(value, decimals = 2) {
   return Math.round(value * factor) / factor;
 }
 
+function median(values) {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  const sorted = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2) return sorted[mid];
+  return (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
 function getSupabaseServerClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -53,6 +62,35 @@ function getProfileWindow(profile) {
 function normalizeLabel(endpoint) {
   if (!endpoint?.endpoint_name) return "desconhecido";
   return String(endpoint.endpoint_name).replace(/_/g, " ");
+}
+
+function buildLatencyCurrent(rows, latestApiEndpoints) {
+  const historyWindow = rows.slice(0, 24); // janela curta para reduzir ruido e manter leitura "atual"
+  const latenciesByEndpoint = new Map();
+
+  for (const row of historyWindow) {
+    const endpoints = Array.isArray(row?.endpoints) ? row.endpoints : [];
+    for (const ep of endpoints) {
+      const name = String(ep?.endpoint_name || "");
+      if (!name || name === "db_connection") continue;
+      if (ep?.success !== true) continue;
+      const latency = toNumber(ep?.latency_ms, NaN);
+      if (!Number.isFinite(latency) || latency <= 0) continue;
+      if (!latenciesByEndpoint.has(name)) latenciesByEndpoint.set(name, []);
+      latenciesByEndpoint.get(name).push(latency);
+    }
+  }
+
+  const labels = latestApiEndpoints.map((x) => normalizeLabel(x));
+  const values = latestApiEndpoints.map((x) => {
+    const name = String(x?.endpoint_name || "");
+    const hist = latenciesByEndpoint.get(name) || [];
+    const med = median(hist);
+    if (Number.isFinite(med)) return Math.round(med);
+    return Math.round(toNumber(x?.latency_ms, 0));
+  });
+
+  return { labels, values };
 }
 
 function buildDashboardPayload(rows) {
@@ -107,10 +145,7 @@ function buildDashboardPayload(rows) {
         toNumber(latest.checks_failed, 0),
       ],
     },
-    latency_current: {
-      labels: latestApiEndpoints.map((x) => normalizeLabel(x)),
-      values: latestApiEndpoints.map((x) => toNumber(x.latency_ms, 0)),
-    },
+    latency_current: buildLatencyCurrent(rows, latestApiEndpoints),
     storage_by_app: { labels: [], values: [] },
     db: {
       connected: dbConnected,
