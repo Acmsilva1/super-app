@@ -3464,7 +3464,8 @@
                 return allEvents
                     .filter((ev) => {
                         const eventDate = this.normalizeIsoDate(ev.date);
-                        if (!eventDate || eventDate >= todayIso) return false;
+                        if (!eventDate) return false;
+                        if (!this.isCalendarEventOverdueForCheck(ev)) return false;
                         return !this.getCalendarEventCheckStatus(ev);
                     })
                     .map((ev) => ({
