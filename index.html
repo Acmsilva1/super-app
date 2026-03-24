@@ -2134,11 +2134,11 @@
                         <h4 style="margin-bottom: 1rem;">Agenda</h4>
                         <div class="app-form-row" style="margin-bottom: 1rem;">
                             <div class="field">
-                                <label>Selecione o mÃªs:</label>
+                                <label>Selecione o mês:</label>
                                 <select id="cal-month-select" class="app-form-control" style="padding:0.4rem;border-radius:4px;border:1px solid #ccc;">
                                     <option value="1">Janeiro</option>
                                     <option value="2">Fevereiro</option>
-                                    <option value="3">MarÃ§o</option>
+                                    <option value="3">Março</option>
                                     <option value="4">Abril</option>
                                     <option value="5">Maio</option>
                                     <option value="6">Junho</option>
@@ -2154,9 +2154,9 @@
                         <div class="app-form">
                             <input type="hidden" id="cal-id" />
                             <div class="app-form-row">
-                                <div class="field"><label>TÃ­tulo</label><input type="text" id="cal-title" placeholder="Ex: ReuniÃ£o" /></div>
+                                <div class="field"><label>Título</label><input type="text" id="cal-title" placeholder="Ex: Reunião" /></div>
                                 <div class="field"><label>Data</label><input type="date" id="cal-date" /></div>
-                                <div class="field"><label>InÃ­cio</label><input type="time" id="cal-start" /></div>
+                                <div class="field"><label>Início</label><input type="time" id="cal-start" /></div>
                                 <div class="field"><label>Fim</label><input type="time" id="cal-end" /></div>
                                 <div class="field">
                                     <label>Categoria</label>
@@ -2165,12 +2165,12 @@
                                         <option value="Lazer">Lazer</option>
                                         <option value="Compromisso">Compromisso</option>
                                         <option value="Evento">Evento</option>
-                                        <option value="SaÃºde">SaÃºde</option>
+                                        <option value="Saúde">Saúde</option>
                                     </select>
                                 </div>
                             </div>
                             <button class="app-btn" id="cal-save-btn">Salvar Evento</button>
-                            <button class="app-btn app-btn-secondary" id="cal-cancel-btn" style="display:none;">Cancelar EdiÃ§Ã£o / Excluir</button>
+                            <button class="app-btn app-btn-secondary" id="cal-cancel-btn" style="display:none;">Cancelar Edição / Excluir</button>
                         </div>
                         <div style="font-size:0.8rem;color:green;margin-bottom:0.5rem;" id="cal-status"></div>
                         <div class="cal-grid-scroll">
@@ -2226,7 +2226,7 @@
                         end_time: el.querySelector('#cal-end').value || null,
                         category: el.querySelector('#cal-category').value
                     };
-                    if (!payload.title || !payload.date) { alert('TÃ­tulo e Data obrigatÃ³rios'); return; }
+                    if (!payload.title || !payload.date) { alert('Título e Data obrigatórios'); return; }
                     if (id) payload.id = id;
                     try {
                         const res = await fetch('/api/calendario', {
@@ -2312,14 +2312,14 @@
                     try {
                         const res = await fetch('/api/calendario?action=view&month=' + month);
                         const monthData = await res.json();
-                        if (!res.ok) throw new Error(monthData.error || 'Erro ao carregar o mÃªs');
+                        if (!res.ok) throw new Error(monthData.error || 'Erro ao carregar o mês');
                         currentEvents = monthData.events || [];
                         container.innerHTML = monthData.days.map(d => {
                             if (d.empty) return '<div style="background: transparent;"></div>';
                             const dayEvents = currentEvents.filter(e => e.date === d.fullDate);
                             const count = dayEvents.length;
                             const titles = dayEvents.map(e => (e.start_time ? e.start_time.substring(0, 5) + ' ' : '') + e.title).join('\n');
-                            const hasSaude = dayEvents.some(e => e.category === 'SaÃºde');
+                            const hasSaude = dayEvents.some(e => e.category === 'Saúde');
                             let summaryClass = 'cal-day-summary';
                             if (count > 0) {
                                 summaryClass += ' has-events';
