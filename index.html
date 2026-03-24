@@ -2016,8 +2016,7 @@
             renderCalendarCheckBadge() {
                 const pendingCount = (this.calendarCheckItems || []).length;
                 if (pendingCount > 0) {
-                    const txt = pendingCount > 9 ? '?9+' : `?${pendingCount}`;
-                    return `<span class="calendar-check-badge pending" title="Checagem pendente de agendamento">${escapeHtml(txt)}</span>`;
+                    return '<span class="calendar-check-badge pending" title="Checagem pendente de agendamento">?</span>';
                 }
                 const allStatuses = Object.values(this.calendarCheckStatuses || {})
                     .filter((v) => v && (v.status === 'confirmado' || v.status === 'nao_confirmado'))
