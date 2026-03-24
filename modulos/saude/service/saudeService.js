@@ -1,4 +1,4 @@
-import { RegistroSaúde } from '../model/registroSaúde.js';
+import { RegistroSaúde } from '../model/registroSaude.js';
 
 export function payloadInsert(
   membro_familia,
