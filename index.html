@@ -438,6 +438,39 @@
         .dashboard-chart-wrap canvas {
             max-height: 160px;
         }
+        .dashboard-health-report {
+            margin-top: 1rem;
+            background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+            border: 1px solid #bfdbfe;
+            border-radius: var(--radius);
+            padding: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .dashboard-health-report-title {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #1e3a8a;
+            margin-bottom: 0.65rem;
+        }
+        .dashboard-health-report-title i { color: #2563eb; }
+        .dashboard-health-report-body {
+            color: #0f172a;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            display: grid;
+            gap: 0.45rem;
+        }
+        .dashboard-health-report-body p { margin: 0; }
+        [data-theme="dark"] .dashboard-health-report {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.14) 0%, rgba(15, 23, 42, 0.92) 100%);
+            border-color: #1d4ed8;
+        }
+        [data-theme="dark"] .dashboard-health-report-title { color: #bfdbfe; }
+        [data-theme="dark"] .dashboard-health-report-body { color: #e2e8f0; }
 
         @media (max-width: 640px) {
             .dashboard-charts {
@@ -1586,6 +1619,12 @@
                     <div class="dashboard-chart-wrap"><canvas id="chartDb"></canvas></div>
                 </div>
             </div>
+            <div id="dashboardHealthReport" class="dashboard-health-report">
+                <div class="dashboard-health-report-title"><i class="fas fa-heart-pulse"></i> Relatorio de saude</div>
+                <div class="dashboard-health-report-body">
+                    <p>Carregando resumo do monitoramento...</p>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -1798,10 +1837,12 @@
                     this.dashboardMetrics = data || this.dashboardMetrics;
                     this.renderDashboardLastUpdate();
                     this.renderDashboardCharts();
+                    this.renderDashboardHealthReport();
                 } catch (error) {
                     console.error('Erro ao carregar analise do sistema:', error);
                     this.renderDashboardLastUpdate('Ultima analise: sem dados');
                     this.renderDashboardCharts();
+                    this.renderDashboardHealthReport('Sem dados de monitoramento no momento.');
                 }
             }
 
@@ -1978,6 +2019,58 @@
                     return;
                 }
                 el.textContent = `Ultima analise: ${dt.toLocaleString('pt-BR')} (${profileLabel})`;
+            }
+
+            renderDashboardHealthReport(fallbackText = null) {
+                const root = document.getElementById('dashboardHealthReport');
+                if (!root) return;
+                const body = root.querySelector('.dashboard-health-report-body');
+                if (!body) return;
+
+                if (fallbackText) {
+                    body.innerHTML = `<p>${escapeHtml(fallbackText)}</p>`;
+                    return;
+                }
+
+                const metrics = this.dashboardMetrics || {};
+                const summary = metrics.summary || {};
+                const services = metrics.services || {};
+                const latencyCurrent = metrics.latency_current || { labels: [], values: [] };
+                const db = metrics.db || {};
+
+                const status = String(summary.status || 'no_data').toLowerCase();
+                const statusLabel = status === 'healthy' ? 'Saudavel' : (status === 'attention' ? 'Atencao' : 'Sem dados');
+                const checksTotal = Number(summary.checks_total || services.values?.[0] || 0);
+                const checksOk = Number(summary.checks_success || services.values?.[1] || 0);
+                const checksFail = Number(summary.checks_failed || services.values?.[2] || 0);
+                const uptime = Number(summary.uptime_percent || 0);
+                const errorRate = Number(summary.error_rate_percent || 0);
+                const p95 = Number(summary.p95_latency_ms || 0);
+                const dbConnected = Number(db.connected || 0);
+
+                let slowLabel = 'sem dados';
+                let slowValue = 0;
+                const labels = Array.isArray(latencyCurrent.labels) ? latencyCurrent.labels : [];
+                const values = Array.isArray(latencyCurrent.values) ? latencyCurrent.values : [];
+                values.forEach((v, i) => {
+                    const n = Number(v || 0);
+                    if (n >= slowValue) {
+                        slowValue = n;
+                        slowLabel = String(labels[i] || `endpoint ${i + 1}`);
+                    }
+                });
+
+                const latestAt = metrics.latest_at ? new Date(metrics.latest_at) : null;
+                const latestText = latestAt && !Number.isNaN(latestAt.getTime())
+                    ? latestAt.toLocaleString('pt-BR')
+                    : 'sem horario valido';
+
+                body.innerHTML = [
+                    `<p><strong>Status geral:</strong> ${escapeHtml(statusLabel)}. ${checksOk}/${checksTotal} checks passaram e ${checksFail} falharam.</p>`,
+                    `<p><strong>Confiabilidade:</strong> uptime ${uptime.toFixed(2)}% | taxa de erro ${errorRate.toFixed(2)}% | p95 ${Math.round(p95)}ms.</p>`,
+                    `<p><strong>Ponto de atencao:</strong> endpoint mais lento recente: ${escapeHtml(slowLabel)} (${Math.round(slowValue)}ms). Conexao com DB em ${dbConnected.toFixed(2)}%.</p>`,
+                    `<p><strong>Ultima amostra:</strong> ${escapeHtml(latestText)}.</p>`
+                ].join('');
             }
 
             renderApps() {
