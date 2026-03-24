@@ -1326,6 +1326,8 @@
             border: 1px solid rgba(255, 255, 255, 0.25);
             pointer-events: none;
         }
+        .cal-day-number-q.confirmado { background: #16a34a; }
+        .cal-day-number-q.nao_confirmado { background: #dc2626; }
         .cal-day-summary {
             width: fit-content;
             min-width: 52px;
@@ -1358,6 +1360,8 @@
             background: #ef4444;
             color: #fff;
         }
+        .cal-day-summary-q.confirmado { background: #16a34a; }
+        .cal-day-summary-q.nao_confirmado { background: #dc2626; }
         .cal-day-modal { width: min(560px, calc(100vw - 2rem)); max-height: 80vh; overflow-y: auto; }
         .cal-day-modal-date { margin: -0.35rem 0 1rem; color: var(--text-light); font-size: 0.85rem; }
         .cal-day-modal-list { display: grid; gap: 0.5rem; }
@@ -2473,7 +2477,26 @@
                             if (d.empty) return '<div style="background: transparent;"></div>';
                             const dayEvents = currentEvents.filter(e => e.date === d.fullDate);
                             const count = dayEvents.length;
-                            const pendingChecksCount = dayEvents.filter((e) => this.isCalendarEventOverdueForCheck(e) && !this.getCalendarEventCheckStatus(e)).length;
+                            const overdueEvents = dayEvents.filter((e) => this.isCalendarEventOverdueForCheck(e));
+                            const pendingChecksCount = overdueEvents.filter((e) => !this.getCalendarEventCheckStatus(e)).length;
+                            let dayCheckSymbol = '';
+                            let dayCheckClass = 'pendente';
+                            let dayCheckTitle = '';
+                            if (pendingChecksCount > 0) {
+                                dayCheckSymbol = '?';
+                                dayCheckClass = 'pendente';
+                                dayCheckTitle = 'Checagem pendente';
+                            } else {
+                                const checkedStatuses = overdueEvents
+                                    .map((e) => this.getCalendarEventCheckStatus(e))
+                                    .filter((s) => s === 'confirmado' || s === 'nao_confirmado');
+                                if (checkedStatuses.length > 0) {
+                                    const hasNaoConfirmado = checkedStatuses.includes('nao_confirmado');
+                                    dayCheckSymbol = hasNaoConfirmado ? 'X' : 'V';
+                                    dayCheckClass = hasNaoConfirmado ? 'nao_confirmado' : 'confirmado';
+                                    dayCheckTitle = hasNaoConfirmado ? 'Checagem marcada como nao confirmado' : 'Checagem marcada como confirmado';
+                                }
+                            }
                             const titles = dayEvents.map(e => (e.start_time ? e.start_time.substring(0, 5) + ' ' : '') + e.title).join('\n');
                             const hasSaúde = dayEvents.some(e => e.category === 'Saúde');
                             let summaryClass = 'cal-day-summary';
@@ -2481,8 +2504,8 @@
                                 summaryClass += ' has-events';
                                 if (hasSaúde) summaryClass += ' is-saude';
                             }
-                            const qTop = pendingChecksCount > 0 ? '<span class="cal-day-number-q" title="Checagem pendente">?</span>' : '';
-                            const qSummary = pendingChecksCount > 0 ? '<span class="cal-day-summary-q" title="Checagem pendente">?</span>' : '';
+                            const qTop = dayCheckSymbol ? '<span class="cal-day-number-q ' + dayCheckClass + '" title="' + escapeHtml(dayCheckTitle) + '">' + dayCheckSymbol + '</span>' : '';
+                            const qSummary = dayCheckSymbol ? '<span class="cal-day-summary-q ' + dayCheckClass + '" title="' + escapeHtml(dayCheckTitle) + '">' + dayCheckSymbol + '</span>' : '';
                             return '<div class="cal-day-cell ' + (d.isWeekend ? 'is-weekend' : '') + '" data-cal-day="' + d.fullDate + '" title="' + escapeHtml(titles) + '">' +
                                 '<div class="cal-day-top"><strong class="cal-day-number">' + d.day + '</strong>' + qTop + '</div>' +
                                 '<span class="' + summaryClass + '"><span class="cal-day-summary-icon"><i class="fas fa-calendar-check"></i></span>' + qSummary + '<span>' + count + '</span></span>' +
