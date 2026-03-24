@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -445,7 +445,7 @@
             }
         }
 
-        /* APPLICATIONS SECTION – ícones compactos e arredondados */
+        /* APPLICATIONS SECTION â€“ Ã­cones compactos e arredondados */
         .apps-section {
             padding: 1.5rem 0.75rem;
         }
@@ -788,7 +788,7 @@
             margin-bottom: 1rem;
         }
 
-        /* Módulo Fluxograma (escopo isolado; tema escuro não afeta o body do SUPERAPP) */
+        /* MÃ³dulo Fluxograma (escopo isolado; tema escuro nÃ£o afeta o body do SUPERAPP) */
         .window-content.fluxograma-window-content {
             padding: 0 !important;
             overflow: hidden !important;
@@ -1415,13 +1415,13 @@
                     </div>
                     <div class="logo-text">
                         <h1>SUPERAPP</h1>
-                        <p>Plataforma de Microserviços</p>
+                        <p>Plataforma de MicroserviÃ§os</p>
                     </div>
                 </div>
 
                 <nav>
                     <a href="#dashboard" id="navDashboard" class="nav-link">Dashboard</a>
-                    <a href="#apps" id="navApps" class="nav-link active">Aplicações</a>
+                    <a href="#apps" id="navApps" class="nav-link active">AplicaÃ§Ãµes</a>
                 </nav>
 
                 <div class="header-actions">
@@ -1431,7 +1431,7 @@
                     <button class="header-btn" id="darkModeToggle" title="Modo escuro (alternar)" aria-label="Alternar modo escuro">
                         <i class="fas fa-moon" id="darkModeIcon"></i>
                     </button>
-                    <button class="header-btn" id="notificationsBtn" title="Notificações" style="position: relative;">
+                    <button class="header-btn" id="notificationsBtn" title="NotificaÃ§Ãµes" style="position: relative;">
                         <i class="fas fa-bell"></i>
                         <span id="notificationBadge" class="notification-badge" aria-hidden="true"></span>
                     </button>
@@ -1487,15 +1487,15 @@
     <!-- APPLICATIONS -->
     <section id="apps" class="apps-section">
         <div class="container">
-            <h3 class="section-title">Aplicações Disponíveis</h3>
+            <h3 class="section-title">AplicaÃ§Ãµes DisponÃ­veis</h3>
             <div id="appsContainer" class="apps-grid">
                 <div class="empty-state">
                     <div>
                         <div class="empty-state-icon">
                             <i class="fas fa-inbox"></i>
                         </div>
-                        <p class="empty-state-text">Nenhuma aplicação disponível</p>
-                        <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
+                        <p class="empty-state-text">Nenhuma aplicaÃ§Ã£o disponÃ­vel</p>
+                        <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicaÃ§Ãµes serÃ£o carregadas do backend</p>
                     </div>
                 </div>
             </div>
@@ -1504,7 +1504,7 @@
 
     <!-- FOOTER -->
     <footer>
-        <p>© 2026 SUPERAPP - Plataforma de Microserviços</p>
+        <p>Â© 2026 SUPERAPP - Plataforma de MicroserviÃ§os</p>
         <p>Desenvolvido para produtividade</p>
     </footer>
 
@@ -1634,13 +1634,13 @@
             async loadApps() {
                 try {
                     const response = await fetch('/api/apps');
-                    if (!response.ok) throw new Error('Falha ao carregar aplicações');
+                    if (!response.ok) throw new Error('Falha ao carregar aplicaÃ§Ãµes');
                     const data = await response.json();
                     this.apps = Array.isArray(data) ? data : (data.apps || []);
                     this.renderApps();
                     if (document.getElementById('chartSize')) this.renderDashboardCharts();
                 } catch (error) {
-                    console.error('Erro ao carregar aplicações:', error);
+                    console.error('Erro ao carregar aplicaÃ§Ãµes:', error);
                     this.apps = [];
                     this.renderApps();
                 }
@@ -1649,12 +1649,12 @@
             async loadStatistics() {
                 try {
                     const response = await fetch('/api/statistics');
-                    if (!response.ok) throw new Error('Falha ao carregar estatísticas');
+                    if (!response.ok) throw new Error('Falha ao carregar estatÃ­sticas');
                     const data = await response.json();
                     this.statistics = { ...data, openApps: this.openWindows.size };
                     this.renderDashboardCharts();
                 } catch (error) {
-                    console.error('Erro ao carregar estatísticas:', error);
+                    console.error('Erro ao carregar estatÃ­sticas:', error);
                     this.statistics = { totalApps: 0, activeApps: 0, betaApps: 0, openApps: this.openWindows.size };
                     this.renderDashboardCharts();
                 }
@@ -1877,8 +1877,8 @@
                                 <div class="empty-state-icon">
                                     <i class="fas fa-inbox"></i>
                                 </div>
-                                <p class="empty-state-text">Nenhuma aplicação disponível</p>
-                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
+                                <p class="empty-state-text">Nenhuma aplicaÃ§Ã£o disponÃ­vel</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicaÃ§Ãµes serÃ£o carregadas do backend</p>
                             </div>
                         </div>
                     `;
@@ -1907,8 +1907,8 @@
                                 <div class="roadmap-empty-icon">
                                     <i class="fas fa-map"></i>
                                 </div>
-                                <p class="roadmap-empty-text">Roadmap não carregado</p>
-                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap será carregado do backend</p>
+                                <p class="roadmap-empty-text">Roadmap nÃ£o carregado</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap serÃ¡ carregado do backend</p>
                             </div>
                         </div>
                     `;
@@ -1948,7 +1948,7 @@
                             <div class="window-title">${app.title}</div>
                         </div>
                         <div class="window-controls">
-                            <button class="window-btn" onclick="superApp.goHome('${windowId}')" title="Voltar ao início">
+                            <button class="window-btn" onclick="superApp.goHome('${windowId}')" title="Voltar ao inÃ­cio">
                                 <i class="fas fa-home"></i>
                             </button>
                             <button class="window-btn" onclick="superApp.closeWindow('${windowId}')" title="Fechar">
@@ -2028,7 +2028,7 @@
                             <div class="flux-hub-top">
                                 <div>
                                     <h1>Fluxogramas</h1>
-                                    <p>Abra um projeto ou crie um novo — alterações são salvas na nuvem automaticamente</p>
+                                    <p>Abra um projeto ou crie um novo â€” alteraÃ§Ãµes sÃ£o salvas na nuvem automaticamente</p>
                                 </div>
                                 <span id="flux-hub-status" class="flux-hub-status"></span>
                             </div>
@@ -2124,7 +2124,7 @@
                     await shell.initFluxogramaApp(mod);
                 } catch (err) {
                     console.error(err);
-                    el.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Não foi possível carregar o Fluxograma. Verifique o console.</div>';
+                    el.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> NÃ£o foi possÃ­vel carregar o Fluxograma. Verifique o console.</div>';
                 }
             }
 
@@ -2134,11 +2134,11 @@
                         <h4 style="margin-bottom: 1rem;">Agenda</h4>
                         <div class="app-form-row" style="margin-bottom: 1rem;">
                             <div class="field">
-                                <label>Selecione o mês:</label>
+                                <label>Selecione o mÃªs:</label>
                                 <select id="cal-month-select" class="app-form-control" style="padding:0.4rem;border-radius:4px;border:1px solid #ccc;">
                                     <option value="1">Janeiro</option>
                                     <option value="2">Fevereiro</option>
-                                    <option value="3">Março</option>
+                                    <option value="3">MarÃ§o</option>
                                     <option value="4">Abril</option>
                                     <option value="5">Maio</option>
                                     <option value="6">Junho</option>
@@ -2150,14 +2150,13 @@
                                     <option value="12">Dezembro</option>
                                 </select>
                             </div>
-                            <button class="app-btn" id="cal-load-btn">Ver Mês</button>
                         </div>
                         <div class="app-form">
                             <input type="hidden" id="cal-id" />
                             <div class="app-form-row">
-                                <div class="field"><label>Título</label><input type="text" id="cal-title" placeholder="Ex: Reunião" /></div>
+                                <div class="field"><label>TÃ­tulo</label><input type="text" id="cal-title" placeholder="Ex: ReuniÃ£o" /></div>
                                 <div class="field"><label>Data</label><input type="date" id="cal-date" /></div>
-                                <div class="field"><label>Início</label><input type="time" id="cal-start" /></div>
+                                <div class="field"><label>InÃ­cio</label><input type="time" id="cal-start" /></div>
                                 <div class="field"><label>Fim</label><input type="time" id="cal-end" /></div>
                                 <div class="field">
                                     <label>Categoria</label>
@@ -2166,12 +2165,12 @@
                                         <option value="Lazer">Lazer</option>
                                         <option value="Compromisso">Compromisso</option>
                                         <option value="Evento">Evento</option>
-                                        <option value="Saúde">Saúde</option>
+                                        <option value="SaÃºde">SaÃºde</option>
                                     </select>
                                 </div>
                             </div>
                             <button class="app-btn" id="cal-save-btn">Salvar Evento</button>
-                            <button class="app-btn app-btn-secondary" id="cal-cancel-btn" style="display:none;">Cancelar Edição / Excluir</button>
+                            <button class="app-btn app-btn-secondary" id="cal-cancel-btn" style="display:none;">Cancelar EdiÃ§Ã£o / Excluir</button>
                         </div>
                         <div style="font-size:0.8rem;color:green;margin-bottom:0.5rem;" id="cal-status"></div>
                         <div class="cal-grid-scroll">
@@ -2213,7 +2212,7 @@
                         el.querySelector('#cal-status').innerText = 'Deletado com sucesso!';
                         setTimeout(() => el.querySelector('#cal-status').innerText='', 2000);
                         fillForm();
-                        el.querySelector('#cal-load-btn').click();
+                        loadSelectedMonth();
                         this.refreshEventNotifications();
                     } catch (e) { alert(e.message); }
                 };
@@ -2227,7 +2226,7 @@
                         end_time: el.querySelector('#cal-end').value || null,
                         category: el.querySelector('#cal-category').value
                     };
-                    if (!payload.title || !payload.date) { alert('Título e Data obrigatórios'); return; }
+                    if (!payload.title || !payload.date) { alert('TÃ­tulo e Data obrigatÃ³rios'); return; }
                     if (id) payload.id = id;
                     try {
                         const res = await fetch('/api/calendario', {
@@ -2242,7 +2241,7 @@
                         el.querySelector('#cal-status').innerText = 'Salvo com sucesso!';
                         setTimeout(() => el.querySelector('#cal-status').innerText='', 2000);
                         fillForm();
-                        el.querySelector('#cal-load-btn').click();
+                        loadSelectedMonth();
                         this.refreshEventNotifications();
                     } catch (e) { alert(e.message); }
                 };
@@ -2313,14 +2312,14 @@
                     try {
                         const res = await fetch('/api/calendario?action=view&month=' + month);
                         const monthData = await res.json();
-                        if (!res.ok) throw new Error(monthData.error || 'Erro ao carregar o mês');
+                        if (!res.ok) throw new Error(monthData.error || 'Erro ao carregar o mÃªs');
                         currentEvents = monthData.events || [];
                         container.innerHTML = monthData.days.map(d => {
                             if (d.empty) return '<div style="background: transparent;"></div>';
                             const dayEvents = currentEvents.filter(e => e.date === d.fullDate);
                             const count = dayEvents.length;
                             const titles = dayEvents.map(e => (e.start_time ? e.start_time.substring(0, 5) + ' ' : '') + e.title).join('\n');
-                            const hasSaude = dayEvents.some(e => e.category === 'Saúde');
+                            const hasSaude = dayEvents.some(e => e.category === 'SaÃºde');
                             let summaryClass = 'cal-day-summary';
                             if (count > 0) {
                                 summaryClass += ' has-events';
@@ -2342,15 +2341,16 @@
                     }
                 };
 
-                el.querySelector('#cal-load-btn').addEventListener('click', () => {
+                const loadSelectedMonth = () => {
                     const month = el.querySelector('#cal-month-select').value;
                     loadGrid(month);
-                });
+                };
                 
                 const d = new Date();
                 const currentMonth = d.getFullYear() === 2026 ? d.getMonth() + 1 : 1;
                 el.querySelector('#cal-month-select').value = currentMonth;
-                loadGrid(currentMonth);
+                el.querySelector('#cal-month-select').addEventListener('change', loadSelectedMonth);
+                loadSelectedMonth();
             }
 
             renderDespesasFixasContent(el, data) {
@@ -2368,26 +2368,26 @@
                 const anos = Array.from({ length: 9 }, (_, i) => new Date().getFullYear() - 2 + i);
                 el.innerHTML = `
                     <div class="app-mes-ano">
-                        <label>Mês/Ano</label>
+                        <label>MÃªs/Ano</label>
                         <select id="df-mes">${meses.map((m, i) => '<option value="'+(i+1)+'" '+(i+1===mes?'selected':'')+'>'+m+'</option>').join('')}</select>
                         <select id="df-ano">${anos.map(a => '<option value="'+a+'" '+(a===ano?'selected':'')+'>'+a+'</option>').join('')}</select>
                     </div>
                     <div class="app-totais" style="margin-bottom:1rem;">
-                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#22c55e;font-size:1.125rem">R$ ${receitasFinancas.toFixed(2)}</div><div class="stat-label">Receitas (Finanças)</div></div>
-                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#2563eb;font-size:1.125rem">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total geral (mês)</div></div>
+                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#22c55e;font-size:1.125rem">R$ ${receitasFinancas.toFixed(2)}</div><div class="stat-label">Receitas (FinanÃ§as)</div></div>
+                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#2563eb;font-size:1.125rem">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total geral (mÃªs)</div></div>
                         <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="font-size:1.125rem;color:${margem >= 0 ? '#16a34a' : '#dc2626'}">R$ ${margem.toFixed(2)}</div><div class="stat-label">Margem</div></div>
                     </div>
                     <div class="app-form">
                         <input type="hidden" id="df-edit-id" value="${escapeHtml(editId)}" />
                         <div class="app-form-row">
-                            <div class="field"><label>Descrição</label><input type="text" id="df-descricao" placeholder="Ex: Aluguel, Internet" /></div>
+                            <div class="field"><label>DescriÃ§Ã£o</label><input type="text" id="df-descricao" placeholder="Ex: Aluguel, Internet" /></div>
                             <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="df-valor" placeholder="0,00" /></div>
                             <div class="field"><label>Status</label><select id="df-status"><option value="pendente">Pendente</option><option value="pago">Pago</option></select></div>
                         </div>
                         <button type="button" class="app-btn" data-action="df-save">Adicionar</button>
                         <button type="button" class="app-btn app-btn-secondary" data-action="df-exportar">Exportar dados</button>
                     </div>
-                    <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:0 0 0.5rem 0">Novas despesas fixas entram no <strong>mês/ano selecionado acima</strong> (lançamentos retroativos: escolha o mês e depois adicione).</p>
+                    <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:0 0 0.5rem 0">Novas despesas fixas entram no <strong>mÃªs/ano selecionado acima</strong> (lanÃ§amentos retroativos: escolha o mÃªs e depois adicione).</p>
                     <div class="df-colunas">
                         <div class="df-col df-col--pagos">
                             <p class="df-col-titulo">Pagos</p>
@@ -2464,7 +2464,7 @@
                 const valor = parseFloat(el.querySelector('#df-valor').value) || 0;
                 const status = el.querySelector('#df-status').value;
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                if (!descricao) { alert('Descrição é obrigatória'); return; }
+                if (!descricao) { alert('DescriÃ§Ã£o Ã© obrigatÃ³ria'); return; }
                 try {
                     if (editId) {
                         const res = await fetch('/api/despesas-fixas', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, descricao, valor, status }) });
@@ -2501,10 +2501,10 @@
                 overlay.className = 'app-modal-overlay';
                 overlay.innerHTML = `
                     <div class="app-modal">
-                        <h4>Exportar dados – escolha o mês espelho</h4>
+                        <h4>Exportar dados â€“ escolha o mÃªs espelho</h4>
                         <p style="font-size:0.875rem;color:var(--text-light);margin-bottom:0.75rem;">Copiar despesas de <strong>${meses[fromMes-1]} ${fromAno}</strong> para:</p>
                         <div class="app-mes-ano">
-                            <label>Mês</label>
+                            <label>MÃªs</label>
                             <select id="df-export-mes">${meses.map((m, i) => '<option value="'+(i+1)+'">'+m+'</option>').join('')}</select>
                             <label>Ano</label>
                             <select id="df-export-ano">${anosOpts.map(a => '<option value="'+a+'" '+(a===fromAno?'selected':'')+'>'+a+'</option>').join('')}</select>
@@ -2520,7 +2520,7 @@
                     const m = overlay.querySelector('#df-export-mes').value;
                     const a = overlay.querySelector('#df-export-ano').value;
                     const toMesAno = a + '-' + m.padStart(2, '0');
-                    if (toMesAno === fromMesAno) { alert('Escolha um mês diferente do mês atual.'); return; }
+                    if (toMesAno === fromMesAno) { alert('Escolha um mÃªs diferente do mÃªs atual.'); return; }
                     try {
                         const res = await fetch('/api/despesas-fixas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ exportar: true, from_mes_ano: fromMesAno, to_mes_ano: toMesAno }) });
                         const data = await res.json();
@@ -2543,7 +2543,7 @@
                 const totais = data.totais || { receitas: 0, despesas: 0, despesas_fixas: 0, liquido: 0 };
                 const bi = data.bi || {};
                 const tabelaGastos = bi.tabela_gastos || [];
-                const categorias = ['Alimentação','Habitação','Transporte','Lazer','Saúde','Compras','Contas','Receitas'];
+                const categorias = ['AlimentaÃ§Ã£o','HabitaÃ§Ã£o','Transporte','Lazer','SaÃºde','Compras','Contas','Receitas'];
                 const mesAno = data.mes_ano || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const todayBrazilIso = this.getBrazilDateIsoFrom(new Date());
@@ -2558,7 +2558,7 @@
                 const liquido = Number(totais.liquido) ?? (receitas - despesasVariaveis - despesasFixas);
                 el.innerHTML = `
                     <div class="app-mes-ano">
-                        <label>Mês/Ano</label>
+                        <label>MÃªs/Ano</label>
                         <select id="fin-mes">${meses.map((m, i) => '<option value="'+(i+1)+'" '+(i+1===mes?'selected':'')+'>'+m+'</option>').join('')}</select>
                         <select id="fin-ano">${anos.map(a => '<option value="'+a+'" '+(a===ano?'selected':'')+'>'+a+'</option>').join('')}</select>
                     </div>
@@ -2567,24 +2567,24 @@
                         <div class="totais-card totais-card--despesas">
                             <div class="despesas-titulo">Despesas</div>
                             <div class="despesa-linha"><span class="despesa-nome">Despesas fixas</span><span class="val" style="color:#b91c1c">R$ ${despesasFixas.toFixed(2)}</span></div>
-                            <div class="despesa-linha"><span class="despesa-nome">Despesas variáveis</span><span class="val" style="color:#dc2626">R$ ${despesasVariaveis.toFixed(2)}</span></div>
+                            <div class="despesa-linha"><span class="despesa-nome">Despesas variÃ¡veis</span><span class="val" style="color:#dc2626">R$ ${despesasVariaveis.toFixed(2)}</span></div>
                         </div>
-                        <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${liquido.toFixed(2)}</div><div class="stat-label">Líquido</div></div>
+                        <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${liquido.toFixed(2)}</div><div class="stat-label">LÃ­quido</div></div>
                     </div>
                     <div class="app-form">
                         <input type="hidden" id="fin-edit-id" value="" />
                         <div class="app-form-row">
-                            <div class="field"><label>Descrição</label><input type="text" id="fin-descricao" placeholder="Ex: Supermercado" /></div>
+                            <div class="field"><label>DescriÃ§Ã£o</label><input type="text" id="fin-descricao" placeholder="Ex: Supermercado" /></div>
                             <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="fin-valor" placeholder="0,00" /></div>
                             <div class="field"><label>Tipo</label><select id="fin-tipo"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
                             <div class="field"><label>Categoria</label><select id="fin-categoria"><option value="">--</option>${categorias.map(c => '<option value="'+c+'">'+c+'</option>').join('')}</select></div>
-                            <div class="field"><label>Data do lançamento</label><input type="date" id="fin-data" value="${defaultLancamento}" min="${firstDayMonth}" max="${lastDayMonth}" title="Dia no mês selecionado acima" /></div>
+                            <div class="field"><label>Data do lanÃ§amento</label><input type="date" id="fin-data" value="${defaultLancamento}" min="${firstDayMonth}" max="${lastDayMonth}" title="Dia no mÃªs selecionado acima" /></div>
                         </div>
-                        <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:-0.25rem 0 0.5rem 0">O lançamento aparece no mês/ano escolhido no topo, conforme esta data.</p>
+                        <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:-0.25rem 0 0.5rem 0">O lanÃ§amento aparece no mÃªs/ano escolhido no topo, conforme esta data.</p>
                         <button type="button" class="app-btn" data-action="financas-save">Registrar</button>
                     </div>
                     <div class="app-charts">
-                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas variÃ¡veis x Despesas fixas</p><canvas id="fin-chart-pie"></canvas></div>
+                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas variÃƒÂ¡veis x Despesas fixas</p><canvas id="fin-chart-pie"></canvas></div>
                         <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias que mais gastam</p><canvas id="fin-chart-bar"></canvas></div>
                     </div>
                     <div class="fin-colunas">
@@ -2626,7 +2626,7 @@
                     <li>
                         <div>
                             <strong>${escapeHtml(r.descricao || '')}</strong> <span style="color:${rec ? '#22c55e' : '#dc2626'}">${rec ? '+' : '-'} R$ ${Number(r.valor).toFixed(2)}</span> ${r.categoria ? '<span style="font-size:0.75rem;color:#6b7280">' + escapeHtml(r.categoria) + '</span>' : ''}
-                            <br/><span style="font-size:0.75rem;color:#9ca3af">Data: ${escapeHtml(fmtDataBrFin(lancDate(r)) || '--')} ${fmtHoraBrasilia(r.created_at) ? '| Inserido às ' + escapeHtml(fmtHoraBrasilia(r.created_at)) : ''}</span>
+                            <br/><span style="font-size:0.75rem;color:#9ca3af">Data: ${escapeHtml(fmtDataBrFin(lancDate(r)) || '--')} ${fmtHoraBrasilia(r.created_at) ? '| Inserido Ã s ' + escapeHtml(fmtHoraBrasilia(r.created_at)) : ''}</span>
                         </div>
                         <div class="app-list-actions">
                             <button type="button" data-action="fin-edit" data-id="${r.id}" data-valor="${Number(r.valor)}" data-tipo="${r.tipo || 'despesa'}">Editar</button>
@@ -2635,10 +2635,10 @@
                     </li>`;
                 const listRec = el.querySelector('#fin-list-receitas');
                 const listDesp = el.querySelector('#fin-list-despesas');
-                listRec.innerHTML = rowsRec.length ? rowsRec.map((r) => itemLiFin(r, true)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhuma receita neste mês.</li>';
-                listDesp.innerHTML = rowsDesp.length ? rowsDesp.map((r) => itemLiFin(r, false)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhuma despesa variável neste mês.</li>';
+                listRec.innerHTML = rowsRec.length ? rowsRec.map((r) => itemLiFin(r, true)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhuma receita neste mÃªs.</li>';
+                listDesp.innerHTML = rowsDesp.length ? rowsDesp.map((r) => itemLiFin(r, false)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhuma despesa variÃ¡vel neste mÃªs.</li>';
                 if (rows.length === 0) {
-                    const msg = '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhum lançamento. Registre acima.</li>';
+                    const msg = '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhum lanÃ§amento. Registre acima.</li>';
                     listRec.innerHTML = msg;
                     listDesp.innerHTML = msg;
                 }
@@ -2738,7 +2738,7 @@
                         el._chartPie = new Chart(ctxPie, {
                             type: 'doughnut',
                             data: {
-                                labels: ['Receitas', 'Despesas variáveis', 'Despesas fixas'],
+                                labels: ['Receitas', 'Despesas variÃ¡veis', 'Despesas fixas'],
                                 datasets: [{ data: [receitas, despesasVariaveis, despesasFixas], backgroundColor: ['#22c55e', '#dc2626', '#b91c1c'], borderWidth: 0 }]
                             },
                             options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } },
@@ -2769,11 +2769,11 @@
                 const categoria = el.querySelector('#fin-categoria').value || null;
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 const dataLanc = (el.querySelector('#fin-data') && el.querySelector('#fin-data').value) || this.getBrazilDateIsoFrom(new Date());
-                if (!descricao) { alert('Descrição é obrigatória'); return; }
+                if (!descricao) { alert('DescriÃ§Ã£o Ã© obrigatÃ³ria'); return; }
                 const [yy, mm] = mesAno.split('-').map(Number);
                 const [dy, dm] = dataLanc.split('-').map(Number);
                 if (dy !== yy || dm !== mm) {
-                    alert('A data do lançamento precisa estar dentro do mês selecionado no topo (mês/ano: ' + mesAno.replace('-', '/') + ').');
+                    alert('A data do lanÃ§amento precisa estar dentro do mÃªs selecionado no topo (mÃªs/ano: ' + mesAno.replace('-', '/') + ').');
                     return;
                 }
                 try {
@@ -2790,7 +2790,7 @@
                 } catch (e) { alert(e.message); }
             }
             async submitFinancasDelete(id, el) {
-                if (!confirm('Excluir este lançamento?')) return;
+                if (!confirm('Excluir este lanÃ§amento?')) return;
                 try {
                     const res = await fetch('/api/financas?id=' + encodeURIComponent(id), { method: 'DELETE' });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
@@ -2832,7 +2832,7 @@
                         <button type="button" class="lista-compras-col-head" aria-expanded="${!isCollapsed}">
                             <span class="lista-compras-col-title">${escapeHtml(cat)}</span>
                             <span class="lista-compras-col-badge">${items.length}</span>
-                            <span class="lista-compras-col-chevron" aria-hidden="true">▼</span>
+                            <span class="lista-compras-col-chevron" aria-hidden="true">â–¼</span>
                         </button>
                         <div class="lista-compras-col-body">
                             <ul class="app-list lista-compras-col-list">${inner}</ul>
@@ -2845,7 +2845,7 @@
                         <div class="app-form-row">
                             <div class="field"><label>Item</label><input type="text" id="lista-item" placeholder="Ex: Leite" /></div>
                             <div class="field"><label>Qtd</label><input type="number" min="1" id="lista-qtd" value="1" /></div>
-                            <div class="field"><label>Unidade</label><select id="lista-unidade"><option value="">—</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
+                            <div class="field"><label>Unidade</label><select id="lista-unidade"><option value="">â€”</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
                             <div class="field"><label>Categoria</label><select id="lista-categoria">${categorias.map(c => '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>').join('')}</select></div>
                         </div>
                         <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
@@ -2922,7 +2922,7 @@
                 const quantidade = parseInt(el.querySelector('#lista-qtd').value, 10) || 1;
                 const categoria = el.querySelector('#lista-categoria').value || 'Mantimentos';
                 const unidade = (el.querySelector('#lista-unidade').value || '').trim();
-                if (!item) { alert('Item é obrigatório'); return; }
+                if (!item) { alert('Item Ã© obrigatÃ³rio'); return; }
                 try {
                     if (editId) {
                         const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, item, quantidade, categoria, unidade_medida: unidade }) });
@@ -2944,7 +2944,7 @@
                 } catch (e) { alert(e.message); }
             }
             async submitListaDeleteAll(el) {
-                if (!confirm('Apagar TODOS os itens da lista? Não é possível desfazer.')) return;
+                if (!confirm('Apagar TODOS os itens da lista? NÃ£o Ã© possÃ­vel desfazer.')) return;
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete_all: true }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
@@ -3014,10 +3014,10 @@
                 const itemLi = (r, colTipo) => {
                     const dataBr = fmtDataBR(r.data_evento);
                     const hora = fmtHora(r.hora_evento);
-                    const quando = [dataBr || null, hora ? 'às ' + hora : null].filter(Boolean).join(' · ');
+                    const quando = [dataBr || null, hora ? 'Ã s ' + hora : null].filter(Boolean).join(' Â· ');
                     const rotuloTipo = colTipo === 'Consulta' && r.tipo_registro && r.tipo_registro !== 'Consulta' ? ' <span style="font-size:0.75rem;color:#9ca3af">(' + escapeHtml(r.tipo_registro) + ')</span>' : '';
                     return `<li data-id="${escapeHtml(r.id || '')}">
-                        <div><strong>${escapeHtml(r.membro_familia || '')}</strong>${rotuloTipo}${r.detalhes ? ' — ' + escapeHtml(r.detalhes) : ''}${quando ? '<br/><span style="font-size:0.8rem;color:#9ca3af">' + escapeHtml(quando) + '</span>' : ''}</div>
+                        <div><strong>${escapeHtml(r.membro_familia || '')}</strong>${rotuloTipo}${r.detalhes ? ' â€” ' + escapeHtml(r.detalhes) : ''}${quando ? '<br/><span style="font-size:0.8rem;color:#9ca3af">' + escapeHtml(quando) + '</span>' : ''}</div>
                         <div class="app-list-actions">
                             <button type="button" data-action="saude-edit" data-id="${escapeHtml(r.id || '')}">Editar</button>
                             <button type="button" data-action="saude-delete" data-id="${escapeHtml(r.id || '')}" style="background:#fef2f2;color:#dc2626">Excluir</button>
@@ -3035,7 +3035,7 @@
                         <button type="button" class="lista-compras-col-head" aria-expanded="${!isCollapsed}">
                             <span class="lista-compras-col-title">${escapeHtml(tipoNome)}</span>
                             <span class="lista-compras-col-badge">${items.length}</span>
-                            <span class="lista-compras-col-chevron" aria-hidden="true">▼</span>
+                            <span class="lista-compras-col-chevron" aria-hidden="true">â–¼</span>
                         </button>
                         <div class="lista-compras-col-body"><ul class="app-list lista-compras-col-list">${inner}</ul></div>
                     </div>`;
@@ -3114,12 +3114,12 @@
                 const detalhes = (el.querySelector('#saude-detalhes').value || '').trim();
                 const data_evento = (el.querySelector('#saude-data').value || '').trim() || null;
                 if (data_evento && !/^\d{4}-\d{2}-\d{2}$/.test(data_evento)) {
-                    alert('Data inválida.');
+                    alert('Data invÃ¡lida.');
                     return;
                 }
                 const horaVal = (el.querySelector('#saude-hora') && el.querySelector('#saude-hora').value) || '';
                 const hora_evento = horaVal.trim() ? horaVal.trim().slice(0, 5) : null;
-                if (!membro_familia) { alert('Membro é obrigatório'); return; }
+                if (!membro_familia) { alert('Membro Ã© obrigatÃ³rio'); return; }
                 const editingId = el.dataset.saudeEditingId;
                 try {
                     if (editingId) {
@@ -3132,7 +3132,7 @@
                         const data = await res.json();
                         if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
                         
-                        // Integração automática com o calendário para consultas
+                        // IntegraÃ§Ã£o automÃ¡tica com o calendÃ¡rio para consultas
                         if (tipo_registro === 'Consulta' && data_evento) {
                             try {
                                 await fetch('/api/calendario', {
@@ -3142,11 +3142,11 @@
                                         title: `Consulta: ${membro_familia}${detalhes ? ' - ' + detalhes : ''}`,
                                         date: data_evento,
                                         start_time: hora_evento,
-                                        category: 'Saúde'
+                                        category: 'SaÃºde'
                                     })
                                 });
                             } catch (calErr) {
-                                console.error('Erro ao registrar consulta no calendário:', calErr);
+                                console.error('Erro ao registrar consulta no calendÃ¡rio:', calErr);
                             }
                         }
 
@@ -3162,7 +3162,7 @@
             }
             async submitSaudeDelete(id, el) {
                 if (!id) return;
-                if (!confirm('Excluir este registro? Não é possível desfazer.')) return;
+                if (!confirm('Excluir este registro? NÃ£o Ã© possÃ­vel desfazer.')) return;
                 try {
                     const res = await fetch('/api/saude', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
@@ -3376,11 +3376,11 @@
             }
 
             // ============================================
-            // MÉTODOS PARA INTEGRAÇÃO COM BACKEND
+            // MÃ‰TODOS PARA INTEGRAÃ‡ÃƒO COM BACKEND
             // ============================================
             
             /**
-             * Método para você chamar quando receber dados do backend
+             * MÃ©todo para vocÃª chamar quando receber dados do backend
              * Exemplo: superApp.setApps(dataFromBackend)
              */
             setApps(apps) {
@@ -3389,7 +3389,7 @@
             }
 
             /**
-             * Método para você chamar quando receber estatísticas do backend
+             * MÃ©todo para vocÃª chamar quando receber estatÃ­sticas do backend
              * Exemplo: superApp.setStatistics(statsFromBackend)
              */
             setStatistics(stats) {
@@ -3398,7 +3398,7 @@
             }
 
             /**
-             * Método para você chamar quando receber roadmap do backend
+             * MÃ©todo para vocÃª chamar quando receber roadmap do backend
              * Exemplo: superApp.setRoadmap(roadmapFromBackend)
              */
             setRoadmap(roadmap) {
@@ -3416,7 +3416,7 @@
         // ============================================
         
         /*
-        // Exemplo 1: Carregar dados quando página carrega
+        // Exemplo 1: Carregar dados quando pÃ¡gina carrega
         window.addEventListener('load', async () => {
             try {
                 const [appsRes, statsRes, roadmapRes] = await Promise.all([
@@ -3444,11 +3444,11 @@
                 const stats = await response.json();
                 superApp.setStatistics(stats);
             } catch (error) {
-                console.error('Erro ao atualizar estatísticas:', error);
+                console.error('Erro ao atualizar estatÃ­sticas:', error);
             }
         }, 30000);
 
-        // Exemplo 3: Usar WebSocket para atualizações em tempo real
+        // Exemplo 3: Usar WebSocket para atualizaÃ§Ãµes em tempo real
         const ws = new WebSocket('ws://seu-backend.com/api/updates');
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -3458,7 +3458,7 @@
         };
         */
 
-        // PWA: instalação no mobile como app (não só atalho)
+        // PWA: instalaÃ§Ã£o no mobile como app (nÃ£o sÃ³ atalho)
         let deferredInstallPrompt = null;
         const pwaInstallBtn = document.getElementById('pwaInstallBtn');
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -3485,18 +3485,18 @@
                     deferredInstallPrompt = null;
                     if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
                 } else if (isMobile) {
-                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (⋮ ou ⋯)\n2. Escolha "Instalar app" ou "Adicionar à tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
+                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (â‹® ou â‹¯)\n2. Escolha "Instalar app" ou "Adicionar Ã  tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
                 }
             });
         }
         updateInstallButton();
 
-        // PWA: registrar SW, detectar mudança de versão (deploy) e atualizar cache
+        // PWA: registrar SW, detectar mudanÃ§a de versÃ£o (deploy) e atualizar cache
         if ('serviceWorker' in navigator) {
             let pendingWorker = null;
             const banner = document.createElement('div');
             banner.className = 'pwa-update-banner hidden';
-            banner.innerHTML = '<span>Nova versão disponível.</span><button type="button">Atualizar</button>';
+            banner.innerHTML = '<span>Nova versÃ£o disponÃ­vel.</span><button type="button">Atualizar</button>';
             document.body.appendChild(banner);
             const btn = banner.querySelector('button');
             btn.addEventListener('click', () => {
@@ -3522,7 +3522,7 @@
                         }
                     });
                 });
-                // Verificar nova versão periodicamente e ao voltar para o app
+                // Verificar nova versÃ£o periodicamente e ao voltar para o app
                 setInterval(() => reg.update(), 60 * 1000);
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'visible') reg.update();
@@ -3533,6 +3533,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 
