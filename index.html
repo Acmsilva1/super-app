@@ -522,6 +522,31 @@
         .app-card .badge {
             display: none;
         }
+        .app-icon-wrap {
+            position: relative;
+            display: inline-flex;
+        }
+        .calendar-check-badge {
+            position: absolute;
+            top: -0.38rem;
+            right: -0.5rem;
+            min-width: 1rem;
+            height: 1rem;
+            padding: 0 0.3rem;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            line-height: 1;
+            border: 1px solid rgba(255, 255, 255, 0.85);
+            box-shadow: 0 2px 8px rgba(2, 6, 23, 0.18);
+            color: white;
+        }
+        .calendar-check-badge.pending { background: #dc2626; }
+        .calendar-check-badge.confirmed { background: #16a34a; }
+        .calendar-check-badge.denied { background: #dc2626; }
 
         .app-title {
             font-size: 0.75rem;
@@ -1322,6 +1347,47 @@
         .cal-day-modal-item:hover { border-color: var(--primary); background: #eff6ff; }
         .cal-day-modal-title { display: block; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.15rem; }
         .cal-day-modal-meta { display: block; font-size: 0.78rem; color: var(--text-light); }
+        .cal-day-modal-row-actions { margin-top: 0.55rem; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+        .cal-check-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.25rem;
+            height: 1.25rem;
+            padding: 0 0.35rem;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            border: 1px solid var(--border-color);
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .cal-check-chip.confirmado { background: #dcfce7; color: #14532d; border-color: #86efac; }
+        .cal-check-chip.nao_confirmado { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        .cal-check-btn {
+            border: 1px solid var(--border-color);
+            border-radius: 0.45rem;
+            background: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 1;
+            height: 1.45rem;
+            min-width: 1.45rem;
+            cursor: pointer;
+            color: var(--text-dark);
+        }
+        .cal-check-btn.active.confirmar { background: #16a34a; border-color: #16a34a; color: white; }
+        .cal-check-btn.active.negar { background: #dc2626; border-color: #dc2626; color: white; }
+        .cal-edit-btn {
+            border: 1px solid var(--border-color);
+            border-radius: 0.45rem;
+            background: white;
+            font-size: 0.72rem;
+            padding: 0.18rem 0.5rem;
+            cursor: pointer;
+            color: var(--text-dark);
+            margin-left: auto;
+        }
         .cal-grid-scroll { width: 100%; overflow-x: hidden; padding-bottom: 0.1rem; }
         .cal-weekdays-grid,
         .cal-days-grid {
@@ -1565,13 +1631,19 @@
                 this.notificationTimer = null;
                 this.notificationDismissed = { targetDate: '', keys: [] };
                 this.NOTIFICATION_DISMISS_KEY = 'superapp_notifications_dismissed_v1';
+                this.calendarCheckStatuses = {};
+                this.calendarCheckItems = [];
+                this.calendarCheckTimer = null;
+                this.CALENDAR_CHECK_STATUS_KEY = 'superapp_calendar_check_status_v1';
                 this.init();
             }
 
             init() {
+                this.loadCalendarCheckStatuses();
                 this.setupEventListeners();
                 this.loadData();
                 this.startNotificationCenter();
+                this.startCalendarCheckCenter();
             }
 
             setupEventListeners() {
@@ -1638,6 +1710,7 @@
                     const data = await response.json();
                     this.apps = Array.isArray(data) ? data : (data.apps || []);
                     this.renderApps();
+                    this.refreshCalendarCheckState();
                     if (document.getElementById('chartSize')) this.renderDashboardCharts();
                 } catch (error) {
                     console.error('Erro ao carregar aplicações:', error);
@@ -1889,13 +1962,33 @@
                 container.innerHTML = this.apps.map(app => `
                     <div class="app-card" onclick="superApp.launchApp('${app.id}')">
                         <div class="app-header">
-                            <div class="app-icon-box">
-                                <i class="fas ${app.icon}"></i>
+                            <div class="app-icon-wrap">
+                                <div class="app-icon-box">
+                                    <i class="fas ${app.icon}"></i>
+                                </div>
+                                ${app.id === 'calendario' ? this.renderCalendarCheckBadge() : ''}
                             </div>
                         </div>
                         <span class="app-title">${app.title}</span>
                     </div>
                 `).join('');
+            }
+
+            renderCalendarCheckBadge() {
+                const pendingCount = (this.calendarCheckItems || []).length;
+                if (pendingCount > 0) {
+                    const txt = pendingCount > 9 ? '?9+' : `?${pendingCount}`;
+                    return `<span class="calendar-check-badge pending" title="Checagem pendente de agendamento">${escapeHtml(txt)}</span>`;
+                }
+                const allStatuses = Object.values(this.calendarCheckStatuses || {})
+                    .filter((v) => v && (v.status === 'confirmado' || v.status === 'nao_confirmado'))
+                    .sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+                if (!allStatuses.length) return '';
+                const latest = allStatuses[0];
+                if (latest.status === 'confirmado') {
+                    return '<span class="calendar-check-badge confirmed" title="Ultima checagem: confirmado">V</span>';
+                }
+                return '<span class="calendar-check-badge denied" title="Ultima checagem: nao confirmado">X</span>';
             }
 
             renderRoadmap() {
@@ -2215,6 +2308,7 @@
                         fillForm();
                         loadSelectedMonth();
                         this.refreshEventNotifications();
+                        this.refreshCalendarCheckState();
                     } catch (e) { alert(e.message); }
                 };
 
@@ -2244,6 +2338,7 @@
                         fillForm();
                         loadSelectedMonth();
                         this.refreshEventNotifications();
+                        this.refreshCalendarCheckState();
                     } catch (e) { alert(e.message); }
                 };
 
@@ -2275,14 +2370,26 @@
                             <h4>Agendamentos do dia</h4>
                             <p class="cal-day-modal-date">${escapeHtml(formatDateLabel(dateStr))}</p>
                             <div class="cal-day-modal-list">
-                                ${dayEvents.map((e) => {
+                                ${dayEvents.map((e, idx) => {
                                     const category = e.category || 'Sem categoria';
                                     const meta = formatEventTime(e) + ' - ' + category;
+                                    const overdue = this.isCalendarEventOverdueForCheck(e);
+                                    const checkStatus = this.getCalendarEventCheckStatus(e);
+                                    const statusSymbol = checkStatus === 'confirmado' ? 'V' : (checkStatus === 'nao_confirmado' ? 'X' : '?');
+                                    const statusClass = checkStatus ? (' ' + checkStatus) : '';
                                     return `
-                                        <button type="button" class="cal-day-modal-item" data-cal-event-id="${escapeHtml(String(e.id || ''))}">
+                                        <div class="cal-day-modal-item">
                                             <span class="cal-day-modal-title">${escapeHtml(e.title || 'Sem titulo')}</span>
                                             <span class="cal-day-modal-meta">${escapeHtml(meta)}</span>
-                                        </button>
+                                            <div class="cal-day-modal-row-actions">
+                                                ${overdue ? `
+                                                    <span class="cal-check-chip${statusClass}" title="Status da checagem">${statusSymbol}</span>
+                                                    <button type="button" class="cal-check-btn confirmar${checkStatus === 'confirmado' ? ' active' : ''}" data-cal-check-index="${idx}" data-cal-check-status="confirmado" title="Confirmar agendamento">V</button>
+                                                    <button type="button" class="cal-check-btn negar${checkStatus === 'nao_confirmado' ? ' active' : ''}" data-cal-check-index="${idx}" data-cal-check-status="nao_confirmado" title="Nao confirmar agendamento">X</button>
+                                                ` : ''}
+                                                <button type="button" class="cal-edit-btn" data-cal-edit-index="${idx}">Editar</button>
+                                            </div>
+                                        </div>
                                     `;
                                 }).join('')}
                             </div>
@@ -2292,15 +2399,27 @@
                         </div>
                     `;
                     overlay.querySelector('[data-action="cal-modal-close"]').onclick = () => overlay.remove();
-                    overlay.querySelectorAll('[data-cal-event-id]').forEach((btn) => {
+                    overlay.querySelectorAll('[data-cal-edit-index]').forEach((btn) => {
                         btn.onclick = () => {
-                            const eventId = btn.getAttribute('data-cal-event-id');
-                            const ev = dayEvents.find((item) => String(item.id) === String(eventId));
+                            const idx = Number(btn.getAttribute('data-cal-edit-index'));
+                            const ev = dayEvents[idx];
                             if (ev) {
                                 fillForm(ev.id, ev.title, ev.date, ev.start_time, ev.end_time, ev.category);
                                 el.querySelector('#cal-title').focus();
                             }
                             overlay.remove();
+                        };
+                    });
+                    overlay.querySelectorAll('[data-cal-check-index]').forEach((btn) => {
+                        btn.onclick = () => {
+                            const idx = Number(btn.getAttribute('data-cal-check-index'));
+                            const status = btn.getAttribute('data-cal-check-status');
+                            const ev = dayEvents[idx];
+                            if (!ev || !status) return;
+                            this.setCalendarEventCheckStatus(ev, status);
+                            this.refreshCalendarCheckState();
+                            overlay.remove();
+                            openDayEventsModal(dateStr);
                         };
                     });
                     overlay.onclick = (evt) => { if (evt.target === overlay) overlay.remove(); };
@@ -3159,6 +3278,7 @@
                     }
                     await this.refreshAppContent('saude');
                     this.refreshEventNotifications();
+                    this.refreshCalendarCheckState();
                 } catch (e) { alert(e.message); }
             }
             async submitSaúdeDelete(id, el) {
@@ -3170,6 +3290,7 @@
                     if (el.dataset.saudeEditingId === id) this.saudeCancelForm(el);
                     await this.refreshAppContent('saude');
                     this.refreshEventNotifications();
+                    this.refreshCalendarCheckState();
                 } catch (e) { alert(e.message); }
             }
 
@@ -3197,6 +3318,104 @@
                 const br = t.match(/^(\d{2})[-\/](\d{2})[-\/](\d{4})$/);
                 if (br) return `${br[3]}-${br[2]}-${br[1]}`;
                 return null;
+            }
+            loadCalendarCheckStatuses() {
+                try {
+                    const raw = localStorage.getItem(this.CALENDAR_CHECK_STATUS_KEY);
+                    const parsed = raw ? JSON.parse(raw) : {};
+                    this.calendarCheckStatuses = parsed && typeof parsed === 'object' ? parsed : {};
+                } catch (e) {
+                    this.calendarCheckStatuses = {};
+                }
+            }
+            saveCalendarCheckStatuses() {
+                try {
+                    localStorage.setItem(this.CALENDAR_CHECK_STATUS_KEY, JSON.stringify(this.calendarCheckStatuses || {}));
+                } catch (e) {}
+            }
+            calendarCheckEventKey(ev) {
+                if (!ev) return '';
+                if (ev.id != null && String(ev.id).trim() !== '') return `id:${String(ev.id)}`;
+                return [
+                    'ev',
+                    this.normalizeIsoDate(ev.date) || '',
+                    String(ev.start_time || '').slice(0, 5),
+                    String(ev.end_time || '').slice(0, 5),
+                    String(ev.title || '').trim(),
+                    String(ev.category || '').trim()
+                ].join('|');
+            }
+            getCalendarEventCheckStatus(ev) {
+                const key = this.calendarCheckEventKey(ev);
+                if (!key) return null;
+                const item = this.calendarCheckStatuses ? this.calendarCheckStatuses[key] : null;
+                const status = item && typeof item === 'object' ? item.status : item;
+                return status === 'confirmado' || status === 'nao_confirmado' ? status : null;
+            }
+            setCalendarEventCheckStatus(ev, status) {
+                if (status !== 'confirmado' && status !== 'nao_confirmado') return;
+                const key = this.calendarCheckEventKey(ev);
+                if (!key) return;
+                this.calendarCheckStatuses[key] = { status, updated_at: new Date().toISOString() };
+                this.saveCalendarCheckStatuses();
+            }
+            isCalendarEventOverdueForCheck(ev) {
+                const eventDate = this.normalizeIsoDate(ev && ev.date);
+                if (!eventDate) return false;
+                const today = this.getBrazilDateIsoFrom(new Date());
+                return eventDate < today;
+            }
+            async buildCalendarPendingCheckItems(todayIso) {
+                const month = Number(String(todayIso || '').slice(5, 7));
+                if (!Number.isFinite(month) || month < 1) return [];
+                const months = Array.from({ length: Math.min(12, month) }, (_, idx) => idx + 1);
+                const responses = await Promise.all(months.map((m) => fetch('/api/calendario?action=view&month=' + m)));
+                const payloads = await Promise.all(responses.map(async (res) => {
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Falha ao carregar agenda');
+                    return data;
+                }));
+                const allEvents = payloads.flatMap((p) => p.events || []);
+                return allEvents
+                    .filter((ev) => {
+                        const eventDate = this.normalizeIsoDate(ev.date);
+                        if (!eventDate || eventDate >= todayIso) return false;
+                        return !this.getCalendarEventCheckStatus(ev);
+                    })
+                    .map((ev) => ({
+                        source: 'agenda_check',
+                        key: this.calendarCheckEventKey(ev),
+                        date: this.normalizeIsoDate(ev.date),
+                        time: String(ev.start_time || '').slice(0, 5),
+                        title: ev.title || 'Evento sem titulo',
+                        details: ev.category || 'Sem categoria'
+                    }))
+                    .sort((a, b) => {
+                        const da = String(a.date || '');
+                        const db = String(b.date || '');
+                        if (da !== db) return da.localeCompare(db);
+                        const ta = String(a.time || '23:59');
+                        const tb = String(b.time || '23:59');
+                        return ta.localeCompare(tb);
+                    });
+            }
+            async refreshCalendarCheckState() {
+                const today = this.getBrazilDateIsoFrom(new Date());
+                try {
+                    this.calendarCheckItems = await this.buildCalendarPendingCheckItems(today);
+                } catch (err) {
+                    console.error('Erro ao carregar checagens pendentes da agenda:', err);
+                    this.calendarCheckItems = [];
+                }
+                this.renderApps();
+            }
+            startCalendarCheckCenter() {
+                this.refreshCalendarCheckState();
+                if (this.calendarCheckTimer) clearInterval(this.calendarCheckTimer);
+                this.calendarCheckTimer = setInterval(() => this.refreshCalendarCheckState(), 5 * 60 * 1000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') this.refreshCalendarCheckState();
+                });
             }
             notificationItemKey(item) {
                 return [item?.source || '', item?.date || '', item?.time || '', item?.title || '', item?.details || ''].join('||');
@@ -3387,6 +3606,7 @@
             setApps(apps) {
                 this.apps = apps;
                 this.renderApps();
+                this.refreshCalendarCheckState();
             }
 
             /**
