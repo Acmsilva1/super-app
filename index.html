@@ -3539,25 +3539,40 @@
                 const updatedAt = new Date().toISOString();
                 let persistedInDb = false;
                 if (ev && ev.id != null && String(ev.id).trim() !== '') {
-                    const res = await fetch('/api/calendario', {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            id: ev.id,
-                            check_status: status,
-                            check_updated_at: updatedAt
-                        })
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Erro ao salvar checagem no banco');
-                    if (data && typeof data === 'object') {
-                        ev.check_status = data.check_status || status;
-                        ev.check_updated_at = data.check_updated_at || updatedAt;
-                    } else {
+                    try {
+                        const res = await fetch('/api/calendario', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: ev.id,
+                                check_status: status,
+                                check_updated_at: updatedAt
+                            })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) {
+                            const msg = String(data?.error || '');
+                            const isMissingCheckColumn =
+                                msg.includes("Could not find the 'check_status' column") ||
+                                msg.includes("check_status");
+                            if (!isMissingCheckColumn) throw new Error(data.error || 'Erro ao salvar checagem no banco');
+                            console.warn('Coluna check_status ausente no banco; mantendo fallback local ate aplicar migration.');
+                        } else if (data && typeof data === 'object') {
+                            ev.check_status = data.check_status || status;
+                            ev.check_updated_at = data.check_updated_at || updatedAt;
+                            persistedInDb = true;
+                        } else {
+                            ev.check_status = status;
+                            ev.check_updated_at = updatedAt;
+                            persistedInDb = true;
+                        }
+                    } catch (err) {
+                        throw err;
+                    }
+                    if (!persistedInDb) {
                         ev.check_status = status;
                         ev.check_updated_at = updatedAt;
                     }
-                    persistedInDb = true;
                 }
                 this.calendarCheckStatuses[key] = { status, updated_at: updatedAt };
                 this.saveCalendarCheckStatuses();
