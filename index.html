@@ -2635,6 +2635,18 @@
 
             renderDespesasFixasContent(el, data) {
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
+                const aplicarLimiteVisualLista = (listEl, qtdVisivel = 10) => {
+                    if (!listEl) return;
+                    listEl.style.maxHeight = '';
+                    listEl.style.overflowY = '';
+                    const itens = Array.from(listEl.querySelectorAll(':scope > li'));
+                    if (itens.length <= qtdVisivel) return;
+                    const alturaLimite = itens
+                        .slice(0, qtdVisivel)
+                        .reduce((acc, li) => acc + li.getBoundingClientRect().height, 0);
+                    listEl.style.maxHeight = `${Math.ceil(alturaLimite)}px`;
+                    listEl.style.overflowY = 'auto';
+                };
                 const rows = data.rows || data.despesas || [];
                 const soma = data.soma != null ? Number(data.soma) : rows.reduce((a, r) => a + Number(r.valor || 0), 0);
                 const somaPago = data.somaPago != null ? Number(data.somaPago) : rows.filter(r => (r.status || '').toLowerCase() === 'pago').reduce((a, r) => a + Number(r.valor || 0), 0);
@@ -2710,6 +2722,8 @@
                     listPago.innerHTML = rowsPago.length ? rowsPago.map((r) => itemLi(r, true)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhum pago.</li>';
                     listPend.innerHTML = rowsPend.length ? rowsPend.map((r) => itemLi(r, false)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhum pendente.</li>';
                 }
+                aplicarLimiteVisualLista(listPago, 10);
+                aplicarLimiteVisualLista(listPend, 10);
                 const wireList = (root) => {
                     root.querySelectorAll('[data-action="df-toggle"]').forEach((b) => { b.onclick = () => this.submitDespesaFixaToggle(b.dataset.id, b.dataset.status, el); });
                     root.querySelectorAll('[data-action="df-edit"]').forEach((b) => {
@@ -2819,6 +2833,18 @@
                 if (el._chartPie) { el._chartPie.destroy(); el._chartPie = null; }
                 if (el._chartBar) { el._chartBar.destroy(); el._chartBar = null; }
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
+                const aplicarLimiteVisualLista = (listEl, qtdVisivel = 10) => {
+                    if (!listEl) return;
+                    listEl.style.maxHeight = '';
+                    listEl.style.overflowY = '';
+                    const itens = Array.from(listEl.querySelectorAll(':scope > li'));
+                    if (itens.length <= qtdVisivel) return;
+                    const alturaLimite = itens
+                        .slice(0, qtdVisivel)
+                        .reduce((acc, li) => acc + li.getBoundingClientRect().height, 0);
+                    listEl.style.maxHeight = `${Math.ceil(alturaLimite)}px`;
+                    listEl.style.overflowY = 'auto';
+                };
                 const rows = data.rows || [];
                 const totais = data.totais || { receitas: 0, despesas: 0, despesas_fixas: 0, liquido: 0 };
                 const bi = data.bi || {};
@@ -2922,6 +2948,8 @@
                     listRec.innerHTML = msg;
                     listDesp.innerHTML = msg;
                 }
+                aplicarLimiteVisualLista(listRec, 10);
+                aplicarLimiteVisualLista(listDesp, 10);
                 const wireFinList = (root) => {
                     root.querySelectorAll('[data-action="fin-edit"]').forEach((b) => {
                         b.onclick = () => {
