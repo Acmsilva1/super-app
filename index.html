@@ -2224,7 +2224,7 @@
                     if (appId === 'notas') url = '/api/despesas-fixas?mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     else if (appId === 'financas') url = '/api/financas?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     else if (appId === 'calendario') url = '/api/calendario?action=config';
-                    const res = await fetch(url);
+                    const res = await fetch(url, appId === 'calendario' ? { cache: 'no-store' } : undefined);
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
                     if (appId === 'notas') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderDespesasFixasContent(contentEl, data); }
@@ -2568,7 +2568,7 @@
                     const container = el.querySelector('#cal-grid-container');
                     container.innerHTML = '<div style="grid-column: span 7;">Carregando...</div>';
                     try {
-                        const res = await fetch('/api/calendario?action=view&month=' + month);
+                        const res = await fetch('/api/calendario?action=view&month=' + month, { cache: 'no-store' });
                         const monthData = await res.json();
                         if (!res.ok) throw new Error(monthData.error || 'Erro ao carregar o mês');
                         currentEvents = monthData.events || [];
@@ -3580,7 +3580,7 @@
                 const month = Number(String(todayIso || '').slice(5, 7));
                 if (!Number.isFinite(month) || month < 1) return [];
                 const months = Array.from({ length: Math.min(12, month) }, (_, idx) => idx + 1);
-                const responses = await Promise.all(months.map((m) => fetch('/api/calendario?action=view&month=' + m)));
+                const responses = await Promise.all(months.map((m) => fetch('/api/calendario?action=view&month=' + m, { cache: 'no-store' })));
                 const payloads = await Promise.all(responses.map(async (res) => {
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Falha ao carregar agenda');
@@ -3672,7 +3672,7 @@
             async buildCalendarNotificationItems(targetDate) {
                 const month = Number(targetDate.slice(5, 7));
                 if (!Number.isFinite(month) || month < 1 || month > 12) return [];
-                const res = await fetch('/api/calendario?action=view&month=' + month);
+                const res = await fetch('/api/calendario?action=view&month=' + month, { cache: 'no-store' });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Falha ao carregar agenda');
                 const events = (data.events || []).filter((e) => e.date === targetDate);
