@@ -2547,13 +2547,17 @@
                             const status = btn.getAttribute('data-cal-check-status');
                             const ev = dayEvents[idx];
                             if (!ev || !status) return;
-                            this.setCalendarEventCheckStatus(ev, status);
-                            await Promise.all([
-                                this.refreshCalendarCheckState(),
-                                loadSelectedMonth()
-                            ]);
-                            overlay.remove();
-                            openDayEventsModal(dateStr);
+                            try {
+                                await this.setCalendarEventCheckStatus(ev, status);
+                                await Promise.all([
+                                    this.refreshCalendarCheckState(),
+                                    loadSelectedMonth()
+                                ]);
+                                overlay.remove();
+                                openDayEventsModal(dateStr);
+                            } catch (err) {
+                                alert(err.message || 'Falha ao salvar checagem.');
+                            }
                         };
                     });
                     overlay.onclick = (evt) => { if (evt.target === overlay) overlay.remove(); };
@@ -3520,18 +3524,47 @@
                 ].join('|');
             }
             getCalendarEventCheckStatus(ev) {
+                const dbStatus = ev && typeof ev === 'object' ? ev.check_status : null;
+                if (dbStatus === 'confirmado' || dbStatus === 'nao_confirmado') return dbStatus;
                 const key = this.calendarCheckEventKey(ev);
                 if (!key) return null;
                 const item = this.calendarCheckStatuses ? this.calendarCheckStatuses[key] : null;
                 const status = item && typeof item === 'object' ? item.status : item;
                 return status === 'confirmado' || status === 'nao_confirmado' ? status : null;
             }
-            setCalendarEventCheckStatus(ev, status) {
+            async setCalendarEventCheckStatus(ev, status) {
                 if (status !== 'confirmado' && status !== 'nao_confirmado') return;
                 const key = this.calendarCheckEventKey(ev);
                 if (!key) return;
-                this.calendarCheckStatuses[key] = { status, updated_at: new Date().toISOString() };
+                const updatedAt = new Date().toISOString();
+                let persistedInDb = false;
+                if (ev && ev.id != null && String(ev.id).trim() !== '') {
+                    const res = await fetch('/api/calendario', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: ev.id,
+                            check_status: status,
+                            check_updated_at: updatedAt
+                        })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao salvar checagem no banco');
+                    if (data && typeof data === 'object') {
+                        ev.check_status = data.check_status || status;
+                        ev.check_updated_at = data.check_updated_at || updatedAt;
+                    } else {
+                        ev.check_status = status;
+                        ev.check_updated_at = updatedAt;
+                    }
+                    persistedInDb = true;
+                }
+                this.calendarCheckStatuses[key] = { status, updated_at: updatedAt };
                 this.saveCalendarCheckStatuses();
+                if (!persistedInDb) {
+                    ev.check_status = status;
+                    ev.check_updated_at = updatedAt;
+                }
             }
             isCalendarEventOverdueForCheck(ev) {
                 const eventDate = this.normalizeIsoDate(ev && ev.date);

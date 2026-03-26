@@ -66,9 +66,17 @@ export default async function handler(req, res) {
 
   if (req.method === 'PATCH') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
-    const { id, title, date, start_time, end_time, category } = body;
-    if (!id) return json(res, 400, { error: 'id obrigatório' });
-    const payload = markTelegramPending(payloadUpdateEvent(title, date, start_time, end_time, category));
+    const { id, title, date, start_time, end_time, category, check_status, check_updated_at } = body;
+    if (!id) return json(res, 400, { error: 'id obrigatorio' });
+    const eventPayload = payloadUpdateEvent(title, date, start_time, end_time, category);
+    let payload = Object.keys(eventPayload).length > 0 ? markTelegramPending(eventPayload) : {};
+    if (check_status !== undefined) {
+      if (check_status !== 'confirmado' && check_status !== 'nao_confirmado' && check_status !== null) {
+        return json(res, 400, { error: 'check_status invalido' });
+      }
+      payload.check_status = check_status;
+    }
+    if (check_updated_at !== undefined) payload.check_updated_at = check_updated_at;
     if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
     const { data, error } = await supabase.from('tb_calendario').update(payload).eq('id', id).select().single();
     if (error) return json(res, 500, { error: error.message });
