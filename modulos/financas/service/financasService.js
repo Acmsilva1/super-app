@@ -82,17 +82,23 @@ export function processarBi(rows, filtroMes = null, mesAtual = null) {
   });
 
   const catAgrupada = {};
+  const catContagem = {};
   const diaMap = {};
   for (const r of filtrados) {
     const v = Number(r?.valor ?? 0);
     const catOriginal = r?.categoria || 'Geral';
     const catFinal = categorizarBi(catOriginal);
     catAgrupada[catFinal] = (catAgrupada[catFinal] ?? 0) + v;
+    catContagem[catFinal] = (catContagem[catFinal] ?? 0) + 1;
     const dia = dataParaDia(r);
     if (dia) diaMap[dia] = (diaMap[dia] ?? 0) + v;
   }
 
   const entradasOrdenadas = Object.entries(catAgrupada).sort((a, b) => b[1] - a[1]);
+  const contagemItensCategoria = entradasOrdenadas.reduce((acc, [cat]) => {
+    acc[cat] = catContagem[cat] ?? 0;
+    return acc;
+  }, {});
   const top5Labels = entradasOrdenadas.slice(0, 5).map((x) => x[0]);
   const top5Valores = entradasOrdenadas.slice(0, 5).map((x) => x[1]);
   const outros = entradasOrdenadas.slice(5).reduce((acc, [, v]) => acc + v, 0);
@@ -107,6 +113,7 @@ export function processarBi(rows, filtroMes = null, mesAtual = null) {
   return {
     maiores_gastos: top5Labels.map((l, i) => [l, top5Valores[i]]),
     tabela_gastos: entradasOrdenadas,
+    contagem_itens_categoria: contagemItensCategoria,
     dias,
     tendencia_acumulada: tendenciaAcumulada,
   };

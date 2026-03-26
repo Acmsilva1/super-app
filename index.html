@@ -3003,10 +3003,24 @@
                                 const label = formatMoneyLabel(rawValue);
                                 const pos = element.tooltipPosition();
                                 if (chart.config.type === 'bar') {
+                                    const itemCounts = Array.isArray(dataset && dataset.itemCounts) ? dataset.itemCounts : [];
+                                    const countValue = Number(itemCounts[index] || 0);
+                                    const countLabelLong = `${countValue} ${countValue === 1 ? 'item' : 'itens'}`;
+                                    const countLabelShort = String(countValue);
+                                    const centerX = (Number(element.x || 0) + Number(element.base || 0)) / 2;
+                                    const barWidth = Math.abs(Number(element.x || 0) - Number(element.base || 0));
+                                    ctx.textAlign = 'center';
+                                    ctx.fillStyle = '#dbeafe';
+                                    const textToDraw = ctx.measureText(countLabelLong).width <= Math.max(barWidth - 8, 0)
+                                        ? countLabelLong
+                                        : countLabelShort;
+                                    ctx.fillText(textToDraw, centerX, pos.y);
                                     ctx.textAlign = 'left';
+                                    ctx.fillStyle = isDarkTheme ? '#ffffff' : '#111827';
                                     ctx.fillText(label, pos.x + 8, pos.y);
                                 } else {
                                     ctx.textAlign = 'center';
+                                    ctx.fillStyle = isDarkTheme ? '#ffffff' : '#111827';
                                     ctx.fillText(label, pos.x, pos.y);
                                 }
                             });
@@ -3029,11 +3043,13 @@
                     if (ctxBar && tabelaGastos.length > 0) {
                         const labelsBar = tabelaGastos.map(x => x[0]);
                         const valuesBar = tabelaGastos.map(x => x[1]);
+                        const contagemItensCategoria = bi.contagem_itens_categoria || {};
+                        const itemCountsBar = labelsBar.map((label) => Number(contagemItensCategoria[label] || 0));
                         el._chartBar = new Chart(ctxBar, {
                             type: 'bar',
                             data: {
                                 labels: labelsBar,
-                                datasets: [{ label: 'Gasto (R$)', data: valuesBar, backgroundColor: '#2563eb', borderRadius: 4 }]
+                                datasets: [{ label: 'Gasto (R$)', data: valuesBar, itemCounts: itemCountsBar, backgroundColor: '#2563eb', borderRadius: 4 }]
                             },
                             options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
                             plugins: [inlineValueLabelsPlugin]
