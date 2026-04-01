@@ -3367,12 +3367,8 @@
                     el.querySelectorAll('[data-tj-slot]').forEach((ta) => {
                         const slot = String(ta.getAttribute('data-tj-slot') || '').slice(0, 5);
                         if (!slot) return;
-                        const statusEl = el.querySelector(`[data-tj-status="${slot}"]`);
-                        const notifEl = el.querySelector(`[data-tj-notificado="${slot}"]`);
                         draft[slot] = {
                             descricao: (ta.value || '').trim(),
-                            status: (statusEl && statusEl.value === 'concluida') ? 'concluida' : 'pendente',
-                            notificado: Boolean(notifEl && notifEl.checked),
                         };
                     });
                     return draft;
@@ -3392,23 +3388,12 @@
                         const row = rowBySlot.get(slot);
                         const rowDraft = draft ? draft[slot] : null;
                         const descricao = rowDraft ? (rowDraft.descricao || '') : (row?.descricao || '');
-                        const status = rowDraft ? rowDraft.status : (row?.status === 'concluida' ? 'concluida' : 'pendente');
-                        const notificado = rowDraft ? Boolean(rowDraft.notificado) : Boolean(row?.notificado);
                         const rowId = row?.id ? String(row.id) : '';
                         return `
                             <div class="df-col" style="padding:0.65rem;background:var(--bg-white);">
                                 <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.45rem;">
                                     <strong>${slot}</strong>
-                                    <div style="display:flex;gap:0.4rem;align-items:center;">
-                                        <select data-tj-status="${slot}" style="font-size:0.75rem;padding:0.25rem 0.4rem;">
-                                            <option value="pendente" ${status === 'pendente' ? 'selected' : ''}>Pendente</option>
-                                            <option value="concluida" ${status === 'concluida' ? 'selected' : ''}>Concluida</option>
-                                        </select>
-                                        <label style="font-size:0.72rem;display:flex;align-items:center;gap:0.25rem;">
-                                            <input type="checkbox" data-tj-notificado="${slot}" ${notificado ? 'checked' : ''} />
-                                            Notif.
-                                        </label>
-                                    </div>
+                                    <span style="font-size:0.72rem;color:#6b7280;">Notificação automática</span>
                                 </div>
                                 <textarea data-tj-slot="${slot}" placeholder="Digite a tarefa deste horario...">${escapeHtml(descricao)}</textarea>
                                 <div style="display:flex;gap:0.4rem;justify-content:flex-end;margin-top:0.45rem;flex-wrap:wrap;">
@@ -3454,7 +3439,7 @@
                         const atual = extraSlotsByDate[dateStr] || [];
                         extraSlotsByDate[dateStr] = mergeSortSlots([...atual, slot]);
                         const draftAtual = collectDayDraft();
-                        if (!draftAtual[slot]) draftAtual[slot] = { descricao: '', status: 'pendente', notificado: false };
+                        if (!draftAtual[slot]) draftAtual[slot] = { descricao: '' };
                         renderDayEditor(dateStr, draftAtual);
                     };
                     el.querySelector('[data-action="tj-save-day"]').onclick = () => this.submitTarefasJobsonSaveDay(el, dateStr);
@@ -3462,8 +3447,6 @@
                         if (!confirm('Limpar todos os campos deste dia?')) return;
                         const root = el.querySelector('#tj-day-editor');
                         root.querySelectorAll('[data-tj-slot]').forEach((ta) => { ta.value = ''; });
-                        root.querySelectorAll('[data-tj-status]').forEach((s) => { s.value = 'pendente'; });
-                        root.querySelectorAll('[data-tj-notificado]').forEach((c) => { c.checked = false; });
                     };
                     el.querySelectorAll('[data-action="tj-save-item"]').forEach((btn) => {
                         btn.onclick = () => this.submitTarefasJobsonSaveItem(
@@ -3506,9 +3489,7 @@
                 const slots = Array.from(el.querySelectorAll('[data-tj-slot]')).map((ta) => {
                     const slot = String(ta.getAttribute('data-tj-slot') || '').slice(0, 5);
                     const descricao = (ta.value || '').trim();
-                    const status = el.querySelector(`[data-tj-status="${slot}"]`)?.value || 'pendente';
-                    const notificado = Boolean(el.querySelector(`[data-tj-notificado="${slot}"]`)?.checked);
-                    return { slot_hora: slot, descricao, status, notificado };
+                    return { slot_hora: slot, descricao, status: 'pendente', notificado: true };
                 });
                 try {
                     const res = await fetch('/api/tarefas-jobson', {
@@ -3532,13 +3513,11 @@
                 const hora = String(slot || '').slice(0, 5);
                 if (!hora) { alert('Horario invalido.'); return; }
                 const descricao = (el.querySelector(`[data-tj-slot="${hora}"]`)?.value || '').trim();
-                const status = el.querySelector(`[data-tj-status="${hora}"]`)?.value || 'pendente';
-                const notificado = Boolean(el.querySelector(`[data-tj-notificado="${hora}"]`)?.checked);
                 if (!descricao) { alert('Preencha a descricao para salvar.'); return; }
                 const isEdit = Boolean(String(id || '').trim());
                 const payload = isEdit
-                    ? { id: String(id).trim(), descricao, data: dataDia, slot_hora: hora, status, notificado }
-                    : { descricao, data: dataDia, slot_hora: hora, status, notificado };
+                    ? { id: String(id).trim(), descricao, data: dataDia, slot_hora: hora, status: 'pendente', notificado: true }
+                    : { descricao, data: dataDia, slot_hora: hora, status: 'pendente', notificado: true };
                 try {
                     const res = await fetch('/api/tarefas-jobson', {
                         method: isEdit ? 'PATCH' : 'POST',
@@ -3559,10 +3538,6 @@
                     const hora = String(slot || '').slice(0, 5);
                     const ta = el.querySelector(`[data-tj-slot="${hora}"]`);
                     if (ta) ta.value = '';
-                    const statusEl = el.querySelector(`[data-tj-status="${hora}"]`);
-                    if (statusEl) statusEl.value = 'pendente';
-                    const notifEl = el.querySelector(`[data-tj-notificado="${hora}"]`);
-                    if (notifEl) notifEl.checked = false;
                     return;
                 }
                 if (!confirm('Excluir esta tarefa?')) return;

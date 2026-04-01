@@ -54,7 +54,13 @@ export default async function handler(req, res) {
     if (!descricao || !data || !slot_hora) {
       return json(res, 400, { error: 'descricao, data e slot_hora sao obrigatorios' });
     }
-    const payload = payloadInsert(descricao, data, slot_hora, status, notificado);
+    const payload = payloadInsert(
+      descricao,
+      data,
+      slot_hora,
+      status === 'concluida' ? 'concluida' : 'pendente',
+      notificado === undefined ? true : Boolean(notificado)
+    );
     const { data: inserted, error } = await supabase.from(TABLE_NAME).insert(payload).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 201, inserted);
@@ -79,8 +85,8 @@ export default async function handler(req, res) {
         const hora = String(slot?.slot_hora || '').slice(0, 5);
         if (!hora) continue;
         const descricao = String(slot?.descricao || '').trim();
-        const status = slot?.status === 'concluida' ? 'concluida' : 'pendente';
-        const notificado = Boolean(slot?.notificado);
+        const status = 'pendente';
+        const notificado = slot?.notificado === undefined ? true : Boolean(slot?.notificado);
         const atual = byHora.get(hora);
         if (!descricao) {
           if (atual?.id) {
@@ -107,7 +113,13 @@ export default async function handler(req, res) {
 
     const { id, descricao, data, slot_hora, status, notificado } = body;
     if (!id) return json(res, 400, { error: 'id obrigatorio' });
-    const payload = payloadUpdate(descricao, data, slot_hora, status, notificado);
+    const payload = payloadUpdate(
+      descricao,
+      data,
+      slot_hora,
+      status === 'concluida' ? 'concluida' : 'pendente',
+      notificado === undefined ? true : Boolean(notificado)
+    );
     if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
     const { data: updated, error } = await supabase.from(TABLE_NAME).update(payload).eq('id', id).select().single();
     if (error) return json(res, 500, { error: error.message });
