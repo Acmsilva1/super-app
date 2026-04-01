@@ -1,10 +1,28 @@
 /**
  * Roadmap do Super App (usada pelo index.html no Vercel).
+ * Reflete o estado atual do ecossistema publicado.
  */
 const ROADMAP = [
-  { step: '1', title: 'Aplicações no Vercel', description: 'Notas, Finanças, Lista de Compras e Saúde integrados via API.' },
-  { step: '2', title: 'Dados no Supabase', description: 'Persistência em tb_despesas_fixas, tb_financas, tb_lista_compras, tb_saude_familiar.' },
-  { step: '3', title: 'Input manual Finanças', description: 'Formulário com descrição, valor, tipo (receita/despesa) e categorias.' },
+  {
+    step: '1',
+    title: 'Shell unico publicado na Vercel',
+    description: 'Frontend estatico/PWA em index.html com catalogo central de apps e consumo de APIs serverless.',
+  },
+  {
+    step: '2',
+    title: 'Dominios integrados ao Supabase',
+    description: 'Despesas Fixas, Financas, Lista de Compras, Saude, Agenda, Tarefas Jobson e Fluxograma persistem dados no Supabase.',
+  },
+  {
+    step: '3',
+    title: 'Automacao e notificacoes',
+    description: 'GitHub Actions acorda a Vercel para notificacoes horarias no Telegram e para analise operacional agendada.',
+  },
+  {
+    step: '4',
+    title: 'Observabilidade tecnica',
+    description: 'System analysis mede endpoints e conexao com banco, grava snapshots e alimenta dashboard operacional.',
+  },
 ];
 
 function json(res, status, data) {

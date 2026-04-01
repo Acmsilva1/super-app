@@ -1,20 +1,17 @@
-# Nome do processo que aparece na aba "Actions" do GitHub
-name: Despertador do Super App
+name: Notificacoes Gerais - Super App
 
 on:
   schedule:
-    # Este Cron roda no minuto 0 de cada hora (ex: 01:00, 02:00...)
-    # Lembre-se: O GitHub usa UTC. 09:00 UTC = 06:00 em Vila Velha.
+    # Executa no minuto 0 de cada hora.
+    # Responsavel apenas pelos alertas gerais (calendario e saude).
     - cron: '0 * * * *'
-  
-  # Este comando permite que você teste o botão "Run Workflow" manualmente
   workflow_dispatch:
 
 jobs:
-  acordar_vercel:
+  enviar_notificacoes_gerais:
     runs-on: ubuntu-latest
     steps:
-      - name: Enviando o sinal para o Porteiro na Vercel
+      - name: Chamando endpoint geral de notificacoes
         run: |
           curl --fail --show-error --silent -X POST "https://super-app-zeta-virid.vercel.app/api/notificar" \
           -H "Content-Type: application/json"

@@ -82,50 +82,6 @@ async function sendTelegramMessage(text) {
   }
 }
 
-async function processRows(config, startDate, endDate, now, windowEnd) {
-  let query = supabase
-    .from(config.table)
-    .select(config.select)
-    .gte(config.dateColumn, startDate)
-    .lt(config.dateColumn, endDate)
-    .order(config.dateColumn, { ascending: true });
-
-  if (config.pendingColumn) {
-    query = query.eq(config.pendingColumn, config.pendingValue);
-  } else {
-    query = query.eq('telegram_sent', false);
-  }
-
-  for (const filter of config.eqFilters || []) {
-    query = query.eq(filter.column, filter.value);
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw new Error(`Erro ao consultar ${config.table}: ${error.message}`);
-
-  let sent = 0;
-
-  for (const row of (data || []).filter((item) => isWithinNext24Hours(item[config.dateColumn], item[config.timeColumn], now, windowEnd))) {
-    const text = config.message(row);
-    await sendTelegramMessage(text);
-
-    const sentUpdate = config.sentUpdate
-      ? config.sentUpdate(row)
-      : { telegram_sent: true, telegram_sent_at: new Date().toISOString() };
-
-    const { error: updateError } = await supabase
-      .from(config.table)
-      .update(sentUpdate)
-      .eq('id', row.id);
-
-    if (updateError) throw new Error(`Erro ao atualizar ${config.table}: ${updateError.message}`);
-    sent++;
-  }
-
-  return sent;
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -142,43 +98,41 @@ export default async function handler(req, res) {
     const today = brazilDate(now);
     const endDate = addDays(addDays(today, 1), 1);
 
-    const sources = [
-      {
-        table: 'tb_calendario',
-        select: 'id,title,date,start_time,category',
-        dateColumn: 'date',
-        timeColumn: 'start_time',
-        message: (row) =>
-          [
-            '*CALENDARIO*',
-            `*Lembrete:* ${escapeTelegramMarkdown(row.title || 'Sem titulo')}`,
-            `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.date, row.start_time))}`,
-            row.category ? `*Categoria:* ${escapeTelegramMarkdown(row.category)}` : null,
-          ]
-            .filter(Boolean)
-            .join('\n'),
-      },
-      {
-        table: 'tb_saude_familiar',
-        select: 'id,membro_familia,tipo_registro,detalhes,data_evento,hora_evento',
-        dateColumn: 'data_evento',
-        timeColumn: 'hora_evento',
-        message: (row) =>
-          [
-            '*SAUDE*',
-            `*Tipo:* ${escapeTelegramMarkdown(row.tipo_registro || 'Registro')}`,
-            `*Pessoa:* ${escapeTelegramMarkdown(row.membro_familia || 'Nao informado')}`,
-            `*Detalhes:* ${escapeTelegramMarkdown(row.detalhes || 'Sem detalhes')}`,
-            `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.data_evento, row.hora_evento))}`,
-          ].join('\n'),
-      },
-    ];
+    const { data, error } = await supabase
+      .from('tb_tarefas_jobson')
+      .select('id,descricao,data,slot_hora,status,notificado')
+      .gte('data', today)
+      .lt('data', endDate)
+      .eq('status', 'pendente')
+      .eq('notificado', true)
+      .order('data', { ascending: true })
+      .order('slot_hora', { ascending: true });
 
-    let totalEnviados = 0;
-    for (const source of sources) totalEnviados += await processRows(source, today, endDate, now, windowEnd);
+    if (error) throw new Error(`Erro ao consultar tb_tarefas_jobson: ${error.message}`);
+
+    let enviados = 0;
+
+    for (const row of (data || []).filter((item) => isWithinNext24Hours(item.data, item.slot_hora, now, windowEnd))) {
+      const text = [
+        '*TAREFAS JOBSON*',
+        `*Tarefa:* ${escapeTelegramMarkdown(row.descricao || 'Sem descricao')}`,
+        `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.data, row.slot_hora))}`,
+      ].join('\n');
+
+      await sendTelegramMessage(text);
+
+      const { error: updateError } = await supabase
+        .from('tb_tarefas_jobson')
+        .update({ notificado: false })
+        .eq('id', row.id);
+
+      if (updateError) throw new Error(`Erro ao atualizar tb_tarefas_jobson: ${updateError.message}`);
+      enviados++;
+    }
 
     return json(res, 200, {
       status: 'ok',
+      origem: 'tarefas_jobson',
       periodo: {
         referencia: today,
         janela_inicio: now.toISOString(),
@@ -186,8 +140,7 @@ export default async function handler(req, res) {
         datas_consultadas: { inicio: today, fim_exclusivo: endDate },
         timezone: TZ,
       },
-      enviados: totalEnviados,
-      origem: 'calendario_saude',
+      enviados,
     });
   } catch (err) {
     return json(res, 500, { error: err.message });

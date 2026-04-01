@@ -1,0 +1,18 @@
+name: Notificacoes - Tarefas Jobson
+
+on:
+  schedule:
+    # Horarios em UTC para America/Sao_Paulo (UTC-3 em 2026-04-01):
+    # 11:30 UTC = 08:30 BRT
+    # 14:30 UTC = 11:30 BRT
+    - cron: '30 11,14 * * *'
+  workflow_dispatch:
+
+jobs:
+  enviar_notificacoes_tarefas_jobson:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamando endpoint dedicado de tarefas jobson
+        run: |
+          curl --fail --show-error --silent -X POST "https://super-app-zeta-virid.vercel.app/api/notificar-tarefas-jobson" \
+          -H "Content-Type: application/json"

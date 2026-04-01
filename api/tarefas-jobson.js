@@ -28,6 +28,34 @@ function rangeMes(ano, mes) {
   };
 }
 
+function weekdayFromIsoDate(dateString) {
+  const [ano, mes, dia] = String(dateString || '').split('-').map(Number);
+  if (!ano || !mes || !dia) return null;
+  return new Date(ano, mes - 1, dia).getDay();
+}
+
+function normalizeWeekdays(input) {
+  return [...new Set((Array.isArray(input) ? input : [])
+    .map((value) => Number(value))
+    .filter((value) => Number.isInteger(value) && value >= 0 && value <= 6))]
+    .sort((a, b) => a - b);
+}
+
+function buildRepeatedDates(baseDate, weekdays) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(baseDate || ''))) return [];
+  const normalizedWeekdays = normalizeWeekdays(weekdays);
+  if (!normalizedWeekdays.length) return [];
+  const [ano, mes, dia] = String(baseDate).split('-').map(Number);
+  const lastDay = new Date(ano, mes, 0).getDate();
+  const out = [];
+  for (let currentDay = dia; currentDay <= lastDay; currentDay += 1) {
+    const iso = `${ano}-${String(mes).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+    const weekday = weekdayFromIsoDate(iso);
+    if (normalizedWeekdays.includes(weekday)) out.push(iso);
+  }
+  return out;
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const query = req.query || {};
@@ -68,6 +96,33 @@ export default async function handler(req, res) {
 
   if (req.method === 'PATCH') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+    if (body.action === 'repeat_weekdays') {
+      const descricao = String(body.descricao || '').trim();
+      const dataBase = String(body.data || '').trim();
+      const slotHora = String(body.slot_hora || '').slice(0, 5);
+      const weekdays = normalizeWeekdays(body.weekdays);
+      const status = body.status === 'concluida' ? 'concluida' : 'pendente';
+      const notificado = body.notificado === undefined ? true : Boolean(body.notificado);
+      if (!descricao || !/^\d{4}-\d{2}-\d{2}$/.test(dataBase) || !slotHora || !weekdays.length) {
+        return json(res, 400, { error: 'descricao, data, slot_hora e weekdays sao obrigatorios' });
+      }
+      const datas = buildRepeatedDates(dataBase, weekdays);
+      if (!datas.length) return json(res, 400, { error: 'nenhuma data gerada para repeticao' });
+      const payloads = datas.map((dataItem) =>
+        payloadInsert(descricao, dataItem, slotHora, status, notificado)
+      );
+      const { data: savedRows, error: saveError } = await supabase
+        .from(TABLE_NAME)
+        .upsert(payloads, { onConflict: 'data,slot_hora' })
+        .select();
+      if (saveError) return json(res, 500, { error: saveError.message });
+      return json(res, 200, {
+        ok: true,
+        repeated: payloads.length,
+        rows: ordenarPorDataHora(savedRows || []),
+      });
+    }
+
     if (body.action === 'upsert_day_slots') {
       const dia = String(body.data || '').trim();
       const slots = Array.isArray(body.slots) ? body.slots : [];

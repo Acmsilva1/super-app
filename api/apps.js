@@ -2,7 +2,7 @@
  * Lista de aplicacoes do Super App (usada pelo index.html no Vercel).
  * Cada app costuma ter uma API, exceto fluxograma (so front + localStorage).
  */
-const APPS = [
+export const APPS = [
   {
     id: 'notas',
     icon: 'fa-book',
