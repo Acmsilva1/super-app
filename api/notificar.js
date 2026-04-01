@@ -83,13 +83,24 @@ async function sendTelegramMessage(text) {
 }
 
 async function processRows(config, startDate, endDate, now, windowEnd) {
-  const { data, error } = await supabase
+  let query = supabase
     .from(config.table)
     .select(config.select)
-    .eq('telegram_sent', false)
     .gte(config.dateColumn, startDate)
     .lt(config.dateColumn, endDate)
     .order(config.dateColumn, { ascending: true });
+
+  if (config.pendingColumn) {
+    query = query.eq(config.pendingColumn, config.pendingValue);
+  } else {
+    query = query.eq('telegram_sent', false);
+  }
+
+  for (const filter of config.eqFilters || []) {
+    query = query.eq(filter.column, filter.value);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw new Error(`Erro ao consultar ${config.table}: ${error.message}`);
 
@@ -99,9 +110,13 @@ async function processRows(config, startDate, endDate, now, windowEnd) {
     const text = config.message(row);
     await sendTelegramMessage(text);
 
+    const sentUpdate = config.sentUpdate
+      ? config.sentUpdate(row)
+      : { telegram_sent: true, telegram_sent_at: new Date().toISOString() };
+
     const { error: updateError } = await supabase
       .from(config.table)
-      .update({ telegram_sent: true, telegram_sent_at: new Date().toISOString() })
+      .update(sentUpdate)
       .eq('id', row.id);
 
     if (updateError) throw new Error(`Erro ao atualizar ${config.table}: ${updateError.message}`);
@@ -155,6 +170,22 @@ export default async function handler(req, res) {
             `*Pessoa:* ${escapeTelegramMarkdown(row.membro_familia || 'Não informado')}`,
             `*Detalhes:* ${escapeTelegramMarkdown(row.detalhes || 'Sem detalhes')}`,
             `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.data_evento, row.hora_evento))}`,
+          ].join('\n'),
+      },
+      {
+        table: 'tb_tarefas_jobson',
+        select: 'id,descricao,data,slot_hora,status,notificado',
+        dateColumn: 'data',
+        timeColumn: 'slot_hora',
+        pendingColumn: 'notificado',
+        pendingValue: true,
+        eqFilters: [{ column: 'status', value: 'pendente' }],
+        sentUpdate: () => ({ notificado: false }),
+        message: (row) =>
+          [
+            '*🚀 TAREFAS JOBSON*',
+            `*Tarefa:* ${escapeTelegramMarkdown(row.descricao || 'Sem descrição')}`,
+            `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.data, row.slot_hora))}`,
           ].join('\n'),
       },
     ];

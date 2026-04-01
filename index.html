@@ -3394,6 +3394,7 @@
                         const descricao = rowDraft ? (rowDraft.descricao || '') : (row?.descricao || '');
                         const status = rowDraft ? rowDraft.status : (row?.status === 'concluida' ? 'concluida' : 'pendente');
                         const notificado = rowDraft ? Boolean(rowDraft.notificado) : Boolean(row?.notificado);
+                        const rowId = row?.id ? String(row.id) : '';
                         return `
                             <div class="df-col" style="padding:0.65rem;background:var(--bg-white);">
                                 <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.45rem;">
@@ -3410,6 +3411,10 @@
                                     </div>
                                 </div>
                                 <textarea data-tj-slot="${slot}" placeholder="Digite a tarefa deste horario...">${escapeHtml(descricao)}</textarea>
+                                <div style="display:flex;gap:0.4rem;justify-content:flex-end;margin-top:0.45rem;flex-wrap:wrap;">
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="tj-save-item" data-slot="${slot}" data-id="${escapeHtml(rowId)}">${rowId ? 'Salvar edicao' : 'Salvar'}</button>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="tj-delete-item" data-slot="${slot}" data-id="${escapeHtml(rowId)}" style="background:#fef2f2;color:#dc2626;">Excluir</button>
+                                </div>
                             </div>
                         `;
                     }).join('');
@@ -3460,6 +3465,22 @@
                         root.querySelectorAll('[data-tj-status]').forEach((s) => { s.value = 'pendente'; });
                         root.querySelectorAll('[data-tj-notificado]').forEach((c) => { c.checked = false; });
                     };
+                    el.querySelectorAll('[data-action="tj-save-item"]').forEach((btn) => {
+                        btn.onclick = () => this.submitTarefasJobsonSaveItem(
+                            el,
+                            dateStr,
+                            String(btn.getAttribute('data-slot') || ''),
+                            String(btn.getAttribute('data-id') || '')
+                        );
+                    });
+                    el.querySelectorAll('[data-action="tj-delete-item"]').forEach((btn) => {
+                        btn.onclick = () => this.submitTarefasJobsonDeleteItem(
+                            el,
+                            dateStr,
+                            String(btn.getAttribute('data-slot') || ''),
+                            String(btn.getAttribute('data-id') || '')
+                        );
+                    });
                 };
 
                 el.querySelectorAll('[data-tj-day]').forEach((cell) => {
@@ -3505,6 +3526,58 @@
                     await this.refreshAppContent('tarefas_jobson');
                 } catch (e) {
                     alert(e.message || 'Falha ao salvar bloco do dia.');
+                }
+            }
+            async submitTarefasJobsonSaveItem(el, dataDia, slot, id) {
+                const hora = String(slot || '').slice(0, 5);
+                if (!hora) { alert('Horario invalido.'); return; }
+                const descricao = (el.querySelector(`[data-tj-slot="${hora}"]`)?.value || '').trim();
+                const status = el.querySelector(`[data-tj-status="${hora}"]`)?.value || 'pendente';
+                const notificado = Boolean(el.querySelector(`[data-tj-notificado="${hora}"]`)?.checked);
+                if (!descricao) { alert('Preencha a descricao para salvar.'); return; }
+                const isEdit = Boolean(String(id || '').trim());
+                const payload = isEdit
+                    ? { id: String(id).trim(), descricao, data: dataDia, slot_hora: hora, status, notificado }
+                    : { descricao, data: dataDia, slot_hora: hora, status, notificado };
+                try {
+                    const res = await fetch('/api/tarefas-jobson', {
+                        method: isEdit ? 'PATCH' : 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    const response = await res.json();
+                    if (!res.ok) throw new Error(response.error || 'Erro ao salvar tarefa');
+                    el.setAttribute('data-tj-selected-date', dataDia);
+                    await this.refreshAppContent('tarefas_jobson');
+                } catch (e) {
+                    alert(e.message || 'Falha ao salvar tarefa.');
+                }
+            }
+            async submitTarefasJobsonDeleteItem(el, dataDia, slot, id) {
+                const rowId = String(id || '').trim();
+                if (!rowId) {
+                    const hora = String(slot || '').slice(0, 5);
+                    const ta = el.querySelector(`[data-tj-slot="${hora}"]`);
+                    if (ta) ta.value = '';
+                    const statusEl = el.querySelector(`[data-tj-status="${hora}"]`);
+                    if (statusEl) statusEl.value = 'pendente';
+                    const notifEl = el.querySelector(`[data-tj-notificado="${hora}"]`);
+                    if (notifEl) notifEl.checked = false;
+                    return;
+                }
+                if (!confirm('Excluir esta tarefa?')) return;
+                try {
+                    const res = await fetch('/api/tarefas-jobson', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: rowId }),
+                    });
+                    const response = await res.json();
+                    if (!res.ok) throw new Error(response.error || 'Erro ao excluir tarefa');
+                    el.setAttribute('data-tj-selected-date', dataDia);
+                    await this.refreshAppContent('tarefas_jobson');
+                } catch (e) {
+                    alert(e.message || 'Falha ao excluir tarefa.');
                 }
             }
             saudeFmtDataBR(d) {
