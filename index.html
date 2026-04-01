@@ -3446,6 +3446,17 @@
                 const days = this.tjBuildMonthDays(ano, mes);
                 const extraSlotsByDate = {};
                 const mergeSortSlots = (arr) => [...new Set((arr || []).filter(Boolean).map((x) => String(x).slice(0, 5)))].sort((a, b) => a.localeCompare(b));
+                const goToDayEditor = (dateStr) => {
+                    renderDayEditor(dateStr);
+                    const editor = el.querySelector('#tj-day-editor');
+                    if (editor) {
+                        editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        setTimeout(() => {
+                            const firstField = editor.querySelector('[data-tj-slot]');
+                            if (firstField) firstField.focus();
+                        }, 120);
+                    }
+                };
                 const tjFormatDateLabel = (dateStr) => {
                     const dt = new Date(dateStr + 'T00:00:00');
                     if (Number.isNaN(dt.getTime())) return dateStr;
@@ -3478,7 +3489,7 @@
                     overlay.querySelector('[data-action="tj-modal-close"]').onclick = () => overlay.remove();
                     overlay.querySelector('[data-action="tj-modal-open-editor"]').onclick = () => {
                         overlay.remove();
-                        renderDayEditor(dateStr);
+                        goToDayEditor(dateStr);
                     };
                     overlay.onclick = (evt) => { if (evt.target === overlay) overlay.remove(); };
                     document.body.appendChild(overlay);
@@ -3508,20 +3519,6 @@
                                 const dayRows = byDate[d.fullDate] || [];
                                 const pendentes = dayRows.length;
                                 const isSelected = d.fullDate === selectedDate;
-                                const previewRows = dayRows.slice(0, 2);
-                                const hoverRows = dayRows.slice(0, 5);
-                                const hoverMore = dayRows.length > 5 ? `<li class="tj-hover-item">+${dayRows.length - 5} tarefa(s)...</li>` : '';
-                                const hoverPreview = dayRows.length
-                                    ? `
-                                        <div class="tj-hover-preview">
-                                            <div class="tj-hover-title">Tarefas do dia</div>
-                                            <ul class="tj-hover-list">
-                                                ${hoverRows.map((r) => `<li class="tj-hover-item">${escapeHtml(String(r.slot_hora || '').slice(0, 5) || '--:--')} - ${escapeHtml(r.descricao || 'Sem descrição')}</li>`).join('')}
-                                                ${hoverMore}
-                                            </ul>
-                                        </div>
-                                    `
-                                    : '';
                                 return `
                                     <div class="cal-day-cell tj-day-cell ${dayRows.length ? 'has-tarefas' : ''} ${d.isWeekend ? 'is-weekend' : ''}" data-tj-day="${d.fullDate}" style="${isSelected ? 'outline:2px solid #2563eb;' : ''}">
                                         <div class="cal-day-top"><strong class="cal-day-number">${d.day}</strong></div>
@@ -3529,11 +3526,7 @@
                                             <span class="cal-day-summary-icon"><i class="fas fa-list-check"></i></span>
                                             <span>${dayRows.length}</span>
                                         </span>
-                                        <div class="tj-day-cell-meta">Tarefas: ${pendentes}</div>
-                                        <div class="tj-day-cell-preview">
-                                            ${previewRows.map((r) => `<div class="tj-day-cell-preview-line">${escapeHtml(String(r.slot_hora || '').slice(0, 5) || '--:--')} ${escapeHtml(r.descricao || '')}</div>`).join('')}
-                                        </div>
-                                        ${hoverPreview}
+                                        <div class="tj-day-cell-meta">${pendentes ? `Tarefas: ${pendentes}` : 'Sem tarefas'}</div>
                                     </div>
                                 `;
                             }).join('')}
