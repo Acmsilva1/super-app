@@ -8,6 +8,7 @@ const STORAGE_TABLES = [
   { app: "Saúde Familiar", table: "tb_saude_familiar" },
   { app: "Agenda", table: "tb_calendario" },
   { app: "Fluxograma", table: "tb_fluxograma_projetos" },
+  { app: "Tarefas Jobson", table: "tb_tarefas_jobson" },
 ];
 
 function json(res, status, data) {
@@ -216,3 +217,4 @@ export default async function handler(req, res) {
     return json(res, 500, { error: error.message || "Falha ao carregar dashboard de analise." });
   }
 }
+

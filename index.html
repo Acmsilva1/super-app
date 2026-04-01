@@ -2214,21 +2214,23 @@
                     await this.renderFluxogramaContent(contentEl);
                     return;
                 }
-                const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude', calendario: 'calendario' };
+                const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude', calendario: 'calendario', tarefas_jobson: 'tarefas-jobson' };
                 const path = apiMap[appId];
                 if (!path) return;
                 let mesAno = contentEl.getAttribute('data-mes-ano');
-                if ((appId === 'notas' || appId === 'financas') && !mesAno) mesAno = this.getMesAnoAtual();
+                if ((appId === 'notas' || appId === 'financas' || appId === 'tarefas_jobson') && !mesAno) mesAno = this.getMesAnoAtual();
                 try {
                     let url = path === 'saude' ? '/api/saude' : '/api/' + path;
                     if (appId === 'notas') url = '/api/despesas-fixas?mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     else if (appId === 'financas') url = '/api/financas?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
+                    else if (appId === 'tarefas_jobson') url = '/api/tarefas-jobson?mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     else if (appId === 'calendario') url = '/api/calendario?action=config';
                     const res = await fetch(url, appId === 'calendario' ? { cache: 'no-store' } : undefined);
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
                     if (appId === 'notas') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderDespesasFixasContent(contentEl, data); }
                     else if (appId === 'financas') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinancasContent(contentEl, data); }
+                    else if (appId === 'tarefas_jobson') { contentEl.setAttribute('data-mes-ano', mesAno || this.getMesAnoAtual()); this.renderTarefasJobsonContent(contentEl, data); }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
                     else if (appId === 'saude') this.renderSaúdeContent(contentEl, data);
                     else if (appId === 'calendario') this.renderCalendarioContent(contentEl, data);
@@ -3274,6 +3276,185 @@
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
                     await this.refreshAppContent('lista_compras');
                 } catch (e) { alert(e.message); }
+            }
+            tjSlotTemplates() {
+                return ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'];
+            }
+            tjBuildMonthDays(ano, mes) {
+                const firstDow = new Date(ano, mes - 1, 1).getDay();
+                const daysInMonth = new Date(ano, mes, 0).getDate();
+                const out = [];
+                for (let i = 0; i < firstDow; i += 1) out.push({ empty: true });
+                for (let d = 1; d <= daysInMonth; d += 1) {
+                    const fullDate = `${ano}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const dow = new Date(ano, mes - 1, d).getDay();
+                    out.push({ day: d, fullDate, isWeekend: dow === 0 || dow === 6 });
+                }
+                return out;
+            }
+            renderTarefasJobsonContent(el, data) {
+                const rows = data.rows || data.tarefas || [];
+                const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+                const now = new Date();
+                const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
+                const [ano, mes] = mesAno.split('-').map(Number);
+                const dateHoje = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                const selectedDate = el.getAttribute('data-tj-selected-date') || (mesAno === this.getMesAnoAtual() ? dateHoje : `${ano}-${String(mes).padStart(2, '0')}-01`);
+                const anos = Array.from({ length: 9 }, (_, i) => new Date().getFullYear() - 2 + i);
+                const byDate = {};
+                rows.forEach((r) => {
+                    const d = String(r.data || '').slice(0, 10);
+                    if (!d) return;
+                    if (!byDate[d]) byDate[d] = [];
+                    byDate[d].push(r);
+                });
+                Object.keys(byDate).forEach((d) => {
+                    byDate[d].sort((a, b) => String(a.slot_hora || '').localeCompare(String(b.slot_hora || '')));
+                });
+                const days = this.tjBuildMonthDays(ano, mes);
+
+                el.innerHTML = `
+                    <div class="app-form" style="margin-bottom:1rem;">
+                        <div class="app-form-row">
+                            <div class="field">
+                                <label>Mes</label>
+                                <select id="tj-mes">${meses.map((m, i) => `<option value="${i + 1}" ${i + 1 === mes ? 'selected' : ''}>${m}</option>`).join('')}</select>
+                            </div>
+                            <div class="field">
+                                <label>Ano</label>
+                                <select id="tj-ano">${anos.map((a) => `<option value="${a}" ${a === ano ? 'selected' : ''}>${a}</option>`).join('')}</select>
+                            </div>
+                        </div>
+                        <div style="font-size:0.8rem;color:#6b7280;">Clique em um dia para abrir o bloco de tarefas com slots editaveis.</div>
+                    </div>
+                    <div class="cal-grid-scroll">
+                        <div class="cal-weekdays-grid">
+                            <div style="color:#ef4444;">Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div style="color:#ef4444;">Sab</div>
+                        </div>
+                        <div id="tj-grid" class="cal-days-grid">
+                            ${days.map((d) => {
+                                if (d.empty) return '<div style="background: transparent;"></div>';
+                                const dayRows = byDate[d.fullDate] || [];
+                                const pendentes = dayRows.filter((r) => (r.status || 'pendente') !== 'concluida').length;
+                                const isSelected = d.fullDate === selectedDate;
+                                return `
+                                    <div class="cal-day-cell ${d.isWeekend ? 'is-weekend' : ''}" data-tj-day="${d.fullDate}" style="${isSelected ? 'outline:2px solid #2563eb;' : ''}">
+                                        <div class="cal-day-top"><strong class="cal-day-number">${d.day}</strong></div>
+                                        <span class="cal-day-summary ${dayRows.length ? 'has-events' : ''}">
+                                            <span class="cal-day-summary-icon"><i class="fas fa-list-check"></i></span>
+                                            <span>${dayRows.length}</span>
+                                        </span>
+                                        <div style="font-size:0.68rem;color:#6b7280;margin-top:0.2rem;">Pendentes: ${pendentes}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                    <div id="tj-day-editor" class="df-col" style="margin-top:1rem;"></div>
+                `;
+
+                const renderDayEditor = (dateStr) => {
+                    el.setAttribute('data-tj-selected-date', dateStr);
+                    const dayRows = byDate[dateStr] || [];
+                    const rowBySlot = new Map(dayRows.map((r) => [String(r.slot_hora || '').slice(0, 5), r]));
+                    const slotCards = this.tjSlotTemplates().map((slot) => {
+                        const row = rowBySlot.get(slot);
+                        const descricao = row?.descricao || '';
+                        const status = row?.status === 'concluida' ? 'concluida' : 'pendente';
+                        const notificado = Boolean(row?.notificado);
+                        return `
+                            <div class="df-col" style="padding:0.65rem;background:var(--bg-white);">
+                                <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.45rem;">
+                                    <strong>${slot}</strong>
+                                    <div style="display:flex;gap:0.4rem;align-items:center;">
+                                        <select data-tj-status="${slot}" style="font-size:0.75rem;padding:0.25rem 0.4rem;">
+                                            <option value="pendente" ${status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                                            <option value="concluida" ${status === 'concluida' ? 'selected' : ''}>Concluida</option>
+                                        </select>
+                                        <label style="font-size:0.72rem;display:flex;align-items:center;gap:0.25rem;">
+                                            <input type="checkbox" data-tj-notificado="${slot}" ${notificado ? 'checked' : ''} />
+                                            Notif.
+                                        </label>
+                                    </div>
+                                </div>
+                                <textarea data-tj-slot="${slot}" placeholder="Digite a tarefa deste horario...">${escapeHtml(descricao)}</textarea>
+                            </div>
+                        `;
+                    }).join('');
+                    const dt = new Date(dateStr + 'T00:00:00');
+                    const label = Number.isNaN(dt.getTime())
+                        ? dateStr
+                        : dt.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+                    el.querySelector('#tj-day-editor').innerHTML = `
+                        <div class="df-col-titulo" style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;">
+                            <span>Bloco do dia: ${escapeHtml(label)}</span>
+                            <span style="font-size:0.75rem;color:#6b7280;">${(dayRows || []).length} tarefa(s)</span>
+                        </div>
+                        <div style="padding:0.85rem;display:grid;gap:0.65rem;">
+                            ${slotCards}
+                            <div style="display:flex;gap:0.5rem;justify-content:flex-end;flex-wrap:wrap;">
+                                <button type="button" class="app-btn app-btn-secondary" data-action="tj-clear-day">Limpar dia</button>
+                                <button type="button" class="app-btn" data-action="tj-save-day">Salvar dia</button>
+                            </div>
+                        </div>
+                    `;
+                    const grid = el.querySelector('#tj-grid');
+                    grid.querySelectorAll('[data-tj-day]').forEach((cell) => {
+                        const on = cell.getAttribute('data-tj-day') === dateStr;
+                        cell.style.outline = on ? '2px solid #2563eb' : '';
+                    });
+                    el.querySelector('[data-action="tj-save-day"]').onclick = () => this.submitTarefasJobsonSaveDay(el, dateStr);
+                    el.querySelector('[data-action="tj-clear-day"]').onclick = () => {
+                        if (!confirm('Limpar todos os campos deste dia?')) return;
+                        el.querySelectorAll('[data-tj-slot]').forEach((ta) => { ta.value = ''; });
+                        el.querySelectorAll('[data-tj-status]').forEach((s) => { s.value = 'pendente'; });
+                        el.querySelectorAll('[data-tj-notificado]').forEach((c) => { c.checked = false; });
+                    };
+                };
+
+                el.querySelectorAll('[data-tj-day]').forEach((cell) => {
+                    cell.onclick = () => renderDayEditor(cell.getAttribute('data-tj-day'));
+                });
+                el.querySelector('#tj-mes').onchange = () => {
+                    const m = String(el.querySelector('#tj-mes').value).padStart(2, '0');
+                    const a = el.querySelector('#tj-ano').value;
+                    el.setAttribute('data-mes-ano', `${a}-${m}`);
+                    el.setAttribute('data-tj-selected-date', `${a}-${m}-01`);
+                    this.refreshAppContent('tarefas_jobson');
+                };
+                el.querySelector('#tj-ano').onchange = () => {
+                    const m = String(el.querySelector('#tj-mes').value).padStart(2, '0');
+                    const a = el.querySelector('#tj-ano').value;
+                    el.setAttribute('data-mes-ano', `${a}-${m}`);
+                    el.setAttribute('data-tj-selected-date', `${a}-${m}-01`);
+                    this.refreshAppContent('tarefas_jobson');
+                };
+                renderDayEditor(selectedDate);
+            }
+            async submitTarefasJobsonSaveDay(el, dataDia) {
+                const slots = this.tjSlotTemplates().map((slot) => {
+                    const descricao = (el.querySelector(`[data-tj-slot="${slot}"]`)?.value || '').trim();
+                    const status = el.querySelector(`[data-tj-status="${slot}"]`)?.value || 'pendente';
+                    const notificado = Boolean(el.querySelector(`[data-tj-notificado="${slot}"]`)?.checked);
+                    return { slot_hora: slot, descricao, status, notificado };
+                });
+                try {
+                    const res = await fetch('/api/tarefas-jobson', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'upsert_day_slots',
+                            data: dataDia,
+                            slots,
+                        }),
+                    });
+                    const response = await res.json();
+                    if (!res.ok) throw new Error(response.error || 'Erro ao salvar o dia');
+                    el.setAttribute('data-tj-selected-date', dataDia);
+                    await this.refreshAppContent('tarefas_jobson');
+                } catch (e) {
+                    alert(e.message || 'Falha ao salvar bloco do dia.');
+                }
             }
             saudeFmtDataBR(d) {
                 if (!d) return '';
