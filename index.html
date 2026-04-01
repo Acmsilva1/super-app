@@ -3280,6 +3280,13 @@
             tjSlotTemplates() {
                 return ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'];
             }
+            tjNormalizeHora(v) {
+                const s = String(v || '').trim();
+                if (!/^\d{2}:\d{2}$/.test(s)) return null;
+                const [h, m] = s.split(':').map(Number);
+                if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            }
             tjBuildMonthDays(ano, mes) {
                 const firstDow = new Date(ano, mes - 1, 1).getDay();
                 const daysInMonth = new Date(ano, mes, 0).getDate();
@@ -3312,6 +3319,8 @@
                     byDate[d].sort((a, b) => String(a.slot_hora || '').localeCompare(String(b.slot_hora || '')));
                 });
                 const days = this.tjBuildMonthDays(ano, mes);
+                const extraSlotsByDate = {};
+                const mergeSortSlots = (arr) => [...new Set((arr || []).filter(Boolean).map((x) => String(x).slice(0, 5)))].sort((a, b) => a.localeCompare(b));
 
                 el.innerHTML = `
                     <div class="app-form" style="margin-bottom:1rem;">
@@ -3353,15 +3362,38 @@
                     <div id="tj-day-editor" class="df-col" style="margin-top:1rem;"></div>
                 `;
 
-                const renderDayEditor = (dateStr) => {
+                const collectDayDraft = () => {
+                    const draft = {};
+                    el.querySelectorAll('[data-tj-slot]').forEach((ta) => {
+                        const slot = String(ta.getAttribute('data-tj-slot') || '').slice(0, 5);
+                        if (!slot) return;
+                        const statusEl = el.querySelector(`[data-tj-status="${slot}"]`);
+                        const notifEl = el.querySelector(`[data-tj-notificado="${slot}"]`);
+                        draft[slot] = {
+                            descricao: (ta.value || '').trim(),
+                            status: (statusEl && statusEl.value === 'concluida') ? 'concluida' : 'pendente',
+                            notificado: Boolean(notifEl && notifEl.checked),
+                        };
+                    });
+                    return draft;
+                };
+
+                const renderDayEditor = (dateStr, draft = null) => {
                     el.setAttribute('data-tj-selected-date', dateStr);
                     const dayRows = byDate[dateStr] || [];
                     const rowBySlot = new Map(dayRows.map((r) => [String(r.slot_hora || '').slice(0, 5), r]));
-                    const slotCards = this.tjSlotTemplates().map((slot) => {
+                    const allSlots = mergeSortSlots([
+                        ...this.tjSlotTemplates(),
+                        ...Array.from(rowBySlot.keys()),
+                        ...(extraSlotsByDate[dateStr] || []),
+                        ...Object.keys(draft || {}),
+                    ]);
+                    const slotCards = allSlots.map((slot) => {
                         const row = rowBySlot.get(slot);
-                        const descricao = row?.descricao || '';
-                        const status = row?.status === 'concluida' ? 'concluida' : 'pendente';
-                        const notificado = Boolean(row?.notificado);
+                        const rowDraft = draft ? draft[slot] : null;
+                        const descricao = rowDraft ? (rowDraft.descricao || '') : (row?.descricao || '');
+                        const status = rowDraft ? rowDraft.status : (row?.status === 'concluida' ? 'concluida' : 'pendente');
+                        const notificado = rowDraft ? Boolean(rowDraft.notificado) : Boolean(row?.notificado);
                         return `
                             <div class="df-col" style="padding:0.65rem;background:var(--bg-white);">
                                 <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.45rem;">
@@ -3391,6 +3423,13 @@
                             <span style="font-size:0.75rem;color:#6b7280;">${(dayRows || []).length} tarefa(s)</span>
                         </div>
                         <div style="padding:0.85rem;display:grid;gap:0.65rem;">
+                            <div style="display:flex;gap:0.5rem;align-items:end;flex-wrap:wrap;">
+                                <div class="field" style="min-width:140px;">
+                                    <label style="font-size:0.75rem;color:#6b7280;">Novo horário (HH:mm)</label>
+                                    <input type="time" id="tj-new-slot" step="60" />
+                                </div>
+                                <button type="button" class="app-btn app-btn-secondary" data-action="tj-add-slot">Adicionar horário</button>
+                            </div>
                             ${slotCards}
                             <div style="display:flex;gap:0.5rem;justify-content:flex-end;flex-wrap:wrap;">
                                 <button type="button" class="app-btn app-btn-secondary" data-action="tj-clear-day">Limpar dia</button>
@@ -3403,12 +3442,23 @@
                         const on = cell.getAttribute('data-tj-day') === dateStr;
                         cell.style.outline = on ? '2px solid #2563eb' : '';
                     });
+                    el.querySelector('[data-action="tj-add-slot"]').onclick = () => {
+                        const slotRaw = el.querySelector('#tj-new-slot').value;
+                        const slot = this.tjNormalizeHora(slotRaw);
+                        if (!slot) { alert('Horario invalido. Use HH:mm.'); return; }
+                        const atual = extraSlotsByDate[dateStr] || [];
+                        extraSlotsByDate[dateStr] = mergeSortSlots([...atual, slot]);
+                        const draftAtual = collectDayDraft();
+                        if (!draftAtual[slot]) draftAtual[slot] = { descricao: '', status: 'pendente', notificado: false };
+                        renderDayEditor(dateStr, draftAtual);
+                    };
                     el.querySelector('[data-action="tj-save-day"]').onclick = () => this.submitTarefasJobsonSaveDay(el, dateStr);
                     el.querySelector('[data-action="tj-clear-day"]').onclick = () => {
                         if (!confirm('Limpar todos os campos deste dia?')) return;
-                        el.querySelectorAll('[data-tj-slot]').forEach((ta) => { ta.value = ''; });
-                        el.querySelectorAll('[data-tj-status]').forEach((s) => { s.value = 'pendente'; });
-                        el.querySelectorAll('[data-tj-notificado]').forEach((c) => { c.checked = false; });
+                        const root = el.querySelector('#tj-day-editor');
+                        root.querySelectorAll('[data-tj-slot]').forEach((ta) => { ta.value = ''; });
+                        root.querySelectorAll('[data-tj-status]').forEach((s) => { s.value = 'pendente'; });
+                        root.querySelectorAll('[data-tj-notificado]').forEach((c) => { c.checked = false; });
                     };
                 };
 
@@ -3432,8 +3482,9 @@
                 renderDayEditor(selectedDate);
             }
             async submitTarefasJobsonSaveDay(el, dataDia) {
-                const slots = this.tjSlotTemplates().map((slot) => {
-                    const descricao = (el.querySelector(`[data-tj-slot="${slot}"]`)?.value || '').trim();
+                const slots = Array.from(el.querySelectorAll('[data-tj-slot]')).map((ta) => {
+                    const slot = String(ta.getAttribute('data-tj-slot') || '').slice(0, 5);
+                    const descricao = (ta.value || '').trim();
                     const status = el.querySelector(`[data-tj-status="${slot}"]`)?.value || 'pendente';
                     const notificado = Boolean(el.querySelector(`[data-tj-notificado="${slot}"]`)?.checked);
                     return { slot_hora: slot, descricao, status, notificado };
