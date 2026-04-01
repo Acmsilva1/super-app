@@ -12,7 +12,8 @@ jobs:
   enviar_notificacoes_tarefas_jobson:
     runs-on: ubuntu-latest
     steps:
-      - name: Chamando endpoint dedicado de tarefas jobson
+      - name: Chamando endpoint compartilhado no modo tarefas jobson
         run: |
-          curl --fail --show-error --silent -X POST "https://super-app-zeta-virid.vercel.app/api/notificar-tarefas-jobson" \
-          -H "Content-Type: application/json"
+          curl --fail --show-error --silent -X POST "https://super-app-zeta-virid.vercel.app/api/notificar" \
+          -H "Content-Type: application/json" \
+          -d '{"scope":"tarefas_jobson"}'

@@ -105,8 +105,7 @@ flowchart TD
 | `/api/calendario` | `GET, POST, PATCH, DELETE` | `tb_calendario` | GET aceita `action=config` e `action=view` |
 | `/api/tarefas-jobson` | `GET, POST, PATCH, DELETE` | `tb_tarefas_jobson` | PATCH suporta `upsert_day_slots` e `repeat_weekdays` |
 | `/api/fluxograma` | `GET, POST, PATCH, DELETE` | `tb_fluxograma_projetos` | persistencia de projetos |
-| `/api/notificar` | `POST` | `tb_calendario`, `tb_saude_familiar` | envia lembretes Telegram |
-| `/api/notificar-tarefas-jobson` | `POST` | `tb_tarefas_jobson` | envia alertas dedicados de tarefas via Telegram |
+| `/api/notificar` | `POST` | `tb_calendario`, `tb_saude_familiar`, `tb_tarefas_jobson` | envia lembretes Telegram; aceita `scope` para isolar `tarefas_jobson` |
 
 ### Excecoes recorrentes
 
@@ -156,7 +155,7 @@ flowchart TD
 | Workflow | Agenda | Acao |
 |---|---|---|
 | `Notificacoes Gerais - Super App` | `0 * * * *` | Chama `/api/notificar` a cada hora |
-| `Notificacoes - Tarefas Jobson` | `30 11,14 * * *` | Chama `/api/notificar-tarefas-jobson` as 08:30 e 11:30 BRT |
+| `Notificacoes - Tarefas Jobson` | `30 11,14 * * *` | Chama `/api/notificar` com `scope=tarefas_jobson` as 08:30 e 11:30 BRT |
 | `Analise do Sistema` | `0 0,8,16 * * *` | Chama `/api/system-analysis` 3x ao dia |
 
 ## Observabilidade

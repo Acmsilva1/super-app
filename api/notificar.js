@@ -82,6 +82,72 @@ async function sendTelegramMessage(text) {
   }
 }
 
+function getScope(req) {
+  const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+  const raw = String(body.scope || req.query?.scope || 'general').trim().toLowerCase();
+  if (raw === 'tarefas_jobson') return 'tarefas_jobson';
+  if (raw === 'all') return 'all';
+  return 'general';
+}
+
+function buildSources(scope) {
+  const generalSources = [
+    {
+      key: 'calendario',
+      table: 'tb_calendario',
+      select: 'id,title,date,start_time,category',
+      dateColumn: 'date',
+      timeColumn: 'start_time',
+      message: (row) =>
+        [
+          '*CALENDARIO*',
+          `*Lembrete:* ${escapeTelegramMarkdown(row.title || 'Sem titulo')}`,
+          `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.date, row.start_time))}`,
+          row.category ? `*Categoria:* ${escapeTelegramMarkdown(row.category)}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+    },
+    {
+      key: 'saude',
+      table: 'tb_saude_familiar',
+      select: 'id,membro_familia,tipo_registro,detalhes,data_evento,hora_evento',
+      dateColumn: 'data_evento',
+      timeColumn: 'hora_evento',
+      message: (row) =>
+        [
+          '*SAUDE*',
+          `*Tipo:* ${escapeTelegramMarkdown(row.tipo_registro || 'Registro')}`,
+          `*Pessoa:* ${escapeTelegramMarkdown(row.membro_familia || 'Nao informado')}`,
+          `*Detalhes:* ${escapeTelegramMarkdown(row.detalhes || 'Sem detalhes')}`,
+          `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.data_evento, row.hora_evento))}`,
+        ].join('\n'),
+    },
+  ];
+
+  const tarefasSource = {
+    key: 'tarefas_jobson',
+    table: 'tb_tarefas_jobson',
+    select: 'id,descricao,data,slot_hora,status,notificado',
+    dateColumn: 'data',
+    timeColumn: 'slot_hora',
+    pendingColumn: 'notificado',
+    pendingValue: true,
+    eqFilters: [{ column: 'status', value: 'pendente' }],
+    sentUpdate: () => ({ notificado: false }),
+    message: (row) =>
+      [
+        '*TAREFAS JOBSON*',
+        `*Tarefa:* ${escapeTelegramMarkdown(row.descricao || 'Sem descricao')}`,
+        `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.data, row.slot_hora))}`,
+      ].join('\n'),
+  };
+
+  if (scope === 'tarefas_jobson') return [tarefasSource];
+  if (scope === 'all') return [...generalSources, tarefasSource];
+  return generalSources;
+}
+
 async function processRows(config, startDate, endDate, now, windowEnd) {
   let query = supabase
     .from(config.table)
@@ -101,29 +167,20 @@ async function processRows(config, startDate, endDate, now, windowEnd) {
   }
 
   const { data, error } = await query;
-
   if (error) throw new Error(`Erro ao consultar ${config.table}: ${error.message}`);
 
   let sent = 0;
-
   for (const row of (data || []).filter((item) => isWithinNext24Hours(item[config.dateColumn], item[config.timeColumn], now, windowEnd))) {
-    const text = config.message(row);
-    await sendTelegramMessage(text);
-
+    await sendTelegramMessage(config.message(row));
     const sentUpdate = config.sentUpdate
       ? config.sentUpdate(row)
       : { telegram_sent: true, telegram_sent_at: new Date().toISOString() };
-
-    const { error: updateError } = await supabase
-      .from(config.table)
-      .update(sentUpdate)
-      .eq('id', row.id);
-
+    const { error: updateError } = await supabase.from(config.table).update(sentUpdate).eq('id', row.id);
     if (updateError) throw new Error(`Erro ao atualizar ${config.table}: ${updateError.message}`);
-    sent++;
+    sent += 1;
   }
 
-  return sent;
+  return { key: config.key || config.table, sent };
 }
 
 export default async function handler(req, res) {
@@ -141,44 +198,20 @@ export default async function handler(req, res) {
     const windowEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const today = brazilDate(now);
     const endDate = addDays(addDays(today, 1), 1);
-
-    const sources = [
-      {
-        table: 'tb_calendario',
-        select: 'id,title,date,start_time,category',
-        dateColumn: 'date',
-        timeColumn: 'start_time',
-        message: (row) =>
-          [
-            '*CALENDARIO*',
-            `*Lembrete:* ${escapeTelegramMarkdown(row.title || 'Sem titulo')}`,
-            `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.date, row.start_time))}`,
-            row.category ? `*Categoria:* ${escapeTelegramMarkdown(row.category)}` : null,
-          ]
-            .filter(Boolean)
-            .join('\n'),
-      },
-      {
-        table: 'tb_saude_familiar',
-        select: 'id,membro_familia,tipo_registro,detalhes,data_evento,hora_evento',
-        dateColumn: 'data_evento',
-        timeColumn: 'hora_evento',
-        message: (row) =>
-          [
-            '*SAUDE*',
-            `*Tipo:* ${escapeTelegramMarkdown(row.tipo_registro || 'Registro')}`,
-            `*Pessoa:* ${escapeTelegramMarkdown(row.membro_familia || 'Nao informado')}`,
-            `*Detalhes:* ${escapeTelegramMarkdown(row.detalhes || 'Sem detalhes')}`,
-            `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.data_evento, row.hora_evento))}`,
-          ].join('\n'),
-      },
-    ];
+    const scope = getScope(req);
+    const sources = buildSources(scope);
 
     let totalEnviados = 0;
-    for (const source of sources) totalEnviados += await processRows(source, today, endDate, now, windowEnd);
+    const detalhes = [];
+    for (const source of sources) {
+      const result = await processRows(source, today, endDate, now, windowEnd);
+      totalEnviados += result.sent;
+      detalhes.push(result);
+    }
 
     return json(res, 200, {
       status: 'ok',
+      scope,
       periodo: {
         referencia: today,
         janela_inicio: now.toISOString(),
@@ -187,7 +220,7 @@ export default async function handler(req, res) {
         timezone: TZ,
       },
       enviados: totalEnviados,
-      origem: 'calendario_saude',
+      detalhes,
     });
   } catch (err) {
     return json(res, 500, { error: err.message });
