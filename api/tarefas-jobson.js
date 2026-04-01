@@ -19,6 +19,15 @@ function parseMesAno(mesAno) {
   return { ano, mes };
 }
 
+function rangeMes(ano, mes) {
+  const lastDay = new Date(ano, mes, 0).getDate();
+  const mm = String(mes).padStart(2, '0');
+  return {
+    start: `${ano}-${mm}-01`,
+    end: `${ano}-${mm}-${String(lastDay).padStart(2, '0')}`,
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const query = req.query || {};
@@ -30,8 +39,7 @@ export default async function handler(req, res) {
       .order('slot_hora', { ascending: false })
       .order('created_at', { ascending: false });
     if (month) {
-      const start = `${month.ano}-${String(month.mes).padStart(2, '0')}-01`;
-      const end = `${month.ano}-${String(month.mes).padStart(2, '0')}-31`;
+      const { start, end } = rangeMes(month.ano, month.mes);
       q = q.gte('data', start).lte('data', end);
     }
     const { data, error } = await q;
