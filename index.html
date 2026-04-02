@@ -1486,7 +1486,11 @@
             border-radius: 0.55rem;
             background: var(--bg-light);
             padding: 0.65rem 0.75rem;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
         }
+        .tj-day-modal-item:hover { border-color: #93c5fd; background: #eff6ff; }
         .tj-day-modal-head {
             display: flex;
             align-items: center;
@@ -3442,7 +3446,6 @@
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const dateHoje = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                const selectedDate = el.getAttribute('data-tj-selected-date') || (mesAno === this.getMesAnoAtual() ? dateHoje : `${ano}-${String(mes).padStart(2, '0')}-01`);
                 const anos = Array.from({ length: 9 }, (_, i) => new Date().getFullYear() - 2 + i);
                 const byDate = {};
                 rows.forEach((r) => {
@@ -3455,55 +3458,10 @@
                     byDate[d].sort((a, b) => String(a.slot_hora || '').localeCompare(String(b.slot_hora || '')));
                 });
                 const days = this.tjBuildMonthDays(ano, mes);
-                const extraSlotsByDate = {};
-                const mergeSortSlots = (arr) => [...new Set((arr || []).filter(Boolean).map((x) => String(x).slice(0, 5)))].sort((a, b) => a.localeCompare(b));
-                const goToDayEditor = (dateStr) => {
-                    renderDayEditor(dateStr);
-                    const editor = el.querySelector('#tj-day-editor');
-                    if (editor) {
-                        editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        setTimeout(() => {
-                            const firstField = editor.querySelector('[data-tj-slot]');
-                            if (firstField) firstField.focus();
-                        }, 120);
-                    }
-                };
                 const tjFormatDateLabel = (dateStr) => {
                     const dt = new Date(dateStr + 'T00:00:00');
                     if (Number.isNaN(dt.getTime())) return dateStr;
                     return dt.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-                };
-                const openTjDayModal = (dateStr) => {
-                    const dayRows = [...(byDate[dateStr] || [])].sort((a, b) => String(a.slot_hora || '').localeCompare(String(b.slot_hora || '')));
-                    const overlay = document.createElement('div');
-                    overlay.className = 'app-modal-overlay';
-                    overlay.innerHTML = `
-                        <div class="app-modal tj-day-modal">
-                            <h4>Tarefas do dia</h4>
-                            <p class="tj-day-modal-date">${escapeHtml(tjFormatDateLabel(dateStr))}</p>
-                            <div class="tj-day-modal-list">
-                                ${dayRows.length ? dayRows.map((r) => `
-                                    <div class="tj-day-modal-item">
-                                        <div class="tj-day-modal-head">
-                                            <span class="tj-day-modal-time">${escapeHtml(String(r.slot_hora || '').slice(0, 5) || '--:--')}</span>
-                                        </div>
-                                        <div class="tj-day-modal-desc">${escapeHtml(r.descricao || 'Sem descrição')}</div>
-                                    </div>
-                                `).join('') : '<div class="tj-day-modal-empty">Sem tarefas cadastradas para este dia.</div>'}
-                            </div>
-                            <div class="app-modal-actions">
-                                <button type="button" class="app-btn app-btn-secondary" data-action="tj-modal-close">Fechar</button>
-                                <button type="button" class="app-btn" data-action="tj-modal-open-editor">Abrir editor do dia</button>
-                            </div>
-                        </div>
-                    `;
-                    overlay.querySelector('[data-action="tj-modal-close"]').onclick = () => overlay.remove();
-                    overlay.querySelector('[data-action="tj-modal-open-editor"]').onclick = () => {
-                        overlay.remove();
-                        goToDayEditor(dateStr);
-                    };
-                    overlay.onclick = (evt) => { if (evt.target === overlay) overlay.remove(); };
-                    document.body.appendChild(overlay);
                 };
 
                 el.innerHTML = `
@@ -3529,9 +3487,8 @@
                                 if (d.empty) return '<div style="background: transparent;"></div>';
                                 const dayRows = byDate[d.fullDate] || [];
                                 const pendentes = dayRows.length;
-                                const isSelected = d.fullDate === selectedDate;
                                 return `
-                                    <div class="cal-day-cell tj-day-cell ${dayRows.length ? 'has-tarefas' : ''} ${d.isWeekend ? 'is-weekend' : ''}" data-tj-day="${d.fullDate}" style="${isSelected ? 'outline:2px solid #2563eb;' : ''}">
+                                    <div class="cal-day-cell tj-day-cell ${dayRows.length ? 'has-tarefas' : ''} ${d.isWeekend ? 'is-weekend' : ''}" data-tj-day="${d.fullDate}">
                                         <div class="cal-day-top"><strong class="cal-day-number">${d.day}</strong></div>
                                         <span class="cal-day-summary ${dayRows.length ? 'has-events' : ''}">
                                             <span class="cal-day-summary-icon"><i class="fas fa-list-check"></i></span>
@@ -3543,127 +3500,202 @@
                             }).join('')}
                         </div>
                     </div>
-                    <div id="tj-day-editor" class="df-col" style="margin-top:1rem;"></div>
                 `;
 
-                const collectDayDraft = () => {
-                    const draft = {};
-                    el.querySelectorAll('[data-tj-slot]').forEach((ta) => {
-                        const slot = String(ta.getAttribute('data-tj-slot') || '').slice(0, 5);
-                        if (!slot) return;
-                        const selectedWeekdays = Array.from(
-                            el.querySelectorAll(`[data-tj-repeat-day][data-tj-repeat-slot="${slot}"]:checked`)
-                        ).map((input) => Number(input.value)).filter((value) => Number.isInteger(value));
-                        draft[slot] = {
-                            descricao: (ta.value || '').trim(),
-                            repeatDays: selectedWeekdays,
-                        };
-                    });
-                    return draft;
+                const refreshAndReopenDay = async (dateStr) => {
+                    el.setAttribute('data-tj-selected-date', dateStr);
+                    await this.refreshAppContent('tarefas_jobson');
+                    const win = this.openWindows.get('tarefas_jobson');
+                    const refreshedEl = win?.querySelector('.window-content');
+                    if (!refreshedEl) return;
+                    setTimeout(() => {
+                        const dayCell = refreshedEl.querySelector(`[data-tj-day="${dateStr}"]`);
+                        if (dayCell) dayCell.click();
+                    }, 30);
                 };
 
-                const renderDayEditor = (dateStr, draft = null) => {
+                const openTjDayModal = (dateStr) => {
                     el.setAttribute('data-tj-selected-date', dateStr);
-                    const dayRows = byDate[dateStr] || [];
-                    const rowBySlot = new Map(dayRows.map((r) => [String(r.slot_hora || '').slice(0, 5), r]));
-                    const allSlots = mergeSortSlots([
-                        ...this.tjSlotTemplates(),
-                        ...Array.from(rowBySlot.keys()),
-                        ...(extraSlotsByDate[dateStr] || []),
-                        ...Object.keys(draft || {}),
-                    ]);
-                    const slotCards = allSlots.map((slot) => {
-                        const row = rowBySlot.get(slot);
-                        const rowDraft = draft ? draft[slot] : null;
-                        const descricao = rowDraft ? (rowDraft.descricao || '') : (row?.descricao || '');
-                        const repeatDays = Array.isArray(rowDraft?.repeatDays) ? rowDraft.repeatDays : [];
-                        const rowId = row?.id ? String(row.id) : '';
-                        const repeatOptions = this.tjWeekdayOptions().map((item) => `
-                            <label style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.72rem;color:#6b7280;">
-                                <input type="checkbox" data-tj-repeat-day data-tj-repeat-slot="${slot}" value="${item.value}" ${repeatDays.includes(item.value) ? 'checked' : ''} ${rowId ? 'disabled' : ''} />
-                                <span>${item.label}</span>
-                            </label>
-                        `).join('');
-                        return `
-                            <div class="df-col" style="padding:0.65rem;background:var(--bg-white);">
-                                <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.45rem;">
-                                    <strong>${slot}</strong>
-                                    <span style="font-size:0.72rem;color:#6b7280;">Notificação automática</span>
-                                </div>
-                                <textarea data-tj-slot="${slot}" placeholder="Digite a tarefa deste horario...">${escapeHtml(descricao)}</textarea>
-                                <div style="display:grid;gap:0.35rem;margin-top:0.5rem;padding:0.55rem;border:1px dashed #d1d5db;border-radius:10px;background:#f8fafc;">
-                                    <span style="font-size:0.72rem;color:#475569;">Repetir neste horario ate o fim do mes:</span>
-                                    <div style="display:flex;gap:0.55rem;flex-wrap:wrap;">${repeatOptions}</div>
-                                    <span style="font-size:0.68rem;color:#94a3b8;">Disponivel ao criar uma nova tarefa.</span>
-                                </div>
-                                <div style="display:flex;gap:0.4rem;justify-content:flex-end;margin-top:0.45rem;flex-wrap:wrap;">
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="tj-save-item" data-slot="${slot}" data-id="${escapeHtml(rowId)}">${rowId ? 'Salvar edicao' : 'Salvar'}</button>
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="tj-delete-item" data-slot="${slot}" data-id="${escapeHtml(rowId)}" style="background:#fef2f2;color:#dc2626;">Excluir</button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
                     const dt = new Date(dateStr + 'T00:00:00');
                     const label = Number.isNaN(dt.getTime())
                         ? dateStr
                         : dt.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-                    el.querySelector('#tj-day-editor').innerHTML = `
-                        <div class="df-col-titulo" style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;">
-                            <span>Bloco do dia: ${escapeHtml(label)}</span>
-                            <span style="font-size:0.75rem;color:#6b7280;">${(dayRows || []).length} tarefa(s)</span>
-                        </div>
-                        <div style="padding:0.85rem;display:grid;gap:0.65rem;">
-                            <div style="display:flex;gap:0.5rem;align-items:end;flex-wrap:wrap;">
-                                <div class="field" style="min-width:140px;">
-                                    <label style="font-size:0.75rem;color:#6b7280;">Novo horário (HH:mm)</label>
-                                    <input type="time" id="tj-new-slot" step="60" />
+                    const overlay = document.createElement('div');
+                    overlay.className = 'app-modal-overlay';
+                    const renderModal = (formState = null) => {
+                        const dayRows = [...(byDate[dateStr] || [])].sort((a, b) => String(a.slot_hora || '').localeCompare(String(b.slot_hora || '')));
+                        const repeatOptions = this.tjWeekdayOptions().map((item) => `
+                            <label style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.72rem;color:#6b7280;">
+                                <input type="checkbox" data-tj-form-repeat value="${item.value}" ${(formState?.repeatDays || []).includes(item.value) ? 'checked' : ''} ${formState?.mode === 'edit' ? 'disabled' : ''} />
+                                <span>${item.label}</span>
+                            </label>
+                        `).join('');
+                        const listHtml = dayRows.length
+                            ? dayRows.map((row) => `
+                                <button type="button" class="tj-day-modal-item" data-action="tj-open-edit" data-id="${escapeHtml(String(row.id || ''))}">
+                                    <div class="tj-day-modal-head">
+                                        <span class="tj-day-modal-time">${escapeHtml(String(row.slot_hora || '').slice(0, 5) || '--:--')}</span>
+                                    </div>
+                                    <div class="tj-day-modal-desc">${escapeHtml(row.descricao || 'Sem descrição')}</div>
+                                </button>
+                            `).join('')
+                            : '<div class="tj-day-modal-empty">Sem tarefas cadastradas para este dia.</div>';
+                        const formHtml = formState
+                            ? `
+                                <div class="df-col" style="padding:0.85rem;background:var(--bg-white);border:1px solid #e2e8f0;border-radius:14px;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;margin-bottom:0.65rem;">
+                                        <strong>${formState.mode === 'edit' ? 'Editar tarefa' : 'Nova tarefa'}</strong>
+                                        <span style="font-size:0.72rem;color:#6b7280;">${escapeHtml(label)}</span>
+                                    </div>
+                                    <div style="display:grid;gap:0.7rem;">
+                                        <div class="field" style="min-width:140px;">
+                                            <label style="font-size:0.75rem;color:#6b7280;">Horario (HH:mm)</label>
+                                            <input type="time" id="tj-form-time" step="60" value="${escapeHtml(formState.slot_hora || '')}" />
+                                        </div>
+                                        <div class="field">
+                                            <label style="font-size:0.75rem;color:#6b7280;">Descricao</label>
+                                            <textarea id="tj-form-desc" placeholder="Digite a tarefa deste horario...">${escapeHtml(formState.descricao || '')}</textarea>
+                                        </div>
+                                        <div style="display:grid;gap:0.35rem;padding:0.55rem;border:1px dashed #d1d5db;border-radius:10px;background:#f8fafc;">
+                                            <span style="font-size:0.72rem;color:#475569;">Repetir neste horario ate o fim do mes:</span>
+                                            <div style="display:flex;gap:0.55rem;flex-wrap:wrap;">${repeatOptions}</div>
+                                            <span style="font-size:0.68rem;color:#94a3b8;">Disponivel ao criar uma nova tarefa.</span>
+                                        </div>
+                                    </div>
+                                    <div class="app-modal-actions" style="margin-top:0.9rem;">
+                                        <button type="button" class="app-btn app-btn-secondary" data-action="tj-cancel-form">Cancelar</button>
+                                        ${formState.mode === 'edit' ? '<button type="button" class="app-btn app-btn-secondary" data-action="tj-delete-form" style="background:#fef2f2;color:#dc2626;">Excluir</button>' : ''}
+                                        <button type="button" class="app-btn" data-action="tj-save-form">${formState.mode === 'edit' ? 'Salvar edicao' : 'Salvar'}</button>
+                                    </div>
                                 </div>
-                                <button type="button" class="app-btn app-btn-secondary" data-action="tj-add-slot">Adicionar horário</button>
+                            `
+                            : `
+                                <div class="tj-day-modal-empty" style="text-align:left;">
+                                    Clique em <strong>Adicionar tarefa</strong> para criar uma nova ou toque em uma tarefa da lista para editar.
+                                </div>
+                            `;
+                        overlay.innerHTML = `
+                            <div class="app-modal tj-day-modal" style="width:min(760px,calc(100vw - 1.5rem));max-height:88vh;">
+                                <div class="df-col-titulo" style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+                                    <span>Tarefas do dia: ${escapeHtml(label)}</span>
+                                    <span style="font-size:0.75rem;color:#6b7280;">${dayRows.length} tarefa(s)</span>
+                                </div>
+                                <p class="tj-day-modal-date">Clique em uma tarefa para editar ou use o botao abaixo para adicionar uma nova.</p>
+                                <div class="app-modal-actions" style="margin:0 0 0.85rem;justify-content:flex-start;">
+                                    <button type="button" class="app-btn" data-action="tj-open-create">Adicionar tarefa</button>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="tj-modal-close">Fechar</button>
+                                </div>
+                                <div class="tj-day-modal-list" style="margin-bottom:0.85rem;">
+                                    ${listHtml}
+                                </div>
+                                ${formHtml}
                             </div>
-                            ${slotCards}
-                            <div style="display:flex;gap:0.5rem;justify-content:flex-end;flex-wrap:wrap;">
-                                <button type="button" class="app-btn app-btn-secondary" data-action="tj-clear-day">Limpar dia</button>
-                                <button type="button" class="app-btn" data-action="tj-save-day">Salvar dia</button>
-                            </div>
-                        </div>
-                    `;
-                    const grid = el.querySelector('#tj-grid');
-                    grid.querySelectorAll('[data-tj-day]').forEach((cell) => {
-                        const on = cell.getAttribute('data-tj-day') === dateStr;
-                        cell.style.outline = on ? '2px solid #2563eb' : '';
-                    });
-                    el.querySelector('[data-action="tj-add-slot"]').onclick = () => {
-                        const slotRaw = el.querySelector('#tj-new-slot').value;
-                        const slot = this.tjNormalizeHora(slotRaw);
-                        if (!slot) { alert('Horario invalido. Use HH:mm.'); return; }
-                        const atual = extraSlotsByDate[dateStr] || [];
-                        extraSlotsByDate[dateStr] = mergeSortSlots([...atual, slot]);
-                        const draftAtual = collectDayDraft();
-                        if (!draftAtual[slot]) draftAtual[slot] = { descricao: '' };
-                        renderDayEditor(dateStr, draftAtual);
+                        `;
+                        overlay.querySelector('[data-action="tj-modal-close"]').onclick = () => overlay.remove();
+                        overlay.querySelector('[data-action="tj-open-create"]').onclick = () => {
+                            renderModal({ mode: 'create', id: '', slot_hora: '', descricao: '', repeatDays: [] });
+                        };
+                        overlay.querySelectorAll('[data-action="tj-open-edit"]').forEach((btn) => {
+                            btn.onclick = () => {
+                                const id = String(btn.getAttribute('data-id') || '').trim();
+                                const row = dayRows.find((item) => String(item.id || '') === id);
+                                if (!row) return;
+                                renderModal({
+                                    mode: 'edit',
+                                    id,
+                                    slot_hora: String(row.slot_hora || '').slice(0, 5),
+                                    descricao: row.descricao || '',
+                                    repeatDays: [],
+                                });
+                            };
+                        });
+                        overlay.onclick = (evt) => { if (evt.target === overlay) overlay.remove(); };
+                        if (formState) {
+                            overlay.querySelector('[data-action="tj-cancel-form"]').onclick = () => renderModal(null);
+                            overlay.querySelector('[data-action="tj-save-form"]').onclick = async () => {
+                                const hora = this.tjNormalizeHora(overlay.querySelector('#tj-form-time')?.value || '');
+                                const descricao = (overlay.querySelector('#tj-form-desc')?.value || '').trim();
+                                const repeatDays = Array.from(overlay.querySelectorAll('[data-tj-form-repeat]:checked'))
+                                    .map((input) => Number(input.value))
+                                    .filter((value) => Number.isInteger(value));
+                                if (!hora) { alert('Horario invalido. Use HH:mm.'); return; }
+                                if (!descricao) { alert('Preencha a descricao para salvar.'); return; }
+                                try {
+                                    if (formState.mode === 'edit') {
+                                        const res = await fetch('/api/tarefas-jobson', {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                id: formState.id,
+                                                descricao,
+                                                data: dateStr,
+                                                slot_hora: hora,
+                                                status: 'pendente',
+                                                notificado: true,
+                                            }),
+                                        });
+                                        const response = await res.json();
+                                        if (!res.ok) throw new Error(response.error || 'Erro ao salvar tarefa');
+                                    } else if (repeatDays.length) {
+                                        const res = await fetch('/api/tarefas-jobson', {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                action: 'repeat_weekdays',
+                                                descricao,
+                                                data: dateStr,
+                                                slot_hora: hora,
+                                                status: 'pendente',
+                                                notificado: true,
+                                                weekdays: repeatDays,
+                                            }),
+                                        });
+                                        const response = await res.json();
+                                        if (!res.ok) throw new Error(response.error || 'Erro ao repetir tarefa');
+                                    } else {
+                                        const res = await fetch('/api/tarefas-jobson', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                descricao,
+                                                data: dateStr,
+                                                slot_hora: hora,
+                                                status: 'pendente',
+                                                notificado: true,
+                                            }),
+                                        });
+                                        const response = await res.json();
+                                        if (!res.ok) throw new Error(response.error || 'Erro ao salvar tarefa');
+                                    }
+                                    overlay.remove();
+                                    await refreshAndReopenDay(dateStr);
+                                } catch (e) {
+                                    alert(e.message || 'Falha ao salvar tarefa.');
+                                }
+                            };
+                            const deleteBtn = overlay.querySelector('[data-action="tj-delete-form"]');
+                            if (deleteBtn) {
+                                deleteBtn.onclick = async () => {
+                                    if (!confirm('Excluir esta tarefa?')) return;
+                                    try {
+                                        const res = await fetch('/api/tarefas-jobson', {
+                                            method: 'DELETE',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ id: formState.id }),
+                                        });
+                                        const response = await res.json();
+                                        if (!res.ok) throw new Error(response.error || 'Erro ao excluir tarefa');
+                                        overlay.remove();
+                                        await refreshAndReopenDay(dateStr);
+                                    } catch (e) {
+                                        alert(e.message || 'Falha ao excluir tarefa.');
+                                    }
+                                };
+                            }
+                        }
                     };
-                    el.querySelector('[data-action="tj-save-day"]').onclick = () => this.submitTarefasJobsonSaveDay(el, dateStr);
-                    el.querySelector('[data-action="tj-clear-day"]').onclick = () => {
-                        if (!confirm('Limpar todos os campos deste dia?')) return;
-                        const root = el.querySelector('#tj-day-editor');
-                        root.querySelectorAll('[data-tj-slot]').forEach((ta) => { ta.value = ''; });
-                    };
-                    el.querySelectorAll('[data-action="tj-save-item"]').forEach((btn) => {
-                        btn.onclick = () => this.submitTarefasJobsonSaveItem(
-                            el,
-                            dateStr,
-                            String(btn.getAttribute('data-slot') || ''),
-                            String(btn.getAttribute('data-id') || '')
-                        );
-                    });
-                    el.querySelectorAll('[data-action="tj-delete-item"]').forEach((btn) => {
-                        btn.onclick = () => this.submitTarefasJobsonDeleteItem(
-                            el,
-                            dateStr,
-                            String(btn.getAttribute('data-slot') || ''),
-                            String(btn.getAttribute('data-id') || '')
-                        );
-                    });
+                    renderModal(null);
+                    document.body.appendChild(overlay);
                 };
 
                 el.querySelectorAll('[data-tj-day]').forEach((cell) => {
@@ -3683,7 +3715,6 @@
                     el.setAttribute('data-tj-selected-date', `${a}-${m}-01`);
                     this.refreshAppContent('tarefas_jobson');
                 };
-                renderDayEditor(selectedDate);
             }
             async submitTarefasJobsonSaveDay(el, dataDia) {
                 const slots = Array.from(el.querySelectorAll('[data-tj-slot]')).map((ta) => {
@@ -3709,7 +3740,7 @@
                     alert(e.message || 'Falha ao salvar bloco do dia.');
                 }
             }
-            async submitTarefasJobsonSaveItem(el, dataDia, slot, id) {
+            async submitTarefasJobsonSaveItem(el, dataDia, slot, id, onSuccess = null) {
                 const hora = String(slot || '').slice(0, 5);
                 if (!hora) { alert('Horario invalido.'); return; }
                 const descricao = (el.querySelector(`[data-tj-slot="${hora}"]`)?.value || '').trim();
@@ -3738,8 +3769,8 @@
                         });
                         const response = await res.json();
                         if (!res.ok) throw new Error(response.error || 'Erro ao repetir tarefa');
-                        el.setAttribute('data-tj-selected-date', dataDia);
-                        await this.refreshAppContent('tarefas_jobson');
+                        if (onSuccess) await onSuccess();
+                        else await this.refreshAppContent('tarefas_jobson');
                         return;
                     }
                     const res = await fetch('/api/tarefas-jobson', {
@@ -3749,13 +3780,13 @@
                     });
                     const response = await res.json();
                     if (!res.ok) throw new Error(response.error || 'Erro ao salvar tarefa');
-                    el.setAttribute('data-tj-selected-date', dataDia);
-                    await this.refreshAppContent('tarefas_jobson');
+                    if (onSuccess) await onSuccess();
+                    else await this.refreshAppContent('tarefas_jobson');
                 } catch (e) {
                     alert(e.message || 'Falha ao salvar tarefa.');
                 }
             }
-            async submitTarefasJobsonDeleteItem(el, dataDia, slot, id) {
+            async submitTarefasJobsonDeleteItem(el, dataDia, slot, id, onSuccess = null) {
                 const rowId = String(id || '').trim();
                 if (!rowId) {
                     const hora = String(slot || '').slice(0, 5);
@@ -3772,8 +3803,8 @@
                     });
                     const response = await res.json();
                     if (!res.ok) throw new Error(response.error || 'Erro ao excluir tarefa');
-                    el.setAttribute('data-tj-selected-date', dataDia);
-                    await this.refreshAppContent('tarefas_jobson');
+                    if (onSuccess) await onSuccess();
+                    else await this.refreshAppContent('tarefas_jobson');
                 } catch (e) {
                     alert(e.message || 'Falha ao excluir tarefa.');
                 }
