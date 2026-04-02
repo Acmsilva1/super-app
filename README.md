@@ -210,6 +210,9 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 
 - [`api/statistics.js`](/c:/super%20app/super-app-1/api/statistics.js) agora deriva contagens do catalogo compartilhado em [`api/apps.js`](/c:/super%20app/super-app-1/api/apps.js), eliminando divergencia entre endpoints.
 - [`api/roadmap.js`](/c:/super%20app/super-app-1/api/roadmap.js) foi atualizado para refletir o ecossistema atual, incluindo shell unico, dominios Supabase, notificacoes e observabilidade.
+- Fluxograma atualizado com paleta fixa de 16 cores por selecao (nos, textos e conexoes), substituindo o seletor livre de cor.
+- O menu do Fluxograma passou a exibir preview da cor atual do item selecionado e da ultima cor usada.
+- Novas conexoes no Fluxograma agora usam a cor ativa da paleta, e o estado `activeColor` passou a ser persistido no payload do grafo para manter contexto entre sessoes.
 
 ## Artefatos de Documentacao
 

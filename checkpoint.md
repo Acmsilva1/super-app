@@ -63,3 +63,19 @@
 ## 9. Observacoes
 - Existe uma exclusao preexistente de `arquitetura_e_documentacao padrao.md` no worktree que nao foi alterada neste ciclo.
 - O dashboard agora consegue evidenciar visualmente quando o problema e de schema no banco versus desalinhamento local do PWA.
+
+## 10. Fluxograma: Paleta Curta por Seleção (2026-04-02)
+- [x] `input type="color"` removido do menu do Fluxograma.
+- [x] Paleta fixa de 16 cores implementada com swatches clicaveis.
+- [x] Preview visual adicionado no menu para:
+  - cor atual do item selecionado
+  - ultima cor usada (activeColor)
+- [x] Aplicacao de cor unificada para nos, textos e conexoes.
+- [x] Nova conexao passa a nascer com a cor ativa (nao mais preto fixo).
+- [x] Fluxogramas antigos continuam compativeis; cores fora da paleta sao mantidas e identificadas como `CUSTOM` no preview.
+- [x] Persistencia de `activeColor` adicionada no payload do grafo para manter contexto apos reload.
+
+### Arquivos alterados neste checkpoint
+- `index.html`
+- `modulos/fluxograma/index.js`
+- `modulos/fluxograma/model/flowchartModel.js`
