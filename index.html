@@ -1852,7 +1852,9 @@
                     latency_current: { labels: [], values: [] },
                     storage_by_app: { labels: [], values: [] },
                     db: { connected: 0, unstable: 100 },
+                    calendar_sync: { db_columns_ready: false, status: 'unknown', sample_size: 0, sample_checked: 0, error: null },
                     alerts: { last_kind: null, last_sent: false, last_error: null },
+                    client_sync: { local_entries: 0, fallback_entries: 0, fallback_active: false, source: 'client' },
                     failed_endpoints: [],
                     history: []
                 };
@@ -1989,6 +1991,7 @@
                     if (!response.ok) throw new Error('Falha ao carregar analise do sistema');
                     const data = await response.json();
                     this.dashboardMetrics = data || this.dashboardMetrics;
+                    this.dashboardMetrics.client_sync = this.getCalendarLocalSyncDiagnostics();
                     this.renderDashboardLastUpdate();
                     this.renderDashboardSummary();
                     this.renderDashboardCharts();
@@ -2000,6 +2003,19 @@
                     this.renderDashboardCharts();
                     this.renderDashboardHealthReport('Sem dados de monitoramento no momento.');
                 }
+            }
+            getCalendarLocalSyncDiagnostics() {
+                const statuses = this.calendarCheckStatuses && typeof this.calendarCheckStatuses === 'object'
+                    ? Object.values(this.calendarCheckStatuses)
+                    : [];
+                const normalized = statuses.map((entry) => this.normalizeCalendarCheckStatusEntry(entry)).filter(Boolean);
+                const fallbackEntries = normalized.filter((entry) => entry.source === 'local_fallback' || entry.source === 'local').length;
+                return {
+                    source: 'client',
+                    local_entries: normalized.length,
+                    fallback_entries: fallbackEntries,
+                    fallback_active: fallbackEntries > 0
+                };
             }
 
             // ============================================
@@ -2243,6 +2259,8 @@
                 const metrics = this.dashboardMetrics || {};
                 const summary = metrics.summary || {};
                 const alerts = metrics.alerts || {};
+                const calendarSync = metrics.calendar_sync || {};
+                const clientSync = metrics.client_sync || {};
                 const checksTotal = Number(summary.checks_total || 0);
                 const checksSuccess = Number(summary.checks_success || 0);
                 const checksFailed = Number(summary.checks_failed || 0);
@@ -2261,6 +2279,12 @@
                         ? 'Alerta'
                         : 'Sem envio';
                 const alertClass = alerts.last_error ? 'is-bad' : (alerts.last_sent ? 'is-ok' : 'is-warn');
+                const syncLabel = !calendarSync.db_columns_ready
+                    ? 'Desalinhado'
+                    : clientSync.fallback_active
+                        ? 'PWA pendente'
+                        : 'Sincronizado';
+                const syncClass = !calendarSync.db_columns_ready || clientSync.fallback_active ? 'is-bad' : 'is-ok';
 
                 root.innerHTML = `
                     <div class="dashboard-summary-card">
@@ -2283,6 +2307,11 @@
                         <strong class="dashboard-summary-value ${alertClass}">${escapeHtml(alertLabel)}</strong>
                         <span class="dashboard-summary-meta">${escapeHtml(alerts.last_error || (alerts.last_sent ? 'Enviado com sucesso' : 'Sem novo disparo'))}</span>
                     </div>
+                    <div class="dashboard-summary-card">
+                        <span class="dashboard-summary-label">Sync Agenda</span>
+                        <strong class="dashboard-summary-value ${syncClass}">${escapeHtml(syncLabel)}</strong>
+                        <span class="dashboard-summary-meta">${escapeHtml(!calendarSync.db_columns_ready ? 'Banco sem colunas de sync' : (clientSync.fallback_active ? `${clientSync.fallback_entries} fallback(s) local(is)` : 'PWA e web alinhados'))}</span>
+                    </div>
                 `;
             }
 
@@ -2303,6 +2332,8 @@
                 const latencyCurrent = metrics.latency_current || { labels: [], values: [] };
                 const db = metrics.db || {};
                 const alerts = metrics.alerts || {};
+                const calendarSync = metrics.calendar_sync || {};
+                const clientSync = metrics.client_sync || {};
                 const failedEndpoints = Array.isArray(metrics.failed_endpoints) ? metrics.failed_endpoints : [];
 
                 const status = String(summary.status || 'no_data').toLowerCase();
@@ -2339,6 +2370,12 @@
                     : alerts.last_kind === 'failure'
                         ? 'Telegram: alerta'
                         : 'Telegram: sem disparo';
+                const syncChipClass = !calendarSync.db_columns_ready || clientSync.fallback_active ? 'bad' : 'ok';
+                const syncChipLabel = !calendarSync.db_columns_ready
+                    ? 'Agenda: schema ausente'
+                    : clientSync.fallback_active
+                        ? 'Agenda: pwa desalinhado'
+                        : 'Agenda: sincronizada';
                 const failuresHtml = failedEndpoints.length
                     ? failedEndpoints.slice(0, 6).map((item) => `
                         <div class="dashboard-health-list-item">
@@ -2354,6 +2391,7 @@
                         <span class="dashboard-status-chip ${statusChipClass}"><i class="fas fa-shield-halved"></i>${escapeHtml(statusLabel)}</span>
                         <span class="dashboard-status-chip ${alertChipClass}"><i class="fas fa-paper-plane"></i>${escapeHtml(alertChipLabel)}</span>
                         <span class="dashboard-status-chip ${criticalFailures > 0 ? 'bad' : 'ok'}"><i class="fas fa-triangle-exclamation"></i>${criticalFailures} falha(s) critica(s)</span>
+                        <span class="dashboard-status-chip ${syncChipClass}"><i class="fas fa-mobile-screen-button"></i>${escapeHtml(syncChipLabel)}</span>
                     </div>
                     <div class="dashboard-health-grid">
                         <div class="dashboard-health-panel">
@@ -2375,6 +2413,21 @@
                                 <div class="dashboard-health-list-item">
                                     <strong>Politica de disparo</strong>
                                     <span>O monitor alerta quando entra em atencao, muda a assinatura da falha ou se recupera.</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dashboard-health-panel">
+                            <h5>Sincronizacao Agenda/PWA</h5>
+                            <div class="dashboard-health-list">
+                                <div class="dashboard-health-list-item">
+                                    <strong>Backend</strong>
+                                    <span>${escapeHtml(calendarSync.db_columns_ready ? 'Banco pronto para sincronizar check_status/check_updated_at' : 'Banco sem suporte completo de sincronizacao')}</span>
+                                    <span>${escapeHtml(calendarSync.error || `Amostra: ${calendarSync.sample_checked || 0}/${calendarSync.sample_size || 0} evento(s) com status salvo`)}</span>
+                                </div>
+                                <div class="dashboard-health-list-item">
+                                    <strong>Este dispositivo / PWA</strong>
+                                    <span>${escapeHtml(clientSync.fallback_active ? `Existem ${clientSync.fallback_entries} registro(s) locais em fallback` : 'Sem fallback local pendente')}</span>
+                                    <span>${escapeHtml(clientSync.local_entries ? `${clientSync.local_entries} registro(s) locais de checagem no cache` : 'Nenhum cache local de checagem encontrado')}</span>
                                 </div>
                             </div>
                         </div>
@@ -2861,13 +2914,16 @@
                             const ev = dayEvents[idx];
                             if (!ev || !status) return;
                             try {
-                                await this.setCalendarEventCheckStatus(ev, status);
+                                const result = await this.setCalendarEventCheckStatus(ev, status);
                                 await Promise.all([
                                     this.refreshCalendarCheckState(),
                                     loadSelectedMonth()
                                 ]);
                                 overlay.remove();
                                 openDayEventsModal(dateStr);
+                                if (result && !result.persistedInDb && result.localOnlyReason) {
+                                    setTimeout(() => alert(result.localOnlyReason), 60);
+                                }
                             } catch (err) {
                                 alert(err.message || 'Falha ao salvar checagem.');
                             }
@@ -3880,14 +3936,48 @@
                     String(ev.category || '').trim()
                 ].join('|');
             }
-            getCalendarEventCheckStatus(ev) {
+            normalizeCalendarCheckStatusEntry(entry) {
+                if (!entry) return null;
+                if (typeof entry === 'string') {
+                    return { status: entry, updated_at: null, source: 'local' };
+                }
+                if (typeof entry === 'object') {
+                    return {
+                        status: entry.status || null,
+                        updated_at: entry.updated_at || null,
+                        source: entry.source || 'local'
+                    };
+                }
+                return null;
+            }
+            calendarCheckTimestampValue(value) {
+                if (!value) return 0;
+                const ts = Date.parse(String(value));
+                return Number.isFinite(ts) ? ts : 0;
+            }
+            resolveCalendarCheckState(ev) {
                 const dbStatus = ev && typeof ev === 'object' ? ev.check_status : null;
-                if (dbStatus === 'confirmado' || dbStatus === 'nao_confirmado') return dbStatus;
+                const dbUpdatedAt = ev && typeof ev === 'object' ? ev.check_updated_at : null;
                 const key = this.calendarCheckEventKey(ev);
-                if (!key) return null;
-                const item = this.calendarCheckStatuses ? this.calendarCheckStatuses[key] : null;
-                const status = item && typeof item === 'object' ? item.status : item;
-                return status === 'confirmado' || status === 'nao_confirmado' ? status : null;
+                const localEntry = key ? this.normalizeCalendarCheckStatusEntry(this.calendarCheckStatuses ? this.calendarCheckStatuses[key] : null) : null;
+                const localStatus = localEntry?.status;
+                const dbValid = dbStatus === 'confirmado' || dbStatus === 'nao_confirmado';
+                const localValid = localStatus === 'confirmado' || localStatus === 'nao_confirmado';
+
+                if (dbValid && localValid) {
+                    const dbTs = this.calendarCheckTimestampValue(dbUpdatedAt);
+                    const localTs = this.calendarCheckTimestampValue(localEntry?.updated_at);
+                    if (dbTs >= localTs) {
+                        return { status: dbStatus, updated_at: dbUpdatedAt, source: 'db', key };
+                    }
+                    return { status: localStatus, updated_at: localEntry?.updated_at, source: 'local', key };
+                }
+                if (dbValid) return { status: dbStatus, updated_at: dbUpdatedAt, source: 'db', key };
+                if (localValid) return { status: localStatus, updated_at: localEntry?.updated_at, source: 'local', key };
+                return { status: null, updated_at: null, source: null, key };
+            }
+            getCalendarEventCheckStatus(ev) {
+                return this.resolveCalendarCheckState(ev).status;
             }
             async setCalendarEventCheckStatus(ev, status) {
                 if (status !== 'confirmado' && status !== 'nao_confirmado') return;
@@ -3895,6 +3985,7 @@
                 if (!key) return;
                 const updatedAt = new Date().toISOString();
                 let persistedInDb = false;
+                let localOnlyReason = null;
                 if (ev && ev.id != null && String(ev.id).trim() !== '') {
                     try {
                         const res = await fetch('/api/calendario', {
@@ -3913,7 +4004,8 @@
                                 msg.includes("Could not find the 'check_status' column") ||
                                 msg.includes("check_status");
                             if (!isMissingCheckColumn) throw new Error(data.error || 'Erro ao salvar checagem no banco');
-                            console.warn('Coluna check_status ausente no banco; mantendo fallback local ate aplicar migration.');
+                            localOnlyReason = 'Banco sem as colunas de sincronizacao da agenda. Aplique docs/sql_calendario_check_status.sql para sincronizar entre PWA e web.';
+                            console.warn('Coluna check_status ausente no banco; fallback local ativo apenas neste dispositivo.');
                         } else if (data && typeof data === 'object') {
                             ev.check_status = data.check_status || status;
                             ev.check_updated_at = data.check_updated_at || updatedAt;
@@ -3931,12 +4023,13 @@
                         ev.check_updated_at = updatedAt;
                     }
                 }
-                this.calendarCheckStatuses[key] = { status, updated_at: updatedAt };
+                this.calendarCheckStatuses[key] = { status, updated_at: updatedAt, source: persistedInDb ? 'db_mirror' : 'local_fallback' };
                 this.saveCalendarCheckStatuses();
                 if (!persistedInDb) {
                     ev.check_status = status;
                     ev.check_updated_at = updatedAt;
                 }
+                return { persistedInDb, localOnlyReason };
             }
             isCalendarEventOverdueForCheck(ev) {
                 const eventDate = this.normalizeIsoDate(ev && ev.date);

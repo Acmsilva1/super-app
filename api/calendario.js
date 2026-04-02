@@ -28,6 +28,40 @@ export default async function handler(req, res) {
       });
     }
 
+    if (query.action === 'sync_status') {
+      try {
+        const { data, error } = await supabase
+          .from('tb_calendario')
+          .select('id, check_status, check_updated_at')
+          .limit(5);
+
+        if (error) throw error;
+
+        const rows = Array.isArray(data) ? data : [];
+        const checkedCount = rows.filter((row) => row?.check_status === 'confirmado' || row?.check_status === 'nao_confirmado').length;
+        return json(res, 200, {
+          db_columns_ready: true,
+          sample_size: rows.length,
+          sample_checked: checkedCount,
+          status: 'synced'
+        });
+      } catch (error) {
+        const message = String(error?.message || error);
+        const missingColumns =
+          message.includes("Could not find the 'check_status' column") ||
+          message.includes("check_status") ||
+          message.includes("check_updated_at");
+
+        return json(res, 200, {
+          db_columns_ready: false,
+          sample_size: 0,
+          sample_checked: 0,
+          status: missingColumns ? 'schema_missing' : 'error',
+          error: message
+        });
+      }
+    }
+
     const monthMatch = url.match(/\/view\/(\d+)/);
     const month = query.month || (monthMatch ? monthMatch[1] : null);
     
