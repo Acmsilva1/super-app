@@ -39,7 +39,7 @@ super-app-1/
 
 ### Aderencia ao padrao de arquitetura
 
-O arquivo [`arquitetura_e_documentacao padrao.md`](/c:/super%20app/super-app-1/arquitetura_e_documentacao%20padrao.md) define um alvo de arquitetura baseado em vertical slicing com `domain`, `application`, `infrastructure` e `features/[feature_name]/README.md`.
+O projeto segue uma modularizacao por dominio em `modulos/`, com frontend concentrado no `index.html` e APIs serverless em `api/`.
 
 Estado atual observado:
 
@@ -48,7 +48,7 @@ Estado atual observado:
 - Nao ha READMEs tecnicos por feature dentro dos modulos.
 - O frontend principal permanece concentrado em um unico [`index.html`](/c:/super%20app/super-app-1/index.html).
 
-Conclusao: a base atual atende parcialmente a diretriz de modularizacao, mas ainda nao atingiu o padrao documental e estrutural completo definido no arquivo de referencia.
+Conclusao: a base atual atende parcialmente um modelo de modularizacao mais avancado, mas ainda nao esta segmentada por camadas em toda a aplicacao.
 
 ## Pipeline Completa
 
@@ -79,7 +79,7 @@ flowchart TD
 3. Cada endpoint usa `lib/supabase.js` ou `createClient` com credenciais de ambiente para persistir/consultar dados no Supabase.
 4. O workflow `Despertador do Super App` executa `POST /api/notificar` a cada hora para enviar lembretes futuros ao Telegram.
 5. O workflow `Analise do Sistema` executa `POST /api/system-analysis` 3 vezes ao dia para medir disponibilidade e gravar snapshots no Supabase.
-6. O dashboard tecnico consome `GET /api/system-analysis-dashboard` para consolidar indicadores de saude, latencia e volume por modulo.
+6. O dashboard tecnico consome `GET /api/system-analysis-dashboard` para consolidar indicadores de saude, latencia, falhas criticas, alertas e sincronizacao de agenda.
 
 ## Contratos de Interface
 
@@ -90,7 +90,7 @@ flowchart TD
 | `/api/apps` | `GET` | Lista apps exibidos no shell | array de apps |
 | `/api/statistics` | `GET` | Retorna contadores do shell | totais de apps |
 | `/api/roadmap` | `GET` | Roadmap resumido | array de etapas |
-| `/api/system-analysis-dashboard` | `GET` | Dashboard operacional | resumo, latencia, historico, storage |
+| `/api/system-analysis-dashboard` | `GET` | Dashboard operacional | resumo, latencia, historico, storage, alertas e sincronizacao de agenda |
 | `/api/system-analysis-dashboard` | `POST` | Executa analise tecnica | snapshot resumido |
 
 ### Endpoints de dominio
@@ -101,7 +101,7 @@ flowchart TD
 | `/api/financas` | `GET, POST, PATCH, DELETE` | `tb_financas`, leitura auxiliar de `tb_despesas_fixas` | calcula totais e BI |
 | `/api/lista-compras` | `GET, POST, PATCH, DELETE` | `tb_lista_compras` | suporta toggle e reset global |
 | `/api/saude` | `GET, POST, PATCH, DELETE` | `tb_saude_familiar` | opcionalmente monta resumo por membro |
-| `/api/calendario` | `GET, POST, PATCH, DELETE` | `tb_calendario` | GET aceita `action=config` e `action=view` |
+| `/api/calendario` | `GET, POST, PATCH, DELETE` | `tb_calendario` | GET aceita `action=config`, `action=view` e `action=sync_status` |
 | `/api/fluxograma` | `GET, POST, PATCH, DELETE` | `tb_fluxograma_projetos` | persistencia de projetos |
 | `/api/notificar` | `POST` | `tb_calendario`, `tb_saude_familiar` | envia lembretes Telegram |
 
@@ -166,18 +166,28 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - `GET /api/apps`
 - `GET /api/statistics`
 - `GET /api/roadmap`
+- `GET /api/despesas-fixas?mes_ano=YYYY-MM`
+- `GET /api/financas?bi=1&mes_ano=YYYY-MM`
+- `GET /api/lista-compras`
 - `GET /api/saude`
-- consulta `head` de conectividade no Supabase
+- `GET /api/calendario?action=config`
+- `GET /api/fluxograma`
+- `GET /api/system-analysis-dashboard`
+- consulta de conectividade no Supabase
 
 ### Indicadores gerados
 
 - `status`
 - `uptime_percent`
 - `error_rate_percent`
+- `critical_failures`
 - `p50_latency_ms`
 - `p95_latency_ms`
 - `p99_latency_ms`
 - historico de snapshots
+- falhas por endpoint no ultimo snapshot
+- estado de alerta Telegram (falha/recuperacao)
+- diagnostico de sincronizacao agenda (`calendar_sync`)
 - volume por aplicacao/tabela
 
 ## Compliance e Seguranca
@@ -194,6 +204,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - O padrao arquitetural alvo ainda nao foi materializado em `src/modules/.../features/...`.
 - Existem documentos e arquivos com codificacao inconsistente, visivel em acentos quebrados.
 - O repositorio ainda depende de um frontend monolitico em [`index.html`](/c:/super%20app/super-app-1/index.html), o que dificulta segmentacao por feature.
+- A sincronizacao completa do check da agenda entre PWA e web depende da migration `docs/sql_calendario_check_status.sql` no Supabase.
 
 ## Ajustes Aplicados
 
@@ -204,7 +215,6 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 
 - Documento mestre: [`README.md`](/c:/super%20app/super-app-1/README.md)
 - Checkpoint operacional: [`checkpoint.md`](/c:/super%20app/super-app-1/checkpoint.md)
-- Diretriz de arquitetura: [`arquitetura_e_documentacao padrao.md`](/c:/super%20app/super-app-1/arquitetura_e_documentacao%20padrao.md)
 - Diagrama auxiliar existente: [`docs/fluxograma-rastreabilidade-migracao-aplicacoes-ativas.md`](/c:/super%20app/super-app-1/docs/fluxograma-rastreabilidade-migracao-aplicacoes-ativas.md)
 
 ## Resumo da Arquitetura Adotada
