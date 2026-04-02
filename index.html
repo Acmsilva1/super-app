@@ -139,6 +139,183 @@
         [data-theme="dark"] .app-modal { background: var(--bg-white); color: var(--text-dark); }
         [data-theme="dark"] .app-list li:hover { background: var(--bg-gray); }
 
+        [data-theme="light"] body {
+            background:
+                radial-gradient(1200px 800px at 8% -14%, rgba(56, 189, 248, 0.24), transparent 44%),
+                radial-gradient(1100px 760px at 100% 0%, rgba(37, 99, 235, 0.18), transparent 50%),
+                linear-gradient(145deg, #eff6ff 0%, #e2ebff 35%, #dce8ff 70%, #edf4ff 100%);
+            color: #0f172a;
+        }
+        [data-theme="light"] body::before {
+            background:
+                linear-gradient(115deg, rgba(14, 165, 233, 0.12), transparent 32%),
+                linear-gradient(290deg, rgba(59, 130, 246, 0.1), transparent 36%);
+            opacity: 0.86;
+        }
+        [data-theme="light"] body::after {
+            background-image:
+                linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+        }
+        [data-theme="light"] header {
+            background: linear-gradient(100deg, rgba(239, 246, 255, 0.94), rgba(226, 238, 255, 0.95));
+            border-bottom-color: rgba(14, 116, 144, 0.22);
+            color: #0f172a;
+        }
+        [data-theme="light"] .logo-text p { color: #334155; }
+        [data-theme="light"] nav a {
+            color: #1e3a8a;
+        }
+        [data-theme="light"] nav a:hover {
+            color: #0f172a;
+            background: rgba(56, 189, 248, 0.2);
+            border-color: rgba(14, 116, 144, 0.25);
+        }
+        [data-theme="light"] nav a.nav-link.active {
+            color: #0f172a;
+            background: rgba(14, 165, 233, 0.22);
+            border-color: rgba(14, 116, 144, 0.3);
+        }
+        [data-theme="light"] .header-btn {
+            background: rgba(255, 255, 255, 0.58);
+            border-color: rgba(148, 163, 184, 0.5);
+            color: #0f172a;
+        }
+        [data-theme="light"] .header-btn:hover {
+            background: rgba(186, 230, 253, 0.5);
+            border-color: rgba(14, 116, 144, 0.42);
+            box-shadow: 0 8px 18px rgba(14, 116, 144, 0.2);
+        }
+        [data-theme="light"] .hero {
+            background:
+                radial-gradient(130% 170% at -10% -28%, rgba(56, 189, 248, 0.3), transparent 42%),
+                radial-gradient(110% 150% at 120% 8%, rgba(37, 99, 235, 0.22), transparent 48%),
+                linear-gradient(110deg, rgba(255, 255, 255, 0.84), rgba(232, 244, 255, 0.9));
+            color: #0f172a;
+            border-color: rgba(125, 154, 196, 0.34);
+        }
+        [data-theme="light"] .hero h2 { color: #0f172a; text-shadow: 0 8px 24px rgba(59, 130, 246, 0.16); }
+        [data-theme="light"] .hero p { color: #334155; }
+        [data-theme="light"] .dashboard-last-update { color: #475569; }
+        [data-theme="light"] .dashboard-controls label { color: #334155; }
+        [data-theme="light"] .dashboard-profile-select {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0f172a;
+            border-color: rgba(148, 163, 184, 0.55);
+        }
+        [data-theme="light"] .dashboard-chart-card {
+            background: linear-gradient(155deg, rgba(255, 255, 255, 0.9), rgba(236, 245, 255, 0.92));
+            border-color: rgba(125, 154, 196, 0.38);
+            box-shadow: 0 14px 30px rgba(59, 130, 246, 0.08);
+        }
+        [data-theme="light"] .dashboard-chart-card:hover {
+            border-color: rgba(56, 189, 248, 0.5);
+            box-shadow: 0 18px 38px rgba(59, 130, 246, 0.14);
+        }
+        [data-theme="light"] .dashboard-chart-title { color: #0f172a; }
+        [data-theme="light"] .dashboard-summary-card {
+            background: rgba(255, 255, 255, 0.88);
+            border-color: rgba(148, 163, 184, 0.45);
+        }
+        [data-theme="light"] .dashboard-summary-label,
+        [data-theme="light"] .dashboard-summary-meta { color: #475569; }
+        [data-theme="light"] .dashboard-summary-value { color: #0f172a; }
+        [data-theme="light"] .dashboard-health-report {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.86) 0%, rgba(240, 249, 255, 0.94) 100%);
+            border-color: #93c5fd;
+        }
+        [data-theme="light"] .app-card {
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(233, 245, 255, 0.92));
+            border-color: rgba(125, 154, 196, 0.42);
+            color: #0f172a;
+        }
+        [data-theme="light"] .app-card::before {
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.18), transparent 64%);
+        }
+        [data-theme="light"] .app-tech-tag {
+            color: #1e3a8a;
+            border-color: rgba(59, 130, 246, 0.32);
+            background: rgba(191, 219, 254, 0.55);
+        }
+        [data-theme="light"] .app-window {
+            background: linear-gradient(165deg, rgba(255, 255, 255, 0.94), rgba(234, 246, 255, 0.96));
+            border-color: rgba(125, 154, 196, 0.42);
+        }
+        [data-theme="light"] .window-header {
+            background: linear-gradient(110deg, rgba(56, 189, 248, 0.28), rgba(59, 130, 246, 0.26));
+            border-bottom-color: rgba(125, 154, 196, 0.5);
+            color: #0f172a;
+        }
+        [data-theme="light"] .window-title { color: #0f172a; }
+        [data-theme="light"] .window-subtitle { color: #334155; }
+        [data-theme="light"] .window-btn {
+            background: rgba(255, 255, 255, 0.56);
+            border-color: rgba(125, 154, 196, 0.52);
+            color: #0f172a;
+        }
+        [data-theme="light"] .window-content {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(238, 248, 255, 0.95));
+            color: #0f172a;
+        }
+        [data-theme="light"] .app-form {
+            border-bottom-color: rgba(148, 163, 184, 0.36);
+        }
+        [data-theme="light"] .app-form input,
+        [data-theme="light"] .app-form select,
+        [data-theme="light"] .app-form textarea {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(148, 163, 184, 0.56);
+            color: #0f172a;
+        }
+        [data-theme="light"] .app-form input:focus,
+        [data-theme="light"] .app-form select:focus,
+        [data-theme="light"] .app-form textarea:focus {
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.24);
+        }
+        [data-theme="light"] .app-btn {
+            background: linear-gradient(120deg, rgba(186, 230, 253, 0.9), rgba(147, 197, 253, 0.88));
+            color: #0f172a;
+            border-color: rgba(56, 189, 248, 0.52);
+        }
+        [data-theme="light"] .app-btn:hover {
+            background: linear-gradient(120deg, rgba(125, 211, 252, 0.95), rgba(96, 165, 250, 0.9));
+            color: #0f172a;
+        }
+        [data-theme="light"] .app-btn-secondary {
+            background: rgba(241, 245, 249, 0.96);
+            color: #334155;
+            border-color: rgba(148, 163, 184, 0.55);
+        }
+        [data-theme="light"] .app-btn-secondary:hover {
+            background: rgba(226, 232, 240, 0.98);
+            border-color: rgba(100, 116, 139, 0.52);
+        }
+        [data-theme="light"] .app-list li {
+            border-bottom-color: rgba(148, 163, 184, 0.35);
+        }
+        [data-theme="light"] .app-list li:hover { background: rgba(226, 232, 240, 0.5); }
+        [data-theme="light"] .app-list-actions button {
+            background: rgba(255, 255, 255, 0.9);
+            color: #1e293b;
+            border-color: rgba(148, 163, 184, 0.5);
+        }
+        [data-theme="light"] .app-modal-overlay { background: rgba(15, 23, 42, 0.24); }
+        [data-theme="light"] .app-modal {
+            background: linear-gradient(165deg, rgba(255, 255, 255, 0.97), rgba(232, 244, 255, 0.95));
+            border-color: rgba(125, 154, 196, 0.48);
+            color: #0f172a;
+        }
+        [data-theme="light"] .empty-state {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(233, 245, 255, 0.9));
+            border-color: rgba(56, 189, 248, 0.36);
+        }
+        @media (max-width: 768px) {
+            [data-theme="light"] nav {
+                background: linear-gradient(100deg, rgba(239, 246, 255, 0.98), rgba(226, 238, 255, 0.98));
+            }
+        }
+
         .pwa-update-banner {
             position: fixed;
             bottom: 0;
@@ -755,22 +932,22 @@
 
         .apps-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-            gap: 0.75rem;
+            grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+            gap: 0.95rem;
             margin-top: 1rem;
             animation: riseIn 0.45s ease both;
         }
 
         @media (min-width: 480px) {
             .apps-grid {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-                gap: 1rem;
+                grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+                gap: 1.05rem;
             }
         }
 
         @media (min-width: 768px) {
             .apps-grid {
-                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
             }
         }
 
@@ -778,7 +955,8 @@
             background: linear-gradient(160deg, rgba(16, 30, 56, 0.86), rgba(10, 20, 38, 0.9));
             border: 1px solid rgba(98, 136, 194, 0.34);
             border-radius: 1rem;
-            padding: 0.85rem 0.72rem;
+            min-height: 144px;
+            padding: 1rem 0.85rem 0.9rem;
             box-shadow: var(--shadow-sm);
             transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, filter 0.22s ease;
             cursor: pointer;
@@ -815,14 +993,14 @@
         }
 
         .app-icon-box {
-            width: 2.75rem;
-            height: 2.75rem;
+            width: 3.1rem;
+            height: 3.1rem;
             background: linear-gradient(135deg, #22d3ee, #0ea5e9 58%, #2563eb);
             border-radius: 0.75rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.125rem;
+            font-size: 1.2rem;
             color: white;
             transition: transform 0.25s ease, box-shadow 0.25s ease;
             box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
@@ -863,23 +1041,23 @@
         .calendar-check-badge.denied { background: #dc2626; }
 
         .app-title {
-            font-size: 0.75rem;
+            font-size: 0.83rem;
             font-weight: 700;
             margin: 0;
-            line-height: 1.2;
+            line-height: 1.28;
             line-clamp: 2;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
         .app-tech-tag {
-            margin-top: 0.35rem;
-            font-size: 0.62rem;
+            margin-top: 0.42rem;
+            font-size: 0.66rem;
             font-weight: 700;
             letter-spacing: 0.05em;
             text-transform: uppercase;
             color: #9bc2f8;
-            padding: 0.14rem 0.4rem;
+            padding: 0.18rem 0.48rem;
             border-radius: 999px;
             border: 1px solid rgba(93, 132, 191, 0.35);
             background: rgba(26, 46, 76, 0.55);
@@ -887,6 +1065,23 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        @media (max-width: 420px) {
+            .apps-grid {
+                grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+                gap: 0.8rem;
+            }
+            .app-card {
+                min-height: 132px;
+                padding: 0.88rem 0.72rem 0.82rem;
+            }
+            .app-icon-box {
+                width: 2.8rem;
+                height: 2.8rem;
+            }
+            .app-title {
+                font-size: 0.78rem;
+            }
         }
         .app-card {
             animation: appCardIn 0.42s cubic-bezier(.22,.91,.33,1) both;
@@ -1617,15 +1812,121 @@
         .app-list-actions { display: flex; gap: 0.5rem; }
         .app-list-actions button { padding: 0.25rem 0.5rem; font-size: 0.75rem; cursor: pointer; border-radius: 0.25rem; border: 1px solid rgba(99, 139, 198, 0.34); background: rgba(12, 24, 46, 0.8); color: #dceafe; }
         .app-list-actions button:hover { background: rgba(22, 40, 68, 0.92); border-color: rgba(56, 189, 248, 0.5); }
-        .app-totais { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
-        .app-totais .totais-card { padding: 0.75rem; border-radius: 0.5rem; background: var(--bg-light); text-align: center; }
-        .app-totais .totais-card .val { font-weight: 700; font-size: 1.125rem; }
-        .app-totais .totais-card--despesas { text-align: left; min-width: 0; }
-        .app-totais .totais-card--despesas .despesas-titulo { text-align: center; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted, #9ca3af); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.02em; }
-        .app-totais .totais-card--despesas .despesa-linha { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.35rem 0; border-top: 1px solid var(--border-color); font-size: 0.8125rem; }
-        .app-totais .totais-card--despesas .despesa-linha:first-of-type { border-top: none; padding-top: 0; }
-        .app-totais .totais-card--despesas .despesa-linha .despesa-nome { color: var(--text, #e5e7eb); flex: 1; }
-        .app-totais .totais-card--despesas .despesa-linha .val { font-size: 1rem; white-space: nowrap; }
+        .app-totais {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.15rem;
+            align-items: stretch;
+        }
+        .app-totais .totais-card {
+            grid-column: span 4;
+            min-height: 132px;
+            padding: 1rem 1.05rem;
+            border-radius: 0.85rem;
+            border: 1px solid rgba(99, 139, 198, 0.35);
+            background: linear-gradient(160deg, rgba(15, 30, 55, 0.86), rgba(8, 19, 38, 0.92));
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0.35rem;
+            text-align: center;
+        }
+        .app-totais .totais-card .val {
+            font-weight: 800;
+            font-size: 1.45rem;
+            line-height: 1.2;
+            letter-spacing: 0.01em;
+        }
+        .app-totais .totais-card .stat-label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #9fb4d6;
+        }
+        .app-totais .totais-card--despesas {
+            text-align: left;
+            min-width: 0;
+            justify-content: flex-start;
+            gap: 0.55rem;
+        }
+        .app-totais .totais-card--despesas .despesas-titulo {
+            text-align: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #9fb4d6;
+            margin-bottom: 0.15rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .app-totais .totais-card--despesas .despesas-grid {
+            display: grid;
+            gap: 0.45rem;
+        }
+        .app-totais .totais-card--despesas .despesa-linha {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.5rem 0.55rem;
+            border: 1px solid rgba(99, 139, 198, 0.35);
+            border-radius: 0.55rem;
+            background: rgba(17, 32, 58, 0.72);
+            font-size: 0.84rem;
+        }
+        .app-totais .totais-card--despesas .despesa-linha .despesa-nome {
+            color: var(--text, #e5e7eb);
+            flex: 1;
+            font-weight: 600;
+        }
+        .app-totais .totais-card--despesas .despesa-linha .val {
+            font-size: 1.03rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        @media (max-width: 1024px) {
+            .app-totais .totais-card {
+                min-height: 120px;
+            }
+        }
+        @media (max-width: 820px) {
+            .app-totais {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .app-totais .totais-card {
+                grid-column: span 1;
+            }
+            .app-totais .totais-card--despesas {
+                grid-column: span 2;
+            }
+        }
+        @media (max-width: 540px) {
+            .app-totais {
+                grid-template-columns: 1fr;
+            }
+            .app-totais .totais-card,
+            .app-totais .totais-card--despesas {
+                grid-column: span 1;
+            }
+            .app-totais .totais-card {
+                min-height: 108px;
+            }
+        }
+        [data-theme="light"] .app-totais .totais-card {
+            border-color: rgba(148, 163, 184, 0.48);
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(232, 244, 255, 0.92));
+        }
+        [data-theme="light"] .app-totais .totais-card .stat-label { color: #475569; }
+        [data-theme="light"] .app-totais .totais-card--despesas .despesas-titulo { color: #475569; }
+        [data-theme="light"] .app-totais .totais-card--despesas .despesa-linha {
+            border-color: rgba(148, 163, 184, 0.5);
+            background: rgba(241, 245, 249, 0.8);
+        }
+        [data-theme="light"] .app-totais .totais-card--despesas .despesa-linha .despesa-nome {
+            color: #1e293b;
+        }
         .app-checkbox { margin-right: 0.5rem; cursor: pointer; }
         .app-list li.comprado { opacity: 0.7; }
         .app-list li.comprado .item-text { text-decoration: line-through; }
@@ -3301,9 +3602,9 @@
                         <select id="df-ano">${anos.map(a => '<option value="'+a+'" '+(a===ano?'selected':'')+'>'+a+'</option>').join('')}</select>
                     </div>
                     <div class="app-totais" style="margin-bottom:1rem;">
-                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#22c55e;font-size:1.125rem">R$ ${receitasFinancas.toFixed(2)}</div><div class="stat-label">Receitas (Finanças)</div></div>
-                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="color:#2563eb;font-size:1.125rem">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total geral (mês)</div></div>
-                        <div class="totais-card" style="flex:1;max-width:160px;"><div class="val" style="font-size:1.125rem;color:${margem >= 0 ? '#16a34a' : '#dc2626'}">R$ ${margem.toFixed(2)}</div><div class="stat-label">Margem</div></div>
+                        <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${receitasFinancas.toFixed(2)}</div><div class="stat-label">Receitas (Finanças)</div></div>
+                        <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total geral (mês)</div></div>
+                        <div class="totais-card"><div class="val" style="color:${margem >= 0 ? '#16a34a' : '#dc2626'}">R$ ${margem.toFixed(2)}</div><div class="stat-label">Margem</div></div>
                     </div>
                     <div class="app-form">
                         <input type="hidden" id="df-edit-id" value="${escapeHtml(editId)}" />
@@ -3508,8 +3809,10 @@
                         <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${receitas.toFixed(2)}</div><div class="stat-label">Receitas</div></div>
                         <div class="totais-card totais-card--despesas">
                             <div class="despesas-titulo">Despesas</div>
-                            <div class="despesa-linha"><span class="despesa-nome">Despesas fixas</span><span class="val" style="color:#b91c1c">R$ ${despesasFixas.toFixed(2)}</span></div>
-                            <div class="despesa-linha"><span class="despesa-nome">Despesas variáveis</span><span class="val" style="color:#dc2626">R$ ${despesasVariaveis.toFixed(2)}</span></div>
+                            <div class="despesas-grid">
+                                <div class="despesa-linha"><span class="despesa-nome">Despesas fixas</span><span class="val" style="color:#f87171">R$ ${despesasFixas.toFixed(2)}</span></div>
+                                <div class="despesa-linha"><span class="despesa-nome">Despesas variáveis</span><span class="val" style="color:#ef4444">R$ ${despesasVariaveis.toFixed(2)}</span></div>
+                            </div>
                         </div>
                         <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${liquido.toFixed(2)}</div><div class="stat-label">Líquido</div></div>
                     </div>
@@ -3667,21 +3970,18 @@
                                 const label = formatMoneyLabel(rawValue);
                                 const pos = element.tooltipPosition();
                                 if (chart.config.type === 'bar') {
-                                    const itemCounts = Array.isArray(dataset && dataset.itemCounts) ? dataset.itemCounts : [];
-                                    const countValue = Number(itemCounts[index] || 0);
-                                    const countLabelLong = `${countValue} ${countValue === 1 ? 'item' : 'itens'}`;
-                                    const countLabelShort = String(countValue);
                                     const centerX = (Number(element.x || 0) + Number(element.base || 0)) / 2;
                                     const barWidth = Math.abs(Number(element.x || 0) - Number(element.base || 0));
-                                    ctx.textAlign = 'center';
-                                    ctx.fillStyle = '#dbeafe';
-                                    const textToDraw = ctx.measureText(countLabelLong).width <= Math.max(barWidth - 8, 0)
-                                        ? countLabelLong
-                                        : countLabelShort;
-                                    ctx.fillText(textToDraw, centerX, pos.y);
-                                    ctx.textAlign = 'left';
-                                    ctx.fillStyle = isDarkTheme ? '#ffffff' : '#111827';
-                                    ctx.fillText(label, pos.x + 8, pos.y);
+                                    const labelWidth = ctx.measureText(label).width;
+                                    if (labelWidth <= Math.max(barWidth - 12, 0)) {
+                                        ctx.textAlign = 'center';
+                                        ctx.fillStyle = '#dbeafe';
+                                        ctx.fillText(label, centerX, pos.y);
+                                    } else {
+                                        ctx.textAlign = 'left';
+                                        ctx.fillStyle = isDarkTheme ? '#ffffff' : '#111827';
+                                        ctx.fillText(label, pos.x + 8, pos.y);
+                                    }
                                 } else {
                                     ctx.textAlign = 'center';
                                     ctx.fillStyle = isDarkTheme ? '#ffffff' : '#111827';
@@ -3707,13 +4007,11 @@
                     if (ctxBar && tabelaGastos.length > 0) {
                         const labelsBar = tabelaGastos.map(x => x[0]);
                         const valuesBar = tabelaGastos.map(x => x[1]);
-                        const contagemItensCategoria = bi.contagem_itens_categoria || {};
-                        const itemCountsBar = labelsBar.map((label) => Number(contagemItensCategoria[label] || 0));
                         el._chartBar = new Chart(ctxBar, {
                             type: 'bar',
                             data: {
                                 labels: labelsBar,
-                                datasets: [{ label: 'Gasto (R$)', data: valuesBar, itemCounts: itemCountsBar, backgroundColor: '#2563eb', borderRadius: 4 }]
+                                datasets: [{ label: 'Gasto (R$)', data: valuesBar, backgroundColor: '#2563eb', borderRadius: 4 }]
                             },
                             options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
                             plugins: [inlineValueLabelsPlugin]
