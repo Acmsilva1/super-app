@@ -19,6 +19,84 @@ function fluxRoot() {
     return document.getElementById("fluxograma-root");
 }
 
+const FLUX_PALETTE = [
+    "#ffffff", "#d1d5db", "#fde68a", "#f59e0b",
+    "#f97316", "#ef4444", "#ec4899", "#a855f7",
+    "#6366f1", "#3b82f6", "#06b6d4", "#14b8a6",
+    "#22c55e", "#84cc16", "#65a30d", "#1f2937"
+];
+const DEFAULT_ACTIVE_COLOR = "#3b82f6";
+
+function normalizeHexColor(value, fallback = "#000000") {
+    const input = String(value || "").trim().toLowerCase();
+    if (!/^#?[0-9a-f]{3}([0-9a-f]{3})?$/.test(input)) return fallback;
+    let hex = input.startsWith("#") ? input : `#${input}`;
+    if (hex.length === 4) hex = `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
+    return hex;
+}
+
+function ensureActiveColor() {
+    state.activeColor = normalizeHexColor(state.activeColor || DEFAULT_ACTIVE_COLOR, DEFAULT_ACTIVE_COLOR);
+}
+
+function isPaletteColor(value) {
+    const hex = normalizeHexColor(value, "");
+    return FLUX_PALETTE.includes(hex);
+}
+
+function getSelectedConnection() {
+    return state.selectedConnectionIndex !== null ? state.connections[state.selectedConnectionIndex] : null;
+}
+
+function getSelectionColor() {
+    const selectedConn = getSelectedConnection();
+    if (selectedConn) return normalizeHexColor(selectedConn.color || "#000000", "#000000");
+    const t = getSelectedText();
+    if (t) return normalizeHexColor(t.color || "#1a1f28", "#1a1f28");
+    const n = getSelectedNode();
+    if (n) return normalizeHexColor(n.color || "#ffffff", "#ffffff");
+    if (state.isConnecting) return normalizeHexColor(state.activeColor || DEFAULT_ACTIVE_COLOR, DEFAULT_ACTIVE_COLOR);
+    return null;
+}
+
+function renderColorPalette() {
+    const container = el("colorPalette");
+    if (!container) return;
+    container.innerHTML = FLUX_PALETTE.map((color) =>
+        `<button type="button" class="flux-color-swatch" data-flux-color="${color}" aria-label="Cor ${color}" title="${color}" style="background:${color};"></button>`
+    ).join("");
+}
+
+function syncColorPaletteUI() {
+    ensureActiveColor();
+    const paletteEl = el("colorPalette");
+    const currentSwatchEl = el("currentColorSwatch");
+    const currentTextEl = el("currentColorText");
+    const activeSwatchEl = el("activeColorSwatch");
+    const activeTextEl = el("activeColorText");
+
+    if (!paletteEl || !currentSwatchEl || !currentTextEl || !activeSwatchEl || !activeTextEl) return;
+
+    const current = getSelectionColor();
+    const currentLabel = current
+        ? (isPaletteColor(current) ? current.toUpperCase() : `CUSTOM ${current.toUpperCase()}`)
+        : "Sem selecao";
+    currentSwatchEl.style.background = current || "transparent";
+    currentSwatchEl.classList.toggle("is-empty", !current);
+    currentTextEl.textContent = currentLabel;
+
+    activeSwatchEl.style.background = state.activeColor;
+    activeSwatchEl.classList.remove("is-empty");
+    activeTextEl.textContent = state.activeColor.toUpperCase();
+
+    paletteEl.querySelectorAll("[data-flux-color]").forEach((btn) => {
+        const swatchColor = normalizeHexColor(btn.getAttribute("data-flux-color"), "");
+        const isActive = swatchColor === state.activeColor;
+        btn.classList.toggle("is-active", isActive);
+        btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+}
+
 // --- UI Orchestration Functions ---
 
 function setProjectTitle() {
@@ -151,24 +229,18 @@ function updateDisconnectActionBtn() {
 }
 
 function updateMenuForSelection() {
-    const n = getSelectedNode(), t = getSelectedText(), shapeEl = el("nodeShapeSelect"), colorEl = el("nodeColorInput"), connEl = el("connectionTypeSelect"), selectedConn = state.selectedConnectionIndex !== null ? state.connections[state.selectedConnectionIndex] : null;
-    if (!shapeEl || !colorEl || !connEl) return;
+    ensureActiveColor();
+    const n = getSelectedNode(), shapeEl = el("nodeShapeSelect"), connEl = el("connectionTypeSelect"), selectedConn = getSelectedConnection(), paletteEl = el("colorPalette");
+    if (!shapeEl || !connEl) return;
     shapeEl.disabled = !n || state.isViewMode;
-    colorEl.disabled = state.isViewMode || (!n && !t && !selectedConn && !state.isConnecting);
+    if (paletteEl) paletteEl.classList.toggle("is-disabled", !!state.isViewMode);
     connEl.disabled = state.isViewMode;
     if (selectedConn) {
         connEl.value = selectedConn.type || "arrow";
-        colorEl.value = selectedConn.color || "#000000";
-    } else if (t) {
-        colorEl.value = t.color || "#1a1f28";
-    } else if (state.isConnecting) {
-        colorEl.value = "#000000";
     } else if (n) {
         shapeEl.value = n.shape || "rect";
-        colorEl.value = "#000000";
-    } else {
-        colorEl.value = "#000000";
     }
+    syncColorPaletteUI();
 }
 
 function setSelectedNodeShape(v) {
@@ -182,9 +254,11 @@ function setSelectedNodeShape(v) {
 
 function setSelectedNodeColor(v) {
     if (state.isViewMode) return;
-    const selectedConn = state.selectedConnectionIndex !== null ? state.connections[state.selectedConnectionIndex] : null;
+    const nextColor = normalizeHexColor(v, state.activeColor || DEFAULT_ACTIVE_COLOR);
+    state.activeColor = nextColor;
+    const selectedConn = getSelectedConnection();
     if (selectedConn) {
-        selectedConn.color = v || "#000000";
+        selectedConn.color = nextColor;
         saveToLocalStorage();
         updateUI();
         showStatus("Cor da conexão atualizada.", "success");
@@ -192,18 +266,21 @@ function setSelectedNodeColor(v) {
     }
     const t = getSelectedText();
     if (t) {
-        t.color = v || "#1a1f28";
+        t.color = nextColor;
         saveToLocalStorage();
-        drawCanvas();
-        if (state.isViewMode) renderReadOnlyView();
+        updateUI();
+        showStatus("Cor do texto atualizada.", "success");
         return;
     }
     const n = getSelectedNode();
-    if (!n) return;
-    n.color = v;
+    if (!n) {
+        syncColorPaletteUI();
+        return;
+    }
+    n.color = nextColor;
     saveToLocalStorage();
-    drawCanvas();
-    if (state.isViewMode) renderReadOnlyView();
+    updateUI();
+    showStatus("Cor do nó atualizada.", "success");
 }
 
 function setConnectionType(v) {
@@ -259,24 +336,9 @@ function startConnection() {
     state.disconnectFrom = null;
     state.isConnecting = true;
     state.connectingFrom = state.selectedNode;
-    const colorEl = el("nodeColorInput");
-    if (colorEl) colorEl.value = "#000000";
+    ensureActiveColor();
     updateUI();
     showStatus("Selecione o nó de destino.", "info");
-}
-
-function syncConnectionColorInput() {
-    const colorEl = el("nodeColorInput");
-    if (!colorEl) return;
-    if (state.selectedConnectionIndex !== null && state.connections[state.selectedConnectionIndex]) {
-        colorEl.value = state.connections[state.selectedConnectionIndex].color || "#000000";
-        return;
-    }
-    if (state.isConnecting) {
-        colorEl.value = "#000000";
-        return;
-    }
-    colorEl.value = "#000000";
 }
 
 function cancelConnection() {
@@ -318,7 +380,13 @@ function finishConnection(to) {
     if (!state.isConnecting || state.connectingFrom === null) return;
     if (state.connectingFrom === to) return showStatus("Não é possível conectar um nó a ele mesmo.", "error");
     if (state.connections.some(c => c.from === state.connectingFrom && c.to === to && ((c.type || "arrow") === (el("connectionTypeSelect")?.value || "arrow")))) return showStatus("Essa conexão já existe.", "info");
-    state.connections.push({ from: state.connectingFrom, to, type: (el("connectionTypeSelect")?.value || "arrow"), color: "#000000" });
+    ensureActiveColor();
+    state.connections.push({
+        from: state.connectingFrom,
+        to,
+        type: (el("connectionTypeSelect")?.value || "arrow"),
+        color: state.activeColor
+    });
     state.isConnecting = false;
     state.connectingFrom = null;
     saveToLocalStorage();
@@ -556,7 +624,6 @@ function updateUI() {
     state.connections.forEach(c => { connected.add(c.from); connected.add(c.to); });
     el("totalNodes").textContent = state.nodes.length; el("totalConnections").textContent = state.connections.length; el("connectedNodes").textContent = connected.size;
     updateDisconnectActionBtn(); updateMenuForSelection();
-    syncConnectionColorInput();
     if (state.isViewMode) { hideInlineEditor(false); hideInlineTextEditor(false); el("canvas").style.display = "none"; el("renderView").style.display = "block"; renderReadOnlyView(); }
     else { el("renderView").style.display = "none"; el("canvas").style.display = "block"; positionInlineEditor(); positionInlineTextEditor(); }
 }
@@ -731,23 +798,27 @@ export function bootFluxograma(opts = {}) {
     if (opts.skipLocalLoad !== true) {
         loadFromLocalStorage();
     }
+    ensureActiveColor();
     setProjectTitle();
     resizeCanvas(false);
     setupCanvasInteractions();
+    renderColorPalette();
     const delegChange = (e) => {
         const id = e.target.id;
         if (id === "flux-nodeShapeSelect") setSelectedNodeShape(e.target.value);
         else if (id === "flux-connectionTypeSelect") setConnectionType(e.target.value);
     };
-    const delegInput = (e) => {
-        if (e.target.id === "flux-nodeColorInput") setSelectedNodeColor(e.target.value);
+    const delegClick = (e) => {
+        const btn = e.target.closest("[data-flux-color]");
+        if (!btn || state.isViewMode) return;
+        setSelectedNodeColor(btn.getAttribute("data-flux-color"));
     };
     if (root._fluxDelegChange) root.removeEventListener("change", root._fluxDelegChange);
-    if (root._fluxDelegInput) root.removeEventListener("input", root._fluxDelegInput);
+    if (root._fluxDelegClick) root.removeEventListener("click", root._fluxDelegClick);
     root.addEventListener("change", delegChange);
-    root.addEventListener("input", delegInput);
+    root.addEventListener("click", delegClick);
     root._fluxDelegChange = delegChange;
-    root._fluxDelegInput = delegInput;
+    root._fluxDelegClick = delegClick;
     const renameModal = el("renameModal");
     if (renameModal) {
         if (root._fluxRenameClick) renameModal.removeEventListener("click", root._fluxRenameClick);
@@ -759,7 +830,6 @@ export function bootFluxograma(opts = {}) {
     }
     root._fluxOnResize = onWindowResize;
     window.addEventListener("resize", root._fluxOnResize);
-    syncConnectionColorInput();
     updateUI();
     showStatus("Pronto para criar seu fluxograma.", "success");
 }
