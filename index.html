@@ -380,6 +380,42 @@
             font-size: 0.875rem;
             color: #94a3b8;
         }
+        .dashboard-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 0.85rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        .dashboard-summary-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 0.95rem 1rem;
+            box-shadow: var(--shadow-sm);
+            display: grid;
+            gap: 0.35rem;
+        }
+        .dashboard-summary-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            font-weight: 700;
+        }
+        .dashboard-summary-value {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.1;
+        }
+        .dashboard-summary-meta {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .dashboard-summary-value.is-ok { color: #15803d; }
+        .dashboard-summary-value.is-warn { color: #b45309; }
+        .dashboard-summary-value.is-bad { color: #b91c1c; }
 
         .dashboard-controls {
             margin-top: 0.75rem;
@@ -465,14 +501,120 @@
             gap: 0.45rem;
         }
         .dashboard-health-report-body p { margin: 0; }
+        .dashboard-health-status-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-bottom: 0.35rem;
+        }
+        .dashboard-status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border: 1px solid transparent;
+        }
+        .dashboard-status-chip.ok {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #86efac;
+        }
+        .dashboard-status-chip.warn {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fcd34d;
+        }
+        .dashboard-status-chip.bad {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+        .dashboard-health-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        .dashboard-health-panel {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 14px;
+            padding: 0.85rem;
+            display: grid;
+            gap: 0.5rem;
+        }
+        .dashboard-health-panel h5 {
+            margin: 0;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #334155;
+        }
+        .dashboard-health-list {
+            display: grid;
+            gap: 0.45rem;
+        }
+        .dashboard-health-list-item {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(203, 213, 225, 0.9);
+            border-radius: 12px;
+            padding: 0.6rem 0.7rem;
+            display: grid;
+            gap: 0.18rem;
+        }
+        .dashboard-health-list-item strong {
+            color: #0f172a;
+            font-size: 0.83rem;
+        }
+        .dashboard-health-list-item span {
+            font-size: 0.78rem;
+            color: #475569;
+            line-height: 1.4;
+        }
+        .dashboard-empty-note {
+            font-size: 0.82rem;
+            color: #64748b;
+            padding: 0.2rem 0;
+        }
         [data-theme="dark"] .dashboard-health-report {
             background: linear-gradient(135deg, rgba(37, 99, 235, 0.14) 0%, rgba(15, 23, 42, 0.92) 100%);
             border-color: #1d4ed8;
         }
         [data-theme="dark"] .dashboard-health-report-title { color: #bfdbfe; }
         [data-theme="dark"] .dashboard-health-report-body { color: #e2e8f0; }
+        [data-theme="dark"] .dashboard-summary-card {
+            background: var(--bg-gray);
+            border-color: var(--border-color);
+        }
+        [data-theme="dark"] .dashboard-summary-label,
+        [data-theme="dark"] .dashboard-summary-meta { color: #94a3b8; }
+        [data-theme="dark"] .dashboard-summary-value { color: #f8fafc; }
+        [data-theme="dark"] .dashboard-summary-value.is-ok { color: #86efac; }
+        [data-theme="dark"] .dashboard-summary-value.is-warn { color: #fcd34d; }
+        [data-theme="dark"] .dashboard-summary-value.is-bad { color: #fca5a5; }
+        [data-theme="dark"] .dashboard-health-panel {
+            background: rgba(15, 23, 42, 0.58);
+            border-color: rgba(59, 130, 246, 0.22);
+        }
+        [data-theme="dark"] .dashboard-health-panel h5 { color: #bfdbfe; }
+        [data-theme="dark"] .dashboard-health-list-item {
+            background: rgba(15, 23, 42, 0.74);
+            border-color: rgba(51, 65, 85, 0.9);
+        }
+        [data-theme="dark"] .dashboard-health-list-item strong { color: #f8fafc; }
+        [data-theme="dark"] .dashboard-health-list-item span,
+        [data-theme="dark"] .dashboard-empty-note { color: #cbd5e1; }
 
         @media (max-width: 640px) {
+            .dashboard-summary-grid {
+                grid-template-columns: 1fr 1fr;
+            }
             .dashboard-charts {
                 grid-template-columns: 1fr;
             }
@@ -1395,135 +1537,6 @@
         }
         .cal-day-summary-q.confirmado { background: #16a34a; }
         .cal-day-summary-q.nao_confirmado { background: #dc2626; }
-        .tj-day-cell {
-            position: relative;
-            border-radius: 0.6rem;
-            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-        }
-        .tj-day-cell.has-tarefas {
-            border-color: rgba(37, 99, 235, 0.4);
-            box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
-        }
-        .tj-day-cell:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(2, 6, 23, 0.12);
-            border-color: rgba(37, 99, 235, 0.5);
-        }
-        .tj-day-cell-meta {
-            font-size: 0.68rem;
-            color: #64748b;
-            margin-top: 0.12rem;
-        }
-        .tj-day-cell-preview {
-            margin-top: 0.3rem;
-            display: grid;
-            gap: 0.2rem;
-            font-size: 0.68rem;
-            color: #334155;
-        }
-        .tj-day-cell-preview-line {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            background: rgba(148, 163, 184, 0.14);
-            border-radius: 0.35rem;
-            padding: 0.08rem 0.3rem;
-        }
-        .tj-hover-preview {
-            display: none;
-            position: absolute;
-            left: 0.35rem;
-            right: 0.35rem;
-            bottom: calc(100% + 0.35rem);
-            z-index: 6;
-            border-radius: 0.55rem;
-            border: 1px solid rgba(37, 99, 235, 0.35);
-            background: #eff6ff;
-            color: #1e293b;
-            box-shadow: 0 10px 24px rgba(2, 6, 23, 0.2);
-            padding: 0.45rem 0.55rem;
-        }
-        .tj-hover-preview::after {
-            content: '';
-            position: absolute;
-            left: 1rem;
-            top: 100%;
-            width: 0.55rem;
-            height: 0.55rem;
-            transform: rotate(45deg);
-            border-right: 1px solid rgba(37, 99, 235, 0.35);
-            border-bottom: 1px solid rgba(37, 99, 235, 0.35);
-            background: #eff6ff;
-        }
-        .tj-hover-title {
-            font-size: 0.66rem;
-            font-weight: 800;
-            letter-spacing: 0.02em;
-            text-transform: uppercase;
-            color: #1d4ed8;
-            margin-bottom: 0.28rem;
-        }
-        .tj-hover-list {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-            display: grid;
-            gap: 0.18rem;
-        }
-        .tj-hover-item {
-            font-size: 0.7rem;
-            line-height: 1.25;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .tj-day-cell:hover .tj-hover-preview { display: block; }
-        .tj-day-modal { width: min(560px, calc(100vw - 2rem)); max-height: 82vh; overflow-y: auto; }
-        .tj-day-modal-date { margin: -0.35rem 0 1rem; color: var(--text-light); font-size: 0.85rem; }
-        .tj-day-modal-list { display: grid; gap: 0.5rem; }
-        .tj-day-modal-item {
-            border: 1px solid var(--border-color);
-            border-radius: 0.55rem;
-            background: var(--bg-light);
-            padding: 0.65rem 0.75rem;
-            width: 100%;
-            text-align: left;
-            cursor: pointer;
-        }
-        .tj-day-modal-item:hover { border-color: #93c5fd; background: #eff6ff; }
-        .tj-day-modal-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.6rem;
-            margin-bottom: 0.2rem;
-        }
-        .tj-day-modal-time {
-            font-size: 0.78rem;
-            font-weight: 800;
-            color: #1d4ed8;
-            background: #dbeafe;
-            border-radius: 999px;
-            padding: 0.1rem 0.5rem;
-        }
-        .tj-day-modal-desc {
-            font-size: 0.87rem;
-            color: var(--text-dark);
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        .tj-day-modal-empty {
-            border: 1px dashed var(--border-color);
-            border-radius: 0.55rem;
-            padding: 0.9rem;
-            text-align: center;
-            color: var(--text-light);
-            font-size: 0.85rem;
-        }
-        @media (max-width: 900px) {
-            .tj-hover-preview { display: none !important; }
-            .tj-day-cell-preview { font-size: 0.62rem; }
-        }
         .cal-day-modal { width: min(560px, calc(100vw - 2rem)); max-height: 80vh; overflow-y: auto; }
         .cal-day-modal-date { margin: -0.35rem 0 1rem; color: var(--text-light); font-size: 0.85rem; }
         .cal-day-modal-list { display: grid; gap: 0.5rem; }
@@ -1726,6 +1739,12 @@
                 </div>
                 <p id="dashboardLastUpdate" class="dashboard-last-update">Ultima analise: carregando...</p>
             </div>
+            <div id="dashboardSummary" class="dashboard-summary-grid">
+                <div class="dashboard-summary-card"><span class="dashboard-summary-label">Status</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
+                <div class="dashboard-summary-card"><span class="dashboard-summary-label">Cobertura</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
+                <div class="dashboard-summary-card"><span class="dashboard-summary-label">Falhas Criticas</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
+                <div class="dashboard-summary-card"><span class="dashboard-summary-label">Alerta Telegram</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
+            </div>
             <div id="dashboardCharts" class="dashboard-charts">
                 <div class="dashboard-chart-card">
                     <h4 class="dashboard-chart-title">Saúde da aplicacao</h4>
@@ -1746,6 +1765,10 @@
                 <div class="dashboard-chart-card">
                     <h4 class="dashboard-chart-title">Conexao com DB</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartDb"></canvas></div>
+                </div>
+                <div class="dashboard-chart-card">
+                    <h4 class="dashboard-chart-title">Historico do xerife</h4>
+                    <div class="dashboard-chart-wrap"><canvas id="chartHistory"></canvas></div>
                 </div>
             </div>
             <div id="dashboardHealthReport" class="dashboard-health-report">
@@ -1823,12 +1846,14 @@
                 this.dashboardMetrics = {
                     generated_at: null,
                     latest_at: null,
-                    summary: { status: 'no_data', uptime_percent: 0, error_rate_percent: 0, p95_latency_ms: 0, checks_total: 0, checks_success: 0, checks_failed: 0 },
+                    summary: { status: 'no_data', uptime_percent: 0, error_rate_percent: 0, p95_latency_ms: 0, checks_total: 0, checks_success: 0, checks_failed: 0, critical_failures: 0 },
                     health: { healthy: 0, attention: 100 },
                     services: { labels: ['Total', 'Saudaveis', 'Falhas'], values: [0, 0, 0] },
                     latency_current: { labels: [], values: [] },
                     storage_by_app: { labels: [], values: [] },
                     db: { connected: 0, unstable: 100 },
+                    alerts: { last_kind: null, last_sent: false, last_error: null },
+                    failed_endpoints: [],
                     history: []
                 };
                 this.roadmap = [];
@@ -1965,11 +1990,13 @@
                     const data = await response.json();
                     this.dashboardMetrics = data || this.dashboardMetrics;
                     this.renderDashboardLastUpdate();
+                    this.renderDashboardSummary();
                     this.renderDashboardCharts();
                     this.renderDashboardHealthReport();
                 } catch (error) {
                     console.error('Erro ao carregar analise do sistema:', error);
                     this.renderDashboardLastUpdate('Ultima analise: sem dados');
+                    this.renderDashboardSummary('Sem dados');
                     this.renderDashboardCharts();
                     this.renderDashboardHealthReport('Sem dados de monitoramento no momento.');
                 }
@@ -1992,6 +2019,7 @@
                 const latencyCurrent = metrics.latency_current || { labels: [], values: [] };
                 const storageByApp = metrics.storage_by_app || { labels: [], values: [] };
                 const db = metrics.db || { connected: 0, unstable: 100 };
+                const history = Array.isArray(metrics.history) ? metrics.history : [];
 
                 const chartOptions = { responsive: true, maintainAspectRatio: false };
                 const dashboardValuePlugin = {
@@ -2126,6 +2154,53 @@
                         }
                     });
                 }
+
+                const historyCtx = document.getElementById('chartHistory');
+                if (historyCtx) {
+                    const labels = history.length
+                        ? history.map((item) => {
+                            const dt = new Date(item.measured_at);
+                            return Number.isNaN(dt.getTime()) ? '--' : dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                        })
+                        : ['Sem dados'];
+                    const latencySeries = history.length ? history.map((item) => Number(item.p95_latency_ms || 0)) : [0];
+                    const criticalSeries = history.length ? history.map((item) => Number(item.critical_failures || 0)) : [0];
+
+                    this.dashboardCharts.history = new Chart(historyCtx, {
+                        type: 'line',
+                        data: {
+                            labels,
+                            datasets: [
+                                {
+                                    label: 'p95 (ms)',
+                                    data: latencySeries,
+                                    borderColor: '#2563eb',
+                                    backgroundColor: 'rgba(37, 99, 235, 0.16)',
+                                    tension: 0.3,
+                                    fill: true,
+                                    yAxisID: 'y',
+                                },
+                                {
+                                    label: 'Falhas criticas',
+                                    data: criticalSeries,
+                                    borderColor: '#dc2626',
+                                    backgroundColor: 'rgba(220, 38, 38, 0.15)',
+                                    tension: 0.25,
+                                    fill: false,
+                                    yAxisID: 'y1',
+                                }
+                            ]
+                        },
+                        options: {
+                            ...chartOptions,
+                            scales: {
+                                y: { beginAtZero: true, position: 'left' },
+                                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } }
+                            },
+                            plugins: { legend: { position: 'bottom' } }
+                        }
+                    });
+                }
             }
 
             renderDashboardLastUpdate(fallbackText = null) {
@@ -2150,6 +2225,67 @@
                 el.textContent = `Ultima analise: ${dt.toLocaleString('pt-BR')} (${profileLabel})`;
             }
 
+            renderDashboardSummary(fallbackText = null) {
+                const root = document.getElementById('dashboardSummary');
+                if (!root) return;
+
+                if (fallbackText) {
+                    root.innerHTML = Array.from({ length: 4 }).map(() => `
+                        <div class="dashboard-summary-card">
+                            <span class="dashboard-summary-label">Monitor</span>
+                            <strong class="dashboard-summary-value">--</strong>
+                            <span class="dashboard-summary-meta">${escapeHtml(fallbackText)}</span>
+                        </div>
+                    `).join('');
+                    return;
+                }
+
+                const metrics = this.dashboardMetrics || {};
+                const summary = metrics.summary || {};
+                const alerts = metrics.alerts || {};
+                const checksTotal = Number(summary.checks_total || 0);
+                const checksSuccess = Number(summary.checks_success || 0);
+                const checksFailed = Number(summary.checks_failed || 0);
+                const criticalFailures = Number(summary.critical_failures || 0);
+                const uptime = Number(summary.uptime_percent || 0);
+                const status = String(summary.status || 'no_data').toLowerCase();
+                const statusMap = {
+                    healthy: { label: 'Saudavel', className: 'is-ok' },
+                    attention: { label: 'Atencao', className: criticalFailures > 0 ? 'is-bad' : 'is-warn' },
+                    no_data: { label: 'Sem dados', className: 'is-warn' }
+                };
+                const statusView = statusMap[status] || { label: 'Indefinido', className: 'is-warn' };
+                const alertLabel = alerts.last_kind === 'recovery'
+                    ? 'Recuperacao'
+                    : alerts.last_kind === 'failure'
+                        ? 'Alerta'
+                        : 'Sem envio';
+                const alertClass = alerts.last_error ? 'is-bad' : (alerts.last_sent ? 'is-ok' : 'is-warn');
+
+                root.innerHTML = `
+                    <div class="dashboard-summary-card">
+                        <span class="dashboard-summary-label">Status Geral</span>
+                        <strong class="dashboard-summary-value ${statusView.className}">${escapeHtml(statusView.label)}</strong>
+                        <span class="dashboard-summary-meta">${uptime.toFixed(2)}% de uptime</span>
+                    </div>
+                    <div class="dashboard-summary-card">
+                        <span class="dashboard-summary-label">Cobertura do Xerife</span>
+                        <strong class="dashboard-summary-value ${checksFailed > 0 ? 'is-warn' : 'is-ok'}">${checksSuccess}/${checksTotal}</strong>
+                        <span class="dashboard-summary-meta">${checksFailed} check(s) com falha</span>
+                    </div>
+                    <div class="dashboard-summary-card">
+                        <span class="dashboard-summary-label">Falhas Criticas</span>
+                        <strong class="dashboard-summary-value ${criticalFailures > 0 ? 'is-bad' : 'is-ok'}">${criticalFailures}</strong>
+                        <span class="dashboard-summary-meta">Pontos vitais fora do ar</span>
+                    </div>
+                    <div class="dashboard-summary-card">
+                        <span class="dashboard-summary-label">Alerta Telegram</span>
+                        <strong class="dashboard-summary-value ${alertClass}">${escapeHtml(alertLabel)}</strong>
+                        <span class="dashboard-summary-meta">${escapeHtml(alerts.last_error || (alerts.last_sent ? 'Enviado com sucesso' : 'Sem novo disparo'))}</span>
+                    </div>
+                `;
+            }
+
             renderDashboardHealthReport(fallbackText = null) {
                 const root = document.getElementById('dashboardHealthReport');
                 if (!root) return;
@@ -2166,12 +2302,15 @@
                 const services = metrics.services || {};
                 const latencyCurrent = metrics.latency_current || { labels: [], values: [] };
                 const db = metrics.db || {};
+                const alerts = metrics.alerts || {};
+                const failedEndpoints = Array.isArray(metrics.failed_endpoints) ? metrics.failed_endpoints : [];
 
                 const status = String(summary.status || 'no_data').toLowerCase();
                 const statusLabel = status === 'healthy' ? 'Saudavel' : (status === 'attention' ? 'Atencao' : 'Sem dados');
                 const checksTotal = Number(summary.checks_total || services.values?.[0] || 0);
                 const checksOk = Number(summary.checks_success || services.values?.[1] || 0);
                 const checksFail = Number(summary.checks_failed || services.values?.[2] || 0);
+                const criticalFailures = Number(summary.critical_failures || 0);
                 const uptime = Number(summary.uptime_percent || 0);
                 const errorRate = Number(summary.error_rate_percent || 0);
                 const p95 = Number(summary.p95_latency_ms || 0);
@@ -2193,13 +2332,58 @@
                 const latestText = latestAt && !Number.isNaN(latestAt.getTime())
                     ? latestAt.toLocaleString('pt-BR')
                     : 'sem horario valido';
+                const statusChipClass = status === 'healthy' ? 'ok' : (criticalFailures > 0 ? 'bad' : 'warn');
+                const alertChipClass = alerts.last_error ? 'bad' : (alerts.last_sent ? 'ok' : 'warn');
+                const alertChipLabel = alerts.last_kind === 'recovery'
+                    ? 'Telegram: recuperacao'
+                    : alerts.last_kind === 'failure'
+                        ? 'Telegram: alerta'
+                        : 'Telegram: sem disparo';
+                const failuresHtml = failedEndpoints.length
+                    ? failedEndpoints.slice(0, 6).map((item) => `
+                        <div class="dashboard-health-list-item">
+                            <strong>${escapeHtml(item.endpoint_name || 'endpoint')}</strong>
+                            <span>Status: ${escapeHtml(String(item.status_code ?? 'sem status'))} | Critico: ${item.critical ? 'sim' : 'nao'}</span>
+                            <span>${escapeHtml(item.error_message || 'Falha sem detalhe')}</span>
+                        </div>
+                    `).join('')
+                    : `<div class="dashboard-empty-note">Nenhuma falha detectada no ultimo snapshot.</div>`;
 
-                body.innerHTML = [
-                    `<p><strong>Status geral:</strong> ${escapeHtml(statusLabel)}. ${checksOk}/${checksTotal} checks passaram e ${checksFail} falharam.</p>`,
-                    `<p><strong>Confiabilidade:</strong> uptime ${uptime.toFixed(2)}% | taxa de erro ${errorRate.toFixed(2)}% | p95 ${Math.round(p95)}ms.</p>`,
-                    `<p><strong>Ponto de atencao:</strong> endpoint mais lento recente: ${escapeHtml(slowLabel)} (${Math.round(slowValue)}ms). Conexao com DB em ${dbConnected.toFixed(2)}%.</p>`,
-                    `<p><strong>Ultima amostra:</strong> ${escapeHtml(latestText)}.</p>`
-                ].join('');
+                body.innerHTML = `
+                    <div class="dashboard-health-status-row">
+                        <span class="dashboard-status-chip ${statusChipClass}"><i class="fas fa-shield-halved"></i>${escapeHtml(statusLabel)}</span>
+                        <span class="dashboard-status-chip ${alertChipClass}"><i class="fas fa-paper-plane"></i>${escapeHtml(alertChipLabel)}</span>
+                        <span class="dashboard-status-chip ${criticalFailures > 0 ? 'bad' : 'ok'}"><i class="fas fa-triangle-exclamation"></i>${criticalFailures} falha(s) critica(s)</span>
+                    </div>
+                    <div class="dashboard-health-grid">
+                        <div class="dashboard-health-panel">
+                            <h5>Resumo Executivo</h5>
+                            <p><strong>Status geral:</strong> ${escapeHtml(statusLabel)}. ${checksOk}/${checksTotal} checks passaram e ${checksFail} falharam.</p>
+                            <p><strong>Confiabilidade:</strong> uptime ${uptime.toFixed(2)}% | taxa de erro ${errorRate.toFixed(2)}% | p95 ${Math.round(p95)}ms.</p>
+                            <p><strong>Ponto de atencao:</strong> endpoint mais lento recente: ${escapeHtml(slowLabel)} (${Math.round(slowValue)}ms).</p>
+                            <p><strong>Banco:</strong> conexao com DB em ${dbConnected.toFixed(2)}%.</p>
+                            <p><strong>Ultima amostra:</strong> ${escapeHtml(latestText)}.</p>
+                        </div>
+                        <div class="dashboard-health-panel">
+                            <h5>Alertas do Xerife</h5>
+                            <div class="dashboard-health-list">
+                                <div class="dashboard-health-list-item">
+                                    <strong>Ultimo envio</strong>
+                                    <span>${escapeHtml(alerts.last_sent ? 'Telegram notificado com sucesso' : 'Nenhum novo alerta enviado')}</span>
+                                    <span>${escapeHtml(alerts.last_error || 'Sem erro de notificacao')}</span>
+                                </div>
+                                <div class="dashboard-health-list-item">
+                                    <strong>Politica de disparo</strong>
+                                    <span>O monitor alerta quando entra em atencao, muda a assinatura da falha ou se recupera.</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dashboard-health-panel" style="grid-column: 1 / -1;">
+                            <h5>Falhas do Ultimo Snapshot</h5>
+                            <div class="dashboard-health-list">${failuresHtml}</div>
+                        </div>
+                    </div>
+                `;
             }
 
             renderApps() {
@@ -2343,23 +2527,21 @@
                     await this.renderFluxogramaContent(contentEl);
                     return;
                 }
-                const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude', calendario: 'calendario', tarefas_jobson: 'tarefas-jobson' };
+                const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude', calendario: 'calendario' };
                 const path = apiMap[appId];
                 if (!path) return;
                 let mesAno = contentEl.getAttribute('data-mes-ano');
-                if ((appId === 'notas' || appId === 'financas' || appId === 'tarefas_jobson') && !mesAno) mesAno = this.getMesAnoAtual();
+                if ((appId === 'notas' || appId === 'financas') && !mesAno) mesAno = this.getMesAnoAtual();
                 try {
                     let url = path === 'saude' ? '/api/saude' : '/api/' + path;
                     if (appId === 'notas') url = '/api/despesas-fixas?mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     else if (appId === 'financas') url = '/api/financas?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
-                    else if (appId === 'tarefas_jobson') url = '/api/tarefas-jobson?mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     else if (appId === 'calendario') url = '/api/calendario?action=config';
                     const res = await fetch(url, appId === 'calendario' ? { cache: 'no-store' } : undefined);
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
                     if (appId === 'notas') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderDespesasFixasContent(contentEl, data); }
                     else if (appId === 'financas') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinancasContent(contentEl, data); }
-                    else if (appId === 'tarefas_jobson') { contentEl.setAttribute('data-mes-ano', mesAno || this.getMesAnoAtual()); this.renderTarefasJobsonContent(contentEl, data); }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
                     else if (appId === 'saude') this.renderSaúdeContent(contentEl, data);
                     else if (appId === 'calendario') this.renderCalendarioContent(contentEl, data);
@@ -3405,409 +3587,6 @@
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
                     await this.refreshAppContent('lista_compras');
                 } catch (e) { alert(e.message); }
-            }
-            tjSlotTemplates() {
-                return ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'];
-            }
-            tjNormalizeHora(v) {
-                const s = String(v || '').trim();
-                if (!/^\d{2}:\d{2}$/.test(s)) return null;
-                const [h, m] = s.split(':').map(Number);
-                if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-            }
-            tjBuildMonthDays(ano, mes) {
-                const firstDow = new Date(ano, mes - 1, 1).getDay();
-                const daysInMonth = new Date(ano, mes, 0).getDate();
-                const out = [];
-                for (let i = 0; i < firstDow; i += 1) out.push({ empty: true });
-                for (let d = 1; d <= daysInMonth; d += 1) {
-                    const fullDate = `${ano}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                    const dow = new Date(ano, mes - 1, d).getDay();
-                    out.push({ day: d, fullDate, isWeekend: dow === 0 || dow === 6 });
-                }
-                return out;
-            }
-            tjWeekdayOptions() {
-                return [
-                    { value: 0, label: 'Dom' },
-                    { value: 1, label: 'Seg' },
-                    { value: 2, label: 'Ter' },
-                    { value: 3, label: 'Qua' },
-                    { value: 4, label: 'Qui' },
-                    { value: 5, label: 'Sex' },
-                    { value: 6, label: 'Sab' },
-                ];
-            }
-            renderTarefasJobsonContent(el, data) {
-                const rows = data.rows || data.tarefas || [];
-                const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-                const now = new Date();
-                const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                const [ano, mes] = mesAno.split('-').map(Number);
-                const dateHoje = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                const anos = Array.from({ length: 9 }, (_, i) => new Date().getFullYear() - 2 + i);
-                const byDate = {};
-                rows.forEach((r) => {
-                    const d = String(r.data || '').slice(0, 10);
-                    if (!d) return;
-                    if (!byDate[d]) byDate[d] = [];
-                    byDate[d].push(r);
-                });
-                Object.keys(byDate).forEach((d) => {
-                    byDate[d].sort((a, b) => String(a.slot_hora || '').localeCompare(String(b.slot_hora || '')));
-                });
-                const days = this.tjBuildMonthDays(ano, mes);
-                const tjFormatDateLabel = (dateStr) => {
-                    const dt = new Date(dateStr + 'T00:00:00');
-                    if (Number.isNaN(dt.getTime())) return dateStr;
-                    return dt.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-                };
-
-                el.innerHTML = `
-                    <div class="app-form" style="margin-bottom:1rem;">
-                        <div class="app-form-row">
-                            <div class="field">
-                                <label>Mes</label>
-                                <select id="tj-mes">${meses.map((m, i) => `<option value="${i + 1}" ${i + 1 === mes ? 'selected' : ''}>${m}</option>`).join('')}</select>
-                            </div>
-                            <div class="field">
-                                <label>Ano</label>
-                                <select id="tj-ano">${anos.map((a) => `<option value="${a}" ${a === ano ? 'selected' : ''}>${a}</option>`).join('')}</select>
-                            </div>
-                        </div>
-                        <div style="font-size:0.8rem;color:#6b7280;">Clique em um dia para abrir o bloco de tarefas com slots editaveis.</div>
-                    </div>
-                    <div class="cal-grid-scroll">
-                        <div class="cal-weekdays-grid">
-                            <div style="color:#ef4444;">Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div style="color:#ef4444;">Sab</div>
-                        </div>
-                        <div id="tj-grid" class="cal-days-grid">
-                            ${days.map((d) => {
-                                if (d.empty) return '<div style="background: transparent;"></div>';
-                                const dayRows = byDate[d.fullDate] || [];
-                                const pendentes = dayRows.length;
-                                return `
-                                    <div class="cal-day-cell tj-day-cell ${dayRows.length ? 'has-tarefas' : ''} ${d.isWeekend ? 'is-weekend' : ''}" data-tj-day="${d.fullDate}">
-                                        <div class="cal-day-top"><strong class="cal-day-number">${d.day}</strong></div>
-                                        <span class="cal-day-summary ${dayRows.length ? 'has-events' : ''}">
-                                            <span class="cal-day-summary-icon"><i class="fas fa-list-check"></i></span>
-                                            <span>${dayRows.length}</span>
-                                        </span>
-                                        <div class="tj-day-cell-meta">${pendentes ? `Tarefas: ${pendentes}` : 'Sem tarefas'}</div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
-
-                const refreshAndReopenDay = async (dateStr) => {
-                    el.setAttribute('data-tj-selected-date', dateStr);
-                    await this.refreshAppContent('tarefas_jobson');
-                    const win = this.openWindows.get('tarefas_jobson');
-                    const refreshedEl = win?.querySelector('.window-content');
-                    if (!refreshedEl) return;
-                    setTimeout(() => {
-                        const dayCell = refreshedEl.querySelector(`[data-tj-day="${dateStr}"]`);
-                        if (dayCell) dayCell.click();
-                    }, 30);
-                };
-
-                const openTjDayModal = (dateStr) => {
-                    el.setAttribute('data-tj-selected-date', dateStr);
-                    const dt = new Date(dateStr + 'T00:00:00');
-                    const label = Number.isNaN(dt.getTime())
-                        ? dateStr
-                        : dt.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-                    const overlay = document.createElement('div');
-                    overlay.className = 'app-modal-overlay';
-                    const renderModal = (formState = null) => {
-                        const dayRows = [...(byDate[dateStr] || [])].sort((a, b) => String(a.slot_hora || '').localeCompare(String(b.slot_hora || '')));
-                        const repeatOptions = this.tjWeekdayOptions().map((item) => `
-                            <label style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.72rem;color:#6b7280;">
-                                <input type="checkbox" data-tj-form-repeat value="${item.value}" ${(formState?.repeatDays || []).includes(item.value) ? 'checked' : ''} ${formState?.mode === 'edit' ? 'disabled' : ''} />
-                                <span>${item.label}</span>
-                            </label>
-                        `).join('');
-                        const listHtml = dayRows.length
-                            ? dayRows.map((row) => `
-                                <button type="button" class="tj-day-modal-item" data-action="tj-open-edit" data-id="${escapeHtml(String(row.id || ''))}">
-                                    <div class="tj-day-modal-head">
-                                        <span class="tj-day-modal-time">${escapeHtml(String(row.slot_hora || '').slice(0, 5) || '--:--')}</span>
-                                    </div>
-                                    <div class="tj-day-modal-desc">${escapeHtml(row.descricao || 'Sem descrição')}</div>
-                                </button>
-                            `).join('')
-                            : '<div class="tj-day-modal-empty">Sem tarefas cadastradas para este dia.</div>';
-                        const formHtml = formState
-                            ? `
-                                <div class="df-col" style="padding:0.85rem;background:var(--bg-white);border:1px solid #e2e8f0;border-radius:14px;">
-                                    <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;margin-bottom:0.65rem;">
-                                        <strong>${formState.mode === 'edit' ? 'Editar tarefa' : 'Nova tarefa'}</strong>
-                                        <span style="font-size:0.72rem;color:#6b7280;">${escapeHtml(label)}</span>
-                                    </div>
-                                    <div style="display:grid;gap:0.7rem;">
-                                        <div class="field" style="min-width:140px;">
-                                            <label style="font-size:0.75rem;color:#6b7280;">Horario (HH:mm)</label>
-                                            <input type="time" id="tj-form-time" step="60" value="${escapeHtml(formState.slot_hora || '')}" />
-                                        </div>
-                                        <div class="field">
-                                            <label style="font-size:0.75rem;color:#6b7280;">Descricao</label>
-                                            <textarea id="tj-form-desc" placeholder="Digite a tarefa deste horario...">${escapeHtml(formState.descricao || '')}</textarea>
-                                        </div>
-                                        <div style="display:grid;gap:0.35rem;padding:0.55rem;border:1px dashed #d1d5db;border-radius:10px;background:#f8fafc;">
-                                            <span style="font-size:0.72rem;color:#475569;">Repetir neste horario ate o fim do mes:</span>
-                                            <div style="display:flex;gap:0.55rem;flex-wrap:wrap;">${repeatOptions}</div>
-                                            <span style="font-size:0.68rem;color:#94a3b8;">Disponivel ao criar uma nova tarefa.</span>
-                                        </div>
-                                    </div>
-                                    <div class="app-modal-actions" style="margin-top:0.9rem;">
-                                        <button type="button" class="app-btn app-btn-secondary" data-action="tj-cancel-form">Cancelar</button>
-                                        ${formState.mode === 'edit' ? '<button type="button" class="app-btn app-btn-secondary" data-action="tj-delete-form" style="background:#fef2f2;color:#dc2626;">Excluir</button>' : ''}
-                                        <button type="button" class="app-btn" data-action="tj-save-form">${formState.mode === 'edit' ? 'Salvar edicao' : 'Salvar'}</button>
-                                    </div>
-                                </div>
-                            `
-                            : `
-                                <div class="tj-day-modal-empty" style="text-align:left;">
-                                    Clique em <strong>Adicionar tarefa</strong> para criar uma nova ou toque em uma tarefa da lista para editar.
-                                </div>
-                            `;
-                        overlay.innerHTML = `
-                            <div class="app-modal tj-day-modal" style="width:min(760px,calc(100vw - 1.5rem));max-height:88vh;">
-                                <div class="df-col-titulo" style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
-                                    <span>Tarefas do dia: ${escapeHtml(label)}</span>
-                                    <span style="font-size:0.75rem;color:#6b7280;">${dayRows.length} tarefa(s)</span>
-                                </div>
-                                <p class="tj-day-modal-date">Clique em uma tarefa para editar ou use o botao abaixo para adicionar uma nova.</p>
-                                <div class="app-modal-actions" style="margin:0 0 0.85rem;justify-content:flex-start;">
-                                    <button type="button" class="app-btn" data-action="tj-open-create">Adicionar tarefa</button>
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="tj-modal-close">Fechar</button>
-                                </div>
-                                <div class="tj-day-modal-list" style="margin-bottom:0.85rem;">
-                                    ${listHtml}
-                                </div>
-                                ${formHtml}
-                            </div>
-                        `;
-                        overlay.querySelector('[data-action="tj-modal-close"]').onclick = () => overlay.remove();
-                        overlay.querySelector('[data-action="tj-open-create"]').onclick = () => {
-                            renderModal({ mode: 'create', id: '', slot_hora: '', descricao: '', repeatDays: [] });
-                        };
-                        overlay.querySelectorAll('[data-action="tj-open-edit"]').forEach((btn) => {
-                            btn.onclick = () => {
-                                const id = String(btn.getAttribute('data-id') || '').trim();
-                                const row = dayRows.find((item) => String(item.id || '') === id);
-                                if (!row) return;
-                                renderModal({
-                                    mode: 'edit',
-                                    id,
-                                    slot_hora: String(row.slot_hora || '').slice(0, 5),
-                                    descricao: row.descricao || '',
-                                    repeatDays: [],
-                                });
-                            };
-                        });
-                        overlay.onclick = (evt) => { if (evt.target === overlay) overlay.remove(); };
-                        if (formState) {
-                            overlay.querySelector('[data-action="tj-cancel-form"]').onclick = () => renderModal(null);
-                            overlay.querySelector('[data-action="tj-save-form"]').onclick = async () => {
-                                const hora = this.tjNormalizeHora(overlay.querySelector('#tj-form-time')?.value || '');
-                                const descricao = (overlay.querySelector('#tj-form-desc')?.value || '').trim();
-                                const repeatDays = Array.from(overlay.querySelectorAll('[data-tj-form-repeat]:checked'))
-                                    .map((input) => Number(input.value))
-                                    .filter((value) => Number.isInteger(value));
-                                if (!hora) { alert('Horario invalido. Use HH:mm.'); return; }
-                                if (!descricao) { alert('Preencha a descricao para salvar.'); return; }
-                                try {
-                                    if (formState.mode === 'edit') {
-                                        const res = await fetch('/api/tarefas-jobson', {
-                                            method: 'PATCH',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                id: formState.id,
-                                                descricao,
-                                                data: dateStr,
-                                                slot_hora: hora,
-                                                status: 'pendente',
-                                                notificado: true,
-                                            }),
-                                        });
-                                        const response = await res.json();
-                                        if (!res.ok) throw new Error(response.error || 'Erro ao salvar tarefa');
-                                    } else if (repeatDays.length) {
-                                        const res = await fetch('/api/tarefas-jobson', {
-                                            method: 'PATCH',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                action: 'repeat_weekdays',
-                                                descricao,
-                                                data: dateStr,
-                                                slot_hora: hora,
-                                                status: 'pendente',
-                                                notificado: true,
-                                                weekdays: repeatDays,
-                                            }),
-                                        });
-                                        const response = await res.json();
-                                        if (!res.ok) throw new Error(response.error || 'Erro ao repetir tarefa');
-                                    } else {
-                                        const res = await fetch('/api/tarefas-jobson', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                descricao,
-                                                data: dateStr,
-                                                slot_hora: hora,
-                                                status: 'pendente',
-                                                notificado: true,
-                                            }),
-                                        });
-                                        const response = await res.json();
-                                        if (!res.ok) throw new Error(response.error || 'Erro ao salvar tarefa');
-                                    }
-                                    overlay.remove();
-                                    await refreshAndReopenDay(dateStr);
-                                } catch (e) {
-                                    alert(e.message || 'Falha ao salvar tarefa.');
-                                }
-                            };
-                            const deleteBtn = overlay.querySelector('[data-action="tj-delete-form"]');
-                            if (deleteBtn) {
-                                deleteBtn.onclick = async () => {
-                                    if (!confirm('Excluir esta tarefa?')) return;
-                                    try {
-                                        const res = await fetch('/api/tarefas-jobson', {
-                                            method: 'DELETE',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ id: formState.id }),
-                                        });
-                                        const response = await res.json();
-                                        if (!res.ok) throw new Error(response.error || 'Erro ao excluir tarefa');
-                                        overlay.remove();
-                                        await refreshAndReopenDay(dateStr);
-                                    } catch (e) {
-                                        alert(e.message || 'Falha ao excluir tarefa.');
-                                    }
-                                };
-                            }
-                        }
-                    };
-                    renderModal(null);
-                    document.body.appendChild(overlay);
-                };
-
-                el.querySelectorAll('[data-tj-day]').forEach((cell) => {
-                    cell.onclick = () => openTjDayModal(cell.getAttribute('data-tj-day'));
-                });
-                el.querySelector('#tj-mes').onchange = () => {
-                    const m = String(el.querySelector('#tj-mes').value).padStart(2, '0');
-                    const a = el.querySelector('#tj-ano').value;
-                    el.setAttribute('data-mes-ano', `${a}-${m}`);
-                    el.setAttribute('data-tj-selected-date', `${a}-${m}-01`);
-                    this.refreshAppContent('tarefas_jobson');
-                };
-                el.querySelector('#tj-ano').onchange = () => {
-                    const m = String(el.querySelector('#tj-mes').value).padStart(2, '0');
-                    const a = el.querySelector('#tj-ano').value;
-                    el.setAttribute('data-mes-ano', `${a}-${m}`);
-                    el.setAttribute('data-tj-selected-date', `${a}-${m}-01`);
-                    this.refreshAppContent('tarefas_jobson');
-                };
-            }
-            async submitTarefasJobsonSaveDay(el, dataDia) {
-                const slots = Array.from(el.querySelectorAll('[data-tj-slot]')).map((ta) => {
-                    const slot = String(ta.getAttribute('data-tj-slot') || '').slice(0, 5);
-                    const descricao = (ta.value || '').trim();
-                    return { slot_hora: slot, descricao, status: 'pendente', notificado: true };
-                });
-                try {
-                    const res = await fetch('/api/tarefas-jobson', {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'upsert_day_slots',
-                            data: dataDia,
-                            slots,
-                        }),
-                    });
-                    const response = await res.json();
-                    if (!res.ok) throw new Error(response.error || 'Erro ao salvar o dia');
-                    el.setAttribute('data-tj-selected-date', dataDia);
-                    await this.refreshAppContent('tarefas_jobson');
-                } catch (e) {
-                    alert(e.message || 'Falha ao salvar bloco do dia.');
-                }
-            }
-            async submitTarefasJobsonSaveItem(el, dataDia, slot, id, onSuccess = null) {
-                const hora = String(slot || '').slice(0, 5);
-                if (!hora) { alert('Horario invalido.'); return; }
-                const descricao = (el.querySelector(`[data-tj-slot="${hora}"]`)?.value || '').trim();
-                if (!descricao) { alert('Preencha a descricao para salvar.'); return; }
-                const isEdit = Boolean(String(id || '').trim());
-                const repeatDays = Array.from(
-                    el.querySelectorAll(`[data-tj-repeat-day][data-tj-repeat-slot="${hora}"]:checked`)
-                ).map((input) => Number(input.value)).filter((value) => Number.isInteger(value));
-                const payload = isEdit
-                    ? { id: String(id).trim(), descricao, data: dataDia, slot_hora: hora, status: 'pendente', notificado: true }
-                    : { descricao, data: dataDia, slot_hora: hora, status: 'pendente', notificado: true };
-                try {
-                    if (!isEdit && repeatDays.length) {
-                        const res = await fetch('/api/tarefas-jobson', {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                action: 'repeat_weekdays',
-                                descricao,
-                                data: dataDia,
-                                slot_hora: hora,
-                                status: 'pendente',
-                                notificado: true,
-                                weekdays: repeatDays,
-                            }),
-                        });
-                        const response = await res.json();
-                        if (!res.ok) throw new Error(response.error || 'Erro ao repetir tarefa');
-                        if (onSuccess) await onSuccess();
-                        else await this.refreshAppContent('tarefas_jobson');
-                        return;
-                    }
-                    const res = await fetch('/api/tarefas-jobson', {
-                        method: isEdit ? 'PATCH' : 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),
-                    });
-                    const response = await res.json();
-                    if (!res.ok) throw new Error(response.error || 'Erro ao salvar tarefa');
-                    if (onSuccess) await onSuccess();
-                    else await this.refreshAppContent('tarefas_jobson');
-                } catch (e) {
-                    alert(e.message || 'Falha ao salvar tarefa.');
-                }
-            }
-            async submitTarefasJobsonDeleteItem(el, dataDia, slot, id, onSuccess = null) {
-                const rowId = String(id || '').trim();
-                if (!rowId) {
-                    const hora = String(slot || '').slice(0, 5);
-                    const ta = el.querySelector(`[data-tj-slot="${hora}"]`);
-                    if (ta) ta.value = '';
-                    return;
-                }
-                if (!confirm('Excluir esta tarefa?')) return;
-                try {
-                    const res = await fetch('/api/tarefas-jobson', {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: rowId }),
-                    });
-                    const response = await res.json();
-                    if (!res.ok) throw new Error(response.error || 'Erro ao excluir tarefa');
-                    if (onSuccess) await onSuccess();
-                    else await this.refreshAppContent('tarefas_jobson');
-                } catch (e) {
-                    alert(e.message || 'Falha ao excluir tarefa.');
-                }
             }
             saudeFmtDataBR(d) {
                 if (!d) return '';

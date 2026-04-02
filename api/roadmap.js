@@ -11,7 +11,7 @@ const ROADMAP = [
   {
     step: '2',
     title: 'Dominios integrados ao Supabase',
-    description: 'Despesas Fixas, Financas, Lista de Compras, Saude, Agenda, Tarefas Jobson e Fluxograma persistem dados no Supabase.',
+    description: 'Despesas Fixas, Financas, Lista de Compras, Saude, Agenda e Fluxograma persistem dados no Supabase.',
   },
   {
     step: '3',

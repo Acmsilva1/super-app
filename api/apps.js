@@ -44,14 +44,6 @@ export const APPS = [
     category: 'Produtividade',
   },
   {
-    id: 'tarefas_jobson',
-    icon: 'fa-list-check',
-    status: 'active',
-    title: 'Tarefas Jobson',
-    description: 'Planejamento de tarefas por data e horario com controle de status.',
-    category: 'Produtividade',
-  },
-  {
     id: 'fluxograma',
     icon: 'fa-diagram-project',
     status: 'active',

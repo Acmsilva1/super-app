@@ -85,9 +85,7 @@ async function sendTelegramMessage(text) {
 function getScope(req) {
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
   const raw = String(body.scope || req.query?.scope || 'general').trim().toLowerCase();
-  if (raw === 'tarefas_jobson') return 'tarefas_jobson';
-  if (raw === 'all') return 'all';
-  return 'general';
+  return raw === 'all' ? 'all' : 'general';
 }
 
 function buildSources(scope) {
@@ -125,26 +123,6 @@ function buildSources(scope) {
     },
   ];
 
-  const tarefasSource = {
-    key: 'tarefas_jobson',
-    table: 'tb_tarefas_jobson',
-    select: 'id,descricao,data,slot_hora,status,notificado',
-    dateColumn: 'data',
-    timeColumn: 'slot_hora',
-    pendingColumn: 'notificado',
-    pendingValue: true,
-    eqFilters: [{ column: 'status', value: 'pendente' }],
-    sentUpdate: () => ({ notificado: false }),
-    message: (row) =>
-      [
-        '*TAREFAS JOBSON*',
-        `*Tarefa:* ${escapeTelegramMarkdown(row.descricao || 'Sem descricao')}`,
-        `*Quando:* ${escapeTelegramMarkdown(formatDateTime(row.data, row.slot_hora))}`,
-      ].join('\n'),
-  };
-
-  if (scope === 'tarefas_jobson') return [tarefasSource];
-  if (scope === 'all') return [...generalSources, tarefasSource];
   return generalSources;
 }
 

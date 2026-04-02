@@ -9,7 +9,6 @@ const STORAGE_TABLES = [
   { app: "Saúde Familiar", table: "tb_saude_familiar" },
   { app: "Agenda", table: "tb_calendario" },
   { app: "Fluxograma", table: "tb_fluxograma_projetos" },
-  { app: "Tarefas Jobson", table: "tb_tarefas_jobson" },
 ];
 
 function json(res, status, data) {
@@ -100,12 +99,14 @@ function buildDashboardPayload(rows) {
     return {
       generated_at: new Date().toISOString(),
       latest_at: null,
-      summary: { status: "no_data", uptime_percent: 0, error_rate_percent: 0, p95_latency_ms: 0 },
+      summary: { status: "no_data", uptime_percent: 0, error_rate_percent: 0, p95_latency_ms: 0, critical_failures: 0 },
       health: { healthy: 0, attention: 100 },
       services: { labels: ["Total", "Saudaveis", "Falhas"], values: [0, 0, 0] },
       latency_current: { labels: [], values: [] },
       storage_by_app: { labels: [], values: [] },
       db: { connected: 0, unstable: 100 },
+      alerts: { last_kind: null, last_sent: false, last_error: null },
+      failed_endpoints: [],
       history: [],
     };
   }
@@ -134,6 +135,7 @@ function buildDashboardPayload(rows) {
       checks_total: toNumber(latest.checks_total, 0),
       checks_success: toNumber(latest.checks_success, 0),
       checks_failed: toNumber(latest.checks_failed, 0),
+      critical_failures: toNumber(latest.critical_failures, 0),
     },
     health: {
       healthy: toNumber(latest.uptime_percent, 0),
@@ -153,6 +155,12 @@ function buildDashboardPayload(rows) {
       connected: dbConnected,
       unstable: Math.max(0, round(100 - dbConnected, 2)),
     },
+    alerts: {
+      last_kind: latest?.metadata?.alert?.kind || null,
+      last_sent: Boolean(latest?.metadata?.alert?.sent),
+      last_error: latest?.metadata?.alert?.error || null,
+    },
+    failed_endpoints: Array.isArray(latest?.metadata?.failed_endpoints) ? latest.metadata.failed_endpoints : [],
     history: rows
       .slice()
       .reverse()
@@ -161,6 +169,7 @@ function buildDashboardPayload(rows) {
         uptime_percent: toNumber(row.uptime_percent, 0),
         error_rate_percent: toNumber(row.error_rate_percent, 0),
         p95_latency_ms: toNumber(row.p95_latency_ms, 0),
+        critical_failures: toNumber(row.critical_failures, 0),
       })),
   };
 }
@@ -218,7 +227,7 @@ export default async function handler(req, res) {
     let query = supabase
       .from(TABLE_NAME)
       .select(
-        "measured_at,status,checks_total,checks_success,checks_failed,uptime_percent,error_rate_percent,p95_latency_ms,endpoints"
+        "measured_at,status,checks_total,checks_success,checks_failed,critical_failures,uptime_percent,error_rate_percent,p95_latency_ms,endpoints,metadata"
       )
       .order("measured_at", { ascending: false })
       .limit(limit);

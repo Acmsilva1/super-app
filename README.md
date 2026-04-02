@@ -35,7 +35,6 @@ super-app-1/
 | `lista_compras` | `tb_lista_compras` | Itens, categorias e marcacao de compra |
 | `saude` | `tb_saude_familiar` | Registros de saude por membro da familia |
 | `calendario` | `tb_calendario` | Agenda, visualizacao mensal e status de confirmacao |
-| `tarefas_jobson` | `tb_tarefas_jobson` | Planejamento por data/hora e notificacoes |
 | `fluxograma` | `tb_fluxograma_projetos` | Projetos de fluxograma com rascunho local e nuvem |
 
 ### Aderencia ao padrao de arquitetura
@@ -103,9 +102,8 @@ flowchart TD
 | `/api/lista-compras` | `GET, POST, PATCH, DELETE` | `tb_lista_compras` | suporta toggle e reset global |
 | `/api/saude` | `GET, POST, PATCH, DELETE` | `tb_saude_familiar` | opcionalmente monta resumo por membro |
 | `/api/calendario` | `GET, POST, PATCH, DELETE` | `tb_calendario` | GET aceita `action=config` e `action=view` |
-| `/api/tarefas-jobson` | `GET, POST, PATCH, DELETE` | `tb_tarefas_jobson` | PATCH suporta `upsert_day_slots` e `repeat_weekdays` |
 | `/api/fluxograma` | `GET, POST, PATCH, DELETE` | `tb_fluxograma_projetos` | persistencia de projetos |
-| `/api/notificar` | `POST` | `tb_calendario`, `tb_saude_familiar`, `tb_tarefas_jobson` | envia lembretes Telegram; aceita `scope` para isolar `tarefas_jobson` |
+| `/api/notificar` | `POST` | `tb_calendario`, `tb_saude_familiar` | envia lembretes Telegram |
 
 ### Excecoes recorrentes
 
@@ -155,7 +153,6 @@ flowchart TD
 | Workflow | Agenda | Acao |
 |---|---|---|
 | `Notificacoes Gerais - Super App` | `0 * * * *` | Chama `/api/notificar` a cada hora |
-| `Notificacoes - Tarefas Jobson` | `30 11,14 * * *` | Chama `/api/notificar` com `scope=tarefas_jobson` as 08:30 e 11:30 BRT |
 | `Analise do Sistema` | `0 0,8,16 * * *` | Chama `/api/system-analysis` 3x ao dia |
 
 ## Observabilidade
@@ -190,7 +187,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - `api/notificar` usa variaveis segregadas para Telegram.
 - O repositório nao contem integracao com Instagram; o canal implementado para alertas e Telegram.
 - Dados sensiveis existem principalmente no modulo de saude, portanto logs e dumps devem evitar exposicao de payloads completos.
-- O envio de notificacoes usa flags (`telegram_sent`, `telegram_sent_at`, `notificado`) para evitar repeticao indevida.
+- O envio de notificacoes usa flags (`telegram_sent`, `telegram_sent_at`) para evitar repeticao indevida.
 
 ## Riscos e Gaps Identificados
 
