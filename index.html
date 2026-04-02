@@ -2045,8 +2045,26 @@
             color: var(--text-dark);
             pointer-events: none;
         }
-        .cal-day-summary.has-events { background: var(--primary); border-color: var(--primary); color: white; }
-        .cal-day-summary.has-events.is-saude { background: #dc2626; border-color: #dc2626; }
+        .cal-day-summary.has-events {
+            background: linear-gradient(135deg, #fde68a, #facc15);
+            border-color: #eab308;
+            color: #713f12;
+        }
+        .cal-day-summary.has-events.is-agenda {
+            background: linear-gradient(135deg, #fde68a, #facc15);
+            border-color: #eab308;
+            color: #713f12;
+        }
+        .cal-day-summary.has-events.is-saude {
+            background: linear-gradient(135deg, #fbcfe8, #f9a8d4);
+            border-color: #ec4899;
+            color: #831843;
+        }
+        .cal-day-summary.has-events.is-mixed {
+            background: linear-gradient(135deg, #fde68a 0%, #f9a8d4 100%);
+            border-color: #d97706;
+            color: #5b2138;
+        }
         .cal-day-summary-icon { font-size: 0.64rem; line-height: 1; }
         .cal-day-summary-q {
             display: inline-flex;
@@ -2078,6 +2096,14 @@
             color: inherit;
         }
         .cal-day-modal-item:hover { border-color: var(--primary); background: #eff6ff; }
+        .cal-day-modal-item.is-agenda {
+            border-color: rgba(234, 179, 8, 0.45);
+            background: linear-gradient(150deg, rgba(254, 249, 195, 0.9), rgba(254, 243, 199, 0.95));
+        }
+        .cal-day-modal-item.is-saude {
+            border-color: rgba(236, 72, 153, 0.45);
+            background: linear-gradient(150deg, rgba(252, 231, 243, 0.9), rgba(251, 207, 232, 0.92));
+        }
         .cal-day-modal-title { display: block; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.15rem; }
         .cal-day-modal-meta { display: block; font-size: 0.78rem; color: var(--text-light); }
         .cal-day-modal-row-actions { margin-top: 0.55rem; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
@@ -2142,6 +2168,30 @@
             background: rgba(15, 23, 42, 0.92);
             border-color: rgba(71, 97, 140, 0.58);
             color: #e5edff;
+        }
+        [data-theme="dark"] .cal-day-summary.has-events,
+        [data-theme="dark"] .cal-day-summary.has-events.is-agenda {
+            background: linear-gradient(135deg, rgba(250, 204, 21, 0.84), rgba(234, 179, 8, 0.88));
+            border-color: rgba(234, 179, 8, 0.95);
+            color: #fef3c7;
+        }
+        [data-theme="dark"] .cal-day-summary.has-events.is-saude {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.82), rgba(219, 39, 119, 0.86));
+            border-color: rgba(236, 72, 153, 0.95);
+            color: #fce7f3;
+        }
+        [data-theme="dark"] .cal-day-summary.has-events.is-mixed {
+            background: linear-gradient(135deg, rgba(250, 204, 21, 0.84), rgba(236, 72, 153, 0.86));
+            border-color: rgba(236, 72, 153, 0.9);
+            color: #fef3c7;
+        }
+        [data-theme="dark"] .cal-day-modal-item.is-agenda {
+            border-color: rgba(234, 179, 8, 0.5);
+            background: linear-gradient(150deg, rgba(120, 74, 12, 0.36), rgba(82, 54, 14, 0.42));
+        }
+        [data-theme="dark"] .cal-day-modal-item.is-saude {
+            border-color: rgba(236, 72, 153, 0.5);
+            background: linear-gradient(150deg, rgba(131, 24, 67, 0.36), rgba(96, 20, 50, 0.42));
         }
         .cal-grid-scroll {
             width: 100%;
@@ -3490,8 +3540,10 @@
                                     const checkStatus = this.getCalendarEventCheckStatus(e);
                                     const statusSymbol = checkStatus === 'confirmado' ? 'V' : (checkStatus === 'nao_confirmado' ? 'X' : '?');
                                     const statusClass = checkStatus ? (' ' + checkStatus) : '';
+                                    const isSaudeEvent = String(category || '').toLowerCase() === 'saúde'.toLowerCase();
+                                    const dayItemClass = isSaudeEvent ? ' is-saude' : ' is-agenda';
                                     return `
-                                        <div class="cal-day-modal-item">
+                                        <div class="cal-day-modal-item${dayItemClass}">
                                             <span class="cal-day-modal-title">${escapeHtml(e.title || 'Sem titulo')}</span>
                                             <span class="cal-day-modal-meta">${escapeHtml(meta)}</span>
                                             <div class="cal-day-modal-row-actions">
@@ -3582,11 +3634,14 @@
                                 }
                             }
                             const titles = dayEvents.map(e => (e.start_time ? e.start_time.substring(0, 5) + ' ' : '') + e.title).join('\n');
-                            const hasSaúde = dayEvents.some(e => e.category === 'Saúde');
+                            const hasSaude = dayEvents.some((e) => String(e.category || '').toLowerCase() === 'saúde'.toLowerCase());
+                            const hasAgenda = dayEvents.some((e) => String(e.category || '').toLowerCase() !== 'saúde'.toLowerCase());
                             let summaryClass = 'cal-day-summary';
                             if (count > 0) {
                                 summaryClass += ' has-events';
-                                if (hasSaúde) summaryClass += ' is-saude';
+                                if (hasSaude && hasAgenda) summaryClass += ' is-mixed';
+                                else if (hasSaude) summaryClass += ' is-saude';
+                                else summaryClass += ' is-agenda';
                             }
                             const qTop = dayCheckSymbol ? '<span class="cal-day-number-q ' + dayCheckClass + '" title="' + escapeHtml(dayCheckTitle) + '">' + dayCheckSymbol + '</span>' : '';
                             const qSummary = dayCheckSymbol ? '<span class="cal-day-summary-q ' + dayCheckClass + '" title="' + escapeHtml(dayCheckTitle) + '">' + dayCheckSymbol + '</span>' : '';
