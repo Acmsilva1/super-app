@@ -618,6 +618,30 @@
             .dashboard-charts {
                 grid-template-columns: 1fr;
             }
+            .dashboard-chart-card {
+                padding: 0.85rem;
+            }
+            .dashboard-chart-title {
+                font-size: 0.8rem;
+                margin-bottom: 0.6rem;
+            }
+            .dashboard-chart-wrap {
+                height: 190px;
+            }
+            .dashboard-chart-wrap canvas {
+                max-height: 190px;
+            }
+        }
+        @media (max-width: 420px) {
+            .dashboard-summary-grid {
+                grid-template-columns: 1fr;
+            }
+            .dashboard-chart-wrap {
+                height: 210px;
+            }
+            .dashboard-chart-wrap canvas {
+                max-height: 210px;
+            }
         }
 
         /* APPLICATIONS SECTION – ícones compactos e arredondados */
@@ -2036,8 +2060,20 @@
                 const storageByApp = metrics.storage_by_app || { labels: [], values: [] };
                 const db = metrics.db || { connected: 0, unstable: 100 };
                 const history = Array.isArray(metrics.history) ? metrics.history : [];
+                const isCompactChart = window.innerWidth <= 480;
 
-                const chartOptions = { responsive: true, maintainAspectRatio: false };
+                const chartOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: isCompactChart ? 22 : 16,
+                            right: isCompactChart ? 10 : 8,
+                            bottom: isCompactChart ? 6 : 4,
+                            left: isCompactChart ? 4 : 2,
+                        }
+                    }
+                };
                 const dashboardValuePlugin = {
                     id: 'dashboardValuePlugin',
                     afterDatasetsDraw(chart, _args, opts) {
@@ -2054,13 +2090,14 @@
 
                         ctx.save();
                         ctx.fillStyle = color;
-                        ctx.font = '600 11px Poppins, sans-serif';
+                        ctx.font = `600 ${isCompactChart ? 10 : 11}px Poppins, sans-serif`;
                         ctx.textBaseline = 'middle';
 
                         meta.data.forEach((element, index) => {
                             const value = Number(dataset.data?.[index] ?? 0);
                             if (!Number.isFinite(value)) return;
                             const point = element.tooltipPosition();
+                            const chartArea = chart.chartArea || {};
                             if (type === 'doughnut') {
                                 if (value <= 0) return;
                                 ctx.textAlign = 'center';
@@ -2071,8 +2108,12 @@
                             if (type === 'bar') {
                                 const isHorizontal = chart.options?.indexAxis === 'y';
                                 ctx.textAlign = isHorizontal ? 'left' : 'center';
-                                const x = isHorizontal ? point.x + 8 : point.x;
-                                const y = isHorizontal ? point.y : point.y - 10;
+                                const x = isHorizontal
+                                    ? Math.min(point.x + 8, (chartArea.right || point.x) - 18)
+                                    : point.x;
+                                const y = isHorizontal
+                                    ? point.y
+                                    : Math.max(point.y - (isCompactChart ? 8 : 10), (chartArea.top || point.y) + 8);
                                 ctx.fillText(formatter(value, type, index), x, y);
                             }
                         });
@@ -2111,7 +2152,15 @@
                         },
                         options: {
                             ...chartOptions,
-                            scales: { y: { beginAtZero: true } },
+                            scales: {
+                                x: {
+                                    ticks: { maxRotation: 0, minRotation: 0, font: { size: isCompactChart ? 10 : 12 } }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { precision: 0, font: { size: isCompactChart ? 10 : 12 } }
+                                }
+                            },
                             plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}` } }
                         }
                     });
@@ -2128,7 +2177,15 @@
                         },
                         options: {
                             ...chartOptions,
-                            scales: { y: { beginAtZero: true } },
+                            scales: {
+                                x: {
+                                    ticks: { maxRotation: 0, minRotation: 0, font: { size: isCompactChart ? 9 : 11 } }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { font: { size: isCompactChart ? 10 : 12 } }
+                                }
+                            },
                             plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}ms` } }
                         }
                     });
@@ -2146,7 +2203,10 @@
                         options: {
                             ...chartOptions,
                             indexAxis: 'y',
-                            scales: { x: { beginAtZero: true } },
+                            scales: {
+                                x: { beginAtZero: true, ticks: { precision: 0, font: { size: isCompactChart ? 10 : 12 } } },
+                                y: { ticks: { font: { size: isCompactChart ? 10 : 12 } } }
+                            },
                             plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}` } }
                         }
                     });
@@ -2210,10 +2270,13 @@
                         options: {
                             ...chartOptions,
                             scales: {
-                                y: { beginAtZero: true, position: 'left' },
-                                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } }
+                                x: {
+                                    ticks: { maxRotation: 0, minRotation: 0, font: { size: isCompactChart ? 9 : 11 } }
+                                },
+                                y: { beginAtZero: true, position: 'left', ticks: { font: { size: isCompactChart ? 10 : 12 } } },
+                                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { font: { size: isCompactChart ? 10 : 12 } } }
                             },
-                            plugins: { legend: { position: 'bottom' } }
+                            plugins: { legend: { position: 'bottom', labels: { boxWidth: isCompactChart ? 10 : 14, font: { size: isCompactChart ? 10 : 12 } } } }
                         }
                     });
                 }
