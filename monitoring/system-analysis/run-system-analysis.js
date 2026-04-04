@@ -66,14 +66,6 @@ const ENDPOINTS = [
     successHint: "modulo de saude respondeu",
   },
   {
-    name: "calendario_config",
-    path: "/api/calendario?action=config",
-    expectedStatus: 200,
-    critical: true,
-    validateBody: (body) => typeof body?.status === "string" && body?.year === 2026,
-    successHint: "configuracao da agenda carregada",
-  },
-  {
     name: "fluxograma",
     path: "/api/fluxograma",
     expectedStatus: 200,
@@ -90,7 +82,7 @@ const ENDPOINTS = [
     successHint: "dashboard operacional respondeu",
   },
 ];
-const DEFAULT_DB_TABLE = process.env.SYSTEM_ANALYSIS_DB_TABLE || "tb_calendario";
+const DEFAULT_DB_TABLE = process.env.SYSTEM_ANALYSIS_DB_TABLE || "tb_financas";
 
 function nowIso() {
   return new Date().toISOString();
@@ -294,133 +286,6 @@ function buildSnapshot(results) {
   };
 }
 
-async function fetchLatestSnapshot(supabase, table) {
-  const { data, error } = await supabase
-    .from(table)
-    .select("measured_at,status,checks_failed,critical_failures,endpoints,metadata")
-    .order("measured_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw new Error(`Erro ao consultar snapshot anterior: ${error.message}`);
-  return data || null;
-}
-
-function buildFailureSignature(snapshot) {
-  const failures = (Array.isArray(snapshot?.endpoints) ? snapshot.endpoints : [])
-    .filter((item) => item?.success === false)
-    .map((item) => {
-      const name = String(item.endpoint_name || "desconhecido");
-      const code = item.status_code == null ? "null" : String(item.status_code);
-      const message = String(item.error_message || "").slice(0, 80);
-      return `${name}|${code}|${message}`;
-    })
-    .sort();
-  return failures.join("::");
-}
-
-function escapeTelegramMarkdown(text) {
-  return String(text ?? "").replace(/([_*\[\]()~`>#+\-=|{}.!])/g, "\\$1");
-}
-
-function buildTelegramAlertMessage(snapshot, previousSnapshot = null, kind = "failure") {
-  const failures = (Array.isArray(snapshot?.endpoints) ? snapshot.endpoints : []).filter((item) => item?.success === false);
-  const headline = kind === "recovery" ? "*SUPER APP RECUPERADO*" : "*ALERTA XERIFE SUPER APP*";
-  const statusLine =
-    kind === "recovery"
-      ? "*Status:* fluxo restabelecido"
-      : `*Status:* ${escapeTelegramMarkdown(snapshot.status || "attention")}`;
-  const summary = [
-    headline,
-    statusLine,
-    `*Quando:* ${escapeTelegramMarkdown(snapshot.measured_at || nowIso())}`,
-    `*Checks:* ${escapeTelegramMarkdown(`${snapshot.checks_success}/${snapshot.checks_total} com sucesso`)}`,
-    `*Falhas criticas:* ${escapeTelegramMarkdown(String(snapshot.critical_failures ?? 0))}`,
-  ];
-
-  if (kind === "recovery" && previousSnapshot) {
-    summary.push(
-      `*Antes:* ${escapeTelegramMarkdown(
-        `${previousSnapshot.status || "attention"} com ${previousSnapshot.checks_failed || 0} falha(s)`
-      )}`
-    );
-  }
-
-  if (kind !== "recovery") {
-    const topFailures = failures.slice(0, 5).map((item) => {
-      const status = item.status_code == null ? "sem_status" : String(item.status_code);
-      return `- ${escapeTelegramMarkdown(`${item.endpoint_name} [${status}] ${item.error_message || "erro desconhecido"}`)}`;
-    });
-    summary.push("*Falhas:*");
-    summary.push(...topFailures);
-  }
-
-  return summary.join("\n");
-}
-
-async function sendTelegramAlert(message) {
-  if (!process.env.TELEGRAM_TOKEN || !process.env.TELEGRAM_CHAT_ID) return false;
-
-  const response = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: process.env.TELEGRAM_CHAT_ID,
-      text: message,
-      parse_mode: "MarkdownV2",
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Falha ao enviar alerta para Telegram: ${response.status} ${body}`);
-  }
-
-  return true;
-}
-
-async function enrichSnapshotWithAlert(snapshot, previousSnapshot = null) {
-  const previousStatus = previousSnapshot?.status || null;
-  const currentStatus = snapshot?.status || null;
-  const previousSignature = buildFailureSignature(previousSnapshot || {});
-  const currentSignature = buildFailureSignature(snapshot || {});
-
-  const shouldAlertFailure =
-    currentStatus === "attention" && (!previousSnapshot || previousStatus !== "attention" || previousSignature !== currentSignature);
-  const shouldAlertRecovery = previousSnapshot && previousStatus === "attention" && currentStatus === "healthy";
-
-  const alert = {
-    triggered: false,
-    kind: null,
-    sent: false,
-    error: null,
-    previous_status: previousStatus,
-    failure_signature: currentSignature || null,
-  };
-
-  try {
-    if (shouldAlertFailure) {
-      alert.triggered = true;
-      alert.kind = "failure";
-      alert.sent = await sendTelegramAlert(buildTelegramAlertMessage(snapshot, previousSnapshot, "failure"));
-    } else if (shouldAlertRecovery) {
-      alert.triggered = true;
-      alert.kind = "recovery";
-      alert.sent = await sendTelegramAlert(buildTelegramAlertMessage(snapshot, previousSnapshot, "recovery"));
-    }
-  } catch (error) {
-    alert.triggered = true;
-    alert.error = String(error?.message || error);
-  }
-
-  return {
-    ...snapshot,
-    metadata: {
-      ...(snapshot.metadata || {}),
-      alert,
-    },
-  };
-}
-
 async function insertSnapshot(supabase, table, snapshot) {
   const { error } = await supabase.from(table).insert(snapshot);
   if (error) throw new Error(`Erro ao inserir snapshot no Supabase: ${error.message}`);
@@ -442,8 +307,6 @@ export async function runSystemAnalysis(options = {}) {
   const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const previousSnapshot = await fetchLatestSnapshot(supabase, table);
-
   const results = [];
   for (const endpoint of endpoints) {
     const result = await testEndpoint(appBaseUrl, endpoint);
@@ -451,7 +314,7 @@ export async function runSystemAnalysis(options = {}) {
   }
   results.push(await testDatabaseConnection(supabase, dbTable));
 
-  const snapshot = await enrichSnapshotWithAlert(buildSnapshot(results), previousSnapshot);
+  const snapshot = buildSnapshot(results);
   await insertSnapshot(supabase, table, snapshot);
 
   return snapshot;

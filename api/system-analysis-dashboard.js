@@ -7,8 +7,7 @@ const STORAGE_TABLES = [
   { app: "Financas", table: "tb_financas" },
   { app: "Lista de Compras", table: "tb_lista_compras" },
   { app: "Saúde Familiar", table: "tb_saude_familiar" },
-  { app: "Agenda", table: "tb_calendario" },
-  { app: "Fluxograma", table: "tb_fluxograma_projetos" },
+    { app: "Fluxograma", table: "tb_fluxograma_projetos" },
 ];
 
 function json(res, status, data) {
@@ -104,10 +103,7 @@ function buildDashboardPayload(rows) {
       services: { labels: ["Total", "Saudaveis", "Falhas"], values: [0, 0, 0] },
       latency_current: { labels: [], values: [] },
       storage_by_app: { labels: [], values: [] },
-      db: { connected: 0, unstable: 100 },
-      calendar_sync: { db_columns_ready: false, status: "unknown", sample_size: 0, sample_checked: 0, error: null },
-      alerts: { last_kind: null, last_sent: false, last_error: null },
-      failed_endpoints: [],
+      db: { connected: 0, unstable: 100 },      failed_endpoints: [],
       history: [],
     };
   }
@@ -155,14 +151,7 @@ function buildDashboardPayload(rows) {
     db: {
       connected: dbConnected,
       unstable: Math.max(0, round(100 - dbConnected, 2)),
-    },
-    calendar_sync: { db_columns_ready: false, status: "unknown", sample_size: 0, sample_checked: 0, error: null },
-    alerts: {
-      last_kind: latest?.metadata?.alert?.kind || null,
-      last_sent: Boolean(latest?.metadata?.alert?.sent),
-      last_error: latest?.metadata?.alert?.error || null,
-    },
-    failed_endpoints: Array.isArray(latest?.metadata?.failed_endpoints) ? latest.metadata.failed_endpoints : [],
+    },    failed_endpoints: Array.isArray(latest?.metadata?.failed_endpoints) ? latest.metadata.failed_endpoints : [],
     history: rows
       .slice()
       .reverse()
@@ -174,42 +163,6 @@ function buildDashboardPayload(rows) {
         critical_failures: toNumber(row.critical_failures, 0),
       })),
   };
-}
-
-async function fetchCalendarSyncStatus(supabase) {
-  try {
-    const { data, error } = await supabase
-      .from("tb_calendario")
-      .select("id, check_status, check_updated_at")
-      .limit(5);
-
-    if (error) throw error;
-
-    const rows = Array.isArray(data) ? data : [];
-    const sampleChecked = rows.filter((row) => row?.check_status === "confirmado" || row?.check_status === "nao_confirmado").length;
-
-    return {
-      db_columns_ready: true,
-      status: "synced",
-      sample_size: rows.length,
-      sample_checked: sampleChecked,
-      error: null,
-    };
-  } catch (error) {
-    const message = String(error?.message || error);
-    const missingColumns =
-      message.includes("Could not find the 'check_status' column") ||
-      message.includes("check_status") ||
-      message.includes("check_updated_at");
-
-    return {
-      db_columns_ready: false,
-      status: missingColumns ? "schema_missing" : "error",
-      sample_size: 0,
-      sample_checked: 0,
-      error: message,
-    };
-  }
 }
 
 async function fetchStorageByApp(supabase, fromIso = null) {
@@ -277,11 +230,10 @@ export default async function handler(req, res) {
 
     const payload = buildDashboardPayload(data || []);
     payload.profile = profile;
-    payload.storage_by_app = await fetchStorageByApp(supabase, fromIso);
-    payload.calendar_sync = await fetchCalendarSyncStatus(supabase);
-    return json(res, 200, payload);
+    payload.storage_by_app = await fetchStorageByApp(supabase, fromIso);    return json(res, 200, payload);
   } catch (error) {
     return json(res, 500, { error: error.message || "Falha ao carregar dashboard de analise." });
   }
 }
+
 

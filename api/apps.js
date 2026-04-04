@@ -36,14 +36,6 @@ export const APPS = [
     category: 'Saude',
   },
   {
-    id: 'calendario',
-    icon: 'fa-calendar-days',
-    status: 'active',
-    title: 'Agenda',
-    description: 'Modulo de agendamento integrado ao ecossistema 2026',
-    category: 'Produtividade',
-  },
-  {
     id: 'fluxograma',
     icon: 'fa-diagram-project',
     status: 'active',

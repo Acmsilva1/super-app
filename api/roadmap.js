@@ -11,12 +11,12 @@ const ROADMAP = [
   {
     step: '2',
     title: 'Dominios integrados ao Supabase',
-    description: 'Despesas Fixas, Financas, Lista de Compras, Saude, Agenda e Fluxograma persistem dados no Supabase.',
+    description: 'Despesas Fixas, Financas, Lista de Compras, Saude e Fluxograma persistem dados no Supabase.',
   },
   {
     step: '3',
-    title: 'Automacao e notificacoes',
-    description: 'GitHub Actions acorda a Vercel para notificacoes horarias no Telegram e para analise operacional agendada.',
+    title: 'Automacao operacional',
+    description: 'GitHub Actions acorda a Vercel para analise operacional agendada.',
   },
   {
     step: '4',
