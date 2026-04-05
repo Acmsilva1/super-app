@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+﻿import { createClient } from "@supabase/supabase-js";
 import { pathToFileURL } from "node:url";
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 12000);
@@ -15,7 +15,7 @@ const ENDPOINTS = [
     expectedStatus: 200,
     critical: true,
     validateBody: (body) => Array.isArray(body) && body.length > 0 && body.every((item) => typeof item?.id === "string"),
-    successHint: "catalogo carregado",
+    successHint: "catálogo carregado",
   },
   {
     name: "statistics",
@@ -23,7 +23,7 @@ const ENDPOINTS = [
     expectedStatus: 200,
     critical: true,
     validateBody: (body) => Number.isFinite(Number(body?.totalApps)) && Number(body?.totalApps) >= 1,
-    successHint: "estatisticas carregadas",
+    successHint: "estatísticas carregadas",
   },
   {
     name: "roadmap",
@@ -39,7 +39,7 @@ const ENDPOINTS = [
     expectedStatus: 200,
     critical: true,
     validateBody: (body) => Array.isArray(body?.rows) && typeof body?.mes_ano === "string",
-    successHint: "modulo de despesas fixas respondeu",
+    successHint: "módulo de despesas fixas respondeu",
   },
   {
     name: "financas",
@@ -47,7 +47,7 @@ const ENDPOINTS = [
     expectedStatus: 200,
     critical: true,
     validateBody: (body) => Array.isArray(body?.rows) && typeof body?.mes_ano === "string" && typeof body?.totais === "object",
-    successHint: "modulo financeiro respondeu",
+    successHint: "módulo financeiro respondeu",
   },
   {
     name: "lista_compras",
@@ -63,7 +63,7 @@ const ENDPOINTS = [
     expectedStatus: 200,
     critical: true,
     validateBody: (body) => Array.isArray(body?.rows),
-    successHint: "modulo de saude respondeu",
+    successHint: "módulo de saúde respondeu",
   },
   {
     name: "fluxograma",
@@ -71,7 +71,7 @@ const ENDPOINTS = [
     expectedStatus: 200,
     critical: false,
     validateBody: (body) => Array.isArray(body?.projects),
-    successHint: "modulo de fluxograma respondeu",
+    successHint: "módulo de fluxograma respondeu",
   },
   {
     name: "system_analysis_dashboard",
@@ -152,7 +152,7 @@ async function testEndpoint(baseUrl, endpoint) {
       body = await response.json();
       bodySummary = summarizeBody(body);
     } catch (error) {
-      bodyError = `JSON invalido: ${String(error?.message || error)}`;
+      bodyError = `JSON inválido: ${String(error?.message || error)}`;
     }
 
     const okStatus = response.status === endpoint.expectedStatus;
@@ -300,9 +300,9 @@ export async function runSystemAnalysis(options = {}) {
   const endpoints = options.endpoints || ENDPOINTS;
   const dbTable = options.dbTable || DEFAULT_DB_TABLE;
 
-  if (!appBaseUrl) throw new Error("APP_BASE_URL nao definido.");
-  if (!supabaseUrl) throw new Error("SUPABASE_URL nao definido.");
-  if (!supabaseKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY (ou SUPABASE_ANON_KEY) nao definido.");
+  if (!appBaseUrl) throw new Error("APP_BASE_URL não definido.");
+  if (!supabaseUrl) throw new Error("SUPABASE_URL não definido.");
+  if (!supabaseKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY (ou SUPABASE_ANON_KEY) não definido.");
 
   const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -326,7 +326,7 @@ async function main() {
   console.log(
     JSON.stringify(
       {
-        message: "Analise concluida com sucesso.",
+        message: "Análise concluída com sucesso.",
         measured_at: snapshot.measured_at,
         status: snapshot.status,
         checks_total: snapshot.checks_total,
@@ -341,7 +341,8 @@ async function main() {
 
 if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
   main().catch((error) => {
-    console.error(`Falha na analise: ${error.message}`);
+    console.error(`Falha na análise: ${error.message}`);
     process.exit(1);
   });
 }
+

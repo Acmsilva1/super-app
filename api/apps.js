@@ -1,6 +1,6 @@
-/**
- * Lista de aplicacoes do Super App (usada pelo index.html no Vercel).
- * Cada app costuma ter uma API, exceto fluxograma (so front + localStorage).
+﻿/**
+ * Lista de aplicações do Super App (usada pelo index.html no Vercel).
+ * Cada app costuma ter uma API, exceto fluxograma (só front + localStorage).
  */
 export const APPS = [
   {
@@ -8,14 +8,14 @@ export const APPS = [
     icon: 'fa-book',
     status: 'active',
     title: 'Despesas Fixas',
-    description: 'Registro de despesas fixas: descricao, valor, status pago/pendente e soma no final.',
+    description: 'Registro de despesas fixas: descrição, valor, status pago/pendente e soma no final.',
     category: 'Produtividade',
   },
   {
     id: 'financas',
     icon: 'fa-wallet',
     status: 'active',
-    title: 'Financas',
+    title: 'Finanças',
     description: 'Registro de receitas e despesas com categorias e BI.',
     category: 'Financeiro',
   },
@@ -24,23 +24,23 @@ export const APPS = [
     icon: 'fa-list',
     status: 'active',
     title: 'Lista de Compras',
-    description: 'Lista de compras com prioridade e controle do que ja foi comprado.',
+    description: 'Lista de compras com prioridade e controle do que já foi comprado.',
     category: 'Produtividade',
   },
   {
     id: 'saude',
     icon: 'fa-heart-pulse',
     status: 'active',
-    title: 'Saude Familiar',
-    description: 'Vacinas, consultas, exames e medicamentos por membro da familia.',
-    category: 'Saude',
+    title: 'Saúde Familiar',
+    description: 'Vacinas, consultas, exames e medicamentos por membro da família.',
+    category: 'Saúde',
   },
   {
     id: 'fluxograma',
     icon: 'fa-diagram-project',
     status: 'active',
     title: 'Fluxograma',
-    description: 'Crie fluxogramas com nos e conexoes; rascunho local e projetos salvos na nuvem (Supabase).',
+    description: 'Crie fluxogramas com nós e conexões; rascunho local e projetos salvos na nuvem (Supabase).',
     category: 'Produtividade',
   },
 ];
@@ -57,3 +57,4 @@ export default async function handler(req, res) {
   }
   return json(res, 200, APPS);
 }
+

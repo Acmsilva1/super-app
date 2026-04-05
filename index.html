@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -1335,7 +1335,7 @@
             margin-bottom: 1rem;
         }
 
-        /* Mdulo Fluxograma (escopo isolado; tema escuro no afeta o body do SUPERAPP) */
+        /* Módulo Fluxograma (escopo isolado; tema escuro não afeta o body do SUPERAPP) */
         .window-content.fluxograma-window-content {
             padding: 0 !important;
             overflow: hidden !important;
@@ -2390,7 +2390,7 @@
 
                 <nav>
                     <a href="#dashboard" id="navDashboard" class="nav-link">Dashboard</a>
-                    <a href="#apps" id="navApps" class="nav-link active">Aplicaes</a>
+                    <a href="#apps" id="navApps" class="nav-link active">Aplicações</a>
                 </nav>
 
                 <div class="header-actions">
@@ -2400,7 +2400,7 @@
                     <button class="header-btn" id="darkModeToggle" title="Modo escuro (alternar)" aria-label="Alternar modo escuro">
                         <i class="fas fa-moon" id="darkModeIcon"></i>
                     </button>
-                    <button class="header-btn" id="notificationsBtn" title="Notificaes" style="position: relative;">
+                    <button class="header-btn" id="notificationsBtn" title="Notificações" style="position: relative;">
                         <i class="fas fa-bell"></i>
                         <span id="notificationBadge" class="notification-badge" aria-hidden="true"></span>
                     </button>
@@ -2417,7 +2417,7 @@
         <div class="container">
             <div class="hero">
                 <h2>Bem-vindo ao SUPERAPP</h2>
-                <p>Plataforma unificada de microservicos e aplicacoes praticas. Acesse todas as suas ferramentas em um unico lugar.</p>
+                <p>Plataforma unificada de microserviços e aplicações práticas. Acesse todas as suas ferramentas em um único lugar.</p>
                 <div class="dashboard-controls">
                     <label for="dashboardProfileSelect">Perfil:</label>
                     <select id="dashboardProfileSelect" class="dashboard-profile-select">
@@ -2426,42 +2426,42 @@
                         <option value="total">Total</option>
                     </select>
                 </div>
-                <p id="dashboardLastUpdate" class="dashboard-last-update">Ultima analise: carregando...</p>
+                <p id="dashboardLastUpdate" class="dashboard-last-update">Última análise: carregando...</p>
             </div>
             <div id="dashboardSummary" class="dashboard-summary-grid">
                 <div class="dashboard-summary-card"><span class="dashboard-summary-label">Status</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
                 <div class="dashboard-summary-card"><span class="dashboard-summary-label">Cobertura</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
-                <div class="dashboard-summary-card"><span class="dashboard-summary-label">Falhas Criticas</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
+                <div class="dashboard-summary-card"><span class="dashboard-summary-label">Falhas Críticas</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
                 <div class="dashboard-summary-card"><span class="dashboard-summary-label">Falhas</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
             </div>
             <div id="dashboardCharts" class="dashboard-charts">
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Sade da aplicacao</h4>
+                    <h4 class="dashboard-chart-title">Saúde da aplicação</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartHealth"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Status dos servicos</h4>
+                    <h4 class="dashboard-chart-title">Status dos serviços</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartApps"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Latencia atual por endpoint</h4>
+                    <h4 class="dashboard-chart-title">Latência atual por endpoint</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartData"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Dados armazenados por aplicacao</h4>
+                    <h4 class="dashboard-chart-title">Dados armazenados por aplicação</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartSize"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Conexao com DB</h4>
+                    <h4 class="dashboard-chart-title">Conexão com DB</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartDb"></canvas></div>
                 </div>
                 <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Historico do xerife</h4>
+                    <h4 class="dashboard-chart-title">Histórico do xerife</h4>
                     <div class="dashboard-chart-wrap"><canvas id="chartHistory"></canvas></div>
                 </div>
             </div>
             <div id="dashboardHealthReport" class="dashboard-health-report">
-                <div class="dashboard-health-report-title"><i class="fas fa-heart-pulse"></i> Relatorio de saude</div>
+                <div class="dashboard-health-report-title"><i class="fas fa-heart-pulse"></i> Relatório de saúde</div>
                 <div class="dashboard-health-report-body">
                     <p>Carregando resumo do monitoramento...</p>
                 </div>
@@ -2472,15 +2472,15 @@
     <!-- APPLICATIONS -->
     <section id="apps" class="apps-section">
         <div class="container">
-            <h3 class="section-title">Aplicaes Disponveis</h3>
+            <h3 class="section-title">Aplicações Disponíveis</h3>
             <div id="appsContainer" class="apps-grid">
                 <div class="empty-state">
                     <div>
                         <div class="empty-state-icon">
                             <i class="fas fa-inbox"></i>
                         </div>
-                        <p class="empty-state-text">Nenhuma aplicao disponvel</p>
-                        <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicaes sero carregadas do backend</p>
+                        <p class="empty-state-text">Nenhuma aplicação disponível</p>
+                        <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
                     </div>
                 </div>
             </div>
@@ -2537,7 +2537,7 @@
                     latest_at: null,
                     summary: { status: 'no_data', uptime_percent: 0, error_rate_percent: 0, p95_latency_ms: 0, checks_total: 0, checks_success: 0, checks_failed: 0, critical_failures: 0 },
                     health: { healthy: 0, attention: 100 },
-                    services: { labels: ['Total', 'Saudaveis', 'Falhas'], values: [0, 0, 0] },
+                    services: { labels: ['Total', 'Saudáveis', 'Falhas'], values: [0, 0, 0] },
                     latency_current: { labels: [], values: [] },
                     storage_by_app: { labels: [], values: [] },
                     db: { connected: 0, unstable: 100 },
@@ -2620,13 +2620,13 @@
             async loadApps() {
                 try {
                     const response = await fetch('/api/apps');
-                    if (!response.ok) throw new Error('Falha ao carregar aplicaes');
+                    if (!response.ok) throw new Error('Falha ao carregar aplicações');
                     const data = await response.json();
                     this.apps = Array.isArray(data) ? data : (data.apps || []);
                     this.renderApps();
                     if (document.getElementById('chartSize')) this.renderDashboardCharts();
                 } catch (error) {
-                    console.error('Erro ao carregar aplicaes:', error);
+                    console.error('Erro ao carregar aplicações:', error);
                     this.apps = [];
                     this.renderApps();
                 }
@@ -2635,12 +2635,12 @@
             async loadStatistics() {
                 try {
                     const response = await fetch('/api/statistics');
-                    if (!response.ok) throw new Error('Falha ao carregar estatsticas');
+                    if (!response.ok) throw new Error('Falha ao carregar estatísticas');
                     const data = await response.json();
                     this.statistics = { ...data, openApps: this.openWindows.size };
                     this.renderDashboardCharts();
                 } catch (error) {
-                    console.error('Erro ao carregar estatsticas:', error);
+                    console.error('Erro ao carregar estatísticas:', error);
                     this.statistics = { totalApps: 0, activeApps: 0, betaApps: 0, openApps: this.openWindows.size };
                     this.renderDashboardCharts();
                 }
@@ -2667,7 +2667,7 @@
                         ? `/api/system-analysis-dashboard?profile=${encodeURIComponent(profile)}&t=${Date.now()}`
                         : `/api/system-analysis-dashboard?profile=${encodeURIComponent(profile)}`;
                     const response = await fetch(url);
-                    if (!response.ok) throw new Error('Falha ao carregar analise do sistema');
+                    if (!response.ok) throw new Error('Falha ao carregar análise do sistema');
                     const data = await response.json();
                     this.dashboardMetrics = data || this.dashboardMetrics;
                     this.renderDashboardLastUpdate();
@@ -2675,8 +2675,8 @@
                     this.renderDashboardCharts();
                     this.renderDashboardHealthReport();
                 } catch (error) {
-                    console.error('Erro ao carregar analise do sistema:', error);
-                    this.renderDashboardLastUpdate('Ultima analise: sem dados');
+                    console.error('Erro ao carregar análise do sistema:', error);
+                    this.renderDashboardLastUpdate('Última análise: sem dados');
                     this.renderDashboardSummary('Sem dados');
                     this.renderDashboardCharts();
                     this.renderDashboardHealthReport('Sem dados de monitoramento no momento.');
@@ -2696,7 +2696,7 @@
                 this.destroyDashboardCharts();
                 const metrics = this.dashboardMetrics || {};
                 const health = metrics.health || { healthy: 0, attention: 100 };
-                const services = metrics.services || { labels: ['Total', 'Saudaveis', 'Falhas'], values: [0, 0, 0] };
+                const services = metrics.services || { labels: ['Total', 'Saudáveis', 'Falhas'], values: [0, 0, 0] };
                 const latencyCurrent = metrics.latency_current || { labels: [], values: [] };
                 const storageByApp = metrics.storage_by_app || { labels: [], values: [] };
                 const db = metrics.db || { connected: 0, unstable: 100 };
@@ -2769,7 +2769,7 @@
                         type: 'doughnut',
                         plugins: [dashboardValuePlugin],
                         data: {
-                            labels: ['Saudavel', 'Ateno'],
+                            labels: ['Saudável', 'Atenção'],
                             datasets: [{ data: [Number(health.healthy || 0), Number(health.attention || 0)], backgroundColor: ['#22c55e', '#eab308'], borderWidth: 0 }]
                         },
                         options: {
@@ -2788,7 +2788,7 @@
                         type: 'bar',
                         plugins: [dashboardValuePlugin],
                         data: {
-                            labels: services.labels || ['Total', 'Saudaveis', 'Falhas'],
+                            labels: services.labels || ['Total', 'Saudáveis', 'Falhas'],
                             datasets: [{ label: 'Servicos', data: services.values || [0, 0, 0], backgroundColor: ['#2563eb', '#22c55e', '#ef4444'] }]
                         },
                         options: {
@@ -2814,7 +2814,7 @@
                         plugins: [dashboardValuePlugin],
                         data: {
                             labels: (latencyCurrent.labels && latencyCurrent.labels.length ? latencyCurrent.labels : ['Sem dados']),
-                            datasets: [{ label: 'Latencia (ms)', data: (latencyCurrent.values && latencyCurrent.values.length ? latencyCurrent.values : [0]), backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'] }]
+                            datasets: [{ label: 'Latência (ms)', data: (latencyCurrent.values && latencyCurrent.values.length ? latencyCurrent.values : [0]), backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'] }]
                         },
                         options: {
                             ...chartOptions,
@@ -2859,7 +2859,7 @@
                         type: 'doughnut',
                         plugins: [dashboardValuePlugin],
                         data: {
-                            labels: ['Conectado', 'Instavel'],
+                            labels: ['Conectado', 'Instável'],
                             datasets: [{ data: [Number(db.connected || 0), Number(db.unstable || 0)], backgroundColor: ['#22c55e', '#e5e7eb'], borderWidth: 0 }]
                         },
                         options: {
@@ -2898,7 +2898,7 @@
                                     yAxisID: 'y',
                                 },
                                 {
-                                    label: 'Falhas criticas',
+                                    label: 'Falhas críticas',
                                     data: criticalSeries,
                                     borderColor: '#dc2626',
                                     backgroundColor: 'rgba(220, 38, 38, 0.15)',
@@ -2934,15 +2934,15 @@
                 }
                 const latestAt = this.dashboardMetrics?.latest_at;
                 if (!latestAt) {
-                    el.textContent = `Ultima analise: sem dados (${profileLabel})`;
+                    el.textContent = `Última análise: sem dados (${profileLabel})`;
                     return;
                 }
                 const dt = new Date(latestAt);
                 if (Number.isNaN(dt.getTime())) {
-                    el.textContent = `Ultima analise: sem dados (${profileLabel})`;
+                    el.textContent = `Última análise: sem dados (${profileLabel})`;
                     return;
                 }
-                el.textContent = `Ultima analise: ${dt.toLocaleString('pt-BR')} (${profileLabel})`;
+                el.textContent = `Última análise: ${dt.toLocaleString('pt-BR')} (${profileLabel})`;
             }
 
             renderDashboardSummary(fallbackText = null) {
@@ -2969,8 +2969,8 @@
                 const uptime = Number(summary.uptime_percent || 0);
                 const status = String(summary.status || 'no_data').toLowerCase();
                 const statusMap = {
-                    healthy: { label: 'Saudavel', className: 'is-ok' },
-                    attention: { label: 'Atencao', className: criticalFailures > 0 ? 'is-bad' : 'is-warn' },
+                    healthy: { label: 'Saudável', className: 'is-ok' },
+                    attention: { label: 'Atenção', className: criticalFailures > 0 ? 'is-bad' : 'is-warn' },
                     no_data: { label: 'Sem dados', className: 'is-warn' }
                 };
                 const statusView = statusMap[status] || { label: 'Indefinido', className: 'is-warn' };
@@ -2987,7 +2987,7 @@
                         <span class="dashboard-summary-meta">${checksFailed} check(s) com falha</span>
                     </div>
                     <div class="dashboard-summary-card">
-                        <span class="dashboard-summary-label">Falhas Criticas</span>
+                        <span class="dashboard-summary-label">Falhas Críticas</span>
                         <strong class="dashboard-summary-value ${criticalFailures > 0 ? 'is-bad' : 'is-ok'}">${criticalFailures}</strong>
                         <span class="dashboard-summary-meta">Pontos vitais fora do ar</span>
                     </div>
@@ -3013,7 +3013,7 @@
                 const failedEndpoints = Array.isArray(metrics.failed_endpoints) ? metrics.failed_endpoints : [];
 
                 const status = String(summary.status || 'no_data').toLowerCase();
-                const statusLabel = status === 'healthy' ? 'Saudavel' : (status === 'attention' ? 'Atencao' : 'Sem dados');
+                const statusLabel = status === 'healthy' ? 'Saudável' : (status === 'attention' ? 'Atenção' : 'Sem dados');
                 const checksTotal = Number(summary.checks_total || services.values?.[0] || 0);
                 const checksOk = Number(summary.checks_success || services.values?.[1] || 0);
                 const checksFail = Number(summary.checks_failed || services.values?.[2] || 0);
@@ -3044,7 +3044,7 @@
                     ? failedEndpoints.slice(0, 6).map((item) => `
                         <div class="dashboard-health-list-item">
                             <strong>${escapeHtml(item.endpoint_name || 'endpoint')}</strong>
-                            <span>Status: ${escapeHtml(String(item.status_code ?? 'sem status'))} | Critico: ${item.critical ? 'sim' : 'nao'}</span>
+                            <span>Status: ${escapeHtml(String(item.status_code ?? 'sem status'))} | Crítico: ${item.critical ? 'sim' : 'não'}</span>
                             <span>${escapeHtml(item.error_message || 'Falha sem detalhe')}</span>
                         </div>
                     `).join('')
@@ -3053,19 +3053,19 @@
                 body.innerHTML = `
                     <div class="dashboard-health-status-row">
                         <span class="dashboard-status-chip ${statusChipClass}"><i class="fas fa-shield-halved"></i>${escapeHtml(statusLabel)}</span>
-                        <span class="dashboard-status-chip ${criticalFailures > 0 ? 'bad' : 'ok'}"><i class="fas fa-triangle-exclamation"></i>${criticalFailures} falha(s) critica(s)</span>
+                        <span class="dashboard-status-chip ${criticalFailures > 0 ? 'bad' : 'ok'}"><i class="fas fa-triangle-exclamation"></i>${criticalFailures} falha(s) crítica(s)</span>
                     </div>
                     <div class="dashboard-health-grid">
                         <div class="dashboard-health-panel">
                             <h5>Resumo Executivo</h5>
                             <p><strong>Status geral:</strong> ${escapeHtml(statusLabel)}. ${checksOk}/${checksTotal} checks passaram e ${checksFail} falharam.</p>
                             <p><strong>Confiabilidade:</strong> uptime ${uptime.toFixed(2)}% | taxa de erro ${errorRate.toFixed(2)}% | p95 ${Math.round(p95)}ms.</p>
-                            <p><strong>Ponto de atencao:</strong> endpoint mais lento recente: ${escapeHtml(slowLabel)} (${Math.round(slowValue)}ms).</p>
-                            <p><strong>Banco:</strong> conexao com DB em ${dbConnected.toFixed(2)}%.</p>
-                            <p><strong>Ultima amostra:</strong> ${escapeHtml(latestText)}.</p>
+                            <p><strong>Ponto de atenção:</strong> endpoint mais lento recente: ${escapeHtml(slowLabel)} (${Math.round(slowValue)}ms).</p>
+                            <p><strong>Banco:</strong> conexão com DB em ${dbConnected.toFixed(2)}%.</p>
+                            <p><strong>Última amostra:</strong> ${escapeHtml(latestText)}.</p>
                         </div>
                         <div class="dashboard-health-panel" style="grid-column: 1 / -1;">
-                            <h5>Falhas do Ultimo Snapshot</h5>
+                            <h5>Falhas do Último Snapshot</h5>
                             <div class="dashboard-health-list">${failuresHtml}</div>
                         </div>
                     </div>
@@ -3082,8 +3082,8 @@
                                 <div class="empty-state-icon">
                                     <i class="fas fa-inbox"></i>
                                 </div>
-                                <p class="empty-state-text">Nenhuma aplicao disponvel</p>
-                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicaes sero carregadas do backend</p>
+                                <p class="empty-state-text">Nenhuma aplicação disponível</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
                             </div>
                         </div>
                     `;
@@ -3115,8 +3115,8 @@
                                 <div class="roadmap-empty-icon">
                                     <i class="fas fa-map"></i>
                                 </div>
-                                <p class="roadmap-empty-text">Roadmap no carregado</p>
-                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap ser carregado do backend</p>
+                                <p class="roadmap-empty-text">Roadmap não carregado</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap será carregado do backend</p>
                             </div>
                         </div>
                     `;
@@ -3266,7 +3266,7 @@
                                         <option value="diamond">Losango</option>
                                         <option value="hexagon">Hexagono</option>
                                     </select>
-                                    <label>Conexao</label>
+                                    <label>Conexão</label>
                                     <select id="flux-connectionTypeSelect">
                                         <option value="arrow">Seta ida</option>
                                         <option value="both">Seta ida/volta</option>
@@ -3280,14 +3280,14 @@
                                         <span id="flux-currentColorSwatch" class="flux-color-preview-swatch is-empty"></span>
                                         <span id="flux-currentColorText">Sem selecao</span>
                                     </span>
-                                    <span class="flux-color-preview-item" title="Ultima cor usada">
+                                    <span class="flux-color-preview-item" title="Última cor usada">
                                         <span id="flux-activeColorSwatch" class="flux-color-preview-swatch"></span>
                                         <span id="flux-activeColorText">#3B82F6</span>
                                     </span>
                                 </div>
                                 <div class="flux-fc-stats">
                                     <span>Nos: <b id="flux-totalNodes">0</b></span>
-                                    <span>Conexoes: <b id="flux-totalConnections">0</b></span>
+                                    <span>Conexões: <b id="flux-totalConnections">0</b></span>
                                     <span>Conectados: <b id="flux-connectedNodes">0</b></span>
                                 </div>
                                 <div class="flux-fc-actions">
@@ -3562,7 +3562,7 @@
                 const totais = data.totais || { receitas: 0, despesas: 0, despesas_fixas: 0, liquido: 0 };
                 const bi = data.bi || {};
                 const tabelaGastos = bi.tabela_gastos || [];
-                const categorias = ['Alimentao','Habitao','Transporte','Lazer','Sade','Compras','Contas','Receitas'];
+                const categorias = ['Alimentação','Habitação','Transporte','Lazer','Saúde','Compras','Contas','Receitas'];
                 const mesAno = data.mes_ano || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const todayBrazilIso = this.getBrazilDateIsoFrom(new Date());
@@ -4274,7 +4274,7 @@
             async buildSaudeNotificationItems(targetDate) {
                 const res = await fetch('/api/saude');
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Falha ao carregar saude familiar');
+                if (!res.ok) throw new Error(data.error || 'Falha ao carregar saúde familiar');
                 const rows = data.rows || data.registros || [];
                 const due = rows.filter((r) => this.normalizeIsoDate(r.data_evento) === targetDate);
                 return due.map((r) => ({
@@ -4301,7 +4301,7 @@
                         return ta.localeCompare(tb);
                     });
                 } catch (err) {
-                    console.error('Erro ao carregar notificacoes de eventos:', err);
+                    console.error('Erro ao carregar notificações de eventos:', err);
                     this.notificationItems = [];
                 }
                 this.refreshNotificationBadge();
@@ -4327,8 +4327,8 @@
                         source: 'sistema',
                         date: '',
                         time: '',
-                        title: 'Nova versao do app disponivel',
-                        details: 'Use o botao Atualizar no aviso exibido na tela.'
+                        title: 'Nova versão do app disponível',
+                        details: 'Use o botão Atualizar no aviso exibido na tela.'
                     });
                 }
                 const overlay = document.createElement('div');
@@ -4336,19 +4336,19 @@
                 const content = items.length
                     ? `<ul class="app-list" style="max-height:50vh;overflow:auto;border:1px solid var(--border-color);border-radius:8px;">
                         ${items.map((item, idx) => {
-                            const modulo = item.source === 'saude' ? 'Sade familiar' : 'Sistema';
+                            const modulo = item.source === 'saude' ? 'Saúde familiar' : 'Sistema';
                             const quando = [this.formatDateBr(item.date), item.time].filter(Boolean).join(' - ');
                             const detalhes = [modulo, quando, item.details].filter(Boolean).join(' | ');
                             return `<li><div><strong>${idx + 1}. ${escapeHtml(item.title || '')}</strong><br/><span style="font-size:0.8rem;color:#9ca3af;">${escapeHtml(detalhes)}</span></div></li>`;
                         }).join('')}
                        </ul>`
-                    : '<p style="font-size:0.9rem;color:var(--text-light);">Nenhum evento para amanha.</p>';
+                    : '<p style="font-size:0.9rem;color:var(--text-light);">Nenhum evento para amanhã.</p>';
                 overlay.innerHTML = `
                     <div class="app-modal" style="width:min(680px,calc(100vw - 2rem));">
-                        <h4>Notificaes de eventos</h4>
+                        <h4>Notificações de eventos</h4>
                         ${content}
                         <div class="app-modal-actions">
-                            ${hasEventItems ? '<button type="button" class="app-btn app-btn-secondary" data-action="clear-notifications">Limpar notificacoes</button>' : ''}
+                            ${hasEventItems ? '<button type="button" class="app-btn app-btn-secondary" data-action="clear-notifications">Limpar notificações</button>' : ''}
                             <button type="button" class="app-btn app-btn-secondary" data-action="close-notifications">Fechar</button>
                         </div>
                     </div>
@@ -4392,11 +4392,11 @@
             }
 
             // ============================================
-            // MTODOS PARA INTEGRAO COM BACKEND
+            // MÉTODOS PARA INTEGRAÇÃO COM BACKEND
             // ============================================
             
             /**
-             * Mtodo para voc chamar quando receber dados do backend
+             * Método para você chamar quando receber dados do backend
              * Exemplo: superApp.setApps(dataFromBackend)
              */
             setApps(apps) {
@@ -4405,7 +4405,7 @@
             }
 
             /**
-             * Mtodo para voc chamar quando receber estatsticas do backend
+             * Método para você chamar quando receber estatísticas do backend
              * Exemplo: superApp.setStatistics(statsFromBackend)
              */
             setStatistics(stats) {
@@ -4414,7 +4414,7 @@
             }
 
             /**
-             * Mtodo para voc chamar quando receber roadmap do backend
+             * Método para você chamar quando receber roadmap do backend
              * Exemplo: superApp.setRoadmap(roadmapFromBackend)
              */
             setRoadmap(roadmap) {
@@ -4432,7 +4432,7 @@
         // ============================================
         
         /*
-        // Exemplo 1: Carregar dados quando pgina carrega
+        // Exemplo 1: Carregar dados quando página carrega
         window.addEventListener('load', async () => {
             try {
                 const [appsRes, statsRes, roadmapRes] = await Promise.all([
@@ -4460,11 +4460,11 @@
                 const stats = await response.json();
                 superApp.setStatistics(stats);
             } catch (error) {
-                console.error('Erro ao atualizar estatsticas:', error);
+                console.error('Erro ao atualizar estatísticas:', error);
             }
         }, 30000);
 
-        // Exemplo 3: Usar WebSocket para atualizaes em tempo real
+        // Exemplo 3: Usar WebSocket para atualizações em tempo real
         const ws = new WebSocket('ws://seu-backend.com/api/updates');
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -4501,13 +4501,13 @@
                     deferredInstallPrompt = null;
                     if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
                 } else if (isMobile) {
-                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (? ou ?)\n2. Escolha "Instalar app" ou "Adicionar  tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
+                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (⋮ ou ☰)\n2. Escolha "Instalar app" ou "Adicionar à tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
                 }
             });
         }
         updateInstallButton();
 
-        // PWA: registrar SW, detectar mudana de verso (deploy) e atualizar cache
+        // PWA: registrar SW, detectar mudança de versão (deploy) e atualizar cache
         if ('serviceWorker' in navigator) {
             let pendingWorker = null;
             const banner = document.createElement('div');
@@ -4549,6 +4549,10 @@
     </script>
 </body>
 </html>
+
+
+
+
 
 
 

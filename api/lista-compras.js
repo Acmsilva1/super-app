@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     if (toggle && id) {
       const { data: rows } = await supabase.from(TABLE_NAME).select('*');
       const payload = toggleComprado(rows ?? [], id);
-      if (!payload) return json(res, 404, { error: 'item nao encontrado' });
+      if (!payload) return json(res, 404, { error: 'item não encontrado' });
       const { data, error } = await supabase.from(TABLE_NAME).update(payload).eq('id', id).select().single();
       if (error) return json(res, 500, { error: error.message });
       return json(res, 200, data);

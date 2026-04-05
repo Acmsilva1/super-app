@@ -1,27 +1,27 @@
-/**
- * Roadmap do Super App (usada pelo index.html no Vercel).
+﻿/**
+ * Roadmap do Super App (usado pelo index.html no Vercel).
  * Reflete o estado atual do ecossistema publicado.
  */
 const ROADMAP = [
   {
     step: '1',
-    title: 'Shell unico publicado na Vercel',
-    description: 'Frontend estatico/PWA em index.html com catalogo central de apps e consumo de APIs serverless.',
+    title: 'Shell único publicado na Vercel',
+    description: 'Frontend estático/PWA em index.html com catálogo central de apps e consumo de APIs serverless.',
   },
   {
     step: '2',
-    title: 'Dominios integrados ao Supabase',
-    description: 'Despesas Fixas, Financas, Lista de Compras, Saude e Fluxograma persistem dados no Supabase.',
+    title: 'Domínios integrados ao Supabase',
+    description: 'Despesas Fixas, Finanças, Lista de Compras, Saúde e Fluxograma persistem dados no Supabase.',
   },
   {
     step: '3',
-    title: 'Automacao operacional',
-    description: 'GitHub Actions acorda a Vercel para analise operacional agendada.',
+    title: 'Automação operacional',
+    description: 'GitHub Actions acorda a Vercel para análise operacional agendada.',
   },
   {
     step: '4',
-    title: 'Observabilidade tecnica',
-    description: 'System analysis mede endpoints e conexao com banco, grava snapshots e alimenta dashboard operacional.',
+    title: 'Observabilidade técnica',
+    description: 'System analysis mede endpoints e conexão com banco, grava snapshots e alimenta dashboard operacional.',
   },
 ];
 
@@ -37,3 +37,4 @@ export default async function handler(req, res) {
   }
   return json(res, 200, ROADMAP);
 }
+

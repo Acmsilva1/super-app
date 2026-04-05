@@ -1,4 +1,4 @@
-import {
+﻿import {
     state,
     getGraphPayload,
     applyPersistedData,
@@ -28,7 +28,7 @@ async function fetchJson(url, opts) {
             data = {};
         }
     }
-    if (!res.ok) throw new Error(data.error || res.statusText || "Erro na requisicao");
+    if (!res.ok) throw new Error(data.error || res.statusText || "Erro na requisição");
     return data;
 }
 
@@ -73,7 +73,7 @@ async function performCloudSave() {
             if (out.id) localStorage.setItem(LS_REMOTE_ID, out.id);
         }
         const t = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-        setAutosaveStatus("Salvo na nuvem  " + t);
+        setAutosaveStatus("Salvo na nuvem às " + t);
     } catch (e) {
         setAutosaveStatus("Nuvem: " + (e.message || String(e)), true);
     } finally {
@@ -153,7 +153,7 @@ export async function initFluxogramaApp(mod) {
         localStorage.removeItem(LS_REMOTE_ID);
         saveToLocalStorage();
         await enterEditor();
-        setAutosaveStatus("Alteracoes serao salvas na nuvem automaticamente");
+        setAutosaveStatus("Alterações serão salvas na nuvem automaticamente");
     }
 
     async function openExistingProject(pid) {
@@ -162,7 +162,7 @@ export async function initFluxogramaApp(mod) {
         try {
             const data = await fetchJson("/api/fluxograma?id=" + encodeURIComponent(pid));
             const p = data.project;
-            if (!p) throw new Error("Projeto nao encontrado");
+            if (!p) throw new Error("Projeto não encontrado");
             const raw = typeof p.dados === "object" && p.dados !== null ? p.dados : {};
             applyPersistedData(raw);
             if (p.nome && String(p.nome).trim()) state.projectName = String(p.nome).trim();
@@ -176,7 +176,7 @@ export async function initFluxogramaApp(mod) {
     }
 
     async function deleteProject(pid) {
-        if (!confirm("Excluir este projeto da nuvem? Esta acao nao pode ser desfeita.")) return;
+        if (!confirm("Excluir este projeto da nuvem? Esta ação não pode ser desfeita.")) return;
         const errEl = document.getElementById("flux-hub-error");
         try {
             await fetchJson("/api/fluxograma?id=" + encodeURIComponent(pid), { method: "DELETE" });
@@ -224,7 +224,7 @@ export async function initFluxogramaApp(mod) {
             }
         } catch (e) {
             if (hubStatus) hubStatus.textContent = "";
-            if (errEl) errEl.textContent = "Nao foi possivel listar projetos: " + (e.message || String(e));
+            if (errEl) errEl.textContent = "Não foi possível listar projetos: " + (e.message || String(e));
         }
     }
 
@@ -255,3 +255,4 @@ export async function initFluxogramaApp(mod) {
     showHub();
     await renderHub();
 }
+

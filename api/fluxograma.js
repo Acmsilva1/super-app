@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     if (id) {
       const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).maybeSingle();
       if (error) return json(res, 500, { error: error.message });
-      if (!data) return json(res, 404, { error: 'Projeto nao encontrado' });
+      if (!data) return json(res, 404, { error: 'Projeto não encontrado' });
       return json(res, 200, { project: data });
     }
     const { data, error } = await supabase
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
     if (Object.keys(payload).length <= 1) return json(res, 400, { error: 'nome ou dados obrigatorio' });
     const { data, error } = await supabase.from(TABLE).update(payload).eq('id', id).select().single();
     if (error) return json(res, 500, { error: error.message });
-    if (!data) return json(res, 404, { error: 'Projeto nao encontrado' });
+    if (!data) return json(res, 404, { error: 'Projeto não encontrado' });
     return json(res, 200, data);
   }
 

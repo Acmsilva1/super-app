@@ -1,12 +1,12 @@
-import { createClient } from "@supabase/supabase-js";
+﻿import { createClient } from "@supabase/supabase-js";
 import { runSystemAnalysis } from "../monitoring/system-analysis/run-system-analysis.js";
 
 const TABLE_NAME = process.env.SYSTEM_ANALYSIS_TABLE || "system_analysis_logs";
 const STORAGE_TABLES = [
   { app: "Despesas Fixas", table: "tb_despesas_fixas" },
-  { app: "Financas", table: "tb_financas" },
+  { app: "Finanças", table: "tb_financas" },
   { app: "Lista de Compras", table: "tb_lista_compras" },
-  { app: "Saude Familiar", table: "tb_saude_familiar" },
+  { app: "Saúde Familiar", table: "tb_saude_familiar" },
     { app: "Fluxograma", table: "tb_fluxograma_projetos" },
 ];
 
@@ -38,7 +38,7 @@ function median(values) {
 function getSupabaseServerClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error("SUPABASE_URL e chave do Supabase nao configuradas.");
+  if (!url || !key) throw new Error("SUPABASE_URL e chave do Supabase não configuradas.");
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
@@ -100,7 +100,7 @@ function buildDashboardPayload(rows) {
       latest_at: null,
       summary: { status: "no_data", uptime_percent: 0, error_rate_percent: 0, p95_latency_ms: 0, critical_failures: 0 },
       health: { healthy: 0, attention: 100 },
-      services: { labels: ["Total", "Saudaveis", "Falhas"], values: [0, 0, 0] },
+      services: { labels: ["Total", "Saudáveis", "Falhas"], values: [0, 0, 0] },
       latency_current: { labels: [], values: [] },
       storage_by_app: { labels: [], values: [] },
       db: { connected: 0, unstable: 100 },      failed_endpoints: [],
@@ -139,7 +139,7 @@ function buildDashboardPayload(rows) {
       attention: Math.max(0, round(100 - toNumber(latest.uptime_percent, 0), 2)),
     },
     services: {
-      labels: ["Total", "Saudaveis", "Falhas"],
+      labels: ["Total", "Saudáveis", "Falhas"],
       values: [
         toNumber(latest.checks_total, 0),
         toNumber(latest.checks_success, 0),
@@ -192,7 +192,7 @@ export default async function handler(req, res) {
       const snapshot = await runSystemAnalysis({ appBaseUrl });
       return json(res, 200, {
         ok: true,
-        message: "Analise executada com sucesso.",
+        message: "Análise executada com sucesso.",
         measured_at: snapshot.measured_at,
         status: snapshot.status,
         checks_total: snapshot.checks_total,
@@ -200,7 +200,7 @@ export default async function handler(req, res) {
         p95_latency_ms: snapshot.p95_latency_ms,
       });
     } catch (error) {
-      return json(res, 500, { error: error.message || "Falha na analise" });
+      return json(res, 500, { error: error.message || "Falha na análise" });
     }
   }
 
@@ -232,8 +232,9 @@ export default async function handler(req, res) {
     payload.profile = profile;
     payload.storage_by_app = await fetchStorageByApp(supabase, fromIso);    return json(res, 200, payload);
   } catch (error) {
-    return json(res, 500, { error: error.message || "Falha ao carregar dashboard de analise." });
+    return json(res, 500, { error: error.message || "Falha ao carregar dashboard de análise." });
   }
 }
+
 
 
