@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -3615,15 +3615,6 @@
                         </div>
                         <div class="fin-col fin-col--despesas">
                             <p class="fin-col-titulo">Despesas</p>
-                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias que mais gastam</p><canvas id="fin-chart-bar"></canvas></div>
-                    </div>
-                    <div class="fin-colunas">
-                        <div class="fin-col fin-col--receitas">
-                            <p class="fin-col-titulo">Receitas</p>
-                            <ul class="app-list" id="fin-list-receitas"></ul>
-                        </div>
-                        <div class="fin-col fin-col--despesas">
-                            <p class="fin-col-titulo">Despesas</p>
                             <ul class="app-list" id="fin-list-despesas"></ul>
                         </div>
                     </div>
@@ -3653,7 +3644,7 @@
                 const rowsRec = rows.filter(isReceita).sort(ordemCronologicaFin);
                 const rowsDesp = rows.filter((r) => !isReceita(r)).sort(ordemCronologicaFinDesc);
                 const itemLiFin = (r, rec) => `
-                    <li data-categoria="${escapeHtml(r.categoria || '')}">
+                    <li>
                         <div>
                             <strong>${escapeHtml(r.descricao || '')}</strong> <span style="color:${rec ? '#22c55e' : '#dc2626'}">${rec ? '+' : '-'} R$ ${Number(r.valor).toFixed(2)}</span> ${r.categoria ? '<span style="font-size:0.75rem;color:#6b7280">' + escapeHtml(r.categoria) + '</span>' : ''}
                             <br/><span style="font-size:0.75rem;color:#9ca3af">Data: ${escapeHtml(fmtDataBrFin(lancDate(r)) || '--')} ${fmtHoraBrasilia(r.created_at) ? '| Inserido às ' + escapeHtml(fmtHoraBrasilia(r.created_at)) : ''}</span>
@@ -3792,49 +3783,13 @@
                     if (ctxBar && tabelaGastos.length > 0) {
                         const labelsBar = tabelaGastos.map(x => x[0]);
                         const valuesBar = tabelaGastos.map(x => x[1]);
-                        el._chartBarCategoriaSelecionada = null;
                         el._chartBar = new Chart(ctxBar, {
                             type: 'bar',
                             data: {
                                 labels: labelsBar,
                                 datasets: [{ label: 'Gasto (R$)', data: valuesBar, backgroundColor: '#2563eb', borderRadius: 4 }]
                             },
-                            options: { 
-                                responsive: true, 
-                                maintainAspectRatio: true, 
-                                indexAxis: 'y', 
-                                plugins: { legend: { display: false } }, 
-                                scales: { x: { beginAtZero: true } },
-                                onHover: (e, elements) => { e.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
-                                onClick: (e, elements, chart) => {
-                                    const listDesp = el.querySelector('#fin-list-despesas');
-                                    if (elements.length > 0) {
-                                        const index = elements[0].index;
-                                        const category = chart.data.labels[index];
-                                        if (el._chartBarCategoriaSelecionada === category) {
-                                            el._chartBarCategoriaSelecionada = null;
-                                            chart.data.datasets[0].backgroundColor = '#2563eb';
-                                            listDesp.querySelectorAll('li[data-categoria]').forEach(li => li.style.display = '');
-                                        } else {
-                                            el._chartBarCategoriaSelecionada = category;
-                                            chart.data.datasets[0].backgroundColor = chart.data.labels.map(l => l === category ? '#1d4ed8' : '#93c5fd');
-                                            listDesp.querySelectorAll('li[data-categoria]').forEach(li => {
-                                                if (li.getAttribute('data-categoria') === category) {
-                                                    li.style.display = '';
-                                                } else {
-                                                    li.style.display = 'none';
-                                                }
-                                            });
-                                        }
-                                        chart.update();
-                                    } else if (el._chartBarCategoriaSelecionada) {
-                                        el._chartBarCategoriaSelecionada = null;
-                                        chart.data.datasets[0].backgroundColor = '#2563eb';
-                                        listDesp.querySelectorAll('li[data-categoria]').forEach(li => li.style.display = '');
-                                        chart.update();
-                                    }
-                                }
-                            },
+                            options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
                             plugins: [inlineValueLabelsPlugin]
                         });
                     }
