@@ -1,39 +1,39 @@
-/** Modelo alinhado à tb_financas. Input manual: descrição, valor, tipo (receita/despesa), categoria. */
+/** Modelo alinhado a tb_financas. Input manual: descricao, valor, tipo (receita/despesa), categoria. */
 export const TABLE_NAME = 'tb_financas';
 
 export const MAPA_CATEGORIAS = {
-  'Alimentação': [
+  'Alimentacao': [
     'mercado', 'hortifruti', 'restaurante', 'ifood', 'comida', 'padaria', 'lanche',
-    'picolé', 'biscoito', 'bala', 'doce', 'sorvete', 'café', 'bebida', 'açougue',
+    'picole', 'biscoito', 'bala', 'doce', 'sorvete', 'cafe', 'bebida', 'acougue',
     'supermercado', 'feira', 'confeitaria', 'marmita', 'delivery', 'vinho', 'cerveja',
   ],
-  'Habitação': [
-    'luz', 'água', 'internet', 'condomínio', 'boleto', 'reforma', 'limpeza',
-    'aluguel', 'iptu', 'gás', 'móveis', 'decoração', 'manutenção', 'reparos', 'lavanderia',
+  'Habitacao': [
+    'luz', 'agua', 'internet', 'condominio', 'boleto', 'reforma', 'limpeza',
+    'aluguel', 'iptu', 'gas', 'moveis', 'decoracao', 'manutencao', 'reparos', 'lavanderia',
   ],
   'Transporte': [
-    'uber', 'gasolina', 'combustível', 'estacionamento', 'pedágio', 'oficina',
-    '99pop', 'ônibus', 'metrô', 'ipva', 'seguro auto', 'troca de óleo', 'pneu', 'licenciamento',
+    'uber', 'gasolina', 'combustivel', 'estacionamento', 'pedagio', 'oficina',
+    '99pop', 'onibus', 'metro', 'ipva', 'seguro auto', 'troca de oleo', 'pneu', 'licenciamento',
   ],
   'Lazer': [
     'cinema', 'viagem', 'netflix', 'bar', 'spotify', 'praia', 'games', 'show',
-    'teatro', 'hospedagem', 'passagem aérea', 'livro', 'hbomax', 'disney+', 'estádio', 'futebol',
+    'teatro', 'hospedagem', 'passagem aerea', 'livro', 'hbomax', 'disney+', 'estadio', 'futebol',
   ],
-  'Saúde': [
-    'farmácia', 'médico', 'academia', 'suplemento', 'dentista', 'exame',
-    'consulta', 'psicólogo', 'hospital', 'plano de saúde', 'drogaria', 'ótica',
+  'Saude': [
+    'farmacia', 'medico', 'academia', 'suplemento', 'dentista', 'exame',
+    'consulta', 'psicologo', 'hospital', 'plano de saude', 'drogaria', 'otica',
   ],
   'Compras': [
-    'shopee', 'amazon', 'shein', 'mercado livre', 'roupas', 'eletrônicos',
-    'eletrodoméstico', 'presente', 'magalu', 'ali-express', 'perfume', 'cosmético', 'tenis', 'acessórios',
+    'shopee', 'amazon', 'shein', 'mercado livre', 'roupas', 'eletronicos',
+    'eletrodomestico', 'presente', 'magalu', 'ali-express', 'perfume', 'cosmetico', 'tenis', 'acessorios',
   ],
   'Contas': [
-    'faculdade', 'esporte', 'serviços bancários', 'pensão', 'celular', 'assinatura',
-    'imposto', 'cartão de crédito', 'empréstimo', 'tarifa', 'seguro', 'anuidade', 'mei', 'irpf',
+    'faculdade', 'esporte', 'servicos bancarios', 'pensao', 'celular', 'assinatura',
+    'imposto', 'cartao de credito', 'emprestimo', 'tarifa', 'seguro', 'anuidade', 'mei', 'irpf',
   ],
   'Receitas': [
-    'salário', 'ticket', 'vale', 'vendas', 'recebi', 'pix recebido', 'reembolso',
-    'lucro de bolo', 'rendimento', 'dividendo', 'bônus', 'décimo terceiro', 'extra', 'freelance',
+    'salario', 'ticket', 'vale', 'vendas', 'recebi', 'pix recebido', 'reembolso',
+    'lucro de bolo', 'rendimento', 'dividendo', 'bonus', 'decimo terceiro', 'extra', 'freelance',
   ],
 };
 

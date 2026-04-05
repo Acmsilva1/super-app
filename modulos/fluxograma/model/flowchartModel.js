@@ -48,7 +48,7 @@ const LEGACY_STORAGE_KEY = "flowchart_data";
 
 let graphPersistListener = null;
 
-/** Chamado após gravar no localStorage (ex.: auto-save na nuvem com debounce). */
+/** Chamado apos gravar no localStorage (ex.: auto-save na nuvem com debounce). */
 export function setGraphPersistListener(fn) {
     graphPersistListener = typeof fn === "function" ? fn : null;
 }

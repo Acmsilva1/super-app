@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { item, quantidade, unidade_medida, comprado, categoria } = body;
-    if (!item) return json(res, 400, { error: 'item obrigatório' });
+    if (!item) return json(res, 400, { error: 'item obrigatorio' });
     const payload = payloadInsert(item, quantidade, unidade_medida, comprado, categoria);
     const { data, error } = await supabase.from(TABLE_NAME).insert(payload).select().single();
     if (error) return json(res, 500, { error: error.message });
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   if (req.method === 'PATCH') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { id, toggle, reset_checks, item, quantidade, unidade_medida, comprado, categoria } = body;
-    if (!id && !reset_checks) return json(res, 400, { error: 'id ou reset_checks obrigatório' });
+    if (!id && !reset_checks) return json(res, 400, { error: 'id ou reset_checks obrigatorio' });
     if (reset_checks) {
       const { data: rows } = await supabase.from(TABLE_NAME).select('id');
       const ids = (rows || []).map((r) => r.id).filter(Boolean);
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     if (toggle && id) {
       const { data: rows } = await supabase.from(TABLE_NAME).select('*');
       const payload = toggleComprado(rows ?? [], id);
-      if (!payload) return json(res, 404, { error: 'item não encontrado' });
+      if (!payload) return json(res, 404, { error: 'item nao encontrado' });
       const { data, error } = await supabase.from(TABLE_NAME).update(payload).eq('id', id).select().single();
       if (error) return json(res, 500, { error: error.message });
       return json(res, 200, data);
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       if (error) return json(res, 500, { error: error.message });
       return json(res, 200, { deleted: ids.length });
     }
-    if (!id) return json(res, 400, { error: 'id ou delete_all obrigatório' });
+    if (!id) return json(res, 400, { error: 'id ou delete_all obrigatorio' });
     const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, { ok: true });

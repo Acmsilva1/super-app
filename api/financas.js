@@ -97,7 +97,7 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { descricao, valor, tipo, categoria, data_lancamento, metodo_pagamento } = body;
-    if (descricao == null || valor == null) return json(res, 400, { error: 'descricao e valor obrigatórios' });
+    if (descricao == null || valor == null) return json(res, 400, { error: 'descricao e valor obrigatorios' });
     const payload = payloadInsert(descricao, valor, tipo, categoria, data_lancamento || getBrazilTodayIso(), metodo_pagamento);
     const { data, error } = await supabase.from(TABLE_NAME).insert(payload).select().single();
     if (error) return json(res, 500, { error: error.message });
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
   if (req.method === 'PATCH') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { id, descricao, valor, tipo, categoria, data_lancamento, metodo_pagamento } = body;
-    if (!id) return json(res, 400, { error: 'id obrigatório' });
+    if (!id) return json(res, 400, { error: 'id obrigatorio' });
     const payload = payloadUpdate(descricao, valor, tipo, categoria, data_lancamento, metodo_pagamento);
     if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
     const { data, error } = await supabase.from(TABLE_NAME).update(payload).eq('id', id).select().single();
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
   }
   if (req.method === 'DELETE') {
     const id = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {})?.id ?? req.query?.id;
-    if (!id) return json(res, 400, { error: 'id obrigatório' });
+    if (!id) return json(res, 400, { error: 'id obrigatorio' });
     const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, { ok: true });

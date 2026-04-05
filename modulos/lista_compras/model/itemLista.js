@@ -1,4 +1,4 @@
-/** Modelo alinhado à tb_lista_compras. Campos: id, created_at, item, quantidade, unidade_medida, comprado, categoria */
+/** Modelo alinhado a tb_lista_compras. Campos: id, created_at, item, quantidade, unidade_medida, comprado, categoria */
 export const TABLE_NAME = 'tb_lista_compras';
 
 export const CATEGORIAS_LISTA = [

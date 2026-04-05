@@ -51,12 +51,12 @@ export function wrapTextLines(ctx, text, maxWidth) {
         }
         lines.push(line);
     }
-    return lines.length ? lines : ["Nó sem texto"];
+    return lines.length ? lines : ["No sem texto"];
 }
 
 export function updateNodeMetrics(ctx, n) {
     ctx.font = "600 16px Segoe UI";
-    const text = (n.text || "Nó sem texto"), autoContent = NODE_MAX_WIDTH_AUTO - (NODE_PADDING_X * 2);
+    const text = (n.text || "No sem texto"), autoContent = NODE_MAX_WIDTH_AUTO - (NODE_PADDING_X * 2);
     let probe = wrapTextLines(ctx, text, autoContent), longest = 0;
     for (const l of probe) longest = Math.max(longest, ctx.measureText(l || " ").width);
     let targetWidth = n.manualSize ? Math.max(NODE_MIN_WIDTH, Math.min(NODE_MAX_WIDTH_MANUAL, Number(n.w) || NODE_MIN_WIDTH)) : Math.max(NODE_MIN_WIDTH, Math.min(NODE_MAX_WIDTH_AUTO, Math.ceil(longest + (NODE_PADDING_X * 2))));
@@ -145,7 +145,7 @@ export function drawArrowHead(ctx, x, y, angle, size) {
 }
 
 export function drawLinesCentered(ctx, lines, cx, cy, lineHeight) {
-    const arr = (lines && lines.length) ? lines : ["Nó sem texto"];
+    const arr = (lines && lines.length) ? lines : ["No sem texto"];
     let y = cy - (arr.length * lineHeight) / 2 + lineHeight / 2;
     for (const l of arr) {
         ctx.fillText(l || " ", cx, y); y += lineHeight;

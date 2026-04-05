@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     if (id) {
       const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).maybeSingle();
       if (error) return json(res, 500, { error: error.message });
-      if (!data) return json(res, 404, { error: 'Projeto não encontrado' });
+      if (!data) return json(res, 404, { error: 'Projeto nao encontrado' });
       return json(res, 200, { project: data });
     }
     const { data, error } = await supabase
@@ -47,20 +47,20 @@ export default async function handler(req, res) {
   if (req.method === 'PATCH') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { id } = body;
-    if (!id) return json(res, 400, { error: 'id obrigatório' });
+    if (!id) return json(res, 400, { error: 'id obrigatorio' });
     const payload = { updated_at: new Date().toISOString() };
     if (typeof body.nome === 'string' && body.nome.trim()) payload.nome = body.nome.trim();
     if (body.dados !== undefined) payload.dados = normalizeDados(body.dados);
-    if (Object.keys(payload).length <= 1) return json(res, 400, { error: 'nome ou dados obrigatório' });
+    if (Object.keys(payload).length <= 1) return json(res, 400, { error: 'nome ou dados obrigatorio' });
     const { data, error } = await supabase.from(TABLE).update(payload).eq('id', id).select().single();
     if (error) return json(res, 500, { error: error.message });
-    if (!data) return json(res, 404, { error: 'Projeto não encontrado' });
+    if (!data) return json(res, 404, { error: 'Projeto nao encontrado' });
     return json(res, 200, data);
   }
 
   if (req.method === 'DELETE') {
     const id = req.query?.id;
-    if (!id) return json(res, 400, { error: 'id obrigatório (query)' });
+    if (!id) return json(res, 400, { error: 'id obrigatorio (query)' });
     const { error } = await supabase.from(TABLE).delete().eq('id', id);
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, { ok: true });

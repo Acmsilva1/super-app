@@ -2,7 +2,7 @@
   "id": "/",
   "name": "SUPERAPP",
   "short_name": "SUPERAPP",
-  "description": "Plataforma unificada de microserviços e aplicações práticas",
+  "description": "Plataforma unificada de microservicos e aplicacoes praticas",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",

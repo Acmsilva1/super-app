@@ -50,7 +50,7 @@ lista --> tbLista["tb_lista_compras"]:::tabela
 
 saude --> saudeModel["model"]:::pastaInterna
 saude --> saudeService["service"]:::pastaInterna
-saude --> tbSaúde["tb_saude_familiar"]:::tabela
+saude --> tbSaude["tb_saude_familiar"]:::tabela
 ```
 
 ---
@@ -60,7 +60,7 @@ saude --> tbSaúde["tb_saude_familiar"]:::tabela
 | Elemento | Significado |
 |---|---|
 | `super-app` | Pasta raiz do repositorio. |
-| `api`, `lib`, `modulos`, `sql.sql` | Estrutura e arquivo único de DDL (alterações de banco atualizam sql.sql). |
+| `api`, `lib`, `modulos`, `sql.sql` | Estrutura e arquivo unico de DDL (alteracoes de banco atualizam sql.sql). |
 | `modulos/despesas_fixas`, `modulos/financas`, `modulos/lista_compras`, `modulos/saude` | Aplicativos (dominios) dentro de `modulos`. |
 | `model` | Estruturas/modelos de dados do dominio. |
 | `service` | Regras de servico e acesso por dominio. |

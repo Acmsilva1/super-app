@@ -195,7 +195,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - Credenciais de banco ficam em variaveis de ambiente, nao no codigo.
 - A funcao compartilhada [`lib/supabase.js`](/c:/super%20app/super-app-1/lib/supabase.js) falha rapidamente se secrets obrigatorios nao existirem.
 - `api/notificar` usa variaveis segregadas para Telegram.
-- O repositório nao contem integracao com Instagram; o canal implementado para alertas e Telegram.
+- O repositorio nao contem integracao com Instagram; o canal implementado para alertas e Telegram.
 - Dados sensiveis existem principalmente no modulo de saude, portanto logs e dumps devem evitar exposicao de payloads completos.
 - O envio de notificacoes usa flags (`telegram_sent`, `telegram_sent_at`) para evitar repeticao indevida.
 

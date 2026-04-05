@@ -1,4 +1,4 @@
-/** Modelo alinhado à tb_despesas_fixas. Campos: id, created_at, descricao, valor, status (pago|pendente) */
+/** Modelo alinhado a tb_despesas_fixas. Campos: id, created_at, descricao, valor, status (pago|pendente) */
 export const TABLE_NAME = 'tb_despesas_fixas';
 
 export const STATUS_PAGO = 'pago';

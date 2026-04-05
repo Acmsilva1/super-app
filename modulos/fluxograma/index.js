@@ -148,7 +148,7 @@ function addNode() {
     saveToLocalStorage();
     updateUI();
     startInlineEdit(n.id);
-    showStatus("Novo nó criado.", "success");
+    showStatus("Novo no criado.", "success");
 }
 
 function getTextFont(t) {
@@ -224,7 +224,7 @@ function getSelectedText() {
 function updateDisconnectActionBtn() {
     const b = el("disconnectActionBtn");
     if (!b) return;
-    b.textContent = state.isDisconnecting ? "Cancelar desconexão" : "Desconectar nós";
+    b.textContent = state.isDisconnecting ? "Cancelar desconexao" : "Desconectar nos";
     b.disabled = state.isViewMode || (!state.isDisconnecting && state.selectedNode === null && state.selectedConnectionIndex === null);
 }
 
@@ -261,7 +261,7 @@ function setSelectedNodeColor(v) {
         selectedConn.color = nextColor;
         saveToLocalStorage();
         updateUI();
-        showStatus("Cor da conexão atualizada.", "success");
+        showStatus("Cor da conexao atualizada.", "success");
         return;
     }
     const t = getSelectedText();
@@ -280,7 +280,7 @@ function setSelectedNodeColor(v) {
     n.color = nextColor;
     saveToLocalStorage();
     updateUI();
-    showStatus("Cor do nó atualizada.", "success");
+    showStatus("Cor do no atualizada.", "success");
 }
 
 function setConnectionType(v) {
@@ -291,7 +291,7 @@ function setConnectionType(v) {
     c.type = v || "arrow";
     saveToLocalStorage();
     updateUI();
-    showStatus("Tipo de conexão atualizado.", "success");
+    showStatus("Tipo de conexao atualizado.", "success");
 }
 
 function toggleConnectionFromMenu() {
@@ -309,7 +309,7 @@ function deleteNode() {
         hideInlineTextEditor(false);
         saveToLocalStorage();
         updateUI();
-        showStatus("Texto excluído.", "success");
+        showStatus("Texto excluido.", "success");
         return;
     }
     if (state.selectedNode === null) return;
@@ -325,7 +325,7 @@ function deleteNode() {
     hideInlineEditor(false);
     saveToLocalStorage();
     updateUI();
-    showStatus("Nó excluído.", "success");
+    showStatus("No excluido.", "success");
 }
 
 function startConnection() {
@@ -338,14 +338,14 @@ function startConnection() {
     state.connectingFrom = state.selectedNode;
     ensureActiveColor();
     updateUI();
-    showStatus("Selecione o nó de destino.", "info");
+    showStatus("Selecione o no de destino.", "info");
 }
 
 function cancelConnection() {
     state.isConnecting = false;
     state.connectingFrom = null;
     updateUI();
-    showStatus("Conexão cancelada.", "info");
+    showStatus("Conexao cancelada.", "info");
 }
 
 function startDisconnect() {
@@ -356,7 +356,7 @@ function startDisconnect() {
         state.selectedConnectionIndex = null;
         saveToLocalStorage();
         updateUI();
-        showStatus("Conexão removida.", "success");
+        showStatus("Conexao removida.", "success");
         return;
     }
     if (state.selectedNode === null) return;
@@ -366,20 +366,20 @@ function startDisconnect() {
     state.isDisconnecting = true;
     state.disconnectFrom = state.selectedNode;
     updateUI();
-    showStatus("Selecione o nó de destino para desconectar.", "info");
+    showStatus("Selecione o no de destino para desconectar.", "info");
 }
 
 function cancelDisconnect() {
     state.isDisconnecting = false;
     state.disconnectFrom = null;
     updateUI();
-    showStatus("Desconexão cancelada.", "info");
+    showStatus("Desconexao cancelada.", "info");
 }
 
 function finishConnection(to) {
     if (!state.isConnecting || state.connectingFrom === null) return;
-    if (state.connectingFrom === to) return showStatus("Não é possível conectar um nó a ele mesmo.", "error");
-    if (state.connections.some(c => c.from === state.connectingFrom && c.to === to && ((c.type || "arrow") === (el("connectionTypeSelect")?.value || "arrow")))) return showStatus("Essa conexão já existe.", "info");
+    if (state.connectingFrom === to) return showStatus("Nao e possivel conectar um no a ele mesmo.", "error");
+    if (state.connections.some(c => c.from === state.connectingFrom && c.to === to && ((c.type || "arrow") === (el("connectionTypeSelect")?.value || "arrow")))) return showStatus("Essa conexao ja existe.", "info");
     ensureActiveColor();
     state.connections.push({
         from: state.connectingFrom,
@@ -391,7 +391,7 @@ function finishConnection(to) {
     state.connectingFrom = null;
     saveToLocalStorage();
     updateUI();
-    showStatus("Conexão criada.", "success");
+    showStatus("Conexao criada.", "success");
 }
 
 function finishDisconnect(to) {
@@ -405,7 +405,7 @@ function finishDisconnect(to) {
     state.selectedConnectionIndex = null;
     saveToLocalStorage();
     updateUI();
-    showStatus(removed ? `Conexão removida (${removed}).` : "Nenhuma conexão encontrada entre esses nós.", "info");
+    showStatus(removed ? `Conexao removida (${removed}).` : "Nenhuma conexao encontrada entre esses nos.", "info");
 }
 
 function getNodeAtPosition(x, y) {
@@ -453,7 +453,7 @@ function getResizeHandleAt(n, x, y) {
 function drawCanvas() {
     const c = el("canvas"), ctx = c.getContext("2d");
     ctx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
-    /* Área de desenho sempre no visual claro (igual ao fluxograma.html original); só o chrome usa dark mode. */
+    /* Area de desenho sempre no visual claro (igual ao fluxograma.html original); so o chrome usa dark mode. */
     ctx.fillStyle = "#f7f8fa";
     ctx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
     ctx.strokeStyle = "#e4e8ef"; ctx.lineWidth = 1;
@@ -515,7 +515,7 @@ function renderReadOnlyView() {
     state.nodes.forEach(n => {
         const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
         if (sx + nw < 0 || sy + nh < 0 || sx > state.viewportWidth || sy > state.viewportHeight) return;
-        const g = document.createElementNS(ns, "g"), t = document.createElementNS(ns, "text"), lines = (n._lines && n._lines.length) ? n._lines : ["Nó sem texto"], shape = (n.shape || "rect");
+        const g = document.createElementNS(ns, "g"), t = document.createElementNS(ns, "text"), lines = (n._lines && n._lines.length) ? n._lines : ["No sem texto"], shape = (n.shape || "rect");
         let shp; if (shape === "ellipse") { shp = document.createElementNS(ns, "ellipse"); shp.setAttribute("cx", String(sx + nw / 2)); shp.setAttribute("cy", String(sy + nh / 2)); shp.setAttribute("rx", String(nw / 2)); shp.setAttribute("ry", String(nh / 2)); } else if (shape === "diamond") { shp = document.createElementNS(ns, "polygon"); shp.setAttribute("points", `${sx + nw / 2},${sy} ${sx + nw},${sy + nh / 2} ${sx + nw / 2},${sy + nh} ${sx},${sy + nh / 2}`); } else if (shape === "hexagon") { const d = Math.min(nw * 0.22, 44); shp = document.createElementNS(ns, "polygon"); shp.setAttribute("points", `${sx + d},${sy} ${sx + nw - d},${sy} ${sx + nw},${sy + nh / 2} ${sx + nw - d},${sy + nh} ${sx + d},${sy + nh} ${sx},${sy + nh / 2}`); } else { shp = document.createElementNS(ns, "rect"); shp.setAttribute("x", String(sx)); shp.setAttribute("y", String(sy)); shp.setAttribute("width", String(nw)); shp.setAttribute("height", String(nh)); shp.setAttribute("rx", "8"); }
         shp.setAttribute("fill", n.color || "#ffffff"); shp.setAttribute("stroke", "#cfd6e2"); shp.setAttribute("stroke-width", "2"); t.setAttribute("x", String(sx + nw / 2)); t.setAttribute("text-anchor", "middle"); t.setAttribute("fill", getTextColorByFill(n.color || "#ffffff")); t.setAttribute("font-size", "16"); t.setAttribute("font-family", "Segoe UI, sans-serif");
         const startY = sy + (nh - (lines.length * NODE_LINE_HEIGHT)) / 2 + 14; for (let idx = 0; idx < lines.length; idx++) { const sp = document.createElementNS(ns, "tspan"); sp.setAttribute("x", String(sx + nw / 2)); sp.setAttribute("y", String(startY + idx * NODE_LINE_HEIGHT)); sp.textContent = lines[idx] || " "; t.appendChild(sp); } g.appendChild(shp); g.appendChild(t); svg.appendChild(g);
@@ -601,7 +601,7 @@ function startInlineTextEdit(textId) {
 function hideInlineEditor(commit = true) {
     const i = el("nodeEditText"); if (state.inlineEditNodeId === null) { i.style.display = "none"; return; }
     const n = state.nodes.find(x => x.id === state.inlineEditNodeId);
-    if (commit && n) { n.text = i.value.trim() || "Nó sem texto"; updateNodeMetrics(el("canvas").getContext("2d"), n); }
+    if (commit && n) { n.text = i.value.trim() || "No sem texto"; updateNodeMetrics(el("canvas").getContext("2d"), n); }
     state.inlineEditNodeId = null; i.style.display = "none"; saveToLocalStorage(); drawCanvas();
 }
 
@@ -634,7 +634,7 @@ function toggleViewMode() {
     if (root) root.classList.toggle("view", state.isViewMode);
     if (state.isConnecting) cancelConnection(); if (state.isDisconnecting) cancelDisconnect();
     el("viewModeBtn").textContent = state.isViewMode ? "Editar" : "Visualizar"; updateUI();
-    showStatus(state.isViewMode ? "Modo visualização ativo." : "Modo edição ativo.", "info");
+    showStatus(state.isViewMode ? "Modo visualizacao ativo." : "Modo edicao ativo.", "info");
 }
 
 function renameProject() { el("projectNameInput").value = state.projectName; el("renameModal").style.display = "flex"; el("projectNameInput").focus(); }
@@ -643,12 +643,12 @@ function saveProjectName() { const n = el("projectNameInput").value.trim(); if (
 
 function centerView() {
     hideInlineEditor(false); hideInlineTextEditor(false);
-    if (!state.nodes.length && !state.texts.length) { state.cameraX = 0; state.cameraY = 0; updateUI(); showStatus("Visão centralizada no ponto inicial.", "info"); return; }
+    if (!state.nodes.length && !state.texts.length) { state.cameraX = 0; state.cameraY = 0; updateUI(); showStatus("Visao centralizada no ponto inicial.", "info"); return; }
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     state.nodes.forEach(n => { const nw = getNodeWidth(n), nh = getNodeHeight(n); minX = Math.min(minX, n.x); minY = Math.min(minY, n.y); maxX = Math.max(maxX, n.x + nw); maxY = Math.max(maxY, n.y + nh); });
     state.texts.forEach(t => { minX = Math.min(minX, t.x); minY = Math.min(minY, t.y); maxX = Math.max(maxX, t.x + (Number(t.w) || 0)); maxY = Math.max(maxY, t.y + (Number(t.h) || 0)); });
     const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-    state.cameraX = cx - state.viewportWidth / 2; state.cameraY = cy - state.viewportHeight / 2; updateUI(); showStatus("Visão centralizada nos dados.", "success");
+    state.cameraX = cx - state.viewportWidth / 2; state.cameraY = cy - state.viewportHeight / 2; updateUI(); showStatus("Visao centralizada nos dados.", "success");
 }
 
 let statusTimer = null;

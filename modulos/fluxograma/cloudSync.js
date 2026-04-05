@@ -28,7 +28,7 @@ async function fetchJson(url, opts) {
             data = {};
         }
     }
-    if (!res.ok) throw new Error(data.error || res.statusText || "Erro na requisição");
+    if (!res.ok) throw new Error(data.error || res.statusText || "Erro na requisicao");
     return data;
 }
 
@@ -56,7 +56,7 @@ async function performCloudSave() {
         return;
     }
     savingCloud = true;
-    setAutosaveStatus("Salvando na nuvem…");
+    setAutosaveStatus("Salvando na nuvem...");
     try {
         if (id) {
             await fetchJson("/api/fluxograma", {
@@ -73,7 +73,7 @@ async function performCloudSave() {
             if (out.id) localStorage.setItem(LS_REMOTE_ID, out.id);
         }
         const t = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-        setAutosaveStatus("Salvo na nuvem · " + t);
+        setAutosaveStatus("Salvo na nuvem  " + t);
     } catch (e) {
         setAutosaveStatus("Nuvem: " + (e.message || String(e)), true);
     } finally {
@@ -153,7 +153,7 @@ export async function initFluxogramaApp(mod) {
         localStorage.removeItem(LS_REMOTE_ID);
         saveToLocalStorage();
         await enterEditor();
-        setAutosaveStatus("Alterações serão salvas na nuvem automaticamente");
+        setAutosaveStatus("Alteracoes serao salvas na nuvem automaticamente");
     }
 
     async function openExistingProject(pid) {
@@ -162,7 +162,7 @@ export async function initFluxogramaApp(mod) {
         try {
             const data = await fetchJson("/api/fluxograma?id=" + encodeURIComponent(pid));
             const p = data.project;
-            if (!p) throw new Error("Projeto não encontrado");
+            if (!p) throw new Error("Projeto nao encontrado");
             const raw = typeof p.dados === "object" && p.dados !== null ? p.dados : {};
             applyPersistedData(raw);
             if (p.nome && String(p.nome).trim()) state.projectName = String(p.nome).trim();
@@ -176,7 +176,7 @@ export async function initFluxogramaApp(mod) {
     }
 
     async function deleteProject(pid) {
-        if (!confirm("Excluir este projeto da nuvem? Esta ação não pode ser desfeita.")) return;
+        if (!confirm("Excluir este projeto da nuvem? Esta acao nao pode ser desfeita.")) return;
         const errEl = document.getElementById("flux-hub-error");
         try {
             await fetchJson("/api/fluxograma?id=" + encodeURIComponent(pid), { method: "DELETE" });
@@ -191,11 +191,11 @@ export async function initFluxogramaApp(mod) {
         const errEl = document.getElementById("flux-hub-error");
         if (errEl) errEl.textContent = "";
         cardsWrap.querySelectorAll(".flux-project-card:not(.flux-project-card--new)").forEach((n) => n.remove());
-        if (hubStatus) hubStatus.textContent = "Carregando…";
+        if (hubStatus) hubStatus.textContent = "Carregando...";
         try {
             const data = await fetchJson("/api/fluxograma");
             const projects = data.projects || [];
-            if (hubStatus) hubStatus.textContent = projects.length === 0 ? "Nenhum projeto — crie o primeiro" : `${projects.length} projeto(s)`;
+            if (hubStatus) hubStatus.textContent = projects.length === 0 ? "Nenhum projeto - crie o primeiro" : `${projects.length} projeto(s)`;
             for (const p of projects) {
                 const card = document.createElement("button");
                 card.type = "button";
@@ -212,7 +212,7 @@ export async function initFluxogramaApp(mod) {
                 del.type = "button";
                 del.className = "flux-card-del";
                 del.setAttribute("aria-label", "Excluir");
-                del.textContent = "×";
+                del.textContent = "";
                 del.addEventListener("click", (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -224,7 +224,7 @@ export async function initFluxogramaApp(mod) {
             }
         } catch (e) {
             if (hubStatus) hubStatus.textContent = "";
-            if (errEl) errEl.textContent = "Não foi possível listar projetos: " + (e.message || String(e));
+            if (errEl) errEl.textContent = "Nao foi possivel listar projetos: " + (e.message || String(e));
         }
     }
 

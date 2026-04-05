@@ -64,7 +64,7 @@
 - Existe uma exclusao preexistente de `arquitetura_e_documentacao padrao.md` no worktree que nao foi alterada neste ciclo.
 - O dashboard agora consegue evidenciar visualmente quando o problema e de schema no banco versus desalinhamento local do PWA.
 
-## 10. Fluxograma: Paleta Curta por Seleção (2026-04-02)
+## 10. Fluxograma: Paleta Curta por Selecao (2026-04-02)
 - [x] `input type="color"` removido do menu do Fluxograma.
 - [x] Paleta fixa de 16 cores implementada com swatches clicaveis.
 - [x] Preview visual adicionado no menu para:

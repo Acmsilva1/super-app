@@ -1,9 +1,9 @@
-/** Modelo alinhado à tb_saude_familiar (LGPD). data_evento YYYY-MM-DD; hora_evento HH:mm opcional */
+/** Modelo alinhado a tb_saude_familiar (LGPD). data_evento YYYY-MM-DD; hora_evento HH:mm opcional */
 export const TABLE_NAME = 'tb_saude_familiar';
 
 export const TIPOS_REGISTRO = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
 
-export class RegistroSaúde {
+export class RegistroSaude {
   constructor({
     membro_familia,
     tipo_registro,
@@ -50,7 +50,7 @@ export class RegistroSaúde {
   }
 
   static fromRow(row) {
-    return new RegistroSaúde({
+    return new RegistroSaude({
       id: row?.id,
       created_at: row?.created_at,
       membro_familia: row?.membro_familia || '',

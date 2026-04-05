@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         .select('*')
         .gte('created_at', start)
         .lte('created_at', end);
-      if (!rows || rows.length === 0) return json(res, 200, { exported: 0, message: 'Nenhum registro no mês de origem' });
+      if (!rows || rows.length === 0) return json(res, 200, { exported: 0, message: 'Nenhum registro no mes de origem' });
       const targetStart = new Date(aTo, mTo - 1, 1);
       let exported = 0;
       for (const r of rows) {
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
       }
       return json(res, 200, { exported, to_mes_ano: `${aTo}-${String(mTo).padStart(2, '0')}` });
     }
-    if (!(descricao != null && descricao !== '')) return json(res, 400, { error: 'descricao obrigatória' });
+    if (!(descricao != null && descricao !== '')) return json(res, 400, { error: 'descricao obrigatoria' });
     const payload = payloadInsert(descricao, valor ?? 0, status);
     const mesRef = body.mes_ano;
     if (mesRef && /^\d{4}-\d{2}$/.test(String(mesRef))) {
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
   if (req.method === 'PATCH') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const { id, descricao, valor, status } = body;
-    if (!id) return json(res, 400, { error: 'id obrigatório' });
+    if (!id) return json(res, 400, { error: 'id obrigatorio' });
     const payload = payloadUpdate(descricao, valor, status);
     if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
     const { data, error } = await supabase.from(TABLE_NAME).update(payload).eq('id', id).select().single();
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
   if (req.method === 'DELETE') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
     const id = body.id ?? req.query?.id;
-    if (!id) return json(res, 400, { error: 'id obrigatório' });
+    if (!id) return json(res, 400, { error: 'id obrigatorio' });
     const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, { ok: true });
