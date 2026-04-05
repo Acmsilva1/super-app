@@ -3615,27 +3615,6 @@
                         </div>
                         <div class="fin-col fin-col--despesas">
                             <p class="fin-col-titulo">Despesas</p>
-                            <ul class="app-list" id="fin-list-despesas"></ul>
-                        </div>
-                    </div>
-                `;
-                const isReceita = (r) => (r.tipo || '').toLowerCase() === 'receita';
-                const lancDate = (r) => String((r && (r.data_lancamento || (r.created_at && String(r.created_at).slice(0, 10)))) || '').slice(0, 10);
-                const createdStamp = (r) => String((r && r.created_at) || '');
-                const ordemCronologicaFin = (a, b) => {
-                    const da = lancDate(a);
-                    const db = lancDate(b);
-                    if (da !== db) return da.localeCompare(db);
-                    return createdStamp(a).localeCompare(createdStamp(b));
-                };
-                const ordemCronologicaFinDesc = (a, b) => -ordemCronologicaFin(a, b);
-                const fmtDataBrFin = (isoDate) => {
-                    const m = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-                    return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
-                };
-                const fmtHoraBrasilia = (isoStamp) => {
-                    if (!isoStamp) return '';
-                    try {
                         <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias que mais gastam</p><canvas id="fin-chart-bar"></canvas></div>
                     </div>
                     <div class="fin-colunas">
@@ -3803,6 +3782,64 @@
                             type: 'doughnut',
                             data: {
                                 labels: ['Receitas', 'Despesas variáveis', 'Despesas fixas'],
+                                datasets: [{ data: [receitas, despesasVariaveis, despesasFixas], backgroundColor: ['#22c55e', '#dc2626', '#b91c1c'], borderWidth: 0 }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } },
+                            plugins: [inlineValueLabelsPlugin]
+                        });
+                    }
+                    const ctxBar = document.getElementById('fin-chart-bar');
+                    if (ctxBar && tabelaGastos.length > 0) {
+                        const labelsBar = tabelaGastos.map(x => x[0]);
+                        const valuesBar = tabelaGastos.map(x => x[1]);
+                        el._chartBarCategoriaSelecionada = null;
+                        el._chartBar = new Chart(ctxBar, {
+                            type: 'bar',
+                            data: {
+                                labels: labelsBar,
+                                datasets: [{ label: 'Gasto (R$)', data: valuesBar, backgroundColor: '#2563eb', borderRadius: 4 }]
+                            },
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: true, 
+                                indexAxis: 'y', 
+                                plugins: { legend: { display: false } }, 
+                                scales: { x: { beginAtZero: true } },
+                                onHover: (e, elements) => { e.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+                                onClick: (e, elements, chart) => {
+                                    const listDesp = el.querySelector('#fin-list-despesas');
+                                    if (elements.length > 0) {
+                                        const index = elements[0].index;
+                                        const category = chart.data.labels[index];
+                                        if (el._chartBarCategoriaSelecionada === category) {
+                                            el._chartBarCategoriaSelecionada = null;
+                                            chart.data.datasets[0].backgroundColor = '#2563eb';
+                                            listDesp.querySelectorAll('li[data-categoria]').forEach(li => li.style.display = '');
+                                        } else {
+                                            el._chartBarCategoriaSelecionada = category;
+                                            chart.data.datasets[0].backgroundColor = chart.data.labels.map(l => l === category ? '#1d4ed8' : '#93c5fd');
+                                            listDesp.querySelectorAll('li[data-categoria]').forEach(li => {
+                                                if (li.getAttribute('data-categoria') === category) {
+                                                    li.style.display = '';
+                                                } else {
+                                                    li.style.display = 'none';
+                                                }
+                                            });
+                                        }
+                                        chart.update();
+                                    } else if (el._chartBarCategoriaSelecionada) {
+                                        el._chartBarCategoriaSelecionada = null;
+                                        chart.data.datasets[0].backgroundColor = '#2563eb';
+                                        listDesp.querySelectorAll('li[data-categoria]').forEach(li => li.style.display = '');
+                                        chart.update();
+                                    }
+                                }
+                            },
+                            plugins: [inlineValueLabelsPlugin]
+                        });
+                    }
+                }
+            }
             async submitFinancasSave(el) {
                 const editId = el.querySelector('#fin-edit-id').value.trim();
                 const descricao = el.querySelector('#fin-descricao').value.trim();
