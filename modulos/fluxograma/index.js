@@ -378,7 +378,7 @@ function cancelDisconnect() {
 
 function finishConnection(to) {
     if (!state.isConnecting || state.connectingFrom === null) return;
-    if (state.connectingFrom === to) return showStatus("Nao e possivel conectar um no a ele mesmo.", "error");
+    if (state.connectingFrom === to) return showStatus("Não é possível conectar um nó a ele mesmo.", "error");
     if (state.connections.some(c => c.from === state.connectingFrom && c.to === to && ((c.type || "arrow") === (el("connectionTypeSelect")?.value || "arrow")))) return showStatus("Essa conexao ja existe.", "info");
     ensureActiveColor();
     state.connections.push({

@@ -3379,20 +3379,20 @@
                     </div>
                     <div class="app-totais" style="margin-bottom:1rem;">
                         <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${receitasFinancas.toFixed(2)}</div><div class="stat-label">Receitas (Finanas)</div></div>
-                        <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total geral (ms)</div></div>
+                        <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total geral (mês)</div></div>
                         <div class="totais-card"><div class="val" style="color:${margem >= 0 ? '#16a34a' : '#dc2626'}">R$ ${margem.toFixed(2)}</div><div class="stat-label">Margem</div></div>
                     </div>
                     <div class="app-form">
                         <input type="hidden" id="df-edit-id" value="${escapeHtml(editId)}" />
                         <div class="app-form-row">
-                            <div class="field"><label>Descrio</label><input type="text" id="df-descricao" placeholder="Ex: Aluguel, Internet" /></div>
+                            <div class="field"><label>Descrição</label><input type="text" id="df-descricao" placeholder="Ex: Aluguel, Internet" /></div>
                             <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="df-valor" placeholder="0,00" /></div>
                             <div class="field"><label>Status</label><select id="df-status"><option value="pendente">Pendente</option><option value="pago">Pago</option></select></div>
                         </div>
                         <button type="button" class="app-btn" data-action="df-save">Adicionar</button>
                         <button type="button" class="app-btn app-btn-secondary" data-action="df-exportar">Exportar dados</button>
                     </div>
-                    <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:0 0 0.5rem 0">Novas despesas fixas entram no <strong>ms/ano selecionado acima</strong> (lanamentos retroativos: escolha o ms e depois adicione).</p>
+                    <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:0 0 0.5rem 0">Novas despesas fixas entram no <strong>mês/ano selecionado acima</strong> (lançamentos retroativos: escolha o mês e depois adicione).</p>
                     <div class="df-colunas">
                         <div class="df-col df-col--pagos">
                             <p class="df-col-titulo">Pagos</p>
@@ -3471,7 +3471,7 @@
                 const valor = parseFloat(el.querySelector('#df-valor').value) || 0;
                 const status = el.querySelector('#df-status').value;
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                if (!descricao) { alert('Descrio  obrigatria'); return; }
+                if (!descricao) { alert('Descrição é obrigatória'); return; }
                 try {
                     if (editId) {
                         const res = await fetch('/api/despesas-fixas', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, descricao, valor, status }) });
@@ -3508,7 +3508,7 @@
                 overlay.className = 'app-modal-overlay';
                 overlay.innerHTML = `
                     <div class="app-modal">
-                        <h4>Exportar dados  escolha o ms espelho</h4>
+                        <h4>Exportar dados - escolha o mês espelho</h4>
                         <p style="font-size:0.875rem;color:var(--text-light);margin-bottom:0.75rem;">Copiar despesas de <strong>${meses[fromMes-1]} ${fromAno}</strong> para:</p>
                         <div class="app-mes-ano">
                             <label>Ms</label>
@@ -3527,7 +3527,7 @@
                     const m = overlay.querySelector('#df-export-mes').value;
                     const a = overlay.querySelector('#df-export-ano').value;
                     const toMesAno = a + '-' + m.padStart(2, '0');
-                    if (toMesAno === fromMesAno) { alert('Escolha um ms diferente do ms atual.'); return; }
+                    if (toMesAno === fromMesAno) { alert('Escolha um mês diferente do mês atual.'); return; }
                     try {
                         const res = await fetch('/api/despesas-fixas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ exportar: true, from_mes_ano: fromMesAno, to_mes_ano: toMesAno }) });
                         const data = await res.json();
@@ -3587,7 +3587,7 @@
                             <div class="despesas-titulo">Despesas</div>
                             <div class="despesas-grid">
                                 <div class="despesa-linha"><span class="despesa-nome">Despesas fixas</span><span class="val" style="color:#f87171">R$ ${despesasFixas.toFixed(2)}</span></div>
-                                <div class="despesa-linha"><span class="despesa-nome">Despesas variveis</span><span class="val" style="color:#ef4444">R$ ${despesasVariaveis.toFixed(2)}</span></div>
+                                <div class="despesa-linha"><span class="despesa-nome">Despesas variáveis</span><span class="val" style="color:#ef4444">R$ ${despesasVariaveis.toFixed(2)}</span></div>
                             </div>
                         </div>
                         <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${liquido.toFixed(2)}</div><div class="stat-label">Lquido</div></div>
@@ -3595,17 +3595,17 @@
                     <div class="app-form">
                         <input type="hidden" id="fin-edit-id" value="" />
                         <div class="app-form-row">
-                            <div class="field"><label>Descrio</label><input type="text" id="fin-descricao" placeholder="Ex: Supermercado" /></div>
+                            <div class="field"><label>Descrição</label><input type="text" id="fin-descricao" placeholder="Ex: Supermercado" /></div>
                             <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="fin-valor" placeholder="0,00" /></div>
                             <div class="field"><label>Tipo</label><select id="fin-tipo"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
                             <div class="field"><label>Categoria</label><select id="fin-categoria"><option value="">--</option>${categorias.map(c => '<option value="'+c+'">'+c+'</option>').join('')}</select></div>
-                            <div class="field"><label>Data do lanamento</label><input type="date" id="fin-data" value="${defaultLancamento}" min="${firstDayMonth}" max="${lastDayMonth}" title="Dia no ms selecionado acima" /></div>
+                            <div class="field"><label>Data do lançamento</label><input type="date" id="fin-data" value="${defaultLancamento}" min="${firstDayMonth}" max="${lastDayMonth}" title="Dia no mês selecionado acima" /></div>
                         </div>
-                        <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:-0.25rem 0 0.5rem 0">O lanamento aparece no ms/ano escolhido no topo, conforme esta data.</p>
+                        <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:-0.25rem 0 0.5rem 0">O lançamento aparece no mês/ano escolhido no topo, conforme esta data.</p>
                         <button type="button" class="app-btn" data-action="financas-save">Registrar</button>
                     </div>
                     <div class="app-charts">
-                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas variveis x Despesas fixas</p><canvas id="fin-chart-pie"></canvas></div>
+                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas variáveis x Despesas fixas</p><canvas id="fin-chart-pie"></canvas></div>
                         <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias que mais gastam</p><canvas id="fin-chart-bar"></canvas></div>
                     </div>
                     <div class="fin-colunas">
@@ -3647,7 +3647,7 @@
                     <li>
                         <div>
                             <strong>${escapeHtml(r.descricao || '')}</strong> <span style="color:${rec ? '#22c55e' : '#dc2626'}">${rec ? '+' : '-'} R$ ${Number(r.valor).toFixed(2)}</span> ${r.categoria ? '<span style="font-size:0.75rem;color:#6b7280">' + escapeHtml(r.categoria) + '</span>' : ''}
-                            <br/><span style="font-size:0.75rem;color:#9ca3af">Data: ${escapeHtml(fmtDataBrFin(lancDate(r)) || '--')} ${fmtHoraBrasilia(r.created_at) ? '| Inserido s ' + escapeHtml(fmtHoraBrasilia(r.created_at)) : ''}</span>
+                            <br/><span style="font-size:0.75rem;color:#9ca3af">Data: ${escapeHtml(fmtDataBrFin(lancDate(r)) || '--')} ${fmtHoraBrasilia(r.created_at) ? '| Inserido às ' + escapeHtml(fmtHoraBrasilia(r.created_at)) : ''}</span>
                         </div>
                         <div class="app-list-actions">
                             <button type="button" data-action="fin-edit" data-id="${r.id}" data-valor="${Number(r.valor)}" data-tipo="${r.tipo || 'despesa'}">Editar</button>
@@ -3656,10 +3656,10 @@
                     </li>`;
                 const listRec = el.querySelector('#fin-list-receitas');
                 const listDesp = el.querySelector('#fin-list-despesas');
-                listRec.innerHTML = rowsRec.length ? rowsRec.map((r) => itemLiFin(r, true)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhuma receita neste ms.</li>';
-                listDesp.innerHTML = rowsDesp.length ? rowsDesp.map((r) => itemLiFin(r, false)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhuma despesa varivel neste ms.</li>';
+                listRec.innerHTML = rowsRec.length ? rowsRec.map((r) => itemLiFin(r, true)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhuma receita neste mês.</li>';
+                listDesp.innerHTML = rowsDesp.length ? rowsDesp.map((r) => itemLiFin(r, false)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhuma despesa variável neste mês.</li>';
                 if (rows.length === 0) {
-                    const msg = '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhum lanamento. Registre acima.</li>';
+                    const msg = '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhum lançamento. Registre acima.</li>';
                     listRec.innerHTML = msg;
                     listDesp.innerHTML = msg;
                 }
@@ -3772,7 +3772,7 @@
                         el._chartPie = new Chart(ctxPie, {
                             type: 'doughnut',
                             data: {
-                                labels: ['Receitas', 'Despesas variveis', 'Despesas fixas'],
+                                labels: ['Receitas', 'Despesas variáveis', 'Despesas fixas'],
                                 datasets: [{ data: [receitas, despesasVariaveis, despesasFixas], backgroundColor: ['#22c55e', '#dc2626', '#b91c1c'], borderWidth: 0 }]
                             },
                             options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } },
@@ -3803,11 +3803,11 @@
                 const categoria = el.querySelector('#fin-categoria').value || null;
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 const dataLanc = (el.querySelector('#fin-data') && el.querySelector('#fin-data').value) || this.getBrazilDateIsoFrom(new Date());
-                if (!descricao) { alert('Descrio  obrigatria'); return; }
+                if (!descricao) { alert('Descrição é obrigatória'); return; }
                 const [yy, mm] = mesAno.split('-').map(Number);
                 const [dy, dm] = dataLanc.split('-').map(Number);
                 if (dy !== yy || dm !== mm) {
-                    alert('A data do lanamento precisa estar dentro do ms selecionado no topo (ms/ano: ' + mesAno.replace('-', '/') + ').');
+                    alert('A data do lançamento precisa estar dentro do mês selecionado no topo (mês/ano: ' + mesAno.replace('-', '/') + ').');
                     return;
                 }
                 try {
@@ -3824,7 +3824,7 @@
                 } catch (e) { alert(e.message); }
             }
             async submitFinancasDelete(id, el) {
-                if (!confirm('Excluir este lanamento?')) return;
+                if (!confirm('Excluir este lançamento?')) return;
                 try {
                     const res = await fetch('/api/financas?id=' + encodeURIComponent(id), { method: 'DELETE' });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
@@ -3956,7 +3956,7 @@
                 const quantidade = parseInt(el.querySelector('#lista-qtd').value, 10) || 1;
                 const categoria = el.querySelector('#lista-categoria').value || 'Mantimentos';
                 const unidade = (el.querySelector('#lista-unidade').value || '').trim();
-                if (!item) { alert('Item  obrigatrio'); return; }
+                if (!item) { alert('Item é obrigatório'); return; }
                 try {
                     if (editId) {
                         const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, item, quantidade, categoria, unidade_medida: unidade }) });
@@ -3978,7 +3978,7 @@
                 } catch (e) { alert(e.message); }
             }
             async submitListaDeleteAll(el) {
-                if (!confirm('Apagar TODOS os itens da lista? No  possvel desfazer.')) return;
+                if (!confirm('Apagar TODOS os itens da lista? Não é possível desfazer.')) return;
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete_all: true }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
@@ -4153,7 +4153,7 @@
                 }
                 const horaVal = (el.querySelector('#saude-hora') && el.querySelector('#saude-hora').value) || '';
                 const hora_evento = horaVal.trim() ? horaVal.trim().slice(0, 5) : null;
-                if (!membro_familia) { alert('Membro  obrigatrio'); return; }
+                if (!membro_familia) { alert('Membro é obrigatório'); return; }
                 const editingId = el.dataset.saudeEditingId;
                 try {
                     if (editingId) {
@@ -4178,7 +4178,7 @@
             }
             async submitSaudeDelete(id, el) {
                 if (!id) return;
-                if (!confirm('Excluir este registro? No  possvel desfazer.')) return;
+                if (!confirm('Excluir este registro? Não é possível desfazer.')) return;
                 try {
                     const res = await fetch('/api/saude', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
@@ -4474,7 +4474,7 @@
         };
         */
 
-        // PWA: instalao no mobile como app (no s atalho)
+        // PWA: instalação no mobile como app (não é atalho)
         let deferredInstallPrompt = null;
         const pwaInstallBtn = document.getElementById('pwaInstallBtn');
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
