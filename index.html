@@ -3614,9 +3614,9 @@
                             <ul class="app-list" id="fin-list-receitas"></ul>
                         </div>
                         <div class="fin-col fin-col--despesas">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <p class="fin-col-titulo">Despesas</p>
-                                <select id="fin-filter-despesas" style="margin-right: 1rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: #0f172a; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; cursor: pointer; max-width: 150px;">
+                            <div class="fin-col-titulo" style="display:flex; justify-content:space-between; align-items:center;">
+                                <span>Despesas</span>
+                                <select id="fin-filter-despesas" style="padding: 0.2rem 0.5rem; border-radius: 4px; background: #0f172a; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; cursor: pointer; max-width: 150px;">
                                     <option value="" style="background: #0f172a; color: #e5e7eb;">Todas categorias</option>
                                     ${categorias.map(c => `<option value="${c}" style="background: #0f172a; color: #e5e7eb;">${c}</option>`).join('')}
                                 </select>
