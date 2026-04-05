@@ -3373,12 +3373,12 @@
                 const anos = Array.from({ length: 9 }, (_, i) => new Date().getFullYear() - 2 + i);
                 el.innerHTML = `
                     <div class="app-mes-ano">
-                        <label>Ms/Ano</label>
+                        <label>Mês/Ano</label>
                         <select id="df-mes">${meses.map((m, i) => '<option value="'+(i+1)+'" '+(i+1===mes?'selected':'')+'>'+m+'</option>').join('')}</select>
                         <select id="df-ano">${anos.map(a => '<option value="'+a+'" '+(a===ano?'selected':'')+'>'+a+'</option>').join('')}</select>
                     </div>
                     <div class="app-totais" style="margin-bottom:1rem;">
-                        <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${receitasFinancas.toFixed(2)}</div><div class="stat-label">Receitas (Finanas)</div></div>
+                        <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${receitasFinancas.toFixed(2)}</div><div class="stat-label">Receitas (Finanças)</div></div>
                         <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total geral (mês)</div></div>
                         <div class="totais-card"><div class="val" style="color:${margem >= 0 ? '#16a34a' : '#dc2626'}">R$ ${margem.toFixed(2)}</div><div class="stat-label">Margem</div></div>
                     </div>
@@ -3511,7 +3511,7 @@
                         <h4>Exportar dados - escolha o mês espelho</h4>
                         <p style="font-size:0.875rem;color:var(--text-light);margin-bottom:0.75rem;">Copiar despesas de <strong>${meses[fromMes-1]} ${fromAno}</strong> para:</p>
                         <div class="app-mes-ano">
-                            <label>Ms</label>
+                            <label>Mês</label>
                             <select id="df-export-mes">${meses.map((m, i) => '<option value="'+(i+1)+'">'+m+'</option>').join('')}</select>
                             <label>Ano</label>
                             <select id="df-export-ano">${anosOpts.map(a => '<option value="'+a+'" '+(a===fromAno?'selected':'')+'>'+a+'</option>').join('')}</select>
