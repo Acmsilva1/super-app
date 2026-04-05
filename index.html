@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -3614,7 +3614,13 @@
                             <ul class="app-list" id="fin-list-receitas"></ul>
                         </div>
                         <div class="fin-col fin-col--despesas">
-                            <p class="fin-col-titulo">Despesas</p>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <p class="fin-col-titulo">Despesas</p>
+                                <select id="fin-filter-despesas" style="margin-right: 1rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: rgba(255,255,255,0.05); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; cursor: pointer; max-width: 150px;">
+                                    <option value="">Todas categorias</option>
+                                    ${categorias.map(c => `<option value="${c}">${c}</option>`).join('')}
+                                </select>
+                            </div>
                             <ul class="app-list" id="fin-list-despesas"></ul>
                         </div>
                     </div>
@@ -3644,7 +3650,7 @@
                 const rowsRec = rows.filter(isReceita).sort(ordemCronologicaFin);
                 const rowsDesp = rows.filter((r) => !isReceita(r)).sort(ordemCronologicaFinDesc);
                 const itemLiFin = (r, rec) => `
-                    <li>
+                    <li data-categoria="${escapeHtml(r.categoria || '')}">
                         <div>
                             <strong>${escapeHtml(r.descricao || '')}</strong> <span style="color:${rec ? '#22c55e' : '#dc2626'}">${rec ? '+' : '-'} R$ ${Number(r.valor).toFixed(2)}</span> ${r.categoria ? '<span style="font-size:0.75rem;color:#6b7280">' + escapeHtml(r.categoria) + '</span>' : ''}
                             <br/><span style="font-size:0.75rem;color:#9ca3af">Data: ${escapeHtml(fmtDataBrFin(lancDate(r)) || '--')} ${fmtHoraBrasilia(r.created_at) ? '| Inserido às ' + escapeHtml(fmtHoraBrasilia(r.created_at)) : ''}</span>
@@ -3665,6 +3671,20 @@
                 }
                 aplicarLimiteVisualLista(listRec, 10);
                 aplicarLimiteVisualLista(listDesp, 10);
+
+                const filterDespesas = el.querySelector('#fin-filter-despesas');
+                if (filterDespesas) {
+                    filterDespesas.onchange = (e) => {
+                        const selectedCategoria = e.target.value;
+                        listDesp.querySelectorAll('li[data-categoria]').forEach(li => {
+                            if (!selectedCategoria || li.getAttribute('data-categoria') === selectedCategoria) {
+                                li.style.display = '';
+                            } else {
+                                li.style.display = 'none';
+                            }
+                        });
+                    };
+                }
                 const wireFinList = (root) => {
                     root.querySelectorAll('[data-action="fin-edit"]').forEach((b) => {
                         b.onclick = () => {
