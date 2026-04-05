@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -3636,6 +3636,36 @@
                 const fmtHoraBrasilia = (isoStamp) => {
                     if (!isoStamp) return '';
                     try {
+                        <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias que mais gastam</p><canvas id="fin-chart-bar"></canvas></div>
+                    </div>
+                    <div class="fin-colunas">
+                        <div class="fin-col fin-col--receitas">
+                            <p class="fin-col-titulo">Receitas</p>
+                            <ul class="app-list" id="fin-list-receitas"></ul>
+                        </div>
+                        <div class="fin-col fin-col--despesas">
+                            <p class="fin-col-titulo">Despesas</p>
+                            <ul class="app-list" id="fin-list-despesas"></ul>
+                        </div>
+                    </div>
+                `;
+                const isReceita = (r) => (r.tipo || '').toLowerCase() === 'receita';
+                const lancDate = (r) => String((r && (r.data_lancamento || (r.created_at && String(r.created_at).slice(0, 10)))) || '').slice(0, 10);
+                const createdStamp = (r) => String((r && r.created_at) || '');
+                const ordemCronologicaFin = (a, b) => {
+                    const da = lancDate(a);
+                    const db = lancDate(b);
+                    if (da !== db) return da.localeCompare(db);
+                    return createdStamp(a).localeCompare(createdStamp(b));
+                };
+                const ordemCronologicaFinDesc = (a, b) => -ordemCronologicaFin(a, b);
+                const fmtDataBrFin = (isoDate) => {
+                    const m = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+                };
+                const fmtHoraBrasilia = (isoStamp) => {
+                    if (!isoStamp) return '';
+                    try {
                         return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }).format(new Date(isoStamp));
                     } catch (e) {
                         return '';
@@ -3644,7 +3674,7 @@
                 const rowsRec = rows.filter(isReceita).sort(ordemCronologicaFin);
                 const rowsDesp = rows.filter((r) => !isReceita(r)).sort(ordemCronologicaFinDesc);
                 const itemLiFin = (r, rec) => `
-                    <li>
+                    <li data-categoria="${escapeHtml(r.categoria || '')}">
                         <div>
                             <strong>${escapeHtml(r.descricao || '')}</strong> <span style="color:${rec ? '#22c55e' : '#dc2626'}">${rec ? '+' : '-'} R$ ${Number(r.valor).toFixed(2)}</span> ${r.categoria ? '<span style="font-size:0.75rem;color:#6b7280">' + escapeHtml(r.categoria) + '</span>' : ''}
                             <br/><span style="font-size:0.75rem;color:#9ca3af">Data: ${escapeHtml(fmtDataBrFin(lancDate(r)) || '--')} ${fmtHoraBrasilia(r.created_at) ? '| Inserido às ' + escapeHtml(fmtHoraBrasilia(r.created_at)) : ''}</span>
@@ -3773,28 +3803,6 @@
                             type: 'doughnut',
                             data: {
                                 labels: ['Receitas', 'Despesas variáveis', 'Despesas fixas'],
-                                datasets: [{ data: [receitas, despesasVariaveis, despesasFixas], backgroundColor: ['#22c55e', '#dc2626', '#b91c1c'], borderWidth: 0 }]
-                            },
-                            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } },
-                            plugins: [inlineValueLabelsPlugin]
-                        });
-                    }
-                    const ctxBar = document.getElementById('fin-chart-bar');
-                    if (ctxBar && tabelaGastos.length > 0) {
-                        const labelsBar = tabelaGastos.map(x => x[0]);
-                        const valuesBar = tabelaGastos.map(x => x[1]);
-                        el._chartBar = new Chart(ctxBar, {
-                            type: 'bar',
-                            data: {
-                                labels: labelsBar,
-                                datasets: [{ label: 'Gasto (R$)', data: valuesBar, backgroundColor: '#2563eb', borderRadius: 4 }]
-                            },
-                            options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
-                            plugins: [inlineValueLabelsPlugin]
-                        });
-                    }
-                }
-            }
             async submitFinancasSave(el) {
                 const editId = el.querySelector('#fin-edit-id').value.trim();
                 const descricao = el.querySelector('#fin-descricao').value.trim();
