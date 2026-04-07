@@ -43,6 +43,14 @@ export const APPS = [
     description: 'Crie fluxogramas com nós e conexões; rascunho local e projetos salvos na nuvem (Supabase).',
     category: 'Produtividade',
   },
+  {
+    id: 'missoes_treino',
+    icon: 'fa-dumbbell',
+    status: 'active',
+    title: 'Missoes de Treino',
+    description: 'Controle diario de missoes com progresso local, sem dependencia de API backend.',
+    category: 'Saude',
+  },
 ];
 
 function json(res, status, data) {

@@ -8,6 +8,7 @@ const STORAGE_TABLES = [
   { app: "Lista de Compras", table: "tb_lista_compras" },
   { app: "Saúde Familiar", table: "tb_saude_familiar" },
     { app: "Fluxograma", table: "tb_fluxograma_projetos" },
+  { app: "Missoes de Treino", table: "tb_missoes_treino_itens" },
 ];
 
 function json(res, status, data) {

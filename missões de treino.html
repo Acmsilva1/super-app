@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Missão diária</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sys: {
+                            dark: '#050508',
+                            panel: 'rgba(10, 15, 25, 0.75)',
+                            border: 'rgba(0, 229, 255, 0.4)',
+                            borderGlow: 'rgba(0, 229, 255, 0.8)',
+                            text: '#e0f7ff',
+                            accent: '#00e5ff',
+                            danger: '#ff003c',
+                            dangerGlow: 'rgba(255, 0, 60, 0.5)',
+                            success: '#8b00ff',
+                            successGlow: 'rgba(139, 0, 255, 0.6)'
+                        }
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #050508; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 255, 0.6); }
+
+        body {
+            background-color: #050508;
+            color: #e0f7ff;
+            background-image: radial-gradient(circle at center, #0a0f19 0%, #050508 100%);
+            position: relative;
+        }
+
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(to bottom, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 50;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .glitch-text {
+            position: relative;
+            text-shadow: 0 0 6px rgba(0, 229, 255, 0.45), 0 0 12px rgba(0, 229, 255, 0.25);
+            animation: title-pulse 2.8s ease-in-out infinite;
+        }
+        .glitch-text::before, .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.22;
+            pointer-events: none;
+        }
+        .glitch-text::before { left: 1px; text-shadow: -1px 0 #ff003c; animation: chroma-shift 6s infinite steps(1, end); }
+        .glitch-text::after { left: -1px; text-shadow: 1px 0 #00e5ff; animation: chroma-shift 6s infinite steps(1, end) reverse; }
+
+        @keyframes title-pulse {
+            0%, 100% {
+                text-shadow: 0 0 5px rgba(0, 229, 255, 0.35), 0 0 10px rgba(0, 229, 255, 0.2);
+            }
+            50% {
+                text-shadow: 0 0 8px rgba(0, 229, 255, 0.6), 0 0 18px rgba(0, 229, 255, 0.35);
+            }
+        }
+
+        @keyframes chroma-shift {
+            0%, 78%, 100% { transform: translateX(0); opacity: 0.12; }
+            80% { transform: translateX(1px); opacity: 0.28; }
+            82% { transform: translateX(-1px); opacity: 0.18; }
+        }
+
+        .system-window {
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.15), inset 0 0 15px rgba(0, 229, 255, 0.05);
+            backdrop-filter: blur(8px);
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+        }
+        
+        .progress-stripes {
+            background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(255,255,255,0.1) 5px, rgba(255,255,255,0.1) 10px);
+        }
+
+        input { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+        
+        .temp-item { border-left: 3px solid #00e5ff; transition: all 0.2s; }
+        .temp-item:hover { background: rgba(0, 229, 255, 0.1); transform: translateX(5px); }
+    </style>
+</head>
+<body class="font-mono min-h-screen flex flex-col antialiased">
+
+    <header class="sticky top-0 z-40 bg-sys-panel border-b border-sys-border backdrop-blur-md shadow-[0_0_20px_rgba(0,229,255,0.2)]">
+        <div class="max-w-5xl mx-auto flex items-center justify-between p-4">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center justify-center w-12 h-12 border border-sys-accent shadow-[0_0_15px_rgba(0,229,255,0.5)] bg-[rgba(0,229,255,0.1)] transform rotate-45">
+                    <svg class="w-6 h-6 text-sys-accent -rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-orbitron text-xl md:text-2xl font-black text-sys-accent glitch-text tracking-wider uppercase" data-text="SISTEMA: MISSÃO DIÁRIA">SISTEMA: MISSÃO DIÁRIA</h1>
+                    <p id="today-date" class="text-xs text-gray-400 tracking-widest mt-1"></p>
+                </div>
+            </div>
+            
+            <div class="flex gap-6 text-sm">
+                <div class="text-center">
+                    <div class="font-orbitron text-xl md:text-2xl font-bold text-sys-accent drop-shadow-[0_0_8px_rgba(0,229,255,0.6)]" id="stat-completed">0/0</div>
+                    <div class="text-[10px] text-gray-400 tracking-[0.2em] uppercase mt-1">Missões</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container max-w-5xl mx-auto p-4 md:p-6 flex-1">
+        <div class="w-full h-1 bg-gray-900 mb-8 relative overflow-hidden">
+            <div id="global-progress" class="absolute top-0 left-0 h-full bg-sys-accent progress-stripes shadow-[0_0_10px_rgba(0,229,255,0.8)] transition-all duration-500 w-0"></div>
+        </div>
+
+        <div id="exercises-list" class="space-y-4"></div>
+    </main>
+
+    <button id="btn-add-mission" class="fixed bottom-6 right-6 px-6 py-3 bg-[rgba(0,229,255,0.1)] border border-sys-accent text-sys-accent font-orbitron font-bold tracking-widest uppercase shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:bg-[rgba(0,229,255,0.2)] hover:shadow-[0_0_30px_rgba(0,229,255,0.6)] transition-all duration-300 z-50 transform hover:scale-105 system-window">
+        [+] Nova Missão
+    </button>
+
+    <!-- Modal Reestruturado com Edição -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/80 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="modal-content bg-sys-panel border border-sys-border w-full max-w-lg p-6 system-window transform transition-all duration-300 scale-95 opacity-0" id="modal-content">
+            
+            <div class="mb-6 border-b border-sys-border pb-4 flex justify-between items-center">
+                <div>
+                    <div class="font-orbitron text-lg font-bold text-sys-accent drop-shadow-[0_0_10px_rgba(0,229,255,0.5)] tracking-widest" id="modal-header-title">DEFINIR TREINAMENTO</div>
+                    <div class="text-xs text-gray-400 mt-1" id="modal-header-desc">Acumule os itens da missão antes de aceitar.</div>
+                </div>
+                <button id="btn-modal-close" class="text-sys-accent hover:text-white">✕</button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex gap-2">
+                    <div class="flex-grow">
+                        <label class="block text-[9px] text-sys-accent uppercase mb-1">Exercício / Item</label>
+                        <input type="text" id="temp-name" class="w-full bg-black/40 border border-sys-border text-sys-text p-2 text-sm focus:outline-none focus:border-sys-accent" placeholder="Ex: Flexões">
+                    </div>
+                    <div class="w-24">
+                        <label class="block text-[9px] text-sys-accent uppercase mb-1">Reps</label>
+                        <input type="number" id="temp-reps" class="w-full bg-black/40 border border-sys-border text-sys-text p-2 text-sm focus:outline-none focus:border-sys-accent" value="10">
+                    </div>
+                    <div class="flex items-end">
+                        <button id="btn-add-temp" class="bg-sys-accent/20 border border-sys-accent text-sys-accent px-4 py-2 hover:bg-sys-accent/40 transition-all font-bold">ADICIONAR</button>
+                    </div>
+                </div>
+
+                <!-- Lista Temporária -->
+                <div id="temp-list" class="max-h-48 overflow-y-auto bg-black/30 border border-white/5 p-2 space-y-2">
+                    <div class="text-[10px] text-gray-500 text-center py-4 italic">Lista de itens vazia...</div>
+                </div>
+
+                <div class="flex gap-3 mt-8 pt-4 border-t border-gray-800">
+                    <button type="button" class="flex-1 py-3 text-xs font-bold tracking-widest border border-gray-600 text-gray-400 hover:text-white transition-colors uppercase" id="btn-modal-cancel">Limpar Tudo</button>
+                    <button type="button" class="flex-1 py-3 text-xs font-bold tracking-widest border border-sys-accent bg-sys-accent/10 text-sys-accent hover:bg-sys-accent/20 transition-all uppercase" id="btn-modal-submit">ACEITAR MISSÃO</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            missions: [], // Missões ativas do dia
+            tempMissions: [], // Itens no modal
+            editingId: null, // ID da missão sendo editada
+            storageKey: 'sl-musculacao-system',
+
+            init() {
+                this.checkDateAndReset();
+                this.setupEventListeners();
+                this.updateDateDisplay();
+                this.render();
+            },
+
+            checkDateAndReset() {
+                const now = new Date();
+                const todayStr = now.toISOString().split('T')[0];
+                const stored = localStorage.getItem(this.storageKey);
+
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    if (data.date !== todayStr) {
+                        this.missions = data.missions.map(m => ({
+                            ...m,
+                            completed: false
+                        }));
+                        this.saveData();
+                    } else {
+                        this.missions = data.missions;
+                    }
+                }
+            },
+
+            saveData() {
+                const todayStr = new Date().toISOString().split('T')[0];
+                localStorage.setItem(this.storageKey, JSON.stringify({
+                    date: todayStr,
+                    missions: this.missions
+                }));
+            },
+
+            setupEventListeners() {
+                document.getElementById('btn-add-mission').addEventListener('click', () => this.openModal());
+                document.getElementById('btn-modal-close').addEventListener('click', () => this.closeModal());
+                document.getElementById('btn-modal-cancel').addEventListener('click', () => {
+                    this.tempMissions = [];
+                    this.renderTempList();
+                });
+                document.getElementById('btn-add-temp').addEventListener('click', () => this.addTempItem());
+                document.getElementById('btn-modal-submit').addEventListener('click', () => this.commitMissions());
+                
+                document.getElementById('temp-name').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.addTempItem();
+                });
+            },
+
+            updateDateDisplay() {
+                const options = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
+                document.getElementById('today-date').textContent = `STATUS DO SERVIDOR: ${new Date().toLocaleDateString('pt-BR', options).toUpperCase()}`;
+            },
+
+            openModal(id = null) {
+                const modal = document.getElementById('modal');
+                const modalContent = document.getElementById('modal-content');
+                const headerTitle = document.getElementById('modal-header-title');
+                const headerDesc = document.getElementById('modal-header-desc');
+                const submitBtn = document.getElementById('btn-modal-submit');
+
+                this.editingId = id;
+                
+                if (id) {
+                    // Modo Edição: Carrega a missão existente
+                    const missionToEdit = this.missions.find(m => m.id === id);
+                    // Como salvamos as missões "achatadas", mas o modal permite múltiplos,
+                    // vamos carregar a missão atual como o único item da temp list para permitir "acrescentar algo"
+                    this.tempMissions = [{ 
+                        id: missionToEdit.id, 
+                        name: missionToEdit.name, 
+                        reps: missionToEdit.reps,
+                        original: true 
+                    }];
+                    headerTitle.textContent = "EDITAR MISSÃO";
+                    headerDesc.textContent = "Acrescente novos itens ou altere o atual.";
+                    submitBtn.textContent = "ATUALIZAR MISSÃO";
+                } else {
+                    // Modo Criação
+                    this.tempMissions = [];
+                    headerTitle.textContent = "DEFINIR TREINAMENTO";
+                    headerDesc.textContent = "Acumule os itens da missão antes de aceitar.";
+                    submitBtn.textContent = "ACEITAR MISSÃO";
+                }
+
+                this.renderTempList();
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modalContent.classList.remove('scale-95', 'opacity-0');
+                    modalContent.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            },
+
+            closeModal() {
+                const modal = document.getElementById('modal');
+                const modalContent = document.getElementById('modal-content');
+                modalContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+                this.editingId = null;
+            },
+
+            addTempItem() {
+                const nameInput = document.getElementById('temp-name');
+                const repsInput = document.getElementById('temp-reps');
+                const name = nameInput.value.trim();
+                const reps = parseInt(repsInput.value);
+
+                if (name && reps > 0) {
+                    this.tempMissions.push({ id: Date.now().toString(), name, reps });
+                    nameInput.value = '';
+                    nameInput.focus();
+                    this.renderTempList();
+                }
+            },
+
+            removeTempItem(id) {
+                this.tempMissions = this.tempMissions.filter(t => t.id !== id);
+                this.renderTempList();
+            },
+
+            renderTempList() {
+                const list = document.getElementById('temp-list');
+                if (this.tempMissions.length === 0) {
+                    list.innerHTML = `<div class="text-[10px] text-gray-500 text-center py-4 italic">Lista de itens vazia...</div>`;
+                    return;
+                }
+
+                list.innerHTML = this.tempMissions.map(item => `
+                    <div class="temp-item flex justify-between items-center p-2 bg-white/5 border border-white/5">
+                        <div class="text-sm"><span class="text-sys-accent font-bold">${item.reps}x</span> ${item.name}</div>
+                        <button onclick="app.removeTempItem('${item.id}')" class="text-sys-danger text-xs px-2 hover:bg-sys-danger/10">Remover</button>
+                    </div>
+                `).join('');
+            },
+
+            commitMissions() {
+                if (this.tempMissions.length === 0) return;
+
+                if (this.editingId) {
+                    // Se estamos editando, removemos a antiga e inserimos as novas (ou a atualizada)
+                    this.missions = this.missions.filter(m => m.id !== this.editingId);
+                }
+
+                const newMissions = this.tempMissions.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    reps: t.reps,
+                    completed: false
+                }));
+
+                this.missions = [...this.missions, ...newMissions];
+                this.saveData();
+                this.render();
+                this.closeModal();
+            },
+
+            toggleComplete(id) {
+                const mission = this.missions.find(m => m.id === id);
+                if (mission) {
+                    mission.completed = !mission.completed;
+                    this.saveData();
+                    this.render();
+                }
+            },
+
+            deleteMission(id) {
+                this.missions = this.missions.filter(m => m.id !== id);
+                this.saveData();
+                this.render();
+            },
+
+            render() {
+                const total = this.missions.length;
+                const completedCount = this.missions.filter(m => m.completed).length;
+                const progress = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+                document.getElementById('stat-completed').textContent = `${completedCount}/${total}`;
+                const pb = document.getElementById('global-progress');
+                pb.style.width = `${progress}%`;
+                
+                pb.classList.remove('bg-sys-accent', 'bg-sys-success');
+                pb.classList.add(progress === 100 && total > 0 ? 'bg-sys-success' : 'bg-sys-accent');
+
+                const list = document.getElementById('exercises-list');
+                if (total === 0) {
+                    list.innerHTML = `<div class="border border-dashed border-sys-border bg-white/5 p-12 text-center system-window">
+                        <p class="font-orbitron text-sys-accent tracking-widest uppercase">Nenhuma Missão Gerada</p>
+                        <p class="text-[10px] text-gray-500 mt-2 italic">Acesse o painel [+] Nova Missão para começar.</p>
+                    </div>`;
+                    return;
+                }
+
+                list.innerHTML = this.missions.map(m => `
+                    <div class="system-window relative border ${m.completed ? 'border-sys-success bg-sys-success/5' : 'border-sys-border bg-sys-panel'} p-4 transition-all duration-300">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-grow">
+                                <h3 class="font-orbitron text-lg font-bold ${m.completed ? 'text-sys-success line-through opacity-60' : 'text-sys-accent'}">
+                                    ${m.name}
+                                </h3>
+                                <div class="text-[10px] text-gray-400 font-mono tracking-widest mt-1">
+                                    QUANTIDADE: <span class="text-white">${m.reps} REPETIÇÕES</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 items-center">
+                                <button onclick="app.toggleComplete('${m.id}')" class="px-4 py-2 border ${m.completed ? 'border-sys-success bg-sys-success/20 text-sys-success' : 'border-sys-accent bg-sys-accent/10 text-sys-accent'} text-[10px] font-bold uppercase tracking-tighter transition-all">
+                                    ${m.completed ? 'COMPLETO' : 'CONCLUIR'}
+                                </button>
+                                
+                                <div class="flex flex-col gap-1">
+                                    <button onclick="app.openModal('${m.id}')" class="p-1.5 border border-gray-700 text-gray-400 hover:text-sys-accent hover:border-sys-accent transition-all" title="Editar">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                    </button>
+                                    <button onclick="app.deleteMission('${m.id}')" class="p-1.5 border border-gray-700 text-gray-400 hover:text-sys-danger hover:border-sys-danger transition-all" title="Excluir">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>

@@ -3186,6 +3186,9 @@
                 return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
             }
             async loadAppContent(appId, contentEl) {
+                if (contentEl && typeof contentEl._cleanup === 'function') {
+                    contentEl._cleanup();
+                }
                 const prevRoot = contentEl.querySelector('#fluxograma-root');
                 if (prevRoot && prevRoot._fluxOnResize) {
                     window.removeEventListener('resize', prevRoot._fluxOnResize);
@@ -3195,6 +3198,16 @@
                 if (appId === 'fluxograma') {
                     contentEl.classList.add('fluxograma-window-content');
                     await this.renderFluxogramaContent(contentEl);
+                    return;
+                }
+                if (appId === 'missoes_treino') {
+                    try {
+                        const mod = await import('./modulos/missoes_treino/index.js');
+                        mod.renderMissoesTreinoContent(contentEl);
+                    } catch (err) {
+                        console.error(err);
+                        contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Nao foi possivel carregar Missoes de Treino.</div>';
+                    }
                     return;
                 }
                 const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude' };
@@ -4389,6 +4402,7 @@
                 if (element) {
                     const contentEl = element.querySelector('.window-content');
                     if (contentEl && contentEl._mesCheckInterval) clearInterval(contentEl._mesCheckInterval);
+                    if (contentEl && typeof contentEl._cleanup === 'function') contentEl._cleanup();
                     const fluxRoot = contentEl && contentEl.querySelector('#fluxograma-root');
                     if (fluxRoot && fluxRoot._fluxOnResize) {
                         window.removeEventListener('resize', fluxRoot._fluxOnResize);
