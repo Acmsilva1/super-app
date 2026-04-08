@@ -1,6 +1,6 @@
 /**
  * Notas Module
- * Futuristic Draggable Notes with Matrix Aura
+ * Futuristic Draggable Notes with Infinite Panning & Color Selection
  */
 
 export async function renderNotasContent(contentEl) {
@@ -13,10 +13,20 @@ export async function renderNotasContent(contentEl) {
         document.head.appendChild(link);
     }
 
+    const NEON_COLORS = [
+        { name: 'Emerald', value: '#00ffbb' },
+        { name: 'Gold', value: '#f3ec19' },
+        { name: 'Crimson', value: '#ff003c' },
+        { name: 'Blue', value: '#0070ff' },
+        { name: 'Purple', value: '#bf00ff' }
+    ];
+
     contentEl.innerHTML = `
         <div class="neonkeep-root">
-            <canvas id="matrix-bg" class="matrix-canvas"></canvas>
-            <div id="neon-canvas" class="neonkeep-canvas"></div>
+            <div id="neon-plane" class="neonkeep-plane">
+                <canvas id="matrix-bg" class="matrix-canvas"></canvas>
+                <div id="neon-canvas" class="neonkeep-canvas"></div>
+            </div>
             
             <div class="neonkeep-controls">
                 <button id="add-note-btn" class="neon-btn">
@@ -34,6 +44,7 @@ export async function renderNotasContent(contentEl) {
         </div>
     `;
 
+    const plane = contentEl.querySelector('#neon-plane');
     const canvas = contentEl.querySelector('#neon-canvas');
     const matrixCanvas = contentEl.querySelector('#matrix-bg');
     const addBtn = contentEl.querySelector('#add-note-btn');
@@ -43,87 +54,91 @@ export async function renderNotasContent(contentEl) {
     
     let notes = [];
     let zIndexCounter = 100;
+    
+    // Pan state
+    let panX = -2500 + (contentEl.offsetWidth / 2 || window.innerWidth / 2);
+    let panY = -2500 + (contentEl.offsetHeight / 2 || window.innerHeight / 2);
+    
+    function updatePlaneTransform() {
+        plane.style.transform = `translate(${panX}px, ${panY}px)`;
+    }
+
+    updatePlaneTransform();
 
     closeErrorBtn.onclick = () => {
         errorOverlay.style.display = 'none';
     };
 
+    // --- INFINITE PANNING ENGINE ---
+    function initPanning() {
+        let isPanning = false;
+        let startX, startY;
+
+        plane.onmousedown = (e) => {
+            if (e.target !== plane && e.target !== canvas && e.target !== matrixCanvas) return;
+            isPanning = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+            
+            const onMouseMove = (e) => {
+                if (!isPanning) return;
+                panX = e.clientX - startX;
+                panY = e.clientY - startY;
+                updatePlaneTransform();
+            };
+            
+            const onMouseUp = () => {
+                isPanning = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        };
+    }
+
     // --- MATRIX BACKGROUND ENGINE ---
     function initMatrix() {
         const ctx = matrixCanvas.getContext('2d');
-        let width = matrixCanvas.width = contentEl.offsetWidth || window.innerWidth;
-        let height = matrixCanvas.height = contentEl.offsetHeight || window.innerHeight;
-        
-        const fontSize = 14;
+        let width = matrixCanvas.width = 5000;
+        let height = matrixCanvas.height = 5000;
+        const fontSize = 16;
         const columns = Math.floor(width / fontSize);
         const drops = new Array(columns).fill(1).map(() => Math.random() * height / fontSize);
         
         function draw() {
-            ctx.fillStyle = 'rgba(5, 11, 20, 0.15)';
+            ctx.fillStyle = 'rgba(5, 11, 20, 0.2)';
             ctx.fillRect(0, 0, width, height);
-            
             ctx.fillStyle = 'rgba(0, 255, 187, 0.08)'; 
             ctx.font = fontSize + 'px monospace';
-            
             for (let i = 0; i < drops.length; i++) {
                 const text = Math.random() > 0.5 ? "1" : "0";
                 ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                
-                if (drops[i] * fontSize > height && Math.random() > 0.975) {
-                    drops[i] = 0;
-                }
-                drops[i] += 0.5;
+                if (drops[i] * fontSize > height && Math.random() > 0.985) drops[i] = 0;
+                drops[i] += 0.3;
             }
         }
-        
         let animationId;
-        function animate() {
-            draw();
-            animationId = requestAnimationFrame(animate);
-        }
-        
+        function animate() { draw(); animationId = requestAnimationFrame(animate); }
         animate();
-        
-        window.addEventListener('resize', () => {
-            width = matrixCanvas.width = contentEl.offsetWidth || window.innerWidth;
-            height = matrixCanvas.height = contentEl.offsetHeight || window.innerHeight;
-        });
-
         contentEl._cleanupMatrix = () => cancelAnimationFrame(animationId);
     }
 
-    // Load Notes from API
+    // Load Notes
     async function loadNotes() {
         try {
             const res = await fetch('/api/notes');
             const data = await res.json();
-            
-            if (!res.ok) {
-                showError(data.details || data.error || 'Erro ao carregar notas.');
-                return;
-            }
-            
+            if (!res.ok) { showError(data.details || data.error); return; }
             notes = data;
             renderNotes();
-        } catch (err) {
-            console.error('Error loading notes:', err);
-            showError('Não foi possível conectar à API de Notas.');
-        }
+        } catch (err) { showError('Erro de conexão ao carregar notas.'); }
     }
 
-    function showError(msg) {
-        errorDetails.textContent = msg;
-        errorOverlay.style.display = 'flex';
-        
-        if (msg.includes('relation "public.neon_notes" does not exist')) {
-            errorDetails.innerHTML = `A tabela <b>neon_notes</b> não foi encontrada no banco.<br>Rode o script SQL sugerido para criar a estrutura.`;
-        }
-    }
+    function showError(msg) { errorDetails.textContent = msg; errorOverlay.style.display = 'flex'; }
 
-    function renderNotes() {
-        canvas.innerHTML = '';
-        notes.forEach(note => createNoteElement(note));
-    }
+    function renderNotes() { canvas.innerHTML = ''; notes.forEach(note => createNoteElement(note)); }
 
     function createNoteElement(note) {
         const noteEl = document.createElement('div');
@@ -134,70 +149,63 @@ export async function renderNotasContent(contentEl) {
         noteEl.style.setProperty('--note-color', note.color || '#00ffbb');
         noteEl.style.zIndex = zIndexCounter++;
 
+        const colorOptions = NEON_COLORS.map(c => 
+            `<div class="color-dot" style="background: ${c.value}; --dot-color: ${c.value}" data-color="${c.value}"></div>`
+        ).join('');
+
         noteEl.innerHTML = `
-            <div class="note-header">
+            <div class="note-header" title="Arraste">
                 <input type="text" class="note-title-input" value="${note.title || ''}" placeholder="TÍTULO">
                 <div class="note-actions">
+                    <div class="color-dots">${colorOptions}</div>
                     <button class="action-btn delete" title="Apagar"><i class="fas fa-trash-alt"></i></button>
                 </div>
             </div>
             <div class="note-content-area">
                 <textarea class="note-text-input" placeholder="Digite aqui...">${note.content || ''}</textarea>
             </div>
-            <div class="note-footer">
-                <span class="save-status">SALVO</span>
-            </div>
+            <div class="note-footer"><span class="save-status">SALVO</span></div>
         `;
 
-        setupDraggable(noteEl, note);
+        setupDraggableNote(noteEl, note);
         setupAutoSave(noteEl, note);
         
-        noteEl.querySelector('.delete').onclick = (e) => {
-            e.stopPropagation();
-            deleteNote(note.id, noteEl);
-        };
+        // Color Change Logic
+        noteEl.querySelectorAll('.color-dot').forEach(dot => {
+            dot.onclick = (e) => {
+                e.stopPropagation();
+                const newColor = dot.getAttribute('data-color');
+                noteEl.style.setProperty('--note-color', newColor);
+                saveNote(note.id, { color: newColor }, noteEl);
+            };
+        });
+
+        noteEl.querySelector('.delete').onclick = (e) => { e.stopPropagation(); deleteNote(note.id, noteEl); };
 
         canvas.appendChild(noteEl);
         return noteEl;
     }
 
-    function setupDraggable(el, noteData) {
+    function setupDraggableNote(el, noteData) {
+        const header = el.querySelector('.note-header');
         let offsetX, offsetY, isDragging = false;
-
-        el.onmousedown = (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.action-btn')) return;
-            
-            isDragging = true;
-            el.classList.add('dragging');
-            el.style.zIndex = zIndexCounter++;
-            
-            offsetX = e.clientX - el.offsetLeft;
-            offsetY = e.clientY - el.offsetTop;
-            
+        header.onmousedown = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.classList.contains('color-dot')) return;
+            isDragging = true; el.classList.add('dragging'); el.style.zIndex = zIndexCounter++;
+            offsetX = e.clientX - el.offsetLeft; offsetY = e.clientY - el.offsetTop;
             const onMouseMove = (e) => {
                 if (!isDragging) return;
-                const x = e.clientX - offsetX;
-                const y = e.clientY - offsetY;
-                el.style.left = `${x}px`;
-                el.style.top = `${y}px`;
+                el.style.left = `${e.clientX - offsetX}px`; el.style.top = `${e.clientY - offsetY}px`;
             };
-            
             const onMouseUp = () => {
                 if (isDragging) {
-                    isDragging = false;
-                    el.classList.remove('dragging');
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                    
-                    saveNote(noteData.id, { 
-                        x_pos: parseInt(el.style.left), 
-                        y_pos: parseInt(el.style.top) 
-                    }, el);
+                    isDragging = false; el.classList.remove('dragging');
+                    document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp);
+                    saveNote(noteData.id, { x_pos: parseInt(el.style.left), y_pos: parseInt(el.style.top) }, el);
                 }
             };
-
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
+            document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
+            e.preventDefault();
         };
     }
 
@@ -205,22 +213,14 @@ export async function renderNotasContent(contentEl) {
         const titleInput = el.querySelector('.note-title-input');
         const textInput = el.querySelector('.note-text-input');
         const statusEl = el.querySelector('.save-status');
-        
         let timeout = null;
-
         const handleInput = () => {
-            statusEl.textContent = 'SALVANDO...';
-            clearTimeout(timeout);
+            statusEl.textContent = 'SALVANDO...'; clearTimeout(timeout);
             timeout = setTimeout(() => {
-                saveNote(noteData.id, {
-                    title: titleInput.value,
-                    content: textInput.value
-                }, el);
+                saveNote(noteData.id, { title: titleInput.value, content: textInput.value }, el);
             }, 1000);
         };
-
-        titleInput.oninput = handleInput;
-        textInput.oninput = handleInput;
+        titleInput.oninput = handleInput; textInput.oninput = handleInput;
     }
 
     async function saveNote(id, data, el) {
@@ -230,32 +230,16 @@ export async function renderNotasContent(contentEl) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, ...data })
             });
-            
-            if (res.ok) {
-                const statusEl = el.querySelector('.save-status');
-                if (statusEl) statusEl.textContent = 'SALVO';
-            } else {
-                const errData = await res.json();
-                console.error('Save error:', errData);
-            }
-        } catch (err) {
-            console.error('Error saving note:', err);
-        }
+            if (res.ok) { const s = el.querySelector('.save-status'); if (s) s.textContent = 'SALVO'; }
+        } catch (err) { console.error('Save error:', err); }
     }
 
     async function deleteNote(id, el) {
         if (!confirm('DESEJA APAGAR ESTA NOTA?')) return;
-        
         try {
             const res = await fetch(`/api/notes?id=${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                el.style.transform = 'scale(0.8) translateY(20px)';
-                el.style.opacity = '0';
-                setTimeout(() => el.remove(), 300);
-            }
-        } catch (err) {
-            console.error('Error deleting note:', err);
-        }
+            if (res.ok) { el.style.transform = 'scale(0.8) translateY(20px)'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }
+        } catch (err) { console.error('Delete error:', err); }
     }
 
     addBtn.onclick = async () => {
@@ -264,31 +248,16 @@ export async function renderNotasContent(contentEl) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    title: 'NOVA NOTA',
-                    content: '',
-                    x_pos: Math.random() * (window.innerWidth - 300) + 50,
-                    y_pos: Math.random() * (window.innerHeight - 300) + 100
+                    title: 'NOVA NOTA', content: '',
+                    x_pos: 2500 + (Math.random() * 400 - 200),
+                    y_pos: 2500 + (Math.random() * 400 - 200)
                 })
             });
-            
             const data = await res.json();
-
-            if (res.ok) {
-                createNoteElement(data);
-            } else {
-                showError(data.details || data.error || 'Erro ao criar nova nota.');
-            }
-        } catch (err) {
-            console.error('Error adding note:', err);
-            showError('Falha na comunicação com o servidor ao criar nota.');
-        }
+            if (res.ok) createNoteElement(data);
+        } catch (err) { console.error('Add error:', err); }
     };
 
-    contentEl._cleanup = () => {
-        if (contentEl._cleanupMatrix) contentEl._cleanupMatrix();
-    };
-
-    // Start
-    initMatrix();
-    loadNotes();
+    contentEl._cleanup = () => { if (contentEl._cleanupMatrix) contentEl._cleanupMatrix(); };
+    initPanning(); initMatrix(); loadNotes();
 }

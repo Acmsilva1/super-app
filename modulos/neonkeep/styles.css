@@ -1,4 +1,4 @@
-/* NeonKeep Module Styles */
+/* Notas Module Styles */
 .neonkeep-root {
     position: relative;
     width: 100%;
@@ -15,14 +15,20 @@
     color: #e0e0e0;
 }
 
-.neonkeep-canvas {
+/* The infinite-feeling plane */
+.neonkeep-plane {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    width: 5000px; 
+    height: 5000px;
+    top: 50%;
+    left: 50%;
+    transform-origin: center;
     cursor: grab;
-    z-index: 5;
+    z-index: 1;
+}
+
+.neonkeep-plane:active {
+    cursor: grabbing;
 }
 
 .matrix-canvas {
@@ -33,10 +39,17 @@
     height: 100%;
     z-index: 1;
     opacity: 0.6;
+    pointer-events: none;
 }
 
-.neonkeep-canvas:active {
-    cursor: grabbing;
+.neonkeep-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    background: transparent;
 }
 
 .neonkeep-controls {
@@ -73,10 +86,6 @@
     transform: translateY(-2px);
 }
 
-.neon-btn i {
-    font-size: 1rem;
-}
-
 /* Note Card Styles */
 .neon-note {
     position: absolute;
@@ -88,19 +97,10 @@
     display: flex;
     flex-direction: column;
     z-index: 10;
-    cursor: move;
+    cursor: auto;
     transition: box-shadow 0.3s ease, transform 0.2s ease;
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
-}
-
-.neon-note:hover {
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 255, 187, 0.2);
-}
-
-.neon-note.dragging {
-    opacity: 0.8;
-    z-index: 1000 !important;
-    transform: scale(1.02);
+    pointer-events: auto;
 }
 
 .note-header {
@@ -109,6 +109,7 @@
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: move;
 }
 
 .note-title-input {
@@ -118,14 +119,15 @@
     font-family: 'Orbitron', sans-serif;
     font-weight: bold;
     font-size: 0.9rem;
-    width: 80%;
+    width: 70%;
     outline: none;
     text-transform: uppercase;
 }
 
 .note-actions {
     display: flex;
-    gap: 8px;
+    gap: 12px;
+    align-items: center;
     opacity: 0.3;
     transition: opacity 0.3s ease;
 }
@@ -149,6 +151,26 @@
 
 .action-btn.delete:hover {
     color: #ff4444;
+}
+
+/* Color Palette Selector */
+.color-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.color-dot:hover {
+    transform: scale(1.3);
+    box-shadow: 0 0 8px var(--dot-color);
 }
 
 .note-content-area {
@@ -187,14 +209,6 @@
     animation: noteSpawn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Custom Scrollbar for notes */
-.note-text-input::-webkit-scrollbar {
-    width: 3px;
-}
-.note-text-input::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 187, 0.3);
-}
-
 /* Error Overlay */
 .api-error-overlay {
     position: absolute;
@@ -215,28 +229,4 @@
     max-width: 450px;
     clip-path: polygon(10% 0, 100% 0, 100% 85%, 90% 100%, 0 100%, 0 15%);
     box-shadow: 0 0 30px rgba(255, 68, 68, 0.2);
-}
-
-.error-box i {
-    font-size: 3rem;
-    color: #ff4444;
-    margin-bottom: 1rem;
-}
-
-.error-box h3 {
-    margin-bottom: 1rem;
-    color: #fff;
-    letter-spacing: 2px;
-}
-
-.error-box p {
-    font-size: 0.9rem;
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-    color: #aaa;
-}
-
-.neon-btn.mini {
-    padding: 0.5rem 1rem;
-    font-size: 0.7rem;
 }
