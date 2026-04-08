@@ -3,6 +3,7 @@
 const TABLE_MISSOES = 'tb_missoes_treino';
 const TABLE_ITENS = 'tb_missoes_treino_itens';
 const TABLE_CHAMAS = 'tb_missoes_treino_chamas';
+const TABLE_PENALIDADES = 'tb_missoes_treino_penalidades';
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
@@ -31,7 +32,7 @@ function getTodayBrazilIsoDate() {
   return fmt.format(new Date());
 }
 
-function getBrazilDateParts() {
+function getBrazilDatePartsFrom(dateObj) {
   const dateFmt = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
@@ -43,10 +44,18 @@ function getBrazilDateParts() {
     year: 'numeric',
     month: '2-digit',
   });
-  const isoDate = dateFmt.format(new Date());
-  const monthRef = monthFmt.format(new Date());
+  const isoDate = dateFmt.format(dateObj);
+  const monthRef = monthFmt.format(dateObj);
   const day = Number(isoDate.split('-')[2] || 1);
   return { isoDate, monthRef, day };
+}
+
+function getBrazilDateParts() {
+  return getBrazilDatePartsFrom(new Date());
+}
+
+function getYesterdayBrazilDateParts() {
+  return getBrazilDatePartsFrom(new Date(Date.now() - 24 * 60 * 60 * 1000));
 }
 
 function isIsoDate(value) {
@@ -79,6 +88,14 @@ function isMissingChamasTableError(message) {
   const lower = String(message || '').toLowerCase();
   return (
     lower.includes('tb_missoes_treino_chamas') &&
+    (lower.includes('does not exist') || lower.includes('schema cache') || lower.includes('relation') || lower.includes('mission_id'))
+  );
+}
+
+function isMissingPenalidadesTableError(message) {
+  const lower = String(message || '').toLowerCase();
+  return (
+    lower.includes('tb_missoes_treino_penalidades') &&
     (lower.includes('does not exist') || lower.includes('schema cache') || lower.includes('relation'))
   );
 }
@@ -216,13 +233,102 @@ async function unmarkCurrentDayConcluded(missionId) {
   if (error && !isMissingChamasTableError(error.message)) throw new Error(error.message);
 }
 
+async function getPenaltyState() {
+  const yesterday = getYesterdayBrazilDateParts();
+
+  const { data: anyMission, error: mErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id')
+    .limit(1);
+  if (mErr) throw new Error(mErr.message);
+  if (!anyMission?.length) {
+    return { required: false };
+  }
+
+  const { data: doneYesterday, error: dErr } = await supabase
+    .from(TABLE_CHAMAS)
+    .select('id')
+    .eq('mes_ref', yesterday.monthRef)
+    .eq('dia', yesterday.day)
+    .eq('concluida', true)
+    .limit(1);
+  if (dErr && !isMissingChamasTableError(dErr.message)) throw new Error(dErr.message);
+  if (doneYesterday?.length) return { required: false };
+
+  const { data: penRows, error: pErr } = await supabase
+    .from(TABLE_PENALIDADES)
+    .select('*')
+    .eq('missed_date', yesterday.isoDate)
+    .limit(1);
+  if (pErr) {
+    if (isMissingPenalidadesTableError(pErr.message)) return { required: false, fallback: true };
+    throw new Error(pErr.message);
+  }
+
+  const existing = penRows?.[0];
+  if (existing?.status === 'completed') return { required: false };
+
+  if (!existing) {
+    const { error: insErr } = await supabase
+      .from(TABLE_PENALIDADES)
+      .insert({
+        missed_date: yesterday.isoDate,
+        status: 'pending',
+        penalty_title: 'MISSAO DE PENALIDADE',
+        penalty_text: 'FACA 20 BURPEES',
+      });
+    if (insErr && !isMissingPenalidadesTableError(insErr.message)) throw new Error(insErr.message);
+  }
+
+  return {
+    required: true,
+    missed_date: yesterday.isoDate,
+    title: 'MISSAO DE PENALIDADE',
+    text: 'FACA 20 BURPEES',
+  };
+}
+
+async function completePenalty(missedDate) {
+  if (!isIsoDate(missedDate)) return;
+  const { data: rows, error: findErr } = await supabase
+    .from(TABLE_PENALIDADES)
+    .select('id')
+    .eq('missed_date', missedDate)
+    .limit(1);
+  if (findErr) {
+    if (isMissingPenalidadesTableError(findErr.message)) return;
+    throw new Error(findErr.message);
+  }
+
+  if (!rows?.length) {
+    const { error: insErr } = await supabase
+      .from(TABLE_PENALIDADES)
+      .insert({
+        missed_date: missedDate,
+        status: 'completed',
+        penalty_title: 'MISSAO DE PENALIDADE',
+        penalty_text: 'FACA 20 BURPEES',
+        completed_at: new Date().toISOString(),
+      });
+    if (insErr && !isMissingPenalidadesTableError(insErr.message)) throw new Error(insErr.message);
+    return;
+  }
+
+  const { error: updErr } = await supabase
+    .from(TABLE_PENALIDADES)
+    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .eq('id', rows[0].id);
+  if (updErr && !isMissingPenalidadesTableError(updErr.message)) throw new Error(updErr.message);
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const queryDate = req.query?.date;
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
       const missions = await fetchMissionsByDate(dateRef);
-      return json(res, 200, { date: dateRef, missions });
+      const penalty = await getPenaltyState();
+      return json(res, 200, { date: dateRef, missions, penalty });
     }
 
     if (req.method === 'POST') {
@@ -262,6 +368,12 @@ export default async function handler(req, res) {
 
     if (req.method === 'PATCH') {
       const body = parseBody(req);
+      if (body?.action === 'complete_penalty') {
+        const missedDate = String(body.missed_date || '');
+        await completePenalty(missedDate);
+        return json(res, 200, { ok: true });
+      }
+
       const missionId = String(body.mission_id || '').trim();
       if (missionId) {
         if (body.completed != null) {
@@ -361,7 +473,7 @@ export default async function handler(req, res) {
     if (setupRequired) {
       return json(res, 500, {
         error:
-          'Banco de missoes ainda nao configurado. Execute os SQL: 20260407_add_missoes_treino_tables.sql, 20260408_allow_multiple_missoes_treino_per_day.sql, 20260408_add_missoes_treino_chamas.sql e 20260408_link_chamas_to_missao.sql no Supabase.',
+          'Banco de missoes ainda nao configurado. Execute os SQL: 20260407_add_missoes_treino_tables.sql, 20260408_allow_multiple_missoes_treino_per_day.sql, 20260408_add_missoes_treino_chamas.sql, 20260408_link_chamas_to_missao.sql e 20260408_add_missoes_treino_penalidades.sql no Supabase.',
         details: message,
         setup_required: true,
       });

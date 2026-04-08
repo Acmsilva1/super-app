@@ -73,6 +73,8 @@ class MissoesTreinoApp {
     this.container = container;
     this.missions = [];
     this.tempMissions = [];
+    this.penalty = { required: false };
+    this.toasts = [];
     this.editingMissionId = null;
     this.isLoading = false;
     this.errorMessage = '';
@@ -110,6 +112,8 @@ class MissoesTreinoApp {
     this.tempNameInput = this.container.querySelector('[data-role="temp-name"]');
     this.tempRepsInput = this.container.querySelector('[data-role="temp-reps"]');
     this.tempListEl = this.container.querySelector('[data-role="temp-list"]');
+    this.toastHost = this.container.querySelector('[data-role="toasts"]');
+    this.penaltyHost = this.container.querySelector('[data-role="penalty"]');
   }
 
   bind() {
@@ -142,9 +146,11 @@ class MissoesTreinoApp {
     try {
       const data = await this.api('');
       this.missions = Array.isArray(data?.missions) ? data.missions : [];
+      this.penalty = data?.penalty || { required: false };
       await this.migrateLegacyLocalData(this.missions);
       const refreshed = await this.api('');
       this.missions = Array.isArray(refreshed?.missions) ? refreshed.missions : [];
+      this.penalty = refreshed?.penalty || this.penalty;
       this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem missoes para hoje.');
     } catch (err) {
       this.setNotice(err.message || 'Falha ao carregar missoes.', true);
@@ -227,8 +233,11 @@ class MissoesTreinoApp {
     const action = actionEl.getAttribute('data-action');
     const id = actionEl.getAttribute('data-id');
     const missionId = actionEl.getAttribute('data-mission-id');
+    const blocked = Boolean(this.penalty?.required);
 
     if (action === 'refresh') this.loadFromApi();
+    if (action === 'complete-penalty') this.completePenalty();
+    if (blocked && action !== 'complete-penalty' && action !== 'refresh') return;
     if (action === 'open-modal') this.openModal();
     if (action === 'close-modal') this.closeModal();
     if (action === 'clear-temp') {
@@ -336,8 +345,10 @@ class MissoesTreinoApp {
       this.closeModal();
       await this.loadFromApi();
       this.setNotice('Missao salva com sucesso.');
+      this.showToast('MISSAO SALVA COM SUCESSO');
     } catch (err) {
       this.setNotice(err.message || 'Falha ao salvar missao.', true);
+      this.showToast('ERRO AO SALVAR MISSAO', 'error');
     } finally {
       this.modalSubmitEl.disabled = false;
       this.render();
@@ -357,6 +368,9 @@ class MissoesTreinoApp {
       mission.completed = !mission.completed;
       mission.items = (mission.items || []).map((item) => ({ ...item, completed: mission.completed }));
       this.setNotice('Missao atualizada no banco.');
+      if (mission.completed) this.showToast('MISSAO CONCLUIDA COM SUCESSO');
+      else this.showToast('MISSAO REABERTA');
+      await this.loadFromApi();
     } catch (err) {
       this.setNotice(err.message || 'Falha ao concluir missao.', true);
     } finally {
@@ -377,11 +391,68 @@ class MissoesTreinoApp {
       });
       this.missions = this.missions.filter((m) => m.id !== missionId);
       this.setNotice('Missao removida do banco.');
+      this.showToast('MISSAO EXCLUIDA');
     } catch (err) {
       this.setNotice(err.message || 'Falha ao excluir missao.', true);
       mission._busy = false;
     }
     this.render();
+  }
+
+  async completePenalty() {
+    if (!this.penalty?.required || !this.penalty?.missed_date) return;
+    try {
+      await this.api('', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          action: 'complete_penalty',
+          missed_date: this.penalty.missed_date,
+        }),
+      });
+      this.penalty = { required: false };
+      this.showToast('PENALIDADE CONCLUIDA. ACESSO LIBERADO.');
+      await this.loadFromApi();
+    } catch (err) {
+      this.showToast('ERRO AO CONCLUIR PENALIDADE', 'error');
+      this.setNotice(err.message || 'Falha ao concluir penalidade.', true);
+    }
+  }
+
+  showToast(message, type = 'success') {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    this.toasts.push({ id, message, type });
+    this.renderToasts();
+    window.setTimeout(() => {
+      this.toasts = this.toasts.filter((t) => t.id !== id);
+      this.renderToasts();
+    }, 2600);
+  }
+
+  renderToasts() {
+    if (!this.toastHost) return;
+    this.toastHost.innerHTML = this.toasts.map((toast) => `
+      <div class="mt-toast ${toast.type === 'error' ? 'is-error' : ''}">
+        ${escapeHtml(toast.message)}
+      </div>
+    `).join('');
+  }
+
+  renderPenalty() {
+    if (!this.penaltyHost) return;
+    if (!this.penalty?.required) {
+      this.penaltyHost.innerHTML = '';
+      return;
+    }
+    this.penaltyHost.innerHTML = `
+      <div class="mt-penalty-backdrop">
+        <div class="mt-penalty-card">
+          <h3>${escapeHtml(this.penalty.title || 'MISSAO DE PENALIDADE')}</h3>
+          <p>Voce perdeu o treino diario. Cumpra a penalidade para liberar o sistema.</p>
+          <div class="mt-penalty-task">${escapeHtml(this.penalty.text || 'FACA 20 BURPEES')}</div>
+          <button class="mt-btn mt-btn-complete" data-action="complete-penalty">CONCLUIR PENALIDADE</button>
+        </div>
+      </div>
+    `;
   }
 
   render() {
@@ -400,6 +471,7 @@ class MissoesTreinoApp {
           <p class="mt-empty-text">Aguarde enquanto carregamos do banco.</p>
         </div>
       `;
+      this.renderPenalty();
       return;
     }
 
@@ -410,10 +482,13 @@ class MissoesTreinoApp {
           <p class="mt-empty-text">Clique em [+] Nova Missao para comecar.</p>
         </div>
       `;
+      this.renderPenalty();
       return;
     }
 
     this.listEl.innerHTML = this.missions.map((mission, idx) => missionCardHtml(mission, idx)).join('');
+    this.renderPenalty();
+    this.renderToasts();
   }
 
   template() {
@@ -498,6 +573,16 @@ class MissoesTreinoApp {
           .mt-actions button{flex:1;padding:9px 10px;cursor:pointer;font-size:.69rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
           .mt-cancel{border:1px solid #4b5666;background:transparent;color:#bcc7d2}
           .mt-submit{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent)}
+          .mt-toast-wrap{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:5000}
+          .mt-toast{padding:10px 12px;background:rgba(0,229,255,.16);border:1px solid rgba(0,229,255,.55);color:#b9f5ff;font-size:.72rem;letter-spacing:.04em;border-radius:9px;backdrop-filter:blur(5px);animation:toastIn .24s ease}
+          .mt-toast.is-error{background:rgba(255,0,60,.14);border-color:rgba(255,0,60,.62);color:#ffd3dd}
+          .mt-penalty-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px;z-index:4200}
+          .mt-penalty-card{width:min(560px,100%);border:1px solid rgba(255,145,0,.55);background:linear-gradient(165deg,rgba(36,17,3,.93),rgba(15,8,3,.95));padding:16px;border-radius:12px;box-shadow:0 0 24px rgba(255,125,0,.28);animation:penaltyIn .25s ease}
+          .mt-penalty-card h3{margin:0;color:#ffb347;font-family:"Orbitron","Segoe UI",sans-serif}
+          .mt-penalty-card p{margin:8px 0 0;color:#ffdcb3;font-size:.83rem}
+          .mt-penalty-task{margin:12px 0;padding:11px;border:1px dashed rgba(255,145,0,.7);color:#ffd27f;font-weight:800;letter-spacing:.06em;text-align:center}
+          @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+          @keyframes penaltyIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
           @keyframes flameBlue{
             0%{transform:scale(1) translateY(0);opacity:.96}
             25%{transform:scale(1.06,.94) translateY(-1px);opacity:1}
@@ -539,6 +624,8 @@ class MissoesTreinoApp {
           <button class="mt-fab" data-action="open-modal">[+] Nova Missao</button>
           <button class="mt-fab sec" data-action="refresh">Sincronizar</button>
         </div>
+        <div class="mt-toast-wrap" data-role="toasts"></div>
+        <div data-role="penalty"></div>
 
         <div class="mt-modal is-hidden" data-role="modal">
           <div class="mt-modal-card">
