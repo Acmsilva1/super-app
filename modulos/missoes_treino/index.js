@@ -12,7 +12,11 @@ function getTodayKey() {
   return `${y}-${m}-${d}`;
 }
 
-function missionCardHtml(mission) {
+function normalizeCompare(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function missionItemRowHtml(mission) {
   const titleClass = mission.completed
     ? "mt-mission-title is-done"
     : "mt-mission-title";
@@ -21,7 +25,7 @@ function missionCardHtml(mission) {
     : "mt-btn mt-btn-complete";
   const completeLabel = mission.completed ? "COMPLETO" : "CONCLUIR";
   return `
-    <article class="mt-mission ${mission.completed ? "is-done" : ""}">
+    <article class="mt-mission-row ${mission.completed ? "is-done" : ""}">
       <div class="mt-mission-main">
         <h3 class="${titleClass}">${escapeHtml(mission.name)}</h3>
         <p class="mt-mission-meta">QUANTIDADE: <strong>${Number(
@@ -44,6 +48,22 @@ function missionCardHtml(mission) {
         </div>
       </div>
     </article>
+  `;
+}
+
+function dailyMissionCardHtml(missions) {
+  const total = missions.length;
+  const completed = missions.filter((m) => m.completed).length;
+  return `
+    <section class="mt-mission-shell">
+      <header class="mt-mission-shell-header">
+        <h3>MISSAO DIARIA</h3>
+        <span>${completed}/${total} itens concluidos</span>
+      </header>
+      <div class="mt-mission-list">
+        ${missions.map(missionItemRowHtml).join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -134,8 +154,11 @@ class MissoesTreinoApp {
     this.setNotice("Sincronizando com o banco...");
     this.render();
     try {
-      const data = await this.api("?date=" + encodeURIComponent(getTodayKey()));
+      const data = await this.api("");
       this.missions = Array.isArray(data?.missions) ? data.missions : [];
+      await this.migrateLegacyLocalData(this.missions);
+      const refreshed = await this.api("");
+      this.missions = Array.isArray(refreshed?.missions) ? refreshed.missions : [];
       this.setNotice(this.missions.length ? "Dados sincronizados." : "Sem missoes para hoje.");
     } catch (err) {
       this.setNotice(err.message || "Falha ao carregar missoes.", true);
@@ -143,6 +166,57 @@ class MissoesTreinoApp {
       this.isLoading = false;
       this.render();
     }
+  }
+
+  async migrateLegacyLocalData(existingFromApi = []) {
+    const legacyKey = "sl-musculacao-system";
+    const markerKey = `sl-musculacao-migrated-${getTodayKey()}`;
+    if (localStorage.getItem(markerKey) === "1") return;
+
+    const raw = localStorage.getItem(legacyKey);
+    if (!raw) {
+      localStorage.setItem(markerKey, "1");
+      return;
+    }
+
+    let legacy = null;
+    try {
+      legacy = JSON.parse(raw);
+    } catch (_err) {
+      localStorage.setItem(markerKey, "1");
+      return;
+    }
+
+    const missions = Array.isArray(legacy?.missions) ? legacy.missions : [];
+    if (!missions.length) {
+      localStorage.setItem(markerKey, "1");
+      return;
+    }
+
+    const existingKeys = new Set(
+      (existingFromApi || []).map((item) => `${normalizeCompare(item.name)}::${Number(item.reps || 0)}`)
+    );
+
+    const pending = missions.filter((item) => {
+      const key = `${normalizeCompare(item?.name)}::${Number(item?.reps || 0)}`;
+      return normalizeCompare(item?.name) && Number(item?.reps || 0) > 0 && !existingKeys.has(key);
+    });
+    if (!pending.length) {
+      localStorage.setItem(markerKey, "1");
+      return;
+    }
+
+    for (const item of pending) {
+      await this.api("", {
+        method: "POST",
+        body: JSON.stringify({
+          name: String(item.name || "").trim(),
+          reps: Number(item.reps || 0),
+        }),
+      });
+    }
+
+    localStorage.setItem(markerKey, "1");
   }
 
   onKeyPress(event) {
@@ -241,7 +315,7 @@ class MissoesTreinoApp {
   async createMission(name, reps) {
     await this.api("", {
       method: "POST",
-      body: JSON.stringify({ name, reps, date: getTodayKey() }),
+      body: JSON.stringify({ name, reps }),
     });
   }
 
@@ -356,7 +430,7 @@ class MissoesTreinoApp {
       `;
       return;
     }
-    this.listEl.innerHTML = this.missions.map(missionCardHtml).join("");
+    this.listEl.innerHTML = dailyMissionCardHtml(this.missions);
   }
 
   template() {
@@ -388,8 +462,14 @@ class MissoesTreinoApp {
           .mt-empty-card{border:1px dashed var(--mt-border);background:rgba(255,255,255,.03);padding:24px 14px;text-align:center;border-radius:10px}
           .mt-empty-title{margin:0;color:var(--mt-accent);font-weight:800;letter-spacing:.12em;font-size:.78rem}
           .mt-empty-text{margin:6px 0 0;color:#8f9aa6;font-size:.72rem}
-          .mt-mission{display:flex;justify-content:space-between;gap:10px;padding:11px;border:1px solid var(--mt-border);background:var(--mt-panel);border-radius:10px;box-shadow:inset 0 0 12px rgba(0,229,255,.04)}
-          .mt-mission.is-done{border-color:rgba(0,208,132,.38);background:rgba(0,208,132,.08)}
+          .mt-mission-shell{border:1px solid var(--mt-border);background:var(--mt-panel);border-radius:10px;box-shadow:inset 0 0 12px rgba(0,229,255,.04);overflow:hidden}
+          .mt-mission-shell-header{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 11px;border-bottom:1px solid rgba(95,122,153,.25);background:rgba(4,12,19,.5)}
+          .mt-mission-shell-header h3{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.86rem;letter-spacing:.08em}
+          .mt-mission-shell-header span{font-size:.68rem;color:#9fb0c0;text-transform:uppercase;letter-spacing:.08em}
+          .mt-mission-list{display:grid;gap:0}
+          .mt-mission-row{display:flex;justify-content:space-between;gap:10px;padding:11px;border-top:1px solid rgba(95,122,153,.16)}
+          .mt-mission-row:first-child{border-top:none}
+          .mt-mission-row.is-done{background:rgba(0,208,132,.07)}
           .mt-mission-main{min-width:0}
           .mt-mission-title{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:1rem}
           .mt-mission-title.is-done{color:var(--mt-ok);text-decoration:line-through;opacity:.72}
@@ -430,7 +510,7 @@ class MissoesTreinoApp {
           .mt-actions button{flex:1;padding:9px 10px;cursor:pointer;font-size:.69rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
           .mt-cancel{border:1px solid #4b5666;background:transparent;color:#bcc7d2}
           .mt-submit{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent)}
-          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-mission{display:grid}.mt-mission-actions{justify-content:space-between}.mt-fab-wrap{flex-wrap:wrap}}
+          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-mission-row{display:grid}.mt-mission-actions{justify-content:space-between}.mt-fab-wrap{flex-wrap:wrap}}
           @keyframes mt-title-pulse{0%,100%{text-shadow:0 0 5px rgba(0,229,255,.35),0 0 10px rgba(0,229,255,.2)}50%{text-shadow:0 0 8px rgba(0,229,255,.6),0 0 18px rgba(0,229,255,.35)}}
           @keyframes mt-chroma{0%,78%,100%{opacity:.1;transform:translateX(0)}80%{opacity:.25;transform:translateX(1px)}82%{opacity:.18;transform:translateX(-1px)}}
         </style>
