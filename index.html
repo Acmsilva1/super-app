@@ -3211,6 +3211,16 @@
                     }
                     return;
                 }
+                if (appId === 'neonkeep') {
+                    try {
+                        const mod = await import('./modulos/neonkeep/index.js');
+                        mod.renderNotasContent(contentEl);
+                    } catch (err) {
+                        console.error(err);
+                        contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Nao foi possivel carregar Notas.</div>';
+                    }
+                    return;
+                }
                 const apiMap = { notas: 'despesas-fixas', financas: 'financas', lista_compras: 'lista-compras', saude: 'saude' };
                 const path = apiMap[appId];
                 if (!path) return;

@@ -1,0 +1,185 @@
+/* NeonKeep Module Styles */
+.neonkeep-root {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #050b14;
+    background-image: 
+        radial-gradient(circle at 50% 50%, rgba(0, 255, 187, 0.05) 0%, transparent 70%),
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    background-size: 100% 100%, 100% 4px, 100% 100%;
+    overflow: hidden;
+    user-select: none;
+    font-family: 'Orbitron', sans-serif;
+    color: #e0e0e0;
+}
+
+.neonkeep-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200vw;
+    height: 200vh;
+    cursor: grab;
+}
+
+.neonkeep-canvas:active {
+    cursor: grabbing;
+}
+
+.neonkeep-controls {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    z-index: 100;
+}
+
+.neon-btn {
+    background: rgba(0, 255, 187, 0.1);
+    border: 1px solid #00ffbb;
+    color: #00ffbb;
+    padding: 0.8rem 1.5rem;
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 0 10px rgba(0, 255, 187, 0.2);
+}
+
+.neon-btn:hover {
+    background: rgba(0, 255, 187, 0.2);
+    box-shadow: 0 0 20px rgba(0, 255, 187, 0.4);
+    transform: translateY(-2px);
+}
+
+.neon-btn i {
+    font-size: 1rem;
+}
+
+/* Note Card Styles */
+.neon-note {
+    position: absolute;
+    width: 280px;
+    background: rgba(10, 20, 30, 0.95);
+    border-left: 4px solid var(--note-color, #00ffbb);
+    padding: 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 255, 187, 0.1);
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    cursor: move;
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+}
+
+.neon-note:hover {
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 255, 187, 0.2);
+}
+
+.neon-note.dragging {
+    opacity: 0.8;
+    z-index: 1000 !important;
+    transform: scale(1.02);
+}
+
+.note-header {
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.note-title-input {
+    background: transparent;
+    border: none;
+    color: var(--note-color, #00ffbb);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    font-size: 0.9rem;
+    width: 80%;
+    outline: none;
+    text-transform: uppercase;
+}
+
+.note-actions {
+    display: flex;
+    gap: 8px;
+    opacity: 0.3;
+    transition: opacity 0.3s ease;
+}
+
+.neon-note:hover .note-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: color 0.2s;
+}
+
+.action-btn:hover {
+    color: #fff;
+}
+
+.action-btn.delete:hover {
+    color: #ff4444;
+}
+
+.note-content-area {
+    padding: 15px;
+    min-height: 100px;
+}
+
+.note-text-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+    min-height: 80px;
+}
+
+.note-footer {
+    padding: 8px 15px;
+    font-size: 0.65rem;
+    color: #444;
+    text-align: right;
+    font-style: italic;
+}
+
+/* Animations */
+@keyframes noteSpawn {
+    from { opacity: 0; transform: scale(0.8) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.neon-note {
+    animation: noteSpawn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Custom Scrollbar for notes */
+.note-text-input::-webkit-scrollbar {
+    width: 3px;
+}
+.note-text-input::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 187, 0.3);
+}
