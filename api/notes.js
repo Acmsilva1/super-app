@@ -15,27 +15,28 @@ export default async function handler(req, res) {
         .select('*')
         .order('created_at', { ascending: true });
 
-      if (error) return json(res, 500, { error: error.message });
-      return json(res, 200, data);
+      if (error) throw error;
+      return json(res, 200, data || []);
     }
 
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
       const { title, content, x_pos, y_pos, color } = body;
 
+      // Inserção explícita dos campos esperados
       const { data, error } = await supabase
         .from(TABLE_NAME)
         .insert({
-          title: title || '',
+          title: title || 'Nova Nota',
           content: content || '',
-          x_pos: x_pos ?? 50,
-          y_pos: y_pos ?? 50,
+          x_pos: parseInt(x_pos) || 50,
+          y_pos: parseInt(y_pos) || 50,
           color: color || '#00ffbb'
         })
         .select()
         .single();
 
-      if (error) return json(res, 500, { error: error.message });
+      if (error) throw error;
       return json(res, 201, data);
     }
 
@@ -48,8 +49,8 @@ export default async function handler(req, res) {
       const updateData = {};
       if (title !== undefined) updateData.title = title;
       if (content !== undefined) updateData.content = content;
-      if (x_pos !== undefined) updateData.x_pos = x_pos;
-      if (y_pos !== undefined) updateData.y_pos = y_pos;
+      if (x_pos !== undefined) updateData.x_pos = parseInt(x_pos);
+      if (y_pos !== undefined) updateData.y_pos = parseInt(y_pos);
       if (color !== undefined) updateData.color = color;
       if (is_pinned !== undefined) updateData.is_pinned = is_pinned;
 
@@ -60,7 +61,7 @@ export default async function handler(req, res) {
         .select()
         .single();
 
-      if (error) return json(res, 500, { error: error.message });
+      if (error) throw error;
       return json(res, 200, data);
     }
 
@@ -75,7 +76,7 @@ export default async function handler(req, res) {
         .delete()
         .eq('id', id);
 
-      if (error) return json(res, 500, { error: error.message });
+      if (error) throw error;
       return json(res, 200, { ok: true });
     }
 
@@ -84,9 +85,9 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('API Notes Error:', err);
     return json(res, 500, { 
-      error: 'Internal Server Error', 
+      error: 'Erro no Servidor / Banco de Dados', 
       details: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      hint: 'Verifique se a tabela neon_notes possui as colunas id, title, content, x_pos, y_pos e color.'
     });
   }
 }

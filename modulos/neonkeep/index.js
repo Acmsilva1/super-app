@@ -26,9 +26,9 @@ export async function renderNotasContent(contentEl) {
             <div id="notes-error-msg" class="api-error-overlay" style="display:none">
                 <div class="error-box">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <h3>ERRO DE CONEXÃO</h3>
+                    <h3>SISTEMA DE NOTAS</h3>
                     <p id="error-details">Falha ao carregar dados do servidor.</p>
-                    <button class="neon-btn mini" onclick="location.reload()">RECARREGAR</button>
+                    <button class="neon-btn mini" id="close-error-btn">ENTENDI</button>
                 </div>
             </div>
         </div>
@@ -39,37 +39,40 @@ export async function renderNotasContent(contentEl) {
     const addBtn = contentEl.querySelector('#add-note-btn');
     const errorOverlay = contentEl.querySelector('#notes-error-msg');
     const errorDetails = contentEl.querySelector('#error-details');
+    const closeErrorBtn = contentEl.querySelector('#close-error-btn');
     
     let notes = [];
     let zIndexCounter = 100;
 
+    closeErrorBtn.onclick = () => {
+        errorOverlay.style.display = 'none';
+    };
+
     // --- MATRIX BACKGROUND ENGINE ---
     function initMatrix() {
         const ctx = matrixCanvas.getContext('2d');
-        let width = matrixCanvas.width = contentEl.offsetWidth;
-        let height = matrixCanvas.height = contentEl.offsetHeight;
+        let width = matrixCanvas.width = contentEl.offsetWidth || window.innerWidth;
+        let height = matrixCanvas.height = contentEl.offsetHeight || window.innerHeight;
         
         const fontSize = 14;
         const columns = Math.floor(width / fontSize);
         const drops = new Array(columns).fill(1).map(() => Math.random() * height / fontSize);
         
         function draw() {
-            // Subtle fade effect
             ctx.fillStyle = 'rgba(5, 11, 20, 0.15)';
             ctx.fillRect(0, 0, width, height);
             
-            ctx.fillStyle = 'rgba(0, 255, 187, 0.08)'; // Very subtle emerald
+            ctx.fillStyle = 'rgba(0, 255, 187, 0.08)'; 
             ctx.font = fontSize + 'px monospace';
             
             for (let i = 0; i < drops.length; i++) {
-                // Random 0 or 1
                 const text = Math.random() > 0.5 ? "1" : "0";
                 ctx.fillText(text, i * fontSize, drops[i] * fontSize);
                 
                 if (drops[i] * fontSize > height && Math.random() > 0.975) {
                     drops[i] = 0;
                 }
-                drops[i] += 0.5; // Slow movement
+                drops[i] += 0.5;
             }
         }
         
@@ -82,8 +85,8 @@ export async function renderNotasContent(contentEl) {
         animate();
         
         window.addEventListener('resize', () => {
-            width = matrixCanvas.width = contentEl.offsetWidth;
-            height = matrixCanvas.height = contentEl.offsetHeight;
+            width = matrixCanvas.width = contentEl.offsetWidth || window.innerWidth;
+            height = matrixCanvas.height = contentEl.offsetHeight || window.innerHeight;
         });
 
         contentEl._cleanupMatrix = () => cancelAnimationFrame(animationId);
@@ -96,7 +99,7 @@ export async function renderNotasContent(contentEl) {
             const data = await res.json();
             
             if (!res.ok) {
-                showError(data.details || data.error || 'Erro desconhecido no servidor.');
+                showError(data.details || data.error || 'Erro ao carregar notas.');
                 return;
             }
             
@@ -104,15 +107,16 @@ export async function renderNotasContent(contentEl) {
             renderNotes();
         } catch (err) {
             console.error('Error loading notes:', err);
-            showError('Não foi possível conectar à API. Verifique se o servidor está rodando.');
+            showError('Não foi possível conectar à API de Notas.');
         }
     }
 
     function showError(msg) {
         errorDetails.textContent = msg;
         errorOverlay.style.display = 'flex';
+        
         if (msg.includes('relation "public.neon_notes" does not exist')) {
-            errorDetails.innerHTML = `A tabela <b>neon_notes</b> não foi encontrada.<br>Por favor, execute o script SQL em:<br><code style="color:#00ffbb">sql/20260408_add_neon_notes_table.sql</code>`;
+            errorDetails.innerHTML = `A tabela <b>neon_notes</b> não foi encontrada no banco.<br>Rode o script SQL sugerido para criar a estrutura.`;
         }
     }
 
@@ -230,6 +234,9 @@ export async function renderNotasContent(contentEl) {
             if (res.ok) {
                 const statusEl = el.querySelector('.save-status');
                 if (statusEl) statusEl.textContent = 'SALVO';
+            } else {
+                const errData = await res.json();
+                console.error('Save error:', errData);
             }
         } catch (err) {
             console.error('Error saving note:', err);
@@ -264,21 +271,24 @@ export async function renderNotasContent(contentEl) {
                 })
             });
             
+            const data = await res.json();
+
             if (res.ok) {
-                const newNote = await res.json();
-                createNoteElement(newNote);
+                createNoteElement(data);
+            } else {
+                showError(data.details || data.error || 'Erro ao criar nova nota.');
             }
         } catch (err) {
             console.error('Error adding note:', err);
+            showError('Falha na comunicação com o servidor ao criar nota.');
         }
     };
 
-    // Cleanup logic for the shell
     contentEl._cleanup = () => {
         if (contentEl._cleanupMatrix) contentEl._cleanupMatrix();
     };
 
-    // Initial sequence
+    // Start
     initMatrix();
     loadNotes();
 }
