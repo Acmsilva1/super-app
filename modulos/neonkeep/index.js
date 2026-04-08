@@ -1,6 +1,6 @@
 /**
  * Notas Module
- * Futuristic Draggable Notes with Infinite Panning & Color Selection
+ * Futuristic Draggable Notes with Viewport-Fixed Infinite Matrix Aura
  */
 
 export async function renderNotasContent(contentEl) {
@@ -23,8 +23,12 @@ export async function renderNotasContent(contentEl) {
 
     contentEl.innerHTML = `
         <div class="neonkeep-root">
+            <canvas id="matrix-bg" class="matrix-canvas"></canvas>
+            
+            <!-- Camada invisível para capturar o pan (mãozinha) -->
+            <div id="pan-layer" class="neonkeep-pan-layer"></div>
+
             <div id="neon-plane" class="neonkeep-plane">
-                <canvas id="matrix-bg" class="matrix-canvas"></canvas>
                 <div id="neon-canvas" class="neonkeep-canvas"></div>
             </div>
             
@@ -33,6 +37,7 @@ export async function renderNotasContent(contentEl) {
                     <i class="fas fa-plus-square"></i> NOVA NOTA
                 </button>
             </div>
+            
             <div id="notes-error-msg" class="api-error-overlay" style="display:none">
                 <div class="error-box">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -44,6 +49,7 @@ export async function renderNotasContent(contentEl) {
         </div>
     `;
 
+    const panLayer = contentEl.querySelector('#pan-layer');
     const plane = contentEl.querySelector('#neon-plane');
     const canvas = contentEl.querySelector('#neon-canvas');
     const matrixCanvas = contentEl.querySelector('#matrix-bg');
@@ -55,9 +61,9 @@ export async function renderNotasContent(contentEl) {
     let notes = [];
     let zIndexCounter = 100;
     
-    // Pan state
-    let panX = -2500 + (contentEl.offsetWidth / 2 || window.innerWidth / 2);
-    let panY = -2500 + (contentEl.offsetHeight / 2 || window.innerHeight / 2);
+    // Pan state - Iniciamos com um offset grande para permitir movimento em todas as direções
+    let panX = 0;
+    let panY = 0;
     
     function updatePlaneTransform() {
         plane.style.transform = `translate(${panX}px, ${panY}px)`;
@@ -74,8 +80,7 @@ export async function renderNotasContent(contentEl) {
         let isPanning = false;
         let startX, startY;
 
-        plane.onmousedown = (e) => {
-            if (e.target !== plane && e.target !== canvas && e.target !== matrixCanvas) return;
+        panLayer.onmousedown = (e) => {
             isPanning = true;
             startX = e.clientX - panX;
             startY = e.clientY - panY;
@@ -98,34 +103,58 @@ export async function renderNotasContent(contentEl) {
         };
     }
 
-    // --- MATRIX BACKGROUND ENGINE ---
+    // --- VIEWPORT-FIXED MATRIX ENGINE ---
     function initMatrix() {
         const ctx = matrixCanvas.getContext('2d');
-        let width = matrixCanvas.width = 5000;
-        let height = matrixCanvas.height = 5000;
+        
+        let width = matrixCanvas.width = contentEl.offsetWidth || window.innerWidth;
+        let height = matrixCanvas.height = contentEl.offsetHeight || window.innerHeight;
+        
         const fontSize = 16;
-        const columns = Math.floor(width / fontSize);
-        const drops = new Array(columns).fill(1).map(() => Math.random() * height / fontSize);
+        let columns = Math.floor(width / fontSize);
+        let drops = new Array(columns).fill(1).map(() => Math.random() * height / fontSize);
         
         function draw() {
-            ctx.fillStyle = 'rgba(5, 11, 20, 0.2)';
+            // Fundo escuro sutil
+            ctx.fillStyle = 'rgba(5, 11, 20, 0.15)';
             ctx.fillRect(0, 0, width, height);
+            
             ctx.fillStyle = 'rgba(0, 255, 187, 0.08)'; 
             ctx.font = fontSize + 'px monospace';
+            
             for (let i = 0; i < drops.length; i++) {
                 const text = Math.random() > 0.5 ? "1" : "0";
+                
+                // Desenha os dígitos. Estão fixos na tela, mas como o fundo é preto,
+                // para o usuário parece o "tecido" da realidade digital que é onipresente.
                 ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                if (drops[i] * fontSize > height && Math.random() > 0.985) drops[i] = 0;
-                drops[i] += 0.3;
+                
+                if (drops[i] * fontSize > height && Math.random() > 0.985) {
+                    drops[i] = 0;
+                }
+                drops[i] += 0.5;
             }
         }
+        
         let animationId;
-        function animate() { draw(); animationId = requestAnimationFrame(animate); }
+        function animate() {
+            draw();
+            animationId = requestAnimationFrame(animate);
+        }
+        
         animate();
+
+        window.addEventListener('resize', () => {
+            width = matrixCanvas.width = contentEl.offsetWidth || window.innerWidth;
+            height = matrixCanvas.height = contentEl.offsetHeight || window.innerHeight;
+            columns = Math.floor(width / fontSize);
+            drops = new Array(columns).fill(1).map(() => Math.random() * height / fontSize);
+        });
+
         contentEl._cleanupMatrix = () => cancelAnimationFrame(animationId);
     }
 
-    // Load Notes
+    // CRUD Logic ...
     async function loadNotes() {
         try {
             const res = await fetch('/api/notes');
@@ -170,7 +199,6 @@ export async function renderNotasContent(contentEl) {
         setupDraggableNote(noteEl, note);
         setupAutoSave(noteEl, note);
         
-        // Color Change Logic
         noteEl.querySelectorAll('.color-dot').forEach(dot => {
             dot.onclick = (e) => {
                 e.stopPropagation();
@@ -205,7 +233,7 @@ export async function renderNotasContent(contentEl) {
                 }
             };
             document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
-            e.preventDefault();
+            e.preventDefault(); e.stopPropagation();
         };
     }
 
@@ -225,12 +253,12 @@ export async function renderNotasContent(contentEl) {
 
     async function saveNote(id, data, el) {
         try {
-            const res = await fetch('/api/notes', {
+            await fetch('/api/notes', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, ...data })
             });
-            if (res.ok) { const s = el.querySelector('.save-status'); if (s) s.textContent = 'SALVO'; }
+            const s = el.querySelector('.save-status'); if (s) s.textContent = 'SALVO';
         } catch (err) { console.error('Save error:', err); }
     }
 
@@ -238,7 +266,7 @@ export async function renderNotasContent(contentEl) {
         if (!confirm('DESEJA APAGAR ESTA NOTA?')) return;
         try {
             const res = await fetch(`/api/notes?id=${id}`, { method: 'DELETE' });
-            if (res.ok) { el.style.transform = 'scale(0.8) translateY(20px)'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }
+            if (res.ok) { el.remove(); }
         } catch (err) { console.error('Delete error:', err); }
     }
 
@@ -249,8 +277,8 @@ export async function renderNotasContent(contentEl) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title: 'NOVA NOTA', content: '',
-                    x_pos: 2500 + (Math.random() * 400 - 200),
-                    y_pos: 2500 + (Math.random() * 400 - 200)
+                    x_pos: -panX + (contentEl.offsetWidth / 2) - 140, // Centraliza no viewport atual
+                    y_pos: -panY + (contentEl.offsetHeight / 2) - 100
                 })
             });
             const data = await res.json();
@@ -258,6 +286,5 @@ export async function renderNotasContent(contentEl) {
         } catch (err) { console.error('Add error:', err); }
     };
 
-    contentEl._cleanup = () => { if (contentEl._cleanupMatrix) contentEl._cleanupMatrix(); };
     initPanning(); initMatrix(); loadNotes();
 }
