@@ -31,6 +31,9 @@ function missionCardHtml(mission, index) {
   const allDone = total > 0 && done === total;
   const shellClass = allDone ? 'mt-mission-shell is-done' : 'mt-mission-shell';
   const concludeClass = allDone ? 'mt-btn mt-btn-complete is-done' : 'mt-btn mt-btn-complete';
+  const flames = Array.isArray(mission.flames) && mission.flames.length === 30
+    ? mission.flames
+    : Array.from({ length: 30 }, () => ({ status: 'blue' }));
   return `
     <section class="${shellClass}">
       <header class="mt-mission-shell-header">
@@ -45,6 +48,13 @@ function missionCardHtml(mission, index) {
               <p class="mt-mission-meta">QUANTIDADE: <strong>${Number(item.reps || 0)} REPETICOES</strong></p>
             </div>
           </article>
+        `).join('')}
+      </div>
+      <div class="mt-card-flames" title="Progresso de 30 dias desta missao">
+        ${flames.map((flame) => `
+          <span class="mt-flame ${flame.status === 'off' ? 'is-off' : ''} ${flame.status === 'orange' ? 'is-orange' : ''}">
+            <i></i>
+          </span>
         `).join('')}
       </div>
       <footer class="mt-card-actions">
@@ -62,7 +72,6 @@ class MissoesTreinoApp {
   constructor(container) {
     this.container = container;
     this.missions = [];
-    this.flames = [];
     this.tempMissions = [];
     this.editingMissionId = null;
     this.isLoading = false;
@@ -133,11 +142,9 @@ class MissoesTreinoApp {
     try {
       const data = await this.api('');
       this.missions = Array.isArray(data?.missions) ? data.missions : [];
-      this.flames = Array.isArray(data?.flames?.flames) ? data.flames.flames : [];
       await this.migrateLegacyLocalData(this.missions);
       const refreshed = await this.api('');
       this.missions = Array.isArray(refreshed?.missions) ? refreshed.missions : [];
-      this.flames = Array.isArray(refreshed?.flames?.flames) ? refreshed.flames.flames : this.flames;
       this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem missoes para hoje.');
     } catch (err) {
       this.setNotice(err.message || 'Falha ao carregar missoes.', true);
@@ -393,7 +400,6 @@ class MissoesTreinoApp {
           <p class="mt-empty-text">Aguarde enquanto carregamos do banco.</p>
         </div>
       `;
-      this.renderFlames();
       return;
     }
 
@@ -404,36 +410,10 @@ class MissoesTreinoApp {
           <p class="mt-empty-text">Clique em [+] Nova Missao para comecar.</p>
         </div>
       `;
-      this.renderFlames();
       return;
     }
 
     this.listEl.innerHTML = this.missions.map((mission, idx) => missionCardHtml(mission, idx)).join('');
-    this.renderFlames();
-  }
-
-  renderFlames() {
-    const host = this.container.querySelector('[data-role="flames"]');
-    if (!host) return;
-    const flames = Array.isArray(this.flames) && this.flames.length === 30
-      ? this.flames
-      : Array.from({ length: 30 }, (_, idx) => ({ day: idx + 1, status: 'blue' }));
-    host.innerHTML = `
-      <section class="mt-flame-panel">
-        <div class="mt-flame-head">
-          <h4>CHAMAS DO CICLO (30 DIAS)</h4>
-          <span>Azul: ativo | Laranja: perdido | Apagada: concluido</span>
-        </div>
-        <div class="mt-flame-grid">
-          ${flames.map((flame) => `
-            <div class="mt-flame ${flame.status === 'off' ? 'is-off' : ''} ${flame.status === 'orange' ? 'is-orange' : ''}" title="Dia ${flame.day}">
-              <i></i>
-              <b>${flame.day}</b>
-            </div>
-          `).join('')}
-        </div>
-      </section>
-    `;
   }
 
   template() {
@@ -479,7 +459,12 @@ class MissoesTreinoApp {
           .mt-mission-title.is-done{color:var(--mt-ok);text-decoration:line-through;opacity:.72}
           .mt-mission-meta{margin:5px 0 0;font-size:.68rem;letter-spacing:.11em;color:#94a3b8;text-transform:uppercase}
           .mt-mission-meta strong{color:#e8f6ff}
-          .mt-card-actions{display:flex;gap:8px;align-items:center;padding:10px 11px;border-top:1px solid rgba(95,122,153,.2)}
+          .mt-card-flames{display:grid;grid-template-columns:repeat(30,minmax(0,1fr));gap:4px;padding:9px 11px;border-top:1px solid rgba(95,122,153,.18);border-bottom:1px solid rgba(95,122,153,.18)}
+          .mt-flame{display:flex;justify-content:center;align-items:center}
+          .mt-flame i{display:block;width:9px;height:13px;background:radial-gradient(circle at 50% 80%,rgba(132,241,255,.35),rgba(0,229,255,.95) 56%,rgba(0,150,180,.88) 100%);clip-path:polygon(50% 0%,72% 26%,86% 50%,80% 76%,50% 100%,20% 76%,14% 50%,28% 26%);filter:drop-shadow(0 0 5px rgba(0,229,255,.9));animation:flameBlue 1.15s ease-in-out infinite}
+          .mt-flame.is-orange i{background:radial-gradient(circle at 50% 80%,rgba(255,210,120,.35),rgba(255,166,0,.98) 55%,rgba(203,95,0,.9) 100%);filter:drop-shadow(0 0 6px rgba(255,145,0,.9));animation:flameOrange 1.05s ease-in-out infinite}
+          .mt-flame.is-off i{background:radial-gradient(circle,rgba(117,128,145,.3),rgba(71,85,105,.72));filter:none;animation:none;opacity:.34}
+          .mt-card-actions{display:flex;gap:8px;align-items:center;padding:10px 11px}
           .mt-btn{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent);padding:8px 10px;font-size:.62rem;font-weight:800;letter-spacing:.05em;cursor:pointer;white-space:nowrap}
           .mt-btn:disabled,.mt-btn-icon:disabled{opacity:.6;cursor:not-allowed}
           .mt-btn-complete.is-done{border-color:var(--mt-ok);background:rgba(0,208,132,.14);color:var(--mt-ok)}
@@ -513,17 +498,6 @@ class MissoesTreinoApp {
           .mt-actions button{flex:1;padding:9px 10px;cursor:pointer;font-size:.69rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
           .mt-cancel{border:1px solid #4b5666;background:transparent;color:#bcc7d2}
           .mt-submit{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent)}
-          .mt-flame-panel{margin-top:12px;border:1px solid rgba(44,97,128,.35);border-radius:12px;padding:10px;background:linear-gradient(180deg,rgba(1,8,15,.5),rgba(1,8,15,.28))}
-          .mt-flame-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
-          .mt-flame-head h4{margin:0;color:#81ecff;font-size:.72rem;letter-spacing:.08em;font-family:"Orbitron","Segoe UI",sans-serif}
-          .mt-flame-head span{font-size:.62rem;color:#9ab0c6;letter-spacing:.04em}
-          .mt-flame-grid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:8px}
-          .mt-flame{display:flex;flex-direction:column;align-items:center;gap:3px}
-          .mt-flame i{display:block;width:14px;height:18px;background:radial-gradient(circle at 50% 80%,rgba(132,241,255,.35),rgba(0,229,255,.95) 56%,rgba(0,150,180,.88) 100%);clip-path:polygon(50% 0%,72% 26%,86% 50%,80% 76%,50% 100%,20% 76%,14% 50%,28% 26%);filter:drop-shadow(0 0 5px rgba(0,229,255,.9));animation:flameBlue 1.15s ease-in-out infinite}
-          .mt-flame.is-orange i{background:radial-gradient(circle at 50% 80%,rgba(255,210,120,.35),rgba(255,166,0,.98) 55%,rgba(203,95,0,.9) 100%);filter:drop-shadow(0 0 6px rgba(255,145,0,.9));animation:flameOrange 1.05s ease-in-out infinite}
-          .mt-flame.is-off i{background:radial-gradient(circle,rgba(117,128,145,.3),rgba(71,85,105,.72));filter:none;animation:none;opacity:.34}
-          .mt-flame b{font-size:.58rem;color:#9bb3c9;font-weight:700}
-          .mt-flame.is-off b{opacity:.45}
           @keyframes flameBlue{
             0%{transform:scale(1) translateY(0);opacity:.96}
             25%{transform:scale(1.06,.94) translateY(-1px);opacity:1}
@@ -539,7 +513,7 @@ class MissoesTreinoApp {
             100%{transform:scale(1) translateY(0);opacity:.93}
           }
           @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}}
-          @media (max-width:720px){.mt-flame-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+          @media (max-width:720px){.mt-card-flames{grid-template-columns:repeat(15,minmax(0,1fr));gap:5px}}
           @keyframes mt-title-pulse{0%,100%{text-shadow:0 0 5px rgba(0,229,255,.35),0 0 10px rgba(0,229,255,.2)}50%{text-shadow:0 0 8px rgba(0,229,255,.6),0 0 18px rgba(0,229,255,.35)}}
           @keyframes mt-chroma{0%,78%,100%{opacity:.1;transform:translateX(0)}80%{opacity:.25;transform:translateX(1px)}82%{opacity:.18;transform:translateX(-1px)}}
         </style>
@@ -565,7 +539,6 @@ class MissoesTreinoApp {
           <button class="mt-fab" data-action="open-modal">[+] Nova Missao</button>
           <button class="mt-fab sec" data-action="refresh">Sincronizar</button>
         </div>
-        <div data-role="flames"></div>
 
         <div class="mt-modal is-hidden" data-role="modal">
           <div class="mt-modal-card">
@@ -608,6 +581,5 @@ export function renderMissoesTreinoContent(container) {
   if (typeof container._cleanup === 'function') container._cleanup();
   const app = new MissoesTreinoApp(container);
   app.init();
-  app.renderFlames();
   container._cleanup = () => app.destroy();
 }

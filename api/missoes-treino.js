@@ -75,6 +75,14 @@ function normalizeItems(items) {
     .filter((item) => item.nome && item.reps);
 }
 
+function isMissingChamasTableError(message) {
+  const lower = String(message || '').toLowerCase();
+  return (
+    lower.includes('tb_missoes_treino_chamas') &&
+    (lower.includes('does not exist') || lower.includes('schema cache') || lower.includes('relation'))
+  );
+}
+
 function groupMissions(missionRows, itemRows) {
   const grouped = new Map();
   for (const mission of missionRows || []) {
@@ -136,41 +144,76 @@ async function fetchMissionsByDate(dateRef) {
     .order('created_at', { ascending: true });
   if (iErr) throw new Error(iErr.message);
 
-  return groupMissions(missionRows, itemRows);
+  const grouped = groupMissions(missionRows, itemRows);
+  return attachFlamesToMissions(grouped);
 }
 
-async function fetchChamasState() {
-  const { monthRef, day } = getBrazilDateParts();
-  const { data, error } = await supabase
-    .from(TABLE_CHAMAS)
-    .select('dia, concluida')
-    .eq('mes_ref', monthRef);
-  if (error) throw new Error(error.message);
-
-  const doneDays = new Set(
-    (data || [])
-      .filter((row) => Boolean(row.concluida) && Number(row.dia) >= 1 && Number(row.dia) <= 30)
-      .map((row) => Number(row.dia))
-  );
-
+function buildMissionFlames(doneDays, currentDay, monthRef) {
   const flames = [];
   for (let d = 1; d <= 30; d += 1) {
     let status = 'blue';
     if (doneDays.has(d)) status = 'off';
-    else if (d < Math.min(day, 31)) status = 'orange';
+    else if (d < Math.min(currentDay, 31)) status = 'orange';
     flames.push({ day: d, status, concluded: doneDays.has(d), month_ref: monthRef });
   }
-  return { month_ref: monthRef, current_day: day, flames };
+  return flames;
 }
 
-async function markCurrentDayConcluded() {
+async function attachFlamesToMissions(missions) {
   const { monthRef, day } = getBrazilDateParts();
-  if (day < 1 || day > 30) return;
-  const payload = { mes_ref: monthRef, dia: day, concluida: true };
+  const missionIds = (missions || []).map((m) => m.id).filter(Boolean);
+  if (!missionIds.length) return missions || [];
+
+  const fallbackFlames = buildMissionFlames(new Set(), day, monthRef);
+  const byMission = new Map(missionIds.map((id) => [id, new Set()]));
+  const { data, error } = await supabase
+    .from(TABLE_CHAMAS)
+    .select('mission_id, dia, concluida')
+    .eq('mes_ref', monthRef)
+    .in('mission_id', missionIds);
+
+  if (error) {
+    if (isMissingChamasTableError(error.message)) {
+      return (missions || []).map((mission) => ({ ...mission, flames: fallbackFlames }));
+    }
+    throw new Error(error.message);
+  }
+
+  for (const row of data || []) {
+    if (!row?.mission_id) continue;
+    if (!Boolean(row.concluida)) continue;
+    const d = Number(row.dia);
+    if (d < 1 || d > 30) continue;
+    if (!byMission.has(row.mission_id)) byMission.set(row.mission_id, new Set());
+    byMission.get(row.mission_id).add(d);
+  }
+
+  return (missions || []).map((mission) => {
+    const done = byMission.get(mission.id) || new Set();
+    return { ...mission, flames: buildMissionFlames(done, day, monthRef) };
+  });
+}
+
+async function markCurrentDayConcluded(missionId) {
+  const { monthRef, day } = getBrazilDateParts();
+  if (!missionId || day < 1 || day > 30) return;
+  const payload = { mission_id: missionId, mes_ref: monthRef, dia: day, concluida: true };
   const { error } = await supabase
     .from(TABLE_CHAMAS)
-    .upsert(payload, { onConflict: 'mes_ref,dia' });
-  if (error) throw new Error(error.message);
+    .upsert(payload, { onConflict: 'mission_id,mes_ref,dia' });
+  if (error && !isMissingChamasTableError(error.message)) throw new Error(error.message);
+}
+
+async function unmarkCurrentDayConcluded(missionId) {
+  const { monthRef, day } = getBrazilDateParts();
+  if (!missionId || day < 1 || day > 30) return;
+  const { error } = await supabase
+    .from(TABLE_CHAMAS)
+    .delete()
+    .eq('mission_id', missionId)
+    .eq('mes_ref', monthRef)
+    .eq('dia', day);
+  if (error && !isMissingChamasTableError(error.message)) throw new Error(error.message);
 }
 
 export default async function handler(req, res) {
@@ -179,8 +222,7 @@ export default async function handler(req, res) {
       const queryDate = req.query?.date;
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
       const missions = await fetchMissionsByDate(dateRef);
-      const flames = await fetchChamasState();
-      return json(res, 200, { date: dateRef, missions, flames });
+      return json(res, 200, { date: dateRef, missions });
     }
 
     if (req.method === 'POST') {
@@ -223,13 +265,16 @@ export default async function handler(req, res) {
       const missionId = String(body.mission_id || '').trim();
       if (missionId) {
         if (body.completed != null) {
+          const completedValue = Boolean(body.completed);
           const { error } = await supabase
             .from(TABLE_ITENS)
-            .update({ concluida: Boolean(body.completed) })
+            .update({ concluida: completedValue })
             .eq('missao_id', missionId);
           if (error) return json(res, 500, { error: error.message });
-          if (Boolean(body.completed)) {
-            await markCurrentDayConcluded();
+          if (completedValue) {
+            await markCurrentDayConcluded(missionId);
+          } else {
+            await unmarkCurrentDayConcluded(missionId);
           }
           return json(res, 200, { ok: true });
         }
@@ -316,7 +361,7 @@ export default async function handler(req, res) {
     if (setupRequired) {
       return json(res, 500, {
         error:
-          'Banco de missoes ainda nao configurado. Execute os SQL: 20260407_add_missoes_treino_tables.sql, 20260408_allow_multiple_missoes_treino_per_day.sql e 20260408_add_missoes_treino_chamas.sql no Supabase.',
+          'Banco de missoes ainda nao configurado. Execute os SQL: 20260407_add_missoes_treino_tables.sql, 20260408_allow_multiple_missoes_treino_per_day.sql, 20260408_add_missoes_treino_chamas.sql e 20260408_link_chamas_to_missao.sql no Supabase.',
         details: message,
         setup_required: true,
       });
