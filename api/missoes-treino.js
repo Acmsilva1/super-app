@@ -181,6 +181,21 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
     return json(res, 405, { error: 'Method Not Allowed' });
   } catch (err) {
-    return json(res, 500, { error: err?.message || 'Falha no modulo de missoes de treino' });
+    const message = String(err?.message || 'Falha no modulo de missoes de treino');
+    const lower = message.toLowerCase();
+    const setupRequired =
+      lower.includes('does not exist') ||
+      lower.includes('permission denied') ||
+      lower.includes('relation') ||
+      lower.includes('rls');
+    if (setupRequired) {
+      return json(res, 500, {
+        error:
+          'Banco de missoes ainda nao configurado. Execute o SQL em sql/20260407_add_missoes_treino_tables.sql no Supabase.',
+        details: message,
+        setup_required: true,
+      });
+    }
+    return json(res, 500, { error: message });
   }
 }

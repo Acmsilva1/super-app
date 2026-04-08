@@ -56,3 +56,12 @@ CREATE TRIGGER trg_tb_missoes_treino_itens_updated_at
 BEFORE UPDATE ON public.tb_missoes_treino_itens
 FOR EACH ROW
 EXECUTE FUNCTION public.set_updated_at();
+
+-- Permissoes para uso pelas APIs serverless que estao com SUPABASE_ANON_KEY
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.tb_missoes_treino TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.tb_missoes_treino_itens TO anon, authenticated;
+
+-- Mantem consistente com os outros modulos (sem RLS)
+ALTER TABLE public.tb_missoes_treino DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tb_missoes_treino_itens DISABLE ROW LEVEL SECURITY;

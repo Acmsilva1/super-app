@@ -3107,6 +3107,7 @@
 
             renderRoadmap() {
                 const container = document.getElementById('roadmapContainer');
+                if (!container) return;
 
                 if (this.roadmap.length === 0) {
                     container.innerHTML = `
