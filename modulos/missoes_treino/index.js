@@ -1,82 +1,60 @@
 ﻿function escapeHtml(value) {
-  const div = document.createElement("div");
-  div.textContent = String(value ?? "");
+  const div = document.createElement('div');
+  div.textContent = String(value ?? '');
   return div.innerHTML;
 }
 
 function getTodayKey() {
   const now = new Date();
   const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
 function normalizeCompare(value) {
-  return String(value ?? "").trim().toLowerCase();
-}
-
-function missionItemRowHtml(mission) {
-  const titleClass = mission.completed
-    ? "mt-mission-title is-done"
-    : "mt-mission-title";
-  const completeClass = mission.completed
-    ? "mt-btn mt-btn-complete is-done"
-    : "mt-btn mt-btn-complete";
-  const completeLabel = mission.completed ? "COMPLETO" : "CONCLUIR";
-  return `
-    <article class="mt-mission-row ${mission.completed ? "is-done" : ""}">
-      <div class="mt-mission-main">
-        <h3 class="${titleClass}">${escapeHtml(mission.name)}</h3>
-        <p class="mt-mission-meta">QUANTIDADE: <strong>${Number(
-          mission.reps || 0
-        )} REPETICOES</strong></p>
-      </div>
-      <div class="mt-mission-actions">
-        <button class="${completeClass}" data-action="toggle" data-id="${escapeHtml(
-    mission.id
-  )}" ${mission._busy ? "disabled" : ""}>
-          ${completeLabel}
-        </button>
-        <div class="mt-mission-side-actions">
-          <button class="mt-btn-icon" data-action="edit" data-id="${escapeHtml(
-            mission.id
-          )}" title="Editar" ${mission._busy ? "disabled" : ""}>Editar</button>
-          <button class="mt-btn-icon is-danger" data-action="delete" data-id="${escapeHtml(
-            mission.id
-          )}" title="Excluir" ${mission._busy ? "disabled" : ""}>Excluir</button>
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function dailyMissionCardHtml(missions) {
-  const total = missions.length;
-  const completed = missions.filter((m) => m.completed).length;
-  return `
-    <section class="mt-mission-shell">
-      <header class="mt-mission-shell-header">
-        <h3>MISSAO DIARIA</h3>
-        <span>${completed}/${total} itens concluidos</span>
-      </header>
-      <div class="mt-mission-list">
-        ${missions.map(missionItemRowHtml).join("")}
-      </div>
-    </section>
-  `;
+  return String(value ?? '').trim().toLowerCase();
 }
 
 function tempItemHtml(item) {
   return `
     <div class="mt-temp-item">
-      <div class="mt-temp-text"><strong>${Number(item.reps || 0)}x</strong> ${escapeHtml(
-    item.name
-  )}</div>
-      <button class="mt-btn-link is-danger" data-action="remove-temp" data-id="${escapeHtml(
-        item.id
-      )}">Remover</button>
+      <div class="mt-temp-text"><strong>${Number(item.reps || 0)}x</strong> ${escapeHtml(item.name)}</div>
+      <button class="mt-btn-link is-danger" data-action="remove-temp" data-id="${escapeHtml(item.id)}">Remover</button>
     </div>
+  `;
+}
+
+function missionCardHtml(mission, index) {
+  const total = mission.items?.length || 0;
+  const done = (mission.items || []).filter((item) => item.completed).length;
+  const allDone = total > 0 && done === total;
+  const shellClass = allDone ? 'mt-mission-shell is-done' : 'mt-mission-shell';
+  const concludeClass = allDone ? 'mt-btn mt-btn-complete is-done' : 'mt-btn mt-btn-complete';
+  return `
+    <section class="${shellClass}">
+      <header class="mt-mission-shell-header">
+        <h3>MISSAO ${index + 1}</h3>
+        <span>${done}/${total} itens concluidos</span>
+      </header>
+      <div class="mt-mission-list">
+        ${(mission.items || []).map((item) => `
+          <article class="mt-mission-row ${item.completed ? 'is-done' : ''}">
+            <div class="mt-mission-main">
+              <h4 class="mt-mission-title ${item.completed ? 'is-done' : ''}">${escapeHtml(item.name)}</h4>
+              <p class="mt-mission-meta">QUANTIDADE: <strong>${Number(item.reps || 0)} REPETICOES</strong></p>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+      <footer class="mt-card-actions">
+        <button class="${concludeClass}" data-action="toggle-mission" data-mission-id="${escapeHtml(mission.id)}" ${mission._busy ? 'disabled' : ''}>
+          ${allDone ? 'CONCLUIDA' : 'CONCLUIR MISSAO'}
+        </button>
+        <button class="mt-btn-icon" data-action="edit-mission" data-mission-id="${escapeHtml(mission.id)}" ${mission._busy ? 'disabled' : ''}>Editar</button>
+        <button class="mt-btn-icon is-danger" data-action="delete-mission" data-mission-id="${escapeHtml(mission.id)}" ${mission._busy ? 'disabled' : ''}>Excluir</button>
+      </footer>
+    </section>
   `;
 }
 
@@ -85,9 +63,9 @@ class MissoesTreinoApp {
     this.container = container;
     this.missions = [];
     this.tempMissions = [];
-    this.editingId = null;
+    this.editingMissionId = null;
     this.isLoading = false;
-    this.errorMessage = "";
+    this.errorMessage = '';
     this.onClick = this.onClick.bind(this);
     this.onKeyPress = this.onKeyPress.bind(this);
   }
@@ -103,13 +81,13 @@ class MissoesTreinoApp {
 
   destroy() {
     if (!this.root) return;
-    this.root.removeEventListener("click", this.onClick);
-    this.tempNameInput?.removeEventListener("keypress", this.onKeyPress);
+    this.root.removeEventListener('click', this.onClick);
+    this.tempNameInput?.removeEventListener('keypress', this.onKeyPress);
     this.container._cleanup = null;
   }
 
   cacheDom() {
-    this.root = this.container.querySelector(".mt-root");
+    this.root = this.container.querySelector('.mt-root');
     this.todayDateEl = this.container.querySelector('[data-role="today-date"]');
     this.completedEl = this.container.querySelector('[data-role="completed"]');
     this.progressEl = this.container.querySelector('[data-role="progress"]');
@@ -125,57 +103,55 @@ class MissoesTreinoApp {
   }
 
   bind() {
-    this.root.addEventListener("click", this.onClick);
-    this.tempNameInput?.addEventListener("keypress", this.onKeyPress);
+    this.root.addEventListener('click', this.onClick);
+    this.tempNameInput?.addEventListener('keypress', this.onKeyPress);
   }
 
-  async api(path = "", options = {}) {
+  async api(path = '', options = {}) {
     const response = await fetch(`/api/missoes-treino${path}`, {
-      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
       ...options,
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data?.error || "Falha na API de missoes de treino");
-    }
+    if (!response.ok) throw new Error(data?.error || 'Falha na API de missoes de treino');
     return data;
   }
 
-  setNotice(message = "", isError = false) {
-    this.errorMessage = message || "";
+  setNotice(message = '', isError = false) {
+    this.errorMessage = message || '';
     if (!this.noticeEl) return;
     this.noticeEl.textContent = this.errorMessage;
-    this.noticeEl.classList.toggle("is-error", Boolean(isError && this.errorMessage));
-    this.noticeEl.classList.toggle("is-empty", !this.errorMessage);
+    this.noticeEl.classList.toggle('is-error', Boolean(isError && this.errorMessage));
+    this.noticeEl.classList.toggle('is-empty', !this.errorMessage);
   }
 
   async loadFromApi() {
     this.isLoading = true;
-    this.setNotice("Sincronizando com o banco...");
+    this.setNotice('Sincronizando com o banco...');
     this.render();
     try {
-      const data = await this.api("");
+      const data = await this.api('');
       this.missions = Array.isArray(data?.missions) ? data.missions : [];
       await this.migrateLegacyLocalData(this.missions);
-      const refreshed = await this.api("");
+      const refreshed = await this.api('');
       this.missions = Array.isArray(refreshed?.missions) ? refreshed.missions : [];
-      this.setNotice(this.missions.length ? "Dados sincronizados." : "Sem missoes para hoje.");
+      this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem missoes para hoje.');
     } catch (err) {
-      this.setNotice(err.message || "Falha ao carregar missoes.", true);
+      this.setNotice(err.message || 'Falha ao carregar missoes.', true);
     } finally {
       this.isLoading = false;
       this.render();
     }
   }
 
-  async migrateLegacyLocalData(existingFromApi = []) {
-    const legacyKey = "sl-musculacao-system";
+  async migrateLegacyLocalData(existingMissions = []) {
+    const legacyKey = 'sl-musculacao-system';
     const markerKey = `sl-musculacao-migrated-${getTodayKey()}`;
-    if (localStorage.getItem(markerKey) === "1") return;
+    if (localStorage.getItem(markerKey) === '1') return;
 
     const raw = localStorage.getItem(legacyKey);
     if (!raw) {
-      localStorage.setItem(markerKey, "1");
+      localStorage.setItem(markerKey, '1');
       return;
     }
 
@@ -183,105 +159,114 @@ class MissoesTreinoApp {
     try {
       legacy = JSON.parse(raw);
     } catch (_err) {
-      localStorage.setItem(markerKey, "1");
+      localStorage.setItem(markerKey, '1');
       return;
     }
 
-    const missions = Array.isArray(legacy?.missions) ? legacy.missions : [];
-    if (!missions.length) {
-      localStorage.setItem(markerKey, "1");
+    const legacyItems = Array.isArray(legacy?.missions) ? legacy.missions : [];
+    if (!legacyItems.length) {
+      localStorage.setItem(markerKey, '1');
       return;
     }
 
-    const existingKeys = new Set(
-      (existingFromApi || []).map((item) => `${normalizeCompare(item.name)}::${Number(item.reps || 0)}`)
+    const normalizedLegacy = legacyItems
+      .map((item, idx) => ({
+        name: String(item?.name || '').trim(),
+        reps: Number(item?.reps || 0),
+        ordem: idx + 1,
+        completed: Boolean(item?.completed),
+      }))
+      .filter((item) => normalizeCompare(item.name) && item.reps > 0);
+
+    if (!normalizedLegacy.length) {
+      localStorage.setItem(markerKey, '1');
+      return;
+    }
+
+    const existingSignatures = new Set(
+      (existingMissions || []).map((mission) =>
+        (mission.items || [])
+          .map((item) => `${normalizeCompare(item.name)}::${Number(item.reps || 0)}`)
+          .sort()
+          .join('|')
+      )
     );
 
-    const pending = missions.filter((item) => {
-      const key = `${normalizeCompare(item?.name)}::${Number(item?.reps || 0)}`;
-      return normalizeCompare(item?.name) && Number(item?.reps || 0) > 0 && !existingKeys.has(key);
-    });
-    if (!pending.length) {
-      localStorage.setItem(markerKey, "1");
-      return;
-    }
+    const newSignature = normalizedLegacy
+      .map((item) => `${normalizeCompare(item.name)}::${Number(item.reps || 0)}`)
+      .sort()
+      .join('|');
 
-    for (const item of pending) {
-      await this.api("", {
-        method: "POST",
-        body: JSON.stringify({
-          name: String(item.name || "").trim(),
-          reps: Number(item.reps || 0),
-        }),
+    if (!existingSignatures.has(newSignature)) {
+      await this.api('', {
+        method: 'POST',
+        body: JSON.stringify({ items: normalizedLegacy }),
       });
     }
 
-    localStorage.setItem(markerKey, "1");
+    localStorage.setItem(markerKey, '1');
   }
 
   onKeyPress(event) {
-    if (event.key === "Enter") this.addTempItem();
+    if (event.key === 'Enter') this.addTempItem();
   }
 
   onClick(event) {
-    const actionEl = event.target.closest("[data-action]");
+    const actionEl = event.target.closest('[data-action]');
     if (!actionEl) return;
-    const action = actionEl.getAttribute("data-action");
-    const id = actionEl.getAttribute("data-id");
+    const action = actionEl.getAttribute('data-action');
+    const id = actionEl.getAttribute('data-id');
+    const missionId = actionEl.getAttribute('data-mission-id');
 
-    if (action === "refresh") this.loadFromApi();
-    if (action === "open-modal") this.openModal();
-    if (action === "close-modal") this.closeModal();
-    if (action === "clear-temp") {
+    if (action === 'refresh') this.loadFromApi();
+    if (action === 'open-modal') this.openModal();
+    if (action === 'close-modal') this.closeModal();
+    if (action === 'clear-temp') {
       this.tempMissions = [];
       this.renderTempList();
     }
-    if (action === "add-temp") this.addTempItem();
-    if (action === "submit-modal") this.commitMissions();
-    if (action === "remove-temp" && id) this.removeTempItem(id);
-    if (action === "toggle" && id) this.toggleComplete(id);
-    if (action === "delete" && id) this.deleteMission(id);
-    if (action === "edit" && id) this.openModal(id);
+    if (action === 'add-temp') this.addTempItem();
+    if (action === 'submit-modal') this.commitMissions();
+    if (action === 'remove-temp' && id) this.removeTempItem(id);
+    if (action === 'toggle-mission' && missionId) this.toggleMissionComplete(missionId);
+    if (action === 'delete-mission' && missionId) this.deleteMission(missionId);
+    if (action === 'edit-mission' && missionId) this.openModal(missionId);
   }
 
   updateDateDisplay() {
-    const options = {
-      weekday: "long",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    };
-    this.todayDateEl.textContent = `STATUS DO SERVIDOR: ${new Date()
-      .toLocaleDateString("pt-BR", options)
-      .toUpperCase()}`;
+    const options = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
+    this.todayDateEl.textContent = `STATUS DO SERVIDOR: ${new Date().toLocaleDateString('pt-BR', options).toUpperCase()}`;
   }
 
-  openModal(id = null) {
-    this.editingId = id;
-    if (id) {
-      const mission = this.missions.find((m) => m.id === id);
-      this.tempMissions = mission
-        ? [{ id: mission.id, name: mission.name, reps: mission.reps, original: true }]
-        : [];
-      this.modalTitleEl.textContent = "EDITAR MISSAO";
-      this.modalDescEl.textContent = "Acrescente novos itens ou altere o atual.";
-      this.modalSubmitEl.textContent = "ATUALIZAR MISSAO";
+  openModal(missionId = null) {
+    this.editingMissionId = missionId;
+    if (missionId) {
+      const mission = this.missions.find((m) => m.id === missionId);
+      this.tempMissions = (mission?.items || []).map((item) => ({
+        id: item.id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: item.name,
+        reps: item.reps,
+        completed: Boolean(item.completed),
+      }));
+      this.modalTitleEl.textContent = 'EDITAR MISSAO';
+      this.modalDescEl.textContent = 'Edite os itens desta missao.';
+      this.modalSubmitEl.textContent = 'ATUALIZAR MISSAO';
     } else {
       this.tempMissions = [];
-      this.modalTitleEl.textContent = "DEFINIR TREINAMENTO";
-      this.modalDescEl.textContent = "Acumule os itens da missao antes de aceitar.";
-      this.modalSubmitEl.textContent = "ACEITAR MISSAO";
+      this.modalTitleEl.textContent = 'NOVA MISSAO';
+      this.modalDescEl.textContent = 'Adicione os itens desta nova missao diaria.';
+      this.modalSubmitEl.textContent = 'CRIAR MISSAO';
     }
     this.renderTempList();
-    this.modalEl.classList.remove("is-hidden");
-    window.setTimeout(() => this.modalEl.classList.add("is-open"), 10);
+    this.modalEl.classList.remove('is-hidden');
+    window.setTimeout(() => this.modalEl.classList.add('is-open'), 10);
     this.tempNameInput?.focus();
   }
 
   closeModal() {
-    this.modalEl.classList.remove("is-open");
-    window.setTimeout(() => this.modalEl.classList.add("is-hidden"), 180);
-    this.editingId = null;
+    this.modalEl.classList.remove('is-open');
+    window.setTimeout(() => this.modalEl.classList.add('is-hidden'), 180);
+    this.editingMissionId = null;
   }
 
   addTempItem() {
@@ -292,9 +277,9 @@ class MissoesTreinoApp {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name,
       reps,
-      original: false,
+      completed: false,
     });
-    this.tempNameInput.value = "";
+    this.tempNameInput.value = '';
     this.tempNameInput.focus();
     this.renderTempList();
   }
@@ -309,107 +294,94 @@ class MissoesTreinoApp {
       this.tempListEl.innerHTML = '<p class="mt-empty-small">Lista de itens vazia...</p>';
       return;
     }
-    this.tempListEl.innerHTML = this.tempMissions.map(tempItemHtml).join("");
-  }
-
-  async createMission(name, reps) {
-    await this.api("", {
-      method: "POST",
-      body: JSON.stringify({ name, reps }),
-    });
-  }
-
-  async updateMission(id, name, reps) {
-    await this.api("", {
-      method: "PATCH",
-      body: JSON.stringify({ id, name, reps }),
-    });
+    this.tempListEl.innerHTML = this.tempMissions.map(tempItemHtml).join('');
   }
 
   async commitMissions() {
     if (!this.tempMissions.length) return;
     this.modalSubmitEl.disabled = true;
-    this.setNotice("Salvando no banco...");
+    this.setNotice('Salvando missao no banco...');
     try {
-      if (this.editingId) {
-        const original = this.tempMissions.find((item) => item.id === this.editingId);
-        if (original) {
-          await this.updateMission(this.editingId, original.name, original.reps);
-          const extras = this.tempMissions.filter((item) => item.id !== this.editingId);
-          for (const item of extras) {
-            await this.createMission(item.name, item.reps);
-          }
-        } else {
-          await this.api("", {
-            method: "DELETE",
-            body: JSON.stringify({ id: this.editingId }),
-          });
-          for (const item of this.tempMissions) {
-            await this.createMission(item.name, item.reps);
-          }
-        }
+      const payloadItems = this.tempMissions.map((item, idx) => ({
+        name: String(item.name || '').trim(),
+        reps: Number(item.reps || 0),
+        ordem: idx + 1,
+        completed: Boolean(item.completed),
+      })).filter((item) => item.name && item.reps > 0);
+
+      if (!payloadItems.length) throw new Error('Adicione ao menos 1 exercicio valido.');
+
+      if (this.editingMissionId) {
+        await this.api('', {
+          method: 'PATCH',
+          body: JSON.stringify({ mission_id: this.editingMissionId, replace_items: payloadItems }),
+        });
       } else {
-        for (const item of this.tempMissions) {
-          await this.createMission(item.name, item.reps);
-        }
+        await this.api('', {
+          method: 'POST',
+          body: JSON.stringify({ items: payloadItems }),
+        });
       }
+
       this.closeModal();
       await this.loadFromApi();
-      this.setNotice("Missoes gravadas com sucesso.");
+      this.setNotice('Missao salva com sucesso.');
     } catch (err) {
-      this.setNotice(err.message || "Falha ao salvar no banco.", true);
+      this.setNotice(err.message || 'Falha ao salvar missao.', true);
     } finally {
       this.modalSubmitEl.disabled = false;
       this.render();
     }
   }
 
-  async toggleComplete(id) {
-    const mission = this.missions.find((item) => item.id === id);
+  async toggleMissionComplete(missionId) {
+    const mission = this.missions.find((m) => m.id === missionId);
     if (!mission) return;
     mission._busy = true;
     this.render();
     try {
-      await this.api("", {
-        method: "PATCH",
-        body: JSON.stringify({ id, completed: !mission.completed }),
+      await this.api('', {
+        method: 'PATCH',
+        body: JSON.stringify({ mission_id: missionId, completed: !mission.completed }),
       });
       mission.completed = !mission.completed;
-      this.setNotice("Atualizado no banco.");
+      mission.items = (mission.items || []).map((item) => ({ ...item, completed: mission.completed }));
+      this.setNotice('Missao atualizada no banco.');
     } catch (err) {
-      this.setNotice(err.message || "Falha ao atualizar status.", true);
+      this.setNotice(err.message || 'Falha ao concluir missao.', true);
     } finally {
       mission._busy = false;
       this.render();
     }
   }
 
-  async deleteMission(id) {
-    const mission = this.missions.find((item) => item.id === id);
+  async deleteMission(missionId) {
+    const mission = this.missions.find((m) => m.id === missionId);
     if (!mission) return;
     mission._busy = true;
     this.render();
     try {
-      await this.api("", {
-        method: "DELETE",
-        body: JSON.stringify({ id }),
+      await this.api('', {
+        method: 'DELETE',
+        body: JSON.stringify({ mission_id: missionId }),
       });
-      this.missions = this.missions.filter((item) => item.id !== id);
-      this.setNotice("Missao removida do banco.");
+      this.missions = this.missions.filter((m) => m.id !== missionId);
+      this.setNotice('Missao removida do banco.');
     } catch (err) {
-      this.setNotice(err.message || "Falha ao excluir missao.", true);
+      this.setNotice(err.message || 'Falha ao excluir missao.', true);
       mission._busy = false;
     }
     this.render();
   }
 
   render() {
-    const total = this.missions.length;
-    const completed = this.missions.filter((m) => m.completed).length;
-    const progress = total ? Math.round((completed / total) * 100) : 0;
-    this.completedEl.textContent = `${completed}/${total}`;
+    const totalMissions = this.missions.length;
+    const completedMissions = this.missions.filter((m) => m.completed).length;
+    const progress = totalMissions ? Math.round((completedMissions / totalMissions) * 100) : 0;
+
+    this.completedEl.textContent = `${completedMissions}/${totalMissions}`;
     this.progressEl.style.width = `${progress}%`;
-    this.progressEl.classList.toggle("is-full", total > 0 && progress === 100);
+    this.progressEl.classList.toggle('is-full', totalMissions > 0 && progress === 100);
 
     if (this.isLoading) {
       this.listEl.innerHTML = `
@@ -421,7 +393,7 @@ class MissoesTreinoApp {
       return;
     }
 
-    if (!total) {
+    if (!totalMissions) {
       this.listEl.innerHTML = `
         <div class="mt-empty-card">
           <p class="mt-empty-title">NENHUMA MISSAO GERADA</p>
@@ -430,7 +402,8 @@ class MissoesTreinoApp {
       `;
       return;
     }
-    this.listEl.innerHTML = dailyMissionCardHtml(this.missions);
+
+    this.listEl.innerHTML = this.missions.map((mission, idx) => missionCardHtml(mission, idx)).join('');
   }
 
   template() {
@@ -463,6 +436,7 @@ class MissoesTreinoApp {
           .mt-empty-title{margin:0;color:var(--mt-accent);font-weight:800;letter-spacing:.12em;font-size:.78rem}
           .mt-empty-text{margin:6px 0 0;color:#8f9aa6;font-size:.72rem}
           .mt-mission-shell{border:1px solid var(--mt-border);background:var(--mt-panel);border-radius:10px;box-shadow:inset 0 0 12px rgba(0,229,255,.04);overflow:hidden}
+          .mt-mission-shell.is-done{border-color:rgba(0,208,132,.42)}
           .mt-mission-shell-header{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 11px;border-bottom:1px solid rgba(95,122,153,.25);background:rgba(4,12,19,.5)}
           .mt-mission-shell-header h3{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.86rem;letter-spacing:.08em}
           .mt-mission-shell-header span{font-size:.68rem;color:#9fb0c0;text-transform:uppercase;letter-spacing:.08em}
@@ -475,8 +449,7 @@ class MissoesTreinoApp {
           .mt-mission-title.is-done{color:var(--mt-ok);text-decoration:line-through;opacity:.72}
           .mt-mission-meta{margin:5px 0 0;font-size:.68rem;letter-spacing:.11em;color:#94a3b8;text-transform:uppercase}
           .mt-mission-meta strong{color:#e8f6ff}
-          .mt-mission-actions{display:flex;gap:8px;align-items:center}
-          .mt-mission-side-actions{display:grid;gap:5px}
+          .mt-card-actions{display:flex;gap:8px;align-items:center;padding:10px 11px;border-top:1px solid rgba(95,122,153,.2)}
           .mt-btn{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent);padding:8px 10px;font-size:.62rem;font-weight:800;letter-spacing:.05em;cursor:pointer;white-space:nowrap}
           .mt-btn:disabled,.mt-btn-icon:disabled{opacity:.6;cursor:not-allowed}
           .mt-btn-complete.is-done{border-color:var(--mt-ok);background:rgba(0,208,132,.14);color:var(--mt-ok)}
@@ -510,7 +483,7 @@ class MissoesTreinoApp {
           .mt-actions button{flex:1;padding:9px 10px;cursor:pointer;font-size:.69rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
           .mt-cancel{border:1px solid #4b5666;background:transparent;color:#bcc7d2}
           .mt-submit{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent)}
-          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-mission-row{display:grid}.mt-mission-actions{justify-content:space-between}.mt-fab-wrap{flex-wrap:wrap}}
+          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}}
           @keyframes mt-title-pulse{0%,100%{text-shadow:0 0 5px rgba(0,229,255,.35),0 0 10px rgba(0,229,255,.2)}50%{text-shadow:0 0 8px rgba(0,229,255,.6),0 0 18px rgba(0,229,255,.35)}}
           @keyframes mt-chroma{0%,78%,100%{opacity:.1;transform:translateX(0)}80%{opacity:.25;transform:translateX(1px)}82%{opacity:.18;transform:translateX(-1px)}}
         </style>
@@ -541,8 +514,8 @@ class MissoesTreinoApp {
           <div class="mt-modal-card">
             <div class="mt-modal-top">
               <div>
-                <h4 data-role="modal-title">DEFINIR TREINAMENTO</h4>
-                <p data-role="modal-desc">Acumule os itens da missao antes de aceitar.</p>
+                <h4 data-role="modal-title">NOVA MISSAO</h4>
+                <p data-role="modal-desc">Adicione os itens desta nova missao diaria.</p>
               </div>
               <button class="mt-close" data-action="close-modal">X</button>
             </div>
@@ -563,7 +536,7 @@ class MissoesTreinoApp {
               <div class="mt-temp-list" data-role="temp-list"></div>
               <div class="mt-actions">
                 <button class="mt-cancel" data-action="clear-temp">Limpar tudo</button>
-                <button class="mt-submit" data-role="modal-submit" data-action="submit-modal">ACEITAR MISSAO</button>
+                <button class="mt-submit" data-role="modal-submit" data-action="submit-modal">CRIAR MISSAO</button>
               </div>
             </div>
           </div>
@@ -575,7 +548,7 @@ class MissoesTreinoApp {
 
 export function renderMissoesTreinoContent(container) {
   if (!container) return;
-  if (typeof container._cleanup === "function") container._cleanup();
+  if (typeof container._cleanup === 'function') container._cleanup();
   const app = new MissoesTreinoApp(container);
   app.init();
   container._cleanup = () => app.destroy();

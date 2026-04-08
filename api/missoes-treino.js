@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase.js';
+﻿import { supabase } from '../lib/supabase.js';
 
 const TABLE_MISSOES = 'tb_missoes_treino';
 const TABLE_ITENS = 'tb_missoes_treino_itens';
@@ -44,57 +44,80 @@ function normalizeReps(value) {
   return n;
 }
 
-function parseRows(rows) {
-  return (rows || []).map((row) => ({
-    id: row.id,
-    missao_id: row.missao_id,
-    name: row.nome || '',
-    reps: Number(row.reps || 0),
-    completed: Boolean(row.concluida),
-    ordem: Number(row.ordem || 0),
-    created_at: row.created_at || null,
-    updated_at: row.updated_at || null,
-  }));
+function normalizeItems(items) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((item, idx) => ({
+      nome: normalizeNome(item?.name ?? item?.nome),
+      reps: normalizeReps(item?.reps),
+      ordem: Number.isFinite(Number(item?.ordem)) ? Number(item.ordem) : idx + 1,
+      concluida: Boolean(item?.completed ?? item?.concluida ?? false),
+    }))
+    .filter((item) => item.nome && item.reps);
 }
 
-async function ensureMissionForDate(dateRef) {
-  const { data: existing, error: findErr } = await supabase
-    .from(TABLE_MISSOES)
-    .select('id, data_referencia')
-    .eq('data_referencia', dateRef)
-    .limit(1);
-  if (findErr) throw new Error(findErr.message);
-  if (existing && existing[0]?.id) return existing[0].id;
-
-  const { data: inserted, error: insertErr } = await supabase
-    .from(TABLE_MISSOES)
-    .insert({ data_referencia: dateRef, titulo: 'Missao diaria', origem: 'app' })
-    .select('id')
-    .single();
-  if (insertErr) {
-    const duplicate = String(insertErr.message || '').toLowerCase().includes('duplicate');
-    if (!duplicate) throw new Error(insertErr.message);
-    const { data: retried, error: retryErr } = await supabase
-      .from(TABLE_MISSOES)
-      .select('id')
-      .eq('data_referencia', dateRef)
-      .limit(1);
-    if (retryErr || !retried?.[0]?.id) throw new Error(retryErr?.message || insertErr.message);
-    return retried[0].id;
+function groupMissions(missionRows, itemRows) {
+  const grouped = new Map();
+  for (const mission of missionRows || []) {
+    grouped.set(mission.id, {
+      id: mission.id,
+      title: mission.titulo || 'Missao diaria',
+      data_referencia: mission.data_referencia,
+      created_at: mission.created_at || null,
+      items: [],
+      completed: false,
+    });
   }
-  return inserted.id;
+
+  for (const row of itemRows || []) {
+    const target = grouped.get(row.missao_id);
+    if (!target) continue;
+    target.items.push({
+      id: row.id,
+      mission_id: row.missao_id,
+      name: row.nome || '',
+      reps: Number(row.reps || 0),
+      completed: Boolean(row.concluida),
+      ordem: Number(row.ordem || 0),
+      created_at: row.created_at || null,
+      updated_at: row.updated_at || null,
+    });
+  }
+
+  const missions = Array.from(grouped.values()).map((mission) => {
+    mission.items.sort((a, b) => a.ordem - b.ordem || String(a.created_at || '').localeCompare(String(b.created_at || '')));
+    const total = mission.items.length;
+    const done = mission.items.filter((item) => item.completed).length;
+    mission.completed = total > 0 && done === total;
+    mission.items_total = total;
+    mission.items_completed = done;
+    return mission;
+  });
+
+  missions.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
+  return missions;
 }
 
-async function getNextOrdem(missaoId) {
-  const { data, error } = await supabase
+async function fetchMissionsByDate(dateRef) {
+  const { data: missionRows, error: mErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id, titulo, data_referencia, created_at')
+    .eq('data_referencia', dateRef)
+    .order('created_at', { ascending: true });
+  if (mErr) throw new Error(mErr.message);
+
+  const missionIds = (missionRows || []).map((m) => m.id).filter(Boolean);
+  if (!missionIds.length) return [];
+
+  const { data: itemRows, error: iErr } = await supabase
     .from(TABLE_ITENS)
-    .select('ordem')
-    .eq('missao_id', missaoId)
-    .order('ordem', { ascending: false })
-    .limit(1);
-  if (error) throw new Error(error.message);
-  const atual = Number(data?.[0]?.ordem || 0);
-  return atual + 1;
+    .select('*')
+    .in('missao_id', missionIds)
+    .order('ordem', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (iErr) throw new Error(iErr.message);
+
+  return groupMissions(missionRows, itemRows);
 }
 
 export default async function handler(req, res) {
@@ -102,52 +125,90 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const queryDate = req.query?.date;
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
-      const { data: missions, error: mErr } = await supabase
-        .from(TABLE_MISSOES)
-        .select('id')
-        .eq('data_referencia', dateRef);
-      if (mErr) return json(res, 500, { error: mErr.message });
-
-      const missionIds = (missions || []).map((m) => m.id).filter(Boolean);
-      if (!missionIds.length) return json(res, 200, { date: dateRef, rows: [], missions: [] });
-
-      const { data: rows, error: rErr } = await supabase
-        .from(TABLE_ITENS)
-        .select('*')
-        .in('missao_id', missionIds)
-        .order('ordem', { ascending: true })
-        .order('created_at', { ascending: true });
-      if (rErr) return json(res, 500, { error: rErr.message });
-      const parsed = parseRows(rows);
-      return json(res, 200, { date: dateRef, rows, missions: parsed });
+      const missions = await fetchMissionsByDate(dateRef);
+      return json(res, 200, { date: dateRef, missions });
     }
 
     if (req.method === 'POST') {
       const body = parseBody(req);
       const dateRef = isIsoDate(body.date) ? String(body.date) : getTodayBrazilIsoDate();
-      const name = normalizeNome(body.name);
-      const reps = normalizeReps(body.reps);
-      if (!name || !reps) return json(res, 400, { error: 'name e reps validos sao obrigatorios' });
+      const title = normalizeNome(body.title || 'Missao diaria') || 'Missao diaria';
+      const items = normalizeItems(body.items);
 
-      const missaoId = await ensureMissionForDate(dateRef);
-      const ordem = await getNextOrdem(missaoId);
-      const payload = {
-        missao_id: missaoId,
-        nome: name,
-        reps,
-        concluida: false,
-        ordem,
-      };
+      if (!items.length) {
+        const name = normalizeNome(body.name);
+        const reps = normalizeReps(body.reps);
+        if (!name || !reps) return json(res, 400, { error: 'items ou name/reps validos sao obrigatorios' });
+        items.push({ nome: name, reps, ordem: 1, concluida: false });
+      }
 
-      const { data, error } = await supabase.from(TABLE_ITENS).insert(payload).select().single();
-      if (error) return json(res, 500, { error: error.message });
-      return json(res, 201, { item: parseRows([data])[0] });
+      const { data: mission, error: mErr } = await supabase
+        .from(TABLE_MISSOES)
+        .insert({ data_referencia: dateRef, titulo: title, origem: 'app' })
+        .select('id')
+        .single();
+      if (mErr) return json(res, 500, { error: mErr.message });
+
+      const payload = items.map((item, idx) => ({
+        missao_id: mission.id,
+        nome: item.nome,
+        reps: item.reps,
+        ordem: idx + 1,
+        concluida: Boolean(item.concluida),
+      }));
+      const { error: iErr } = await supabase.from(TABLE_ITENS).insert(payload);
+      if (iErr) return json(res, 500, { error: iErr.message });
+
+      const missions = await fetchMissionsByDate(dateRef);
+      const created = missions.find((m) => m.id === mission.id) || null;
+      return json(res, 201, { mission: created, date: dateRef });
     }
 
     if (req.method === 'PATCH') {
       const body = parseBody(req);
+      const missionId = String(body.mission_id || '').trim();
+      if (missionId) {
+        if (body.completed != null) {
+          const { error } = await supabase
+            .from(TABLE_ITENS)
+            .update({ concluida: Boolean(body.completed) })
+            .eq('missao_id', missionId);
+          if (error) return json(res, 500, { error: error.message });
+          return json(res, 200, { ok: true });
+        }
+
+        if (Array.isArray(body.replace_items)) {
+          const items = normalizeItems(body.replace_items);
+          if (!items.length) return json(res, 400, { error: 'replace_items precisa ter ao menos 1 item valido' });
+
+          const title = normalizeNome(body.title || '');
+          if (title) {
+            const { error: titleErr } = await supabase
+              .from(TABLE_MISSOES)
+              .update({ titulo: title })
+              .eq('id', missionId);
+            if (titleErr) return json(res, 500, { error: titleErr.message });
+          }
+
+          const { error: delErr } = await supabase.from(TABLE_ITENS).delete().eq('missao_id', missionId);
+          if (delErr) return json(res, 500, { error: delErr.message });
+
+          const payload = items.map((item, idx) => ({
+            missao_id: missionId,
+            nome: item.nome,
+            reps: item.reps,
+            ordem: idx + 1,
+            concluida: Boolean(item.concluida),
+          }));
+          const { error: insErr } = await supabase.from(TABLE_ITENS).insert(payload);
+          if (insErr) return json(res, 500, { error: insErr.message });
+
+          return json(res, 200, { ok: true });
+        }
+      }
+
       const id = String(body.id || '').trim();
-      if (!id) return json(res, 400, { error: 'id obrigatorio' });
+      if (!id) return json(res, 400, { error: 'mission_id ou id obrigatorio' });
 
       const payload = {};
       if (body.name != null) payload.nome = normalizeNome(body.name);
@@ -166,13 +227,20 @@ export default async function handler(req, res) {
         .select()
         .single();
       if (error) return json(res, 500, { error: error.message });
-      return json(res, 200, { item: parseRows([data])[0] });
+      return json(res, 200, { item: data });
     }
 
     if (req.method === 'DELETE') {
       const body = parseBody(req);
+      const missionId = String(body.mission_id ?? req.query?.mission_id ?? '').trim();
+      if (missionId) {
+        const { error } = await supabase.from(TABLE_MISSOES).delete().eq('id', missionId);
+        if (error) return json(res, 500, { error: error.message });
+        return json(res, 200, { ok: true });
+      }
+
       const id = String(body.id ?? req.query?.id ?? '').trim();
-      if (!id) return json(res, 400, { error: 'id obrigatorio' });
+      if (!id) return json(res, 400, { error: 'mission_id ou id obrigatorio' });
       const { error } = await supabase.from(TABLE_ITENS).delete().eq('id', id);
       if (error) return json(res, 500, { error: error.message });
       return json(res, 200, { ok: true });
@@ -191,7 +259,7 @@ export default async function handler(req, res) {
     if (setupRequired) {
       return json(res, 500, {
         error:
-          'Banco de missoes ainda nao configurado. Execute o SQL em sql/20260407_add_missoes_treino_tables.sql no Supabase.',
+          'Banco de missoes ainda nao configurado. Execute o SQL em sql/20260407_add_missoes_treino_tables.sql e sql/20260408_allow_multiple_missoes_treino_per_day.sql no Supabase.',
         details: message,
         setup_required: true,
       });
