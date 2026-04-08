@@ -83,6 +83,10 @@ export default async function handler(req, res) {
     return json(res, 405, { error: 'Method Not Allowed' });
   } catch (err) {
     console.error('API Notes Error:', err);
-    return json(res, 500, { error: 'Internal Server Error' });
+    return json(res, 500, { 
+      error: 'Internal Server Error', 
+      details: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Notas Module
- * Futuristic Draggable Notes
+ * Futuristic Draggable Notes with Matrix Aura
  */
 
 export async function renderNotasContent(contentEl) {
@@ -15,6 +15,7 @@ export async function renderNotasContent(contentEl) {
 
     contentEl.innerHTML = `
         <div class="neonkeep-root">
+            <canvas id="matrix-bg" class="matrix-canvas"></canvas>
             <div id="neon-canvas" class="neonkeep-canvas"></div>
             
             <div class="neonkeep-controls">
@@ -22,25 +23,96 @@ export async function renderNotasContent(contentEl) {
                     <i class="fas fa-plus-square"></i> NOVA NOTA
                 </button>
             </div>
+            <div id="notes-error-msg" class="api-error-overlay" style="display:none">
+                <div class="error-box">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>ERRO DE CONEXÃO</h3>
+                    <p id="error-details">Falha ao carregar dados do servidor.</p>
+                    <button class="neon-btn mini" onclick="location.reload()">RECARREGAR</button>
+                </div>
+            </div>
         </div>
     `;
 
     const canvas = contentEl.querySelector('#neon-canvas');
+    const matrixCanvas = contentEl.querySelector('#matrix-bg');
     const addBtn = contentEl.querySelector('#add-note-btn');
+    const errorOverlay = contentEl.querySelector('#notes-error-msg');
+    const errorDetails = contentEl.querySelector('#error-details');
     
     let notes = [];
     let zIndexCounter = 100;
+
+    // --- MATRIX BACKGROUND ENGINE ---
+    function initMatrix() {
+        const ctx = matrixCanvas.getContext('2d');
+        let width = matrixCanvas.width = contentEl.offsetWidth;
+        let height = matrixCanvas.height = contentEl.offsetHeight;
+        
+        const fontSize = 14;
+        const columns = Math.floor(width / fontSize);
+        const drops = new Array(columns).fill(1).map(() => Math.random() * height / fontSize);
+        
+        function draw() {
+            // Subtle fade effect
+            ctx.fillStyle = 'rgba(5, 11, 20, 0.15)';
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.fillStyle = 'rgba(0, 255, 187, 0.08)'; // Very subtle emerald
+            ctx.font = fontSize + 'px monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                // Random 0 or 1
+                const text = Math.random() > 0.5 ? "1" : "0";
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i] += 0.5; // Slow movement
+            }
+        }
+        
+        let animationId;
+        function animate() {
+            draw();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        animate();
+        
+        window.addEventListener('resize', () => {
+            width = matrixCanvas.width = contentEl.offsetWidth;
+            height = matrixCanvas.height = contentEl.offsetHeight;
+        });
+
+        contentEl._cleanupMatrix = () => cancelAnimationFrame(animationId);
+    }
 
     // Load Notes from API
     async function loadNotes() {
         try {
             const res = await fetch('/api/notes');
-            if (res.ok) {
-                notes = await res.json();
-                renderNotes();
+            const data = await res.json();
+            
+            if (!res.ok) {
+                showError(data.details || data.error || 'Erro desconhecido no servidor.');
+                return;
             }
+            
+            notes = data;
+            renderNotes();
         } catch (err) {
             console.error('Error loading notes:', err);
+            showError('Não foi possível conectar à API. Verifique se o servidor está rodando.');
+        }
+    }
+
+    function showError(msg) {
+        errorDetails.textContent = msg;
+        errorOverlay.style.display = 'flex';
+        if (msg.includes('relation "public.neon_notes" does not exist')) {
+            errorDetails.innerHTML = `A tabela <b>neon_notes</b> não foi encontrada.<br>Por favor, execute o script SQL em:<br><code style="color:#00ffbb">sql/20260408_add_neon_notes_table.sql</code>`;
         }
     }
 
@@ -98,7 +170,7 @@ export async function renderNotasContent(contentEl) {
             offsetX = e.clientX - el.offsetLeft;
             offsetY = e.clientY - el.offsetTop;
             
-            document.onmousemove = (e) => {
+            const onMouseMove = (e) => {
                 if (!isDragging) return;
                 const x = e.clientX - offsetX;
                 const y = e.clientY - offsetY;
@@ -106,20 +178,22 @@ export async function renderNotasContent(contentEl) {
                 el.style.top = `${y}px`;
             };
             
-            document.onmouseup = () => {
+            const onMouseUp = () => {
                 if (isDragging) {
                     isDragging = false;
                     el.classList.remove('dragging');
-                    document.onmousemove = null;
-                    document.onmouseup = null;
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
                     
-                    // Save position
                     saveNote(noteData.id, { 
                         x_pos: parseInt(el.style.left), 
                         y_pos: parseInt(el.style.top) 
                     }, el);
                 }
             };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
         };
     }
 
@@ -199,32 +273,12 @@ export async function renderNotasContent(contentEl) {
         }
     };
 
-    // Canvas panning (optional enhancement)
-    let isPanning = false;
-    let startX, startY, scrollLeft, scrollTop;
-
-    canvas.onmousedown = (e) => {
-        if (e.target !== canvas) return;
-        isPanning = true;
-        startX = e.pageX - canvas.offsetLeft;
-        startY = e.pageY - canvas.offsetTop;
-        scrollLeft = canvas.scrollLeft;
-        scrollTop = canvas.scrollTop;
+    // Cleanup logic for the shell
+    contentEl._cleanup = () => {
+        if (contentEl._cleanupMatrix) contentEl._cleanupMatrix();
     };
 
-    window.addEventListener('mousemove', (e) => {
-        if (!isPanning) return;
-        const x = e.pageX - canvas.offsetLeft;
-        const y = e.pageY - canvas.offsetTop;
-        const walkX = (x - startX);
-        const walkY = (y - startY);
-        // This is a simple version, ideally we'd move the canvas content
-    });
-
-    window.addEventListener('mouseup', () => {
-        isPanning = false;
-    });
-
-    // Initial load
+    // Initial sequence
+    initMatrix();
     loadNotes();
 }
