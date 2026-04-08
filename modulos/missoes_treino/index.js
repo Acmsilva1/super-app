@@ -35,7 +35,7 @@ function missionCardHtml(mission, index) {
     ? mission.flames
     : Array.from({ length: 30 }, () => ({ status: 'blue' }));
   return `
-    <section class="${shellClass}">
+    <section class="${shellClass}" style="--card-i:${index};">
       <header class="mt-mission-shell-header">
         <h3>MISSAO ${index + 1}</h3>
         <span>${done}/${total} itens concluidos</span>
@@ -607,7 +607,8 @@ class MissoesTreinoApp {
           .mt-empty-card{border:1px dashed var(--mt-border);background:rgba(255,255,255,.03);padding:24px 14px;text-align:center;border-radius:10px}
           .mt-empty-title{margin:0;color:var(--mt-accent);font-weight:800;letter-spacing:.12em;font-size:.78rem}
           .mt-empty-text{margin:6px 0 0;color:#8f9aa6;font-size:.72rem}
-          .mt-mission-shell{border:1px solid var(--mt-border);background:var(--mt-panel);border-radius:10px;box-shadow:inset 0 0 12px rgba(0,229,255,.04);overflow:hidden}
+          .mt-mission-shell{border:1px solid var(--mt-border);background:var(--mt-panel);border-radius:10px;box-shadow:inset 0 0 12px rgba(0,229,255,.04);overflow:hidden;animation:cardIn .34s ease both;animation-delay:calc(var(--card-i, 0) * .04s);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+          .mt-mission-shell:hover{transform:translateY(-2px);box-shadow:inset 0 0 12px rgba(0,229,255,.05),0 8px 16px rgba(2,20,36,.28);border-color:rgba(0,229,255,.5)}
           .mt-mission-shell.is-done{border-color:rgba(0,208,132,.42)}
           .mt-mission-shell-header{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 11px;border-bottom:1px solid rgba(95,122,153,.25);background:rgba(4,12,19,.5)}
           .mt-mission-shell-header h3{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.86rem;letter-spacing:.08em}
@@ -661,18 +662,20 @@ class MissoesTreinoApp {
           .mt-cancel{border:1px solid #4b5666;background:transparent;color:#bcc7d2}
           .mt-submit{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent)}
           .mt-performance-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
-          .mt-perf-card{border:1px solid rgba(64,128,166,.34);border-radius:11px;padding:10px;background:linear-gradient(160deg,rgba(2,12,20,.52),rgba(3,16,28,.36))}
+          .mt-perf-card{border:1px solid rgba(64,128,166,.34);border-radius:11px;padding:10px;background:linear-gradient(160deg,rgba(2,12,20,.52),rgba(3,16,28,.36));animation:cardIn .42s ease both;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+          .mt-perf-card:hover{transform:translateY(-2px);border-color:rgba(0,229,255,.42);box-shadow:0 8px 14px rgba(2,20,36,.24)}
           .mt-perf-card h4{margin:0 0 8px;color:#8cf2ff;font-size:.72rem;letter-spacing:.08em;font-family:"Orbitron","Segoe UI",sans-serif}
           .mt-success-line{display:flex;align-items:center;gap:8px}
           .mt-success-track{flex:1;height:10px;border:1px solid rgba(84,130,156,.45);background:#0b1420;border-radius:999px;overflow:hidden}
-          .mt-success-fill{height:100%;background:linear-gradient(90deg,#00e5ff,#00b8d9);box-shadow:0 0 10px rgba(0,229,255,.45)}
+          .mt-success-fill{height:100%;background:linear-gradient(90deg,#00e5ff,#00b8d9);box-shadow:0 0 10px rgba(0,229,255,.45);transition:width .55s ease;position:relative;overflow:hidden}
+          .mt-success-fill::after{content:"";position:absolute;inset:0 auto 0 -28px;width:24px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);animation:trackShine 2.4s linear infinite}
           .mt-success-line strong{color:#c6f7ff;font-size:.86rem}
           .mt-perf-card p{margin:8px 0 0;color:#9ab0c6;font-size:.68rem}
           .mt-radar-wrap{display:flex;justify-content:center}
           .mt-radar-svg{width:100%;max-width:260px;height:auto}
           .mt-radar-grid polygon{fill:none;stroke:rgba(86,126,154,.28);stroke-width:1}
           .mt-radar-spokes line{stroke:rgba(86,126,154,.3);stroke-width:1}
-          .mt-radar-value{fill:rgba(0,229,255,.22);stroke:#00e5ff;stroke-width:2;filter:drop-shadow(0 0 6px rgba(0,229,255,.35))}
+          .mt-radar-value{fill:rgba(0,229,255,.22);stroke:#00e5ff;stroke-width:2;filter:drop-shadow(0 0 6px rgba(0,229,255,.35));transform-origin:center;animation:radarPulse 2.8s ease-in-out infinite}
           .mt-radar-labels text{fill:#9dc4dd;font-size:9px;font-family:"Space Mono","Consolas","Courier New",monospace;text-anchor:middle;dominant-baseline:middle}
           .mt-perf-empty{color:#7f95aa;font-size:.72rem}
           .mt-toast-wrap{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:5000}
@@ -685,6 +688,9 @@ class MissoesTreinoApp {
           .mt-penalty-task{margin:12px 0;padding:11px;border:1px dashed rgba(255,145,0,.7);color:#ffd27f;font-weight:800;letter-spacing:.06em;text-align:center}
           @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
           @keyframes penaltyIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+          @keyframes cardIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+          @keyframes radarPulse{0%,100%{opacity:.9}50%{opacity:1}}
+          @keyframes trackShine{0%{transform:translateX(0)}100%{transform:translateX(360px)}}
           @keyframes flameBlue{
             0%{transform:scale(1) translateY(0);opacity:.96}
             25%{transform:scale(1.06,.94) translateY(-1px);opacity:1}
