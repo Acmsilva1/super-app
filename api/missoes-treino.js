@@ -2,6 +2,7 @@
 
 const TABLE_MISSOES = 'tb_missoes_treino';
 const TABLE_ITENS = 'tb_missoes_treino_itens';
+const TABLE_CHAMAS = 'tb_missoes_treino_chamas';
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
@@ -28,6 +29,24 @@ function getTodayBrazilIsoDate() {
     day: '2-digit',
   });
   return fmt.format(new Date());
+}
+
+function getBrazilDateParts() {
+  const dateFmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const monthFmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+  });
+  const isoDate = dateFmt.format(new Date());
+  const monthRef = monthFmt.format(new Date());
+  const day = Number(isoDate.split('-')[2] || 1);
+  return { isoDate, monthRef, day };
 }
 
 function isIsoDate(value) {
@@ -120,13 +139,48 @@ async function fetchMissionsByDate(dateRef) {
   return groupMissions(missionRows, itemRows);
 }
 
+async function fetchChamasState() {
+  const { monthRef, day } = getBrazilDateParts();
+  const { data, error } = await supabase
+    .from(TABLE_CHAMAS)
+    .select('dia, concluida')
+    .eq('mes_ref', monthRef);
+  if (error) throw new Error(error.message);
+
+  const doneDays = new Set(
+    (data || [])
+      .filter((row) => Boolean(row.concluida) && Number(row.dia) >= 1 && Number(row.dia) <= 30)
+      .map((row) => Number(row.dia))
+  );
+
+  const flames = [];
+  for (let d = 1; d <= 30; d += 1) {
+    let status = 'blue';
+    if (doneDays.has(d)) status = 'off';
+    else if (d < Math.min(day, 31)) status = 'orange';
+    flames.push({ day: d, status, concluded: doneDays.has(d), month_ref: monthRef });
+  }
+  return { month_ref: monthRef, current_day: day, flames };
+}
+
+async function markCurrentDayConcluded() {
+  const { monthRef, day } = getBrazilDateParts();
+  if (day < 1 || day > 30) return;
+  const payload = { mes_ref: monthRef, dia: day, concluida: true };
+  const { error } = await supabase
+    .from(TABLE_CHAMAS)
+    .upsert(payload, { onConflict: 'mes_ref,dia' });
+  if (error) throw new Error(error.message);
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const queryDate = req.query?.date;
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
       const missions = await fetchMissionsByDate(dateRef);
-      return json(res, 200, { date: dateRef, missions });
+      const flames = await fetchChamasState();
+      return json(res, 200, { date: dateRef, missions, flames });
     }
 
     if (req.method === 'POST') {
@@ -174,6 +228,9 @@ export default async function handler(req, res) {
             .update({ concluida: Boolean(body.completed) })
             .eq('missao_id', missionId);
           if (error) return json(res, 500, { error: error.message });
+          if (Boolean(body.completed)) {
+            await markCurrentDayConcluded();
+          }
           return json(res, 200, { ok: true });
         }
 
@@ -259,7 +316,7 @@ export default async function handler(req, res) {
     if (setupRequired) {
       return json(res, 500, {
         error:
-          'Banco de missoes ainda nao configurado. Execute o SQL em sql/20260407_add_missoes_treino_tables.sql e sql/20260408_allow_multiple_missoes_treino_per_day.sql no Supabase.',
+          'Banco de missoes ainda nao configurado. Execute os SQL: 20260407_add_missoes_treino_tables.sql, 20260408_allow_multiple_missoes_treino_per_day.sql e 20260408_add_missoes_treino_chamas.sql no Supabase.',
         details: message,
         setup_required: true,
       });
