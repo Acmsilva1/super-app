@@ -32,6 +32,15 @@ function getTodayBrazilIsoDate() {
   return fmt.format(new Date());
 }
 
+function getMonthRangeFromDateRef(dateRef) {
+  const [year, month] = String(dateRef).split('-').map(Number);
+  const start = `${year}-${String(month).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  const monthRef = `${year}-${String(month).padStart(2, '0')}`;
+  return { start, end, monthRef };
+}
+
 function getBrazilDatePartsFrom(dateObj) {
   const dateFmt = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -82,6 +91,21 @@ function normalizeItems(items) {
       concluida: Boolean(item?.completed ?? item?.concluida ?? false),
     }))
     .filter((item) => item.nome && item.reps);
+}
+
+function inferRadarCategory(name) {
+  const n = String(name || '').toLowerCase();
+  const map = [
+    { key: 'cardio', terms: ['corrida', 'bike', 'esteira', 'burpee', 'polichinelo', 'cardio', 'hiit'] },
+    { key: 'core', terms: ['abdominal', 'prancha', 'core', 'lombar'] },
+    { key: 'mobilidade', terms: ['alongamento', 'mobilidade', 'yoga', 'flexibilidade'] },
+    { key: 'resistencia', terms: ['isometria', 'resistencia', 'circuito'] },
+    { key: 'forca', terms: ['agachamento', 'supino', 'flexao', 'barra', 'remada', 'levantamento', 'forca'] },
+  ];
+  for (const entry of map) {
+    if (entry.terms.some((t) => n.includes(t))) return entry.key;
+  }
+  return 'forca';
 }
 
 function isMissingChamasTableError(message) {
@@ -163,6 +187,86 @@ async function fetchMissionsByDate(dateRef) {
 
   const grouped = groupMissions(missionRows, itemRows);
   return attachFlamesToMissions(grouped);
+}
+
+async function fetchMonthlyPerformance(dateRef) {
+  const { start, end, monthRef } = getMonthRangeFromDateRef(dateRef);
+  const { data: missionRows, error: mErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id')
+    .gte('data_referencia', start)
+    .lte('data_referencia', end);
+  if (mErr) throw new Error(mErr.message);
+
+  const missionIds = (missionRows || []).map((m) => m.id).filter(Boolean);
+  if (!missionIds.length) {
+    return {
+      month_ref: monthRef,
+      created_missions: 0,
+      completed_missions: 0,
+      success_rate_percent: 0,
+      radar: [
+        { key: 'forca', label: 'Forca', value: 0, score: 0 },
+        { key: 'cardio', label: 'Cardio', value: 0, score: 0 },
+        { key: 'core', label: 'Core', value: 0, score: 0 },
+        { key: 'mobilidade', label: 'Mobilidade', value: 0, score: 0 },
+        { key: 'resistencia', label: 'Resistencia', value: 0, score: 0 },
+      ],
+    };
+  }
+
+  const { data: itemRows, error: iErr } = await supabase
+    .from(TABLE_ITENS)
+    .select('missao_id,nome,reps,concluida')
+    .in('missao_id', missionIds);
+  if (iErr) throw new Error(iErr.message);
+
+  const grouped = new Map();
+  for (const id of missionIds) grouped.set(id, []);
+  for (const row of itemRows || []) {
+    if (!grouped.has(row.missao_id)) grouped.set(row.missao_id, []);
+    grouped.get(row.missao_id).push(row);
+  }
+
+  let completedMissions = 0;
+  for (const id of missionIds) {
+    const items = grouped.get(id) || [];
+    if (items.length && items.every((it) => Boolean(it.concluida))) completedMissions += 1;
+  }
+
+  const radarAcc = {
+    forca: 0,
+    cardio: 0,
+    core: 0,
+    mobilidade: 0,
+    resistencia: 0,
+  };
+
+  for (const row of itemRows || []) {
+    const cat = inferRadarCategory(row.nome || '');
+    radarAcc[cat] += Number(row.reps || 0) || 0;
+  }
+
+  const maxVal = Math.max(...Object.values(radarAcc), 0);
+  const toScore = (v) => (maxVal > 0 ? Math.round((v / maxVal) * 100) : 0);
+  const radar = [
+    { key: 'forca', label: 'Forca', value: radarAcc.forca, score: toScore(radarAcc.forca) },
+    { key: 'cardio', label: 'Cardio', value: radarAcc.cardio, score: toScore(radarAcc.cardio) },
+    { key: 'core', label: 'Core', value: radarAcc.core, score: toScore(radarAcc.core) },
+    { key: 'mobilidade', label: 'Mobilidade', value: radarAcc.mobilidade, score: toScore(radarAcc.mobilidade) },
+    { key: 'resistencia', label: 'Resistencia', value: radarAcc.resistencia, score: toScore(radarAcc.resistencia) },
+  ];
+
+  const created = missionIds.length;
+  const successRatePercent = created ? Math.round((completedMissions / created) * 100) : 0;
+
+  return {
+    month_ref: monthRef,
+    created_missions: created,
+    completed_missions: completedMissions,
+    success_rate_percent: successRatePercent,
+    radar,
+  };
 }
 
 function buildMissionFlames(doneDays, currentDay, monthRef) {
@@ -328,7 +432,8 @@ export default async function handler(req, res) {
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
       const missions = await fetchMissionsByDate(dateRef);
       const penalty = await getPenaltyState();
-      return json(res, 200, { date: dateRef, missions, penalty });
+      const performance = await fetchMonthlyPerformance(dateRef);
+      return json(res, 200, { date: dateRef, missions, penalty, performance });
     }
 
     if (req.method === 'POST') {

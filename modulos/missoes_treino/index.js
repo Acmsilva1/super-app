@@ -74,6 +74,7 @@ class MissoesTreinoApp {
     this.missions = [];
     this.tempMissions = [];
     this.penalty = { required: false };
+    this.performance = null;
     this.toasts = [];
     this.editingMissionId = null;
     this.isLoading = false;
@@ -112,6 +113,7 @@ class MissoesTreinoApp {
     this.tempNameInput = this.container.querySelector('[data-role="temp-name"]');
     this.tempRepsInput = this.container.querySelector('[data-role="temp-reps"]');
     this.tempListEl = this.container.querySelector('[data-role="temp-list"]');
+    this.performanceHost = this.container.querySelector('[data-role="performance"]');
     this.toastHost = this.container.querySelector('[data-role="toasts"]');
     this.penaltyHost = this.container.querySelector('[data-role="penalty"]');
   }
@@ -147,10 +149,12 @@ class MissoesTreinoApp {
       const data = await this.api('');
       this.missions = Array.isArray(data?.missions) ? data.missions : [];
       this.penalty = data?.penalty || { required: false };
+      this.performance = data?.performance || null;
       await this.migrateLegacyLocalData(this.missions);
       const refreshed = await this.api('');
       this.missions = Array.isArray(refreshed?.missions) ? refreshed.missions : [];
       this.penalty = refreshed?.penalty || this.penalty;
+      this.performance = refreshed?.performance || this.performance;
       this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem missoes para hoje.');
     } catch (err) {
       this.setNotice(err.message || 'Falha ao carregar missoes.', true);
@@ -472,6 +476,7 @@ class MissoesTreinoApp {
         </div>
       `;
       this.renderPenalty();
+      this.renderPerformance();
       return;
     }
 
@@ -483,12 +488,94 @@ class MissoesTreinoApp {
         </div>
       `;
       this.renderPenalty();
+      this.renderPerformance();
       return;
     }
 
     this.listEl.innerHTML = this.missions.map((mission, idx) => missionCardHtml(mission, idx)).join('');
     this.renderPenalty();
+    this.renderPerformance();
     this.renderToasts();
+  }
+
+  buildRadarSvg(radar) {
+    const axes = Array.isArray(radar) && radar.length ? radar : [];
+    const size = 240;
+    const cx = 120;
+    const cy = 120;
+    const radius = 84;
+    const levels = 4;
+    const angleAt = (i) => ((Math.PI * 2) / axes.length) * i - Math.PI / 2;
+    const pointAt = (i, ratio) => {
+      const a = angleAt(i);
+      const r = radius * ratio;
+      return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r };
+    };
+
+    const gridPolys = Array.from({ length: levels }, (_, l) => {
+      const ratio = (l + 1) / levels;
+      return axes
+        .map((_, i) => {
+          const p = pointAt(i, ratio);
+          return `${p.x},${p.y}`;
+        })
+        .join(' ');
+    });
+
+    const spokes = axes.map((_, i) => {
+      const p = pointAt(i, 1);
+      return `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" />`;
+    });
+
+    const valuePoly = axes
+      .map((axis, i) => {
+        const score = Math.max(0, Math.min(100, Number(axis.score || 0)));
+        const p = pointAt(i, score / 100);
+        return `${p.x},${p.y}`;
+      })
+      .join(' ');
+
+    const labels = axes.map((axis, i) => {
+      const p = pointAt(i, 1.16);
+      return `<text x="${p.x}" y="${p.y}">${escapeHtml(axis.label || '')}</text>`;
+    });
+
+    return `
+      <svg viewBox="0 0 ${size} ${size}" class="mt-radar-svg" role="img" aria-label="Radar de treino">
+        <g class="mt-radar-grid">${gridPolys.map((pts) => `<polygon points="${pts}" />`).join('')}</g>
+        <g class="mt-radar-spokes">${spokes.join('')}</g>
+        <polygon class="mt-radar-value" points="${valuePoly}" />
+        <g class="mt-radar-labels">${labels.join('')}</g>
+      </svg>
+    `;
+  }
+
+  renderPerformance() {
+    if (!this.performanceHost) return;
+    const p = this.performance || {};
+    const rate = Math.max(0, Math.min(100, Number(p.success_rate_percent || 0)));
+    const created = Number(p.created_missions || 0);
+    const completed = Number(p.completed_missions || 0);
+    const radar = Array.isArray(p.radar) ? p.radar : [];
+    const radarSvg = radar.length ? this.buildRadarSvg(radar) : '<div class="mt-perf-empty">Sem dados de desempenho</div>';
+    this.performanceHost.innerHTML = `
+      <section class="mt-performance-wrap">
+        <article class="mt-perf-card">
+          <h4>TAXA DE SUCESSO MENSAL</h4>
+          <div class="mt-success-line">
+            <div class="mt-success-track">
+              <div class="mt-success-fill" style="width:${rate}%"></div>
+            </div>
+            <strong>${rate}%</strong>
+          </div>
+          <p>${completed}/${created} missoes concluidas no mes ${escapeHtml(p.month_ref || '')}</p>
+        </article>
+        <article class="mt-perf-card">
+          <h4>RADAR DE TREINO POR TIPO</h4>
+          <div class="mt-radar-wrap">${radarSvg}</div>
+        </article>
+      </section>
+    `;
   }
 
   template() {
@@ -573,6 +660,21 @@ class MissoesTreinoApp {
           .mt-actions button{flex:1;padding:9px 10px;cursor:pointer;font-size:.69rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
           .mt-cancel{border:1px solid #4b5666;background:transparent;color:#bcc7d2}
           .mt-submit{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent)}
+          .mt-performance-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+          .mt-perf-card{border:1px solid rgba(64,128,166,.34);border-radius:11px;padding:10px;background:linear-gradient(160deg,rgba(2,12,20,.52),rgba(3,16,28,.36))}
+          .mt-perf-card h4{margin:0 0 8px;color:#8cf2ff;font-size:.72rem;letter-spacing:.08em;font-family:"Orbitron","Segoe UI",sans-serif}
+          .mt-success-line{display:flex;align-items:center;gap:8px}
+          .mt-success-track{flex:1;height:10px;border:1px solid rgba(84,130,156,.45);background:#0b1420;border-radius:999px;overflow:hidden}
+          .mt-success-fill{height:100%;background:linear-gradient(90deg,#00e5ff,#00b8d9);box-shadow:0 0 10px rgba(0,229,255,.45)}
+          .mt-success-line strong{color:#c6f7ff;font-size:.86rem}
+          .mt-perf-card p{margin:8px 0 0;color:#9ab0c6;font-size:.68rem}
+          .mt-radar-wrap{display:flex;justify-content:center}
+          .mt-radar-svg{width:100%;max-width:260px;height:auto}
+          .mt-radar-grid polygon{fill:none;stroke:rgba(86,126,154,.28);stroke-width:1}
+          .mt-radar-spokes line{stroke:rgba(86,126,154,.3);stroke-width:1}
+          .mt-radar-value{fill:rgba(0,229,255,.22);stroke:#00e5ff;stroke-width:2;filter:drop-shadow(0 0 6px rgba(0,229,255,.35))}
+          .mt-radar-labels text{fill:#9dc4dd;font-size:9px;font-family:"Space Mono","Consolas","Courier New",monospace;text-anchor:middle;dominant-baseline:middle}
+          .mt-perf-empty{color:#7f95aa;font-size:.72rem}
           .mt-toast-wrap{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:5000}
           .mt-toast{padding:10px 12px;background:rgba(0,229,255,.16);border:1px solid rgba(0,229,255,.55);color:#b9f5ff;font-size:.72rem;letter-spacing:.04em;border-radius:9px;backdrop-filter:blur(5px);animation:toastIn .24s ease}
           .mt-toast.is-error{background:rgba(255,0,60,.14);border-color:rgba(255,0,60,.62);color:#ffd3dd}
@@ -597,7 +699,7 @@ class MissoesTreinoApp {
             73%{transform:scale(1.06,.96) translateY(-1px);opacity:1}
             100%{transform:scale(1) translateY(0);opacity:.93}
           }
-          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}}
+          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}.mt-performance-wrap{grid-template-columns:1fr}}
           @media (max-width:720px){.mt-card-flames{grid-template-columns:repeat(15,minmax(0,1fr));gap:5px}}
           @keyframes mt-title-pulse{0%,100%{text-shadow:0 0 5px rgba(0,229,255,.35),0 0 10px rgba(0,229,255,.2)}50%{text-shadow:0 0 8px rgba(0,229,255,.6),0 0 18px rgba(0,229,255,.35)}}
           @keyframes mt-chroma{0%,78%,100%{opacity:.1;transform:translateX(0)}80%{opacity:.25;transform:translateX(1px)}82%{opacity:.18;transform:translateX(-1px)}}
@@ -620,6 +722,7 @@ class MissoesTreinoApp {
         <div class="mt-progress-wrap"><div class="mt-progress" data-role="progress"></div></div>
         <p class="mt-notice is-empty" data-role="notice"></p>
         <section class="mt-list" data-role="list"></section>
+        <section data-role="performance"></section>
         <div class="mt-fab-wrap">
           <button class="mt-fab" data-action="open-modal">[+] Nova Missao</button>
           <button class="mt-fab sec" data-action="refresh">Sincronizar</button>
