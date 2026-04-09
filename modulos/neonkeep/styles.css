@@ -240,3 +240,92 @@
     clip-path: polygon(10% 0, 100% 0, 100% 85%, 90% 100%, 0 100%, 0 15%);
     box-shadow: 0 0 30px rgba(255, 68, 68, 0.2);
 }
+
+/* Confirm Modal */
+.neonkeep-confirm-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 11, 20, 0.92);
+    z-index: 3000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    animation: confirmFadeIn 0.3s ease;
+}
+
+.confirm-box {
+    background: #0a141e;
+    border: 1px solid #00ffbb;
+    padding: 2.5rem;
+    text-align: center;
+    max-width: 420px;
+    width: 90%;
+    clip-path: polygon(15% 0, 100% 0, 100% 80%, 85% 100%, 0 100%, 0 20%);
+    box-shadow: 0 0 50px rgba(0, 255, 187, 0.15);
+    animation: confirmSlideUp 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.confirm-box i {
+    font-size: 2.5rem;
+    color: #f3ec19;
+    margin-bottom: 1.5rem;
+    display: block;
+    filter: drop-shadow(0 0 10px rgba(243, 236, 25, 0.4));
+}
+
+.confirm-box h3 {
+    font-family: 'Orbitron', sans-serif;
+    color: #fff;
+    margin-bottom: 1rem;
+    letter-spacing: 2px;
+    font-size: 1.2rem;
+}
+
+.confirm-box p {
+    color: #aaa;
+    margin-bottom: 2.5rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+.neon-btn.danger {
+    border-color: #ff003c;
+    color: #ff003c;
+    background: rgba(255, 0, 60, 0.05);
+    box-shadow: 0 0 15px rgba(255, 0, 60, 0.1);
+}
+
+.neon-btn.danger:hover {
+    background: rgba(255, 0, 60, 0.2);
+    box-shadow: 0 0 25px rgba(255, 0, 60, 0.3);
+}
+
+.neon-btn.secondary {
+    border-color: #666;
+    color: #888;
+    background: rgba(100, 100, 100, 0.05);
+    box-shadow: none;
+}
+
+.neon-btn.secondary:hover {
+    background: rgba(150, 150, 150, 0.1);
+    color: #eee;
+    border-color: #999;
+}
+
+@keyframes confirmFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes confirmSlideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
