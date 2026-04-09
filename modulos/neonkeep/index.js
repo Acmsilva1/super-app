@@ -46,6 +46,19 @@ export async function renderNotasContent(contentEl) {
                     <button class="neon-btn mini" id="close-error-btn">ENTENDI</button>
                 </div>
             </div>
+
+            <!-- Custom Confirm Modal -->
+            <div id="neonkeep-confirm-modal" class="neonkeep-confirm-overlay">
+                <div class="confirm-box">
+                    <i class="fas fa-microchip"></i>
+                    <h3 id="confirm-title">AUTORIZAÇÃO</h3>
+                    <p id="confirm-msg"></p>
+                    <div class="confirm-actions">
+                        <button id="confirm-cancel-btn" class="neon-btn secondary">CANCELAR</button>
+                        <button id="confirm-ok-btn" class="neon-btn danger">CONFIRMAR</button>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
 
@@ -57,6 +70,29 @@ export async function renderNotasContent(contentEl) {
     const errorOverlay = contentEl.querySelector('#notes-error-msg');
     const errorDetails = contentEl.querySelector('#error-details');
     const closeErrorBtn = contentEl.querySelector('#close-error-btn');
+    
+    // Confirm Modal Elements
+    const confirmOverlay = contentEl.querySelector('#neonkeep-confirm-modal');
+    const confirmMsg = contentEl.querySelector('#confirm-msg');
+    const confirmOkBtn = contentEl.querySelector('#confirm-ok-btn');
+    const confirmCancelBtn = contentEl.querySelector('#confirm-cancel-btn');
+
+    async function showConfirm(title, message) {
+        contentEl.querySelector('#confirm-title').textContent = title || 'AUTORIZAÇÃO';
+        confirmMsg.textContent = message;
+        confirmOverlay.style.display = 'flex';
+        
+        return new Promise((resolve) => {
+            confirmOkBtn.onclick = () => {
+                confirmOverlay.style.display = 'none';
+                resolve(true);
+            };
+            confirmCancelBtn.onclick = () => {
+                confirmOverlay.style.display = 'none';
+                resolve(false);
+            };
+        });
+    }
     
     let notes = [];
     let zIndexCounter = 100;
@@ -263,7 +299,8 @@ export async function renderNotasContent(contentEl) {
     }
 
     async function deleteNote(id, el) {
-        if (!confirm('DESEJA APAGAR ESTA NOTA?')) return;
+        const confirmed = await showConfirm('COMPROMETIMENTO', 'Deseja apagar esta unidade de dados permanentemente?');
+        if (!confirmed) return;
         try {
             const res = await fetch(`/api/notes?id=${id}`, { method: 'DELETE' });
             if (res.ok) { el.remove(); }

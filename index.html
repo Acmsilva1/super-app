@@ -2021,6 +2021,81 @@
         .app-modal { background: linear-gradient(165deg, rgba(15, 29, 54, 0.96), rgba(9, 20, 39, 0.98)); border: 1px solid rgba(96, 136, 194, 0.4); border-radius: var(--radius); padding: 1.5rem; min-width: 280px; box-shadow: var(--shadow-lg); color: #e6f1ff; }
         .app-modal h4 { margin-bottom: 1rem; font-size: 1rem; }
         .app-modal-actions { display: flex; gap: 0.75rem; margin-top: 1rem; justify-content: flex-end; }
+
+        /* Custom Confirmation Modal */
+        .app-confirm-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .app-confirm-modal {
+            background: linear-gradient(165deg, rgba(15, 27, 49, 0.98), rgba(10, 20, 38, 0.99));
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            border-radius: 1rem;
+            padding: 1.75rem;
+            width: min(400px, calc(100vw - 2rem));
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(14, 165, 233, 0.15);
+            animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .app-confirm-modal h4 {
+            margin: 0 0 1rem 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .app-confirm-modal p {
+            margin: 0 0 1.5rem 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+        .app-confirm-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+        .app-confirm-btn {
+            padding: 0.6rem 1.25rem;
+            border-radius: 0.6rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .app-confirm-btn.cancel {
+            background: rgba(30, 41, 59, 0.8);
+            color: #94a3b8;
+            border-color: rgba(71, 85, 105, 0.4);
+        }
+        .app-confirm-btn.cancel:hover {
+            background: rgba(51, 65, 85, 0.9);
+            color: #cbd5e1;
+            border-color: rgba(148, 163, 184, 0.5);
+        }
+        .app-confirm-btn.confirm {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+        }
+        .app-confirm-btn.confirm:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+            filter: brightness(1.1);
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
         .cal-root {
             padding: 1rem 0.95rem;
             border-radius: 0.9rem;
@@ -3136,6 +3211,37 @@
             }
 
             // ============================================
+            // DIÁLOGOS DE CONFIRMAÇÃO PERSONALIZADOS
+            // ============================================
+            async showConfirm(title, message) {
+                return new Promise((resolve) => {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'app-confirm-overlay';
+                    overlay.innerHTML = `
+                        <div class="app-confirm-modal">
+                            <h4><i class="fas fa-exclamation-triangle" style="color:#ef4444"></i> ${escapeHtml(title)}</h4>
+                            <p>${escapeHtml(message)}</p>
+                            <div class="app-confirm-actions">
+                                <button type="button" class="app-confirm-btn cancel">Cancelar</button>
+                                <button type="button" class="app-confirm-btn confirm">Confirmar</button>
+                            </div>
+                        </div>
+                    `;
+
+                    const cleanup = (result) => {
+                        overlay.remove();
+                        resolve(result);
+                    };
+
+                    overlay.querySelector('.cancel').onclick = () => cleanup(false);
+                    overlay.querySelector('.confirm').onclick = () => cleanup(true);
+                    overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
+
+                    document.body.appendChild(overlay);
+                });
+            }
+
+            // ============================================
             // GERENCIAR JANELAS DE APPS
             // ============================================
             launchApp(appId) {
@@ -3518,7 +3624,7 @@
                 } catch (e) { alert(e.message); }
             }
             async submitDespesaFixaDelete(id, el) {
-                if (!confirm('Excluir esta despesa?')) return;
+                if (!(await this.showConfirm('Excluir despesa', 'Tem certeza que deseja excluir esta despesa fixa?'))) return;
                 try {
                     const res = await fetch('/api/despesas-fixas?id=' + encodeURIComponent(id), { method: 'DELETE' });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
@@ -3868,7 +3974,7 @@
                 } catch (e) { alert(e.message); }
             }
             async submitFinancasDelete(id, el) {
-                if (!confirm('Excluir este lançamento?')) return;
+                if (!(await this.showConfirm('Excluir lançamento', 'Tem certeza que deseja excluir este lançamento financeiro?'))) return;
                 try {
                     const res = await fetch('/api/financas?id=' + encodeURIComponent(id), { method: 'DELETE' });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
