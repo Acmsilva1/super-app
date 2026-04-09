@@ -120,26 +120,52 @@ export async function renderNotasContent(contentEl) {
         let isPanning = false;
         let startX, startY;
 
-        panLayer.onmousedown = (e) => {
+        const startMove = (cx, cy) => {
             isPanning = true;
-            startX = e.clientX - panX;
-            startY = e.clientY - panY;
-            
-            const onMouseMove = (e) => {
-                if (!isPanning) return;
-                panX = e.clientX - startX;
-                panY = e.clientY - startY;
-                updatePlaneTransform();
-            };
-            
-            const onMouseUp = () => {
-                isPanning = false;
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
-            };
+            startX = cx - panX;
+            startY = cy - panY;
+        };
 
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
+        const onMove = (cx, cy) => {
+            if (!isPanning) return;
+            panX = cx - startX;
+            panY = cy - startY;
+            updatePlaneTransform();
+        };
+
+        const endMove = () => {
+            isPanning = false;
+        };
+
+        // Mouse Events
+        panLayer.onmousedown = (e) => {
+            startMove(e.clientX, e.clientY);
+            const moveHandler = (ev) => onMove(ev.clientX, ev.clientY);
+            const upHandler = () => {
+                endMove();
+                document.removeEventListener('mousemove', moveHandler);
+                document.removeEventListener('mouseup', upHandler);
+            };
+            document.addEventListener('mousemove', moveHandler);
+            document.addEventListener('mouseup', upHandler);
+        };
+
+        // Touch Events
+        panLayer.ontouchstart = (e) => {
+            const touch = e.touches[0];
+            startMove(touch.clientX, touch.clientY);
+            const moveHandler = (ev) => {
+                const t = ev.touches[0];
+                onMove(t.clientX, t.clientY);
+                if (ev.cancelable) ev.preventDefault(); // Impede scroll durante o pan
+            };
+            const endHandler = () => {
+                endMove();
+                document.removeEventListener('touchmove', moveHandler);
+                document.removeEventListener('touchend', endHandler);
+            };
+            document.addEventListener('touchmove', moveHandler, { passive: false });
+            document.addEventListener('touchend', endHandler);
         };
     }
 
@@ -257,23 +283,62 @@ export async function renderNotasContent(contentEl) {
     function setupDraggableNote(el, noteData) {
         const header = el.querySelector('.note-header');
         let offsetX, offsetY, isDragging = false;
+
+        const startDragging = (cx, cy) => {
+            isDragging = true; 
+            el.classList.add('dragging'); 
+            el.style.zIndex = zIndexCounter++;
+            offsetX = cx - el.offsetLeft; 
+            offsetY = cy - el.offsetTop;
+        };
+
+        const onDragging = (cx, cy) => {
+            if (!isDragging) return;
+            el.style.left = `${cx - offsetX}px`; 
+            el.style.top = `${cy - offsetY}px`;
+        };
+
+        const stopDragging = () => {
+            if (isDragging) {
+                isDragging = false; 
+                el.classList.remove('dragging');
+                saveNote(noteData.id, { x_pos: parseInt(el.style.left), y_pos: parseInt(el.style.top) }, el);
+            }
+        };
+
+        // Mouse Events
         header.onmousedown = (e) => {
             if (e.target.tagName === 'INPUT' || e.target.classList.contains('color-dot')) return;
-            isDragging = true; el.classList.add('dragging'); el.style.zIndex = zIndexCounter++;
-            offsetX = e.clientX - el.offsetLeft; offsetY = e.clientY - el.offsetTop;
-            const onMouseMove = (e) => {
-                if (!isDragging) return;
-                el.style.left = `${e.clientX - offsetX}px`; el.style.top = `${e.clientY - offsetY}px`;
+            startDragging(e.clientX, e.clientY);
+            const moveHandler = (ev) => onDragging(ev.clientX, ev.clientY);
+            const upHandler = () => {
+                stopDragging();
+                document.removeEventListener('mousemove', moveHandler);
+                document.removeEventListener('mouseup', upHandler);
             };
-            const onMouseUp = () => {
-                if (isDragging) {
-                    isDragging = false; el.classList.remove('dragging');
-                    document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp);
-                    saveNote(noteData.id, { x_pos: parseInt(el.style.left), y_pos: parseInt(el.style.top) }, el);
-                }
-            };
-            document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
+            document.addEventListener('mousemove', moveHandler);
+            document.addEventListener('mouseup', upHandler);
             e.preventDefault(); e.stopPropagation();
+        };
+
+        // Touch Events
+        header.ontouchstart = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.classList.contains('color-dot')) return;
+            const touch = e.touches[0];
+            startDragging(touch.clientX, touch.clientY);
+            const moveHandler = (ev) => {
+                const t = ev.touches[0];
+                onDragging(t.clientX, t.clientY);
+                if (ev.cancelable) ev.preventDefault();
+            };
+            const endHandler = () => {
+                stopDragging();
+                document.removeEventListener('touchmove', moveHandler);
+                document.removeEventListener('touchend', endHandler);
+            };
+            document.addEventListener('touchmove', moveHandler, { passive: false });
+            document.addEventListener('touchend', endHandler);
+            e.stopPropagation();
         };
     }
 
