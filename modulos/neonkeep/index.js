@@ -20,6 +20,10 @@ export async function renderNotasContent(contentEl) {
         { name: 'Blue', value: '#0070ff' },
         { name: 'Purple', value: '#bf00ff' }
     ];
+    const ZOOM_KEY = 'neonkeep_zoom';
+    const ZOOM_MIN = 0.6;
+    const ZOOM_MAX = 1.8;
+    const ZOOM_STEP = 0.1;
 
     contentEl.innerHTML = `
         <div class="neonkeep-root">
@@ -35,6 +39,15 @@ export async function renderNotasContent(contentEl) {
             <div class="neonkeep-controls">
                 <button id="add-note-btn" class="neon-btn">
                     <i class="fas fa-plus-square"></i> NOVA NOTA
+                </button>
+                <button id="zoom-out-btn" class="neon-btn icon-only" title="Diminuir zoom">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <button id="zoom-level-btn" class="neon-btn zoom-readout" title="Resetar zoom">
+                    100%
+                </button>
+                <button id="zoom-in-btn" class="neon-btn icon-only" title="Aumentar zoom">
+                    <i class="fas fa-search-plus"></i>
                 </button>
                 <button id="gps-center-btn" class="neon-btn icon-only" title="LOCALIZAR NOTAS">
                     <i class="fas fa-location-crosshairs"></i>
@@ -74,6 +87,9 @@ export async function renderNotasContent(contentEl) {
     const errorDetails = contentEl.querySelector('#error-details');
     const closeErrorBtn = contentEl.querySelector('#close-error-btn');
     const gpsBtn = contentEl.querySelector('#gps-center-btn');
+    const zoomOutBtn = contentEl.querySelector('#zoom-out-btn');
+    const zoomInBtn = contentEl.querySelector('#zoom-in-btn');
+    const zoomLevelBtn = contentEl.querySelector('#zoom-level-btn');
     
     // Confirm Modal Elements
     const confirmOverlay = contentEl.querySelector('#neonkeep-confirm-modal');
@@ -104,12 +120,42 @@ export async function renderNotasContent(contentEl) {
     // Pan state - Iniciamos com um offset grande para permitir movimento em todas as direções
     let panX = 0;
     let panY = 0;
+    let zoom = (() => {
+        const saved = parseFloat(localStorage.getItem(ZOOM_KEY));
+        if (Number.isFinite(saved)) return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, saved));
+        return 1;
+    })();
+
+    function updateZoomReadout() {
+        if (zoomLevelBtn) zoomLevelBtn.textContent = `${Math.round(zoom * 100)}%`;
+    }
     
     function updatePlaneTransform() {
-        plane.style.transform = `translate(${panX}px, ${panY}px)`;
+        plane.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    }
+    function setZoom(nextZoom, preserveCenter = true) {
+        const clamped = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, nextZoom));
+        if (clamped === zoom) return;
+
+        if (preserveCenter) {
+            const vW = contentEl.offsetWidth || window.innerWidth;
+            const vH = contentEl.offsetHeight || window.innerHeight;
+            const centerWorldX = (vW / 2 - panX) / zoom;
+            const centerWorldY = (vH / 2 - panY) / zoom;
+            zoom = clamped;
+            panX = (vW / 2) - (centerWorldX * zoom);
+            panY = (vH / 2) - (centerWorldY * zoom);
+        } else {
+            zoom = clamped;
+        }
+
+        localStorage.setItem(ZOOM_KEY, zoom.toString());
+        updateZoomReadout();
+        updatePlaneTransform();
     }
 
     updatePlaneTransform();
+    updateZoomReadout();
 
     closeErrorBtn.onclick = () => {
         errorOverlay.style.display = 'none';
@@ -172,13 +218,29 @@ export async function renderNotasContent(contentEl) {
     // --- VIEWPORT-FIXED MATRIX ENGINE ---
     function initMatrix() {
         const ctx = matrixCanvas.getContext('2d');
-        
-        let width = matrixCanvas.width = contentEl.offsetWidth || window.innerWidth;
-        let height = matrixCanvas.height = contentEl.offsetHeight || window.innerHeight;
-        
+        let width = 0;
+        let height = 0;
         const fontSize = 16;
-        let columns = Math.floor(width / fontSize);
-        let drops = new Array(columns).fill(1).map(() => Math.random() * height / fontSize);
+        let columns = 0;
+        let drops = [];
+
+        function resizeMatrix() {
+            const cssWidth = Math.max(1, contentEl.clientWidth || window.innerWidth);
+            const cssHeight = Math.max(1, contentEl.clientHeight || window.innerHeight);
+            const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+            matrixCanvas.style.width = `${cssWidth}px`;
+            matrixCanvas.style.height = `${cssHeight}px`;
+            matrixCanvas.width = Math.floor(cssWidth * dpr);
+            matrixCanvas.height = Math.floor(cssHeight * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            width = cssWidth;
+            height = cssHeight;
+            columns = Math.max(1, Math.floor(width / fontSize));
+            drops = new Array(columns).fill(1).map(() => Math.random() * height / fontSize);
+        }
+        resizeMatrix();
         
         function draw() {
             // Fundo escuro sutil
@@ -210,14 +272,18 @@ export async function renderNotasContent(contentEl) {
         
         animate();
 
-        window.addEventListener('resize', () => {
-            width = matrixCanvas.width = contentEl.offsetWidth || window.innerWidth;
-            height = matrixCanvas.height = contentEl.offsetHeight || window.innerHeight;
-            columns = Math.floor(width / fontSize);
-            drops = new Array(columns).fill(1).map(() => Math.random() * height / fontSize);
-        });
+        const onResize = () => resizeMatrix();
+        window.addEventListener('resize', onResize);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
+        const resizeObserver = new ResizeObserver(onResize);
+        resizeObserver.observe(contentEl);
 
-        contentEl._cleanupMatrix = () => cancelAnimationFrame(animationId);
+        contentEl._cleanupMatrix = () => {
+            cancelAnimationFrame(animationId);
+            window.removeEventListener('resize', onResize);
+            if (window.visualViewport) window.visualViewport.removeEventListener('resize', onResize);
+            resizeObserver.disconnect();
+        };
     }
 
     // CRUD Logic ...
@@ -238,8 +304,12 @@ export async function renderNotasContent(contentEl) {
     function adjustNoteToContent(noteEl) {
         const textInput = noteEl.querySelector('.note-text-input');
         if (!textInput) return;
+        const viewportHeight = contentEl.offsetHeight || window.innerHeight || 800;
+        const maxHeight = Math.max(140, Math.floor(viewportHeight * 0.4));
         textInput.style.height = 'auto';
-        textInput.style.height = `${textInput.scrollHeight}px`;
+        const nextHeight = Math.min(textInput.scrollHeight, maxHeight);
+        textInput.style.height = `${nextHeight}px`;
+        textInput.style.overflowY = textInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
     }
 
     function createNoteElement(note) {
@@ -291,19 +361,25 @@ export async function renderNotasContent(contentEl) {
     function setupDraggableNote(el, noteData) {
         const header = el.querySelector('.note-header');
         let offsetX, offsetY, isDragging = false;
+        const toWorldCoords = (cx, cy) => ({
+            x: (cx - panX) / zoom,
+            y: (cy - panY) / zoom
+        });
 
         const startDragging = (cx, cy) => {
             isDragging = true; 
             el.classList.add('dragging'); 
             el.style.zIndex = zIndexCounter++;
-            offsetX = cx - el.offsetLeft; 
-            offsetY = cy - el.offsetTop;
+            const world = toWorldCoords(cx, cy);
+            offsetX = world.x - el.offsetLeft; 
+            offsetY = world.y - el.offsetTop;
         };
 
         const onDragging = (cx, cy) => {
             if (!isDragging) return;
-            el.style.left = `${cx - offsetX}px`; 
-            el.style.top = `${cy - offsetY}px`;
+            const world = toWorldCoords(cx, cy);
+            el.style.left = `${world.x - offsetX}px`; 
+            el.style.top = `${world.y - offsetY}px`;
         };
 
         const stopDragging = () => {
@@ -392,8 +468,8 @@ export async function renderNotasContent(contentEl) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title: 'NOVA NOTA', content: '',
-                    x_pos: -panX + (contentEl.offsetWidth / 2) - 140, // Centraliza no viewport atual
-                    y_pos: -panY + (contentEl.offsetHeight / 2) - 100
+                    x_pos: ((contentEl.offsetWidth / 2) - panX) / zoom - 125, // Centraliza no viewport atual
+                    y_pos: ((contentEl.offsetHeight / 2) - panY) / zoom - 100
                 })
             });
             const data = await res.json();
@@ -402,19 +478,19 @@ export async function renderNotasContent(contentEl) {
     };
 
     async function centerNotesAnimation() {
-        if (notes.length === 0) {
+        const renderedNotes = canvas.querySelectorAll('.neon-note');
+        if (renderedNotes.length === 0) {
             panX = 0; panY = 0;
             updatePlaneTransform();
             return;
         }
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        const renderedNotes = canvas.querySelectorAll('.neon-note');
 
         renderedNotes.forEach((el) => {
             const x = parseInt(el.style.left, 10) || 0;
             const y = parseInt(el.style.top, 10) || 0;
-            const width = el.offsetWidth || 280;
+            const width = el.offsetWidth || 250;
             const height = el.offsetHeight || 150;
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
@@ -423,12 +499,11 @@ export async function renderNotasContent(contentEl) {
         });
 
         const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
         const vW = contentEl.offsetWidth || window.innerWidth;
-        const vH = contentEl.offsetHeight || window.innerHeight;
+        const topMargin = 16;
 
-        panX = (vW / 2) - centerX;
-        panY = (vH / 2) - centerY;
+        panX = (vW / 2) - (centerX * zoom);
+        panY = topMargin - (minY * zoom);
 
         plane.classList.add('smooth-pan');
         updatePlaneTransform();
@@ -436,6 +511,12 @@ export async function renderNotasContent(contentEl) {
     }
 
     gpsBtn.onclick = centerNotesAnimation;
+    zoomOutBtn.onclick = () => setZoom(zoom - ZOOM_STEP);
+    zoomInBtn.onclick = () => setZoom(zoom + ZOOM_STEP);
+    zoomLevelBtn.onclick = () => setZoom(1);
 
     initPanning(); initMatrix(); loadNotes();
+    contentEl._cleanup = () => {
+        if (typeof contentEl._cleanupMatrix === 'function') contentEl._cleanupMatrix();
+    };
 }
