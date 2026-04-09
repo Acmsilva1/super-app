@@ -209,6 +209,9 @@
     resize: none;
     outline: none;
     min-height: 80px;
+    overflow-y: hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .note-footer {

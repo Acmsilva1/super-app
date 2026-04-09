@@ -235,6 +235,13 @@ export async function renderNotasContent(contentEl) {
 
     function renderNotes() { canvas.innerHTML = ''; notes.forEach(note => createNoteElement(note)); }
 
+    function adjustNoteToContent(noteEl) {
+        const textInput = noteEl.querySelector('.note-text-input');
+        if (!textInput) return;
+        textInput.style.height = 'auto';
+        textInput.style.height = `${textInput.scrollHeight}px`;
+    }
+
     function createNoteElement(note) {
         const noteEl = document.createElement('div');
         noteEl.className = 'neon-note';
@@ -277,6 +284,7 @@ export async function renderNotasContent(contentEl) {
         noteEl.querySelector('.delete').onclick = (e) => { e.stopPropagation(); deleteNote(note.id, noteEl); };
 
         canvas.appendChild(noteEl);
+        adjustNoteToContent(noteEl);
         return noteEl;
     }
 
@@ -348,6 +356,7 @@ export async function renderNotasContent(contentEl) {
         const statusEl = el.querySelector('.save-status');
         let timeout = null;
         const handleInput = () => {
+            adjustNoteToContent(el);
             statusEl.textContent = 'SALVANDO...'; clearTimeout(timeout);
             timeout = setTimeout(() => {
                 saveNote(noteData.id, { title: titleInput.value, content: textInput.value }, el);
@@ -400,14 +409,17 @@ export async function renderNotasContent(contentEl) {
         }
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        const noteWidth = 280;
-        const noteHeight = 150;
+        const renderedNotes = canvas.querySelectorAll('.neon-note');
 
-        notes.forEach(note => {
-            minX = Math.min(minX, note.x_pos);
-            minY = Math.min(minY, note.y_pos);
-            maxX = Math.max(maxX, note.x_pos + noteWidth);
-            maxY = Math.max(maxY, note.y_pos + noteHeight);
+        renderedNotes.forEach((el) => {
+            const x = parseInt(el.style.left, 10) || 0;
+            const y = parseInt(el.style.top, 10) || 0;
+            const width = el.offsetWidth || 280;
+            const height = el.offsetHeight || 150;
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + width);
+            maxY = Math.max(maxY, y + height);
         });
 
         const centerX = (minX + maxX) / 2;
