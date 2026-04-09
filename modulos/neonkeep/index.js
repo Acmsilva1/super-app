@@ -36,6 +36,9 @@ export async function renderNotasContent(contentEl) {
                 <button id="add-note-btn" class="neon-btn">
                     <i class="fas fa-plus-square"></i> NOVA NOTA
                 </button>
+                <button id="gps-center-btn" class="neon-btn icon-only" title="LOCALIZAR NOTAS">
+                    <i class="fas fa-location-crosshairs"></i>
+                </button>
             </div>
             
             <div id="notes-error-msg" class="api-error-overlay" style="display:none">
@@ -70,6 +73,7 @@ export async function renderNotasContent(contentEl) {
     const errorOverlay = contentEl.querySelector('#notes-error-msg');
     const errorDetails = contentEl.querySelector('#error-details');
     const closeErrorBtn = contentEl.querySelector('#close-error-btn');
+    const gpsBtn = contentEl.querySelector('#gps-center-btn');
     
     // Confirm Modal Elements
     const confirmOverlay = contentEl.querySelector('#neonkeep-confirm-modal');
@@ -322,6 +326,39 @@ export async function renderNotasContent(contentEl) {
             if (res.ok) createNoteElement(data);
         } catch (err) { console.error('Add error:', err); }
     };
+
+    async function centerNotesAnimation() {
+        if (notes.length === 0) {
+            panX = 0; panY = 0;
+            updatePlaneTransform();
+            return;
+        }
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        const noteWidth = 280;
+        const noteHeight = 150;
+
+        notes.forEach(note => {
+            minX = Math.min(minX, note.x_pos);
+            minY = Math.min(minY, note.y_pos);
+            maxX = Math.max(maxX, note.x_pos + noteWidth);
+            maxY = Math.max(maxY, note.y_pos + noteHeight);
+        });
+
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+        const vW = contentEl.offsetWidth || window.innerWidth;
+        const vH = contentEl.offsetHeight || window.innerHeight;
+
+        panX = (vW / 2) - centerX;
+        panY = (vH / 2) - centerY;
+
+        plane.classList.add('smooth-pan');
+        updatePlaneTransform();
+        setTimeout(() => plane.classList.remove('smooth-pan'), 600);
+    }
+
+    gpsBtn.onclick = centerNotesAnimation;
 
     initPanning(); initMatrix(); loadNotes();
 }
