@@ -1,4 +1,4 @@
-﻿import { supabase } from '../lib/supabase.js';
+import { supabase } from '../lib/supabase.js';
 
 const TABLE_MISSOES = 'tb_missoes_treino';
 const TABLE_ITENS = 'tb_missoes_treino_itens';
@@ -166,13 +166,83 @@ function groupMissions(missionRows, itemRows) {
   return missions;
 }
 
+async function autoCarryOverLatestMission(dateRef) {
+  const { data: latestMissions, error: mErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('data_referencia')
+    .lt('data_referencia', dateRef)
+    .order('data_referencia', { ascending: false })
+    .limit(1);
+
+  if (mErr) throw new Error(mErr.message);
+  if (!latestMissions || latestMissions.length === 0) return false;
+  
+  const prevDate = latestMissions[0].data_referencia;
+
+  const { data: oldMissions, error: omErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('*')
+    .eq('data_referencia', prevDate);
+  
+  if (omErr || !oldMissions || oldMissions.length === 0) return false;
+  
+  const oldMissionIds = oldMissions.map(m => m.id);
+
+  const { data: oldItems, error: oiErr } = await supabase
+    .from(TABLE_ITENS)
+    .select('*')
+    .in('missao_id', oldMissionIds)
+    .order('ordem', { ascending: true });
+  
+  if (oiErr) throw new Error(oiErr.message);
+
+  for (const oldM of oldMissions) {
+    const { data: newM, error: newMErr } = await supabase
+      .from(TABLE_MISSOES)
+      .insert({ data_referencia: dateRef, titulo: oldM.titulo, origem: oldM.origem })
+      .select('id')
+      .single();
+    if (newMErr) continue;
+
+    const itemsForMissao = oldItems.filter(i => i.missao_id === oldM.id);
+    if (itemsForMissao.length > 0) {
+      const itemsPayload = itemsForMissao.map(item => ({
+        missao_id: newM.id,
+        nome: item.nome,
+        reps: item.reps,
+        ordem: item.ordem,
+        concluida: false
+      }));
+      await supabase.from(TABLE_ITENS).insert(itemsPayload);
+    }
+  }
+  return true;
+}
+
 async function fetchMissionsByDate(dateRef) {
-  const { data: missionRows, error: mErr } = await supabase
+  let { data: missionRows, error: mErr } = await supabase
     .from(TABLE_MISSOES)
     .select('id, titulo, data_referencia, created_at')
     .eq('data_referencia', dateRef)
     .order('created_at', { ascending: true });
   if (mErr) throw new Error(mErr.message);
+
+  if (!missionRows || missionRows.length === 0) {
+    const todayStr = getTodayBrazilIsoDate();
+    if (dateRef === todayStr) {
+      const carried = await autoCarryOverLatestMission(dateRef);
+      if (carried) {
+        const { data: newRows, error: newErr } = await supabase
+          .from(TABLE_MISSOES)
+          .select('id, titulo, data_referencia, created_at')
+          .eq('data_referencia', dateRef)
+          .order('created_at', { ascending: true });
+        if (!newErr && newRows) {
+          missionRows = newRows;
+        }
+      }
+    }
+  }
 
   const missionIds = (missionRows || []).map((m) => m.id).filter(Boolean);
   if (!missionIds.length) return [];
