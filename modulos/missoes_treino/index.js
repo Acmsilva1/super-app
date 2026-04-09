@@ -1,4 +1,4 @@
-﻿function escapeHtml(value) {
+function escapeHtml(value) {
   const div = document.createElement('div');
   div.textContent = String(value ?? '');
   return div.innerHTML;
@@ -452,7 +452,7 @@ class MissoesTreinoApp {
         <div class="mt-penalty-card">
           <h3>${escapeHtml(this.penalty.title || 'MISSAO DE PENALIDADE')}</h3>
           <p>Voce perdeu o treino diario. Cumpra a penalidade para liberar o sistema.</p>
-          <div class="mt-penalty-task">${escapeHtml(this.penalty.text || 'FACA 20 BURPEES')}</div>
+          <div class="mt-penalty-task">${escapeHtml(this.penalty.text || 'FACA 10 BURPEES')}</div>
           <button class="mt-btn mt-btn-complete" data-action="complete-penalty">CONCLUIR PENALIDADE</button>
         </div>
       </div>
