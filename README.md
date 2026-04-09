@@ -36,6 +36,8 @@ super-app-1/
 | `saude` | `tb_saude_familiar` | Registros de saude por membro da familia |
 | `calendario` | `tb_calendario` | Agenda, visualizacao mensal e status de confirmacao |
 | `fluxograma` | `tb_fluxograma_projetos` | Projetos de fluxograma com rascunho local e nuvem |
+| `neonkeep` | `tb_notas` | Sistema de notas visuais neon em canvas infinito |
+| `missoes_treino` | `tb_missoes_treino` | Agenda de treinos com penalidades e progressao termica (chamas) |
 
 ### Aderencia ao padrao de arquitetura
 
@@ -213,6 +215,9 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - Fluxograma atualizado com paleta fixa de 16 cores por selecao (nos, textos e conexoes), substituindo o seletor livre de cor.
 - O menu do Fluxograma passou a exibir preview da cor atual do item selecionado e da ultima cor usada.
 - Novas conexoes no Fluxograma agora usam a cor ativa da paleta, e o estado `activeColor` passou a ser persistido no payload do grafo para manter contexto entre sessoes.
+- Suporte a promises nos popups nativos foi implementado, e substituiu todos os `confirm()` antigos por uma modal estetica global via `SuperApp.showConfirm()`.
+- O modulo "Neon Keep" recebeu uma mira GPS flutuante para centralizar notas em telas grandes e interacao nativa multitoque (Pan and Drag) para viabilizar utilizacao em smartphones.
+- "Missões de Treino" atualizado para aplicar continuidade automatica de missoes na virada de data, preservar historico em nuvem e diminuir punicao de atraso de 20 para 10 burpees.
 
 ## Artefatos de Documentacao
 
