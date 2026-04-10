@@ -133,7 +133,8 @@
     padding: 8px 12px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     cursor: move;
 }
@@ -141,19 +142,30 @@
 .note-title-input {
     background: transparent;
     border: none;
+    margin: 0;
+    padding: 0;
     color: var(--note-color, #00ffbb);
     font-family: 'Orbitron', sans-serif;
     font-weight: bold;
     font-size: 0.82rem;
-    width: 70%;
+    width: 100%;
+    min-width: 0;
+    flex: 1;
     outline: none;
     text-transform: uppercase;
+    line-height: 1.2;
+    max-height: calc(1.2em * 2 + 2px);
+    resize: none;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .note-actions {
     display: flex;
     gap: 12px;
     align-items: center;
+    flex-shrink: 0;
     opacity: 0.3;
     transition: opacity 0.3s ease;
 }

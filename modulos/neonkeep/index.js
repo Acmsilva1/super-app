@@ -327,7 +327,7 @@ export async function renderNotasContent(contentEl) {
 
         noteEl.innerHTML = `
             <div class="note-header" title="Arraste">
-                <input type="text" class="note-title-input" value="${note.title || ''}" placeholder="TÍTULO">
+                <textarea class="note-title-input" rows="2" placeholder="TÍTULO">${note.title || ''}</textarea>
                 <div class="note-actions">
                     <div class="color-dots">${colorOptions}</div>
                     <button class="action-btn delete" title="Apagar"><i class="fas fa-trash-alt"></i></button>
@@ -392,7 +392,7 @@ export async function renderNotasContent(contentEl) {
 
         // Mouse Events
         header.onmousedown = (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.classList.contains('color-dot')) return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.classList.contains('color-dot')) return;
             startDragging(e.clientX, e.clientY);
             const moveHandler = (ev) => onDragging(ev.clientX, ev.clientY);
             const upHandler = () => {
@@ -407,7 +407,7 @@ export async function renderNotasContent(contentEl) {
 
         // Touch Events
         header.ontouchstart = (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.classList.contains('color-dot')) return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.classList.contains('color-dot')) return;
             const touch = e.touches[0];
             startDragging(touch.clientX, touch.clientY);
             const moveHandler = (ev) => {
