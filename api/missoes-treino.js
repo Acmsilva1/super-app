@@ -93,19 +93,52 @@ function normalizeItems(items) {
     .filter((item) => item.nome && item.reps);
 }
 
-function inferRadarCategory(name) {
-  const n = String(name || '').toLowerCase();
-  const map = [
-    { key: 'cardio', terms: ['corrida', 'bike', 'esteira', 'burpee', 'polichinelo', 'cardio', 'hiit'] },
-    { key: 'core', terms: ['abdominal', 'prancha', 'core', 'lombar'] },
-    { key: 'mobilidade', terms: ['alongamento', 'mobilidade', 'yoga', 'flexibilidade'] },
-    { key: 'resistencia', terms: ['isometria', 'resistencia', 'circuito'] },
-    { key: 'forca', terms: ['agachamento', 'supino', 'flexao', 'barra', 'remada', 'levantamento', 'forca'] },
+function normalizeRadarText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function inferRadarDistribution(name) {
+  const n = normalizeRadarText(name);
+  const profiles = [
+    {
+      terms: ['corrida', 'bike', 'esteira', 'caminhada', 'corda', 'spinning', 'polichinelo', 'hiit'],
+      weights: { cardio: 0.7, resistencia: 0.2, core: 0.1 },
+    },
+    {
+      terms: ['burpee', 'mountain climber', 'circuito', 'tabata'],
+      weights: { cardio: 0.45, resistencia: 0.35, forca: 0.15, core: 0.05 },
+    },
+    {
+      terms: ['agachamento', 'supino', 'remada', 'levantamento', 'terra', 'barra fixa', 'afundo', 'forca'],
+      weights: { forca: 0.65, resistencia: 0.2, core: 0.1, mobilidade: 0.05 },
+    },
+    {
+      terms: ['flexao', 'triceps', 'ombro', 'peito', 'biceps', 'panturrilha'],
+      weights: { forca: 0.55, resistencia: 0.25, core: 0.15, mobilidade: 0.05 },
+    },
+    {
+      terms: ['abdominal', 'prancha', 'core', 'lombar', 'hollow', 'canivete'],
+      weights: { core: 0.7, resistencia: 0.15, forca: 0.1, mobilidade: 0.05 },
+    },
+    {
+      terms: ['alongamento', 'mobilidade', 'yoga', 'flexibilidade', 'pilates'],
+      weights: { mobilidade: 0.75, core: 0.15, resistencia: 0.1 },
+    },
+    {
+      terms: ['isometria', 'wall sit', 'prancha estatica', 'resistencia'],
+      weights: { resistencia: 0.6, core: 0.2, forca: 0.2 },
+    },
   ];
-  for (const entry of map) {
-    if (entry.terms.some((t) => n.includes(t))) return entry.key;
+
+  for (const profile of profiles) {
+    if (profile.terms.some((term) => n.includes(term))) return profile.weights;
   }
-  return 'forca';
+
+  return { forca: 0.45, resistencia: 0.25, core: 0.15, cardio: 0.1, mobilidade: 0.05 };
 }
 
 function isMissingChamasTableError(message) {
@@ -312,9 +345,17 @@ async function fetchMonthlyPerformance(dateRef) {
     resistencia: 0,
   };
 
-  for (const row of itemRows || []) {
-    const cat = inferRadarCategory(row.nome || '');
-    radarAcc[cat] += Number(row.reps || 0) || 0;
+  const completedRows = (itemRows || []).filter((row) => Boolean(row?.concluida));
+  const sourceRows = completedRows.length ? completedRows : (itemRows || []);
+
+  for (const row of sourceRows) {
+    const reps = Number(row.reps || 0) || 0;
+    if (reps <= 0) continue;
+    const distribution = inferRadarDistribution(row.nome || '');
+    for (const [key, weight] of Object.entries(distribution)) {
+      if (radarAcc[key] == null) continue;
+      radarAcc[key] += reps * Number(weight || 0);
+    }
   }
 
   const maxVal = Math.max(...Object.values(radarAcc), 0);
