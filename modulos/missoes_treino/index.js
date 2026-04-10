@@ -58,7 +58,7 @@ function missionCardHtml(mission, index) {
         `).join('')}
       </div>
       <footer class="mt-card-actions">
-        <button class="${concludeClass}" data-action="toggle-mission" data-mission-id="${escapeHtml(mission.id)}" ${mission._busy ? 'disabled' : ''}>
+        <button class="${concludeClass}" data-action="toggle-mission" data-mission-id="${escapeHtml(mission.id)}" ${(mission._busy || allDone) ? 'disabled' : ''}>
           ${allDone ? 'CONCLUIDA' : 'CONCLUIR MISSAO'}
         </button>
         <button class="mt-btn-icon" data-action="edit-mission" data-mission-id="${escapeHtml(mission.id)}" ${mission._busy ? 'disabled' : ''}>Editar</button>
@@ -362,18 +362,22 @@ class MissoesTreinoApp {
   async toggleMissionComplete(missionId) {
     const mission = this.missions.find((m) => m.id === missionId);
     if (!mission) return;
+    if (mission.completed) {
+      this.setNotice('Missao ja concluida. Conclusao diaria e imutavel.');
+      this.showToast('MISSAO JA CONCLUIDA (IMUTAVEL)');
+      return;
+    }
     mission._busy = true;
     this.render();
     try {
       await this.api('', {
         method: 'PATCH',
-        body: JSON.stringify({ mission_id: missionId, completed: !mission.completed }),
+        body: JSON.stringify({ mission_id: missionId, completed: true }),
       });
-      mission.completed = !mission.completed;
-      mission.items = (mission.items || []).map((item) => ({ ...item, completed: mission.completed }));
+      mission.completed = true;
+      mission.items = (mission.items || []).map((item) => ({ ...item, completed: true }));
       this.setNotice('Missao atualizada no banco.');
-      if (mission.completed) this.showToast('MISSAO CONCLUIDA COM SUCESSO');
-      else this.showToast('MISSAO REABERTA');
+      this.showToast('MISSAO CONCLUIDA COM SUCESSO');
       await this.loadFromApi();
     } catch (err) {
       this.setNotice(err.message || 'Falha ao concluir missao.', true);

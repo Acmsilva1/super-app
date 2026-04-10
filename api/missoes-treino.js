@@ -356,12 +356,11 @@ async function attachFlamesToMissions(missions) {
   if (!missionIds.length) return missions || [];
 
   const fallbackFlames = buildMissionFlames(new Set(), day, monthRef);
-  const byMission = new Map(missionIds.map((id) => [id, new Set()]));
   const { data, error } = await supabase
     .from(TABLE_CHAMAS)
-    .select('mission_id, dia, concluida')
+    .select('dia, concluida')
     .eq('mes_ref', monthRef)
-    .in('mission_id', missionIds);
+    .eq('concluida', true);
 
   if (error) {
     if (isMissingChamasTableError(error.message)) {
@@ -370,19 +369,14 @@ async function attachFlamesToMissions(missions) {
     throw new Error(error.message);
   }
 
+  const doneDays = new Set();
   for (const row of data || []) {
-    if (!row?.mission_id) continue;
-    if (!Boolean(row.concluida)) continue;
     const d = Number(row.dia);
     if (d < 1 || d > 30) continue;
-    if (!byMission.has(row.mission_id)) byMission.set(row.mission_id, new Set());
-    byMission.get(row.mission_id).add(d);
+    doneDays.add(d);
   }
 
-  return (missions || []).map((mission) => {
-    const done = byMission.get(mission.id) || new Set();
-    return { ...mission, flames: buildMissionFlames(done, day, monthRef) };
-  });
+  return (missions || []).map((mission) => ({ ...mission, flames: buildMissionFlames(doneDays, day, monthRef) }));
 }
 
 async function markCurrentDayConcluded(missionId) {
@@ -392,18 +386,6 @@ async function markCurrentDayConcluded(missionId) {
   const { error } = await supabase
     .from(TABLE_CHAMAS)
     .upsert(payload, { onConflict: 'mission_id,mes_ref,dia' });
-  if (error && !isMissingChamasTableError(error.message)) throw new Error(error.message);
-}
-
-async function unmarkCurrentDayConcluded(missionId) {
-  const { monthRef, day } = getBrazilDateParts();
-  if (!missionId || day < 1 || day > 30) return;
-  const { error } = await supabase
-    .from(TABLE_CHAMAS)
-    .delete()
-    .eq('mission_id', missionId)
-    .eq('mes_ref', monthRef)
-    .eq('dia', day);
   if (error && !isMissingChamasTableError(error.message)) throw new Error(error.message);
 }
 
@@ -553,16 +535,13 @@ export default async function handler(req, res) {
       if (missionId) {
         if (body.completed != null) {
           const completedValue = Boolean(body.completed);
+          if (!completedValue) return json(res, 409, { error: 'Conclusao diaria imutavel: nao e possivel desfazer.' });
           const { error } = await supabase
             .from(TABLE_ITENS)
             .update({ concluida: completedValue })
             .eq('missao_id', missionId);
           if (error) return json(res, 500, { error: error.message });
-          if (completedValue) {
-            await markCurrentDayConcluded(missionId);
-          } else {
-            await unmarkCurrentDayConcluded(missionId);
-          }
+          await markCurrentDayConcluded(missionId);
           return json(res, 200, { ok: true });
         }
 
@@ -607,6 +586,7 @@ export default async function handler(req, res) {
         payload.reps = reps;
       }
       if (body.completed != null) payload.concluida = Boolean(body.completed);
+      if (payload.concluida === false) return json(res, 409, { error: 'Conclusao diaria imutavel: nao e possivel desfazer.' });
       if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
 
       const { data, error } = await supabase
