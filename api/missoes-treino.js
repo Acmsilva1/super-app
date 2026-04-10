@@ -294,6 +294,29 @@ async function fetchMissionsByDate(dateRef) {
 
 async function fetchMonthlyPerformance(dateRef) {
   const { start, end, monthRef } = getMonthRangeFromDateRef(dateRef);
+  const cycleTotalDays = 30;
+
+  let completedCycleDays = 0;
+  try {
+    const { data: chamasRows, error: cErr } = await supabase
+      .from(TABLE_CHAMAS)
+      .select('dia, concluida')
+      .eq('mes_ref', monthRef)
+      .eq('concluida', true);
+    if (cErr) {
+      if (!isMissingChamasTableError(cErr.message)) throw new Error(cErr.message);
+    } else {
+      const doneDays = new Set();
+      for (const row of chamasRows || []) {
+        const d = Number(row?.dia);
+        if (d >= 1 && d <= cycleTotalDays) doneDays.add(d);
+      }
+      completedCycleDays = doneDays.size;
+    }
+  } catch (err) {
+    throw new Error(err.message);
+  }
+
   const { data: missionRows, error: mErr } = await supabase
     .from(TABLE_MISSOES)
     .select('id')
@@ -305,9 +328,9 @@ async function fetchMonthlyPerformance(dateRef) {
   if (!missionIds.length) {
     return {
       month_ref: monthRef,
-      created_missions: 0,
-      completed_missions: 0,
-      success_rate_percent: 0,
+      created_missions: cycleTotalDays,
+      completed_missions: completedCycleDays,
+      success_rate_percent: Math.round((completedCycleDays / cycleTotalDays) * 100),
       radar: [
         { key: 'forca', label: 'Forca', value: 0, score: 0 },
         { key: 'cardio', label: 'Cardio', value: 0, score: 0 },
@@ -329,12 +352,6 @@ async function fetchMonthlyPerformance(dateRef) {
   for (const row of itemRows || []) {
     if (!grouped.has(row.missao_id)) grouped.set(row.missao_id, []);
     grouped.get(row.missao_id).push(row);
-  }
-
-  let completedMissions = 0;
-  for (const id of missionIds) {
-    const items = grouped.get(id) || [];
-    if (items.length && items.every((it) => Boolean(it.concluida))) completedMissions += 1;
   }
 
   const radarAcc = {
@@ -368,13 +385,12 @@ async function fetchMonthlyPerformance(dateRef) {
     { key: 'resistencia', label: 'Resistencia', value: radarAcc.resistencia, score: toScore(radarAcc.resistencia) },
   ];
 
-  const created = missionIds.length;
-  const successRatePercent = created ? Math.round((completedMissions / created) * 100) : 0;
+  const successRatePercent = Math.round((completedCycleDays / cycleTotalDays) * 100);
 
   return {
     month_ref: monthRef,
-    created_missions: created,
-    completed_missions: completedMissions,
+    created_missions: cycleTotalDays,
+    completed_missions: completedCycleDays,
     success_rate_percent: successRatePercent,
     radar,
   };

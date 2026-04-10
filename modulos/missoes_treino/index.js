@@ -572,7 +572,7 @@ class MissoesTreinoApp {
             </div>
             <strong>${rate}%</strong>
           </div>
-          <p>${completed}/${created} missoes concluidas no mes ${escapeHtml(p.month_ref || '')}</p>
+          <p>${completed}/${created} dias concluidos no ciclo de 30 dias (${escapeHtml(p.month_ref || '')})</p>
         </article>
         <article class="mt-perf-card">
           <h4>RADAR DE TREINO POR TIPO</h4>
