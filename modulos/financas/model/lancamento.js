@@ -31,7 +31,7 @@ export const MAPA_CATEGORIAS = {
     'faculdade', 'esporte', 'servicos bancarios', 'pensao', 'celular', 'assinatura',
     'imposto', 'cartao de credito', 'emprestimo', 'tarifa', 'seguro', 'anuidade', 'mei', 'irpf',
   ],
-  'Tickt': [
+  'Ticket': [
     'tickt', 'ticket',
   ],
   'Receitas': [
