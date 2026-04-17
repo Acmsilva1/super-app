@@ -509,19 +509,42 @@ class MissoesTreinoApp {
     const rate = Math.max(0, Math.min(100, Number(p.success_rate_percent || 0)));
     const created = Number(p.created_missions || 0);
     const completed = Number(p.completed_missions || 0);
+    const history = Array.isArray(p.history) && p.history.length
+      ? p.history
+      : [{
+        month_ref: p.month_ref || '',
+        completed_days: completed,
+        cycle_total_days: created || 30,
+        success_rate_percent: rate,
+        closed: false,
+      }];
     const radar = Array.isArray(p.radar) ? p.radar : [];
     const radarSvg = radar.length ? this.buildRadarSvg(radar) : '<div class="mt-perf-empty">Sem dados de desempenho</div>';
+    const historyHtml = history.map((entry, idx) => {
+      const entryRate = Math.max(0, Math.min(100, Number(entry?.success_rate_percent || 0)));
+      const entryCompleted = Number(entry?.completed_days || 0);
+      const entryTotal = Number(entry?.cycle_total_days || 30);
+      const entryMonth = String(entry?.month_ref || '');
+      const isClosed = Boolean(entry?.closed);
+      const stateClass = isClosed ? 'is-closed' : 'is-open';
+      const statusLabel = isClosed ? 'CICLO FECHADO' : 'CICLO ATUAL';
+      return `
+        <div class="mt-success-history-item ${stateClass}" style="--history-i:${idx};">
+          <div class="mt-success-line">
+            <div class="mt-success-track">
+              <div class="mt-success-fill ${stateClass}" style="width:${entryRate}%"></div>
+            </div>
+            <strong>${entryRate}%</strong>
+          </div>
+          <p>${entryCompleted}/${entryTotal} dias concluidos no ciclo de 30 dias (${escapeHtml(entryMonth)}) - ${statusLabel}</p>
+        </div>
+      `;
+    }).join('');
     this.performanceHost.innerHTML = `
       <section class="mt-performance-wrap">
         <article class="mt-perf-card">
           <h4>TAXA DE SUCESSO MENSAL</h4>
-          <div class="mt-success-line">
-            <div class="mt-success-track">
-              <div class="mt-success-fill" style="width:${rate}%"></div>
-            </div>
-            <strong>${rate}%</strong>
-          </div>
-          <p>${completed}/${created} dias concluidos no ciclo de 30 dias (${escapeHtml(p.month_ref || '')})</p>
+          <div class="mt-success-history">${historyHtml}</div>
         </article>
         <article class="mt-perf-card">
           <h4>RADAR DE TREINO POR TIPO</h4>
@@ -615,11 +638,17 @@ class MissoesTreinoApp {
           .mt-perf-card{border:1px solid rgba(64,128,166,.34);border-radius:11px;padding:10px;background:linear-gradient(160deg,rgba(2,12,20,.52),rgba(3,16,28,.36));animation:cardIn .62s cubic-bezier(.2,.8,.2,1) both;transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease}
           .mt-perf-card:hover{transform:translateY(-4px) scale(1.006);border-color:rgba(0,229,255,.52);box-shadow:0 12px 20px rgba(2,20,36,.3)}
           .mt-perf-card h4{margin:0 0 8px;color:#8cf2ff;font-size:.72rem;letter-spacing:.08em;font-family:"Orbitron","Segoe UI",sans-serif}
+          .mt-success-history{display:grid;gap:9px}
+          .mt-success-history-item{padding:6px 8px;border-radius:9px;border:1px solid rgba(84,130,156,.2);background:rgba(8,16,25,.36);animation:cardIn .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--history-i, 0) * .05s)}
+          .mt-success-history-item.is-closed{border-color:rgba(255,166,0,.28);background:linear-gradient(160deg,rgba(29,17,3,.36),rgba(20,13,4,.22))}
           .mt-success-line{display:flex;align-items:center;gap:8px}
           .mt-success-track{flex:1;height:10px;border:1px solid rgba(84,130,156,.45);background:#0b1420;border-radius:999px;overflow:hidden}
-          .mt-success-fill{height:100%;background:linear-gradient(90deg,#00e5ff,#00b8d9);box-shadow:0 0 12px rgba(0,229,255,.55);transition:width .72s cubic-bezier(.2,.8,.2,1);position:relative;overflow:hidden}
+          .mt-success-fill{height:100%;transition:width .72s cubic-bezier(.2,.8,.2,1);position:relative;overflow:hidden}
+          .mt-success-fill.is-open{background:linear-gradient(90deg,#00e5ff,#00b8d9);box-shadow:0 0 12px rgba(0,229,255,.55)}
+          .mt-success-fill.is-closed{background:linear-gradient(90deg,#ff8a00,#ffb347);box-shadow:0 0 10px rgba(255,145,0,.5)}
           .mt-success-fill::after{content:"";position:absolute;inset:0 auto 0 -42px;width:40px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.52),transparent);animation:trackShine 1.7s linear infinite}
           .mt-success-line strong{color:#c6f7ff;font-size:.86rem}
+          .mt-success-history-item.is-closed .mt-success-line strong{color:#ffd39b}
           .mt-perf-card p{margin:8px 0 0;color:#9ab0c6;font-size:.68rem}
           .mt-radar-wrap{display:flex;justify-content:center;animation:radarFloat 3.4s ease-in-out infinite}
           .mt-radar-svg{width:100%;max-width:260px;height:auto}

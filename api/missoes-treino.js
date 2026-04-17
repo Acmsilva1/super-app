@@ -40,6 +40,59 @@ function getMonthRangeFromDateRef(dateRef) {
   return { start, end, monthRef };
 }
 
+function listRecentMonthRefs(anchorMonthRef, count = 6) {
+  const [year, month] = String(anchorMonthRef || '').split('-').map(Number);
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return [];
+  const refs = [];
+  for (let i = 0; i < count; i += 1) {
+    const d = new Date(year, month - 1 - i, 1);
+    refs.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  return refs;
+}
+
+async function fetchMonthlyHistory(anchorMonthRef, cycleTotalDays = 30, maxMonths = 6) {
+  const months = listRecentMonthRefs(anchorMonthRef, maxMonths);
+  if (!months.length) return [];
+
+  const doneByMonth = new Map(months.map((monthRef) => [monthRef, new Set()]));
+  const { data: chamasRows, error: cErr } = await supabase
+    .from(TABLE_CHAMAS)
+    .select('mes_ref,dia,concluida')
+    .in('mes_ref', months)
+    .eq('concluida', true);
+
+  if (cErr) {
+    if (!isMissingChamasTableError(cErr.message)) throw new Error(cErr.message);
+    return months.map((monthRef, idx) => ({
+      month_ref: monthRef,
+      completed_days: 0,
+      cycle_total_days: cycleTotalDays,
+      success_rate_percent: 0,
+      closed: idx !== 0,
+    }));
+  }
+
+  for (const row of chamasRows || []) {
+    const monthRef = String(row?.mes_ref || '');
+    if (!doneByMonth.has(monthRef)) continue;
+    const day = Number(row?.dia);
+    if (day < 1 || day > cycleTotalDays) continue;
+    doneByMonth.get(monthRef).add(day);
+  }
+
+  return months.map((monthRef, idx) => {
+    const completedDays = doneByMonth.get(monthRef)?.size || 0;
+    return {
+      month_ref: monthRef,
+      completed_days: completedDays,
+      cycle_total_days: cycleTotalDays,
+      success_rate_percent: Math.round((completedDays / cycleTotalDays) * 100),
+      closed: idx !== 0,
+    };
+  });
+}
+
 function getBrazilDatePartsFrom(dateObj) {
   const dateFmt = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -282,27 +335,8 @@ async function fetchMissionsByDate(dateRef) {
 async function fetchMonthlyPerformance(dateRef) {
   const { start, end, monthRef } = getMonthRangeFromDateRef(dateRef);
   const cycleTotalDays = 30;
-
-  let completedCycleDays = 0;
-  try {
-    const { data: chamasRows, error: cErr } = await supabase
-      .from(TABLE_CHAMAS)
-      .select('dia, concluida')
-      .eq('mes_ref', monthRef)
-      .eq('concluida', true);
-    if (cErr) {
-      if (!isMissingChamasTableError(cErr.message)) throw new Error(cErr.message);
-    } else {
-      const doneDays = new Set();
-      for (const row of chamasRows || []) {
-        const d = Number(row?.dia);
-        if (d >= 1 && d <= cycleTotalDays) doneDays.add(d);
-      }
-      completedCycleDays = doneDays.size;
-    }
-  } catch (err) {
-    throw new Error(err.message);
-  }
+  const history = await fetchMonthlyHistory(monthRef, cycleTotalDays, 6);
+  const completedCycleDays = Number(history?.[0]?.completed_days || 0);
 
   const { data: missionRows, error: mErr } = await supabase
     .from(TABLE_MISSOES)
@@ -318,6 +352,7 @@ async function fetchMonthlyPerformance(dateRef) {
       created_missions: cycleTotalDays,
       completed_missions: completedCycleDays,
       success_rate_percent: Math.round((completedCycleDays / cycleTotalDays) * 100),
+      history,
       radar: [
         { key: 'forca', label: 'Forca', value: 0, score: 0 },
         { key: 'cardio', label: 'Cardio', value: 0, score: 0 },
@@ -379,6 +414,7 @@ async function fetchMonthlyPerformance(dateRef) {
     created_missions: cycleTotalDays,
     completed_missions: completedCycleDays,
     success_rate_percent: successRatePercent,
+    history,
     radar,
   };
 }
