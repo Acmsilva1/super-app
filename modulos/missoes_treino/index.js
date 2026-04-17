@@ -73,7 +73,6 @@ class MissoesTreinoApp {
     this.container = container;
     this.missions = [];
     this.tempMissions = [];
-    this.penalty = { required: false };
     this.performance = null;
     this.toasts = [];
     this.editingMissionId = null;
@@ -105,7 +104,6 @@ class MissoesTreinoApp {
     this.completedEl = this.container.querySelector('[data-role="completed"]');
     this.progressEl = this.container.querySelector('[data-role="progress"]');
     this.listEl = this.container.querySelector('[data-role="list"]');
-    this.noticeEl = this.container.querySelector('[data-role="notice"]');
     this.modalEl = this.container.querySelector('[data-role="modal"]');
     this.modalTitleEl = this.container.querySelector('[data-role="modal-title"]');
     this.modalDescEl = this.container.querySelector('[data-role="modal-desc"]');
@@ -115,7 +113,6 @@ class MissoesTreinoApp {
     this.tempListEl = this.container.querySelector('[data-role="temp-list"]');
     this.performanceHost = this.container.querySelector('[data-role="performance"]');
     this.toastHost = this.container.querySelector('[data-role="toasts"]');
-    this.penaltyHost = this.container.querySelector('[data-role="penalty"]');
   }
 
   bind() {
@@ -135,10 +132,7 @@ class MissoesTreinoApp {
 
   setNotice(message = '', isError = false) {
     this.errorMessage = message || '';
-    if (!this.noticeEl) return;
-    this.noticeEl.textContent = this.errorMessage;
-    this.noticeEl.classList.toggle('is-error', Boolean(isError && this.errorMessage));
-    this.noticeEl.classList.toggle('is-empty', !this.errorMessage);
+    void isError;
   }
 
   async loadFromApi() {
@@ -148,12 +142,10 @@ class MissoesTreinoApp {
     try {
       const data = await this.api('');
       this.missions = Array.isArray(data?.missions) ? data.missions : [];
-      this.penalty = data?.penalty || { required: false };
       this.performance = data?.performance || null;
       await this.migrateLegacyLocalData(this.missions);
       const refreshed = await this.api('');
       this.missions = Array.isArray(refreshed?.missions) ? refreshed.missions : [];
-      this.penalty = refreshed?.penalty || this.penalty;
       this.performance = refreshed?.performance || this.performance;
       this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem missoes para hoje.');
     } catch (err) {
@@ -237,11 +229,8 @@ class MissoesTreinoApp {
     const action = actionEl.getAttribute('data-action');
     const id = actionEl.getAttribute('data-id');
     const missionId = actionEl.getAttribute('data-mission-id');
-    const blocked = Boolean(this.penalty?.required);
 
     if (action === 'refresh') this.loadFromApi();
-    if (action === 'complete-penalty') this.completePenalty();
-    if (blocked && action !== 'complete-penalty' && action !== 'refresh') return;
     if (action === 'open-modal') this.openModal();
     if (action === 'close-modal') this.closeModal();
     if (action === 'clear-temp') {
@@ -407,25 +396,6 @@ class MissoesTreinoApp {
     this.render();
   }
 
-  async completePenalty() {
-    if (!this.penalty?.required || !this.penalty?.missed_date) return;
-    try {
-      await this.api('', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          action: 'complete_penalty',
-          missed_date: this.penalty.missed_date,
-        }),
-      });
-      this.penalty = { required: false };
-      this.showToast('PENALIDADE CONCLUIDA. ACESSO LIBERADO.');
-      await this.loadFromApi();
-    } catch (err) {
-      this.showToast('ERRO AO CONCLUIR PENALIDADE', 'error');
-      this.setNotice(err.message || 'Falha ao concluir penalidade.', true);
-    }
-  }
-
   showToast(message, type = 'success') {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     this.toasts.push({ id, message, type });
@@ -445,24 +415,6 @@ class MissoesTreinoApp {
     `).join('');
   }
 
-  renderPenalty() {
-    if (!this.penaltyHost) return;
-    if (!this.penalty?.required) {
-      this.penaltyHost.innerHTML = '';
-      return;
-    }
-    this.penaltyHost.innerHTML = `
-      <div class="mt-penalty-backdrop">
-        <div class="mt-penalty-card">
-          <h3>${escapeHtml(this.penalty.title || 'MISSAO DE PENALIDADE')}</h3>
-          <p>Voce perdeu o treino diario. Cumpra a penalidade para liberar o sistema.</p>
-          <div class="mt-penalty-task">${escapeHtml(this.penalty.text || 'FACA 10 BURPEES')}</div>
-          <button class="mt-btn mt-btn-complete" data-action="complete-penalty">CONCLUIR PENALIDADE</button>
-        </div>
-      </div>
-    `;
-  }
-
   render() {
     const totalMissions = this.missions.length;
     const completedMissions = this.missions.filter((m) => m.completed).length;
@@ -479,7 +431,6 @@ class MissoesTreinoApp {
           <p class="mt-empty-text">Aguarde enquanto carregamos do banco.</p>
         </div>
       `;
-      this.renderPenalty();
       this.renderPerformance();
       return;
     }
@@ -491,13 +442,11 @@ class MissoesTreinoApp {
           <p class="mt-empty-text">Clique em [+] Nova Missao para comecar.</p>
         </div>
       `;
-      this.renderPenalty();
       this.renderPerformance();
       return;
     }
 
     this.listEl.innerHTML = this.missions.map((mission, idx) => missionCardHtml(mission, idx)).join('');
-    this.renderPenalty();
     this.renderPerformance();
     this.renderToasts();
   }
@@ -605,9 +554,6 @@ class MissoesTreinoApp {
           .mt-progress{height:100%;width:0%;background:linear-gradient(90deg,#00e5ff,#00c6ff);transition:width .35s ease}
           .mt-progress.is-full{background:linear-gradient(90deg,#00d084,#3ce29f)}
           .mt-list{display:grid;gap:10px;position:relative;z-index:1}
-          .mt-notice{margin:8px 0 2px;font-size:.72rem;color:#7de3f7;min-height:16px;position:relative;z-index:1}
-          .mt-notice.is-error{color:#ff8ca1}
-          .mt-notice.is-empty{opacity:0}
           .mt-empty-card{border:1px dashed var(--mt-border);background:rgba(255,255,255,.03);padding:24px 14px;text-align:center;border-radius:10px}
           .mt-empty-title{margin:0;color:var(--mt-accent);font-weight:800;letter-spacing:.12em;font-size:.78rem}
           .mt-empty-text{margin:6px 0 0;color:#8f9aa6;font-size:.72rem}
@@ -685,13 +631,7 @@ class MissoesTreinoApp {
           .mt-toast-wrap{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:5000}
           .mt-toast{padding:10px 12px;background:rgba(0,229,255,.16);border:1px solid rgba(0,229,255,.55);color:#b9f5ff;font-size:.72rem;letter-spacing:.04em;border-radius:9px;backdrop-filter:blur(5px);animation:toastIn .24s ease}
           .mt-toast.is-error{background:rgba(255,0,60,.14);border-color:rgba(255,0,60,.62);color:#ffd3dd}
-          .mt-penalty-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px;z-index:4200}
-          .mt-penalty-card{width:min(560px,100%);border:1px solid rgba(255,145,0,.55);background:linear-gradient(165deg,rgba(36,17,3,.93),rgba(15,8,3,.95));padding:16px;border-radius:12px;box-shadow:0 0 24px rgba(255,125,0,.28);animation:penaltyIn .25s ease}
-          .mt-penalty-card h3{margin:0;color:#ffb347;font-family:"Orbitron","Segoe UI",sans-serif}
-          .mt-penalty-card p{margin:8px 0 0;color:#ffdcb3;font-size:.83rem}
-          .mt-penalty-task{margin:12px 0;padding:11px;border:1px dashed rgba(255,145,0,.7);color:#ffd27f;font-weight:800;letter-spacing:.06em;text-align:center}
           @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-          @keyframes penaltyIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
           @keyframes cardIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
           @keyframes radarPulse{0%,100%{opacity:.88;transform:scale(.965)}50%{opacity:1;transform:scale(1.035)}}
           @keyframes radarFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
@@ -731,7 +671,6 @@ class MissoesTreinoApp {
         </header>
 
         <div class="mt-progress-wrap"><div class="mt-progress" data-role="progress"></div></div>
-        <p class="mt-notice is-empty" data-role="notice"></p>
         <section class="mt-list" data-role="list"></section>
         <section data-role="performance"></section>
         <div class="mt-fab-wrap">
@@ -739,7 +678,6 @@ class MissoesTreinoApp {
           <button class="mt-fab sec" data-action="refresh">Sincronizar</button>
         </div>
         <div class="mt-toast-wrap" data-role="toasts"></div>
-        <div data-role="penalty"></div>
 
         <div class="mt-modal is-hidden" data-role="modal">
           <div class="mt-modal-card">
