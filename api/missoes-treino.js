@@ -40,19 +40,37 @@ function getMonthRangeFromDateRef(dateRef) {
   return { start, end, monthRef };
 }
 
-function listRecentMonthRefs(anchorMonthRef, count = 6) {
+function listRecentMonthRefs(anchorMonthRef, floorMonthRef = null) {
   const [year, month] = String(anchorMonthRef || '').split('-').map(Number);
   if (!Number.isFinite(year) || !Number.isFinite(month)) return [];
+  const floor = String(floorMonthRef || '').trim();
   const refs = [];
-  for (let i = 0; i < count; i += 1) {
-    const d = new Date(year, month - 1 - i, 1);
-    refs.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  let cursor = new Date(year, month - 1, 1);
+  while (true) {
+    const d = new Date(cursor);
+    const monthRef = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (floor && monthRef < floor) break;
+    refs.push(monthRef);
+    cursor.setMonth(cursor.getMonth() - 1);
   }
   return refs;
 }
 
-async function fetchMonthlyHistory(anchorMonthRef, cycleTotalDays = 30, maxMonths = 6) {
-  const months = listRecentMonthRefs(anchorMonthRef, maxMonths);
+async function getHistoryFloorMonthRef(anchorMonthRef) {
+  const { data, error } = await supabase
+    .from(TABLE_MISSOES)
+    .select('data_referencia')
+    .order('data_referencia', { ascending: true })
+    .limit(1);
+  if (error) throw new Error(error.message);
+  const firstDate = String(data?.[0]?.data_referencia || '');
+  const firstMonth = /^\d{4}-\d{2}-\d{2}$/.test(firstDate) ? firstDate.slice(0, 7) : '';
+  return firstMonth || String(anchorMonthRef || '');
+}
+
+async function fetchMonthlyHistory(anchorMonthRef, cycleTotalDays = 30) {
+  const floorMonthRef = await getHistoryFloorMonthRef(anchorMonthRef);
+  const months = listRecentMonthRefs(anchorMonthRef, floorMonthRef);
   if (!months.length) return [];
 
   const doneByMonth = new Map(months.map((monthRef) => [monthRef, new Set()]));
@@ -335,7 +353,7 @@ async function fetchMissionsByDate(dateRef) {
 async function fetchMonthlyPerformance(dateRef) {
   const { start, end, monthRef } = getMonthRangeFromDateRef(dateRef);
   const cycleTotalDays = 30;
-  const history = await fetchMonthlyHistory(monthRef, cycleTotalDays, 6);
+  const history = await fetchMonthlyHistory(monthRef, cycleTotalDays);
   const completedCycleDays = Number(history?.[0]?.completed_days || 0);
 
   const { data: missionRows, error: mErr } = await supabase

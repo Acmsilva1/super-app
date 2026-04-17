@@ -638,7 +638,10 @@ class MissoesTreinoApp {
           .mt-perf-card{border:1px solid rgba(64,128,166,.34);border-radius:11px;padding:10px;background:linear-gradient(160deg,rgba(2,12,20,.52),rgba(3,16,28,.36));animation:cardIn .62s cubic-bezier(.2,.8,.2,1) both;transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease}
           .mt-perf-card:hover{transform:translateY(-4px) scale(1.006);border-color:rgba(0,229,255,.52);box-shadow:0 12px 20px rgba(2,20,36,.3)}
           .mt-perf-card h4{margin:0 0 8px;color:#8cf2ff;font-size:.72rem;letter-spacing:.08em;font-family:"Orbitron","Segoe UI",sans-serif}
-          .mt-success-history{display:grid;gap:9px}
+          .mt-success-history{display:grid;gap:9px;max-height:260px;overflow-y:auto;padding-right:4px}
+          .mt-success-history::-webkit-scrollbar{width:8px}
+          .mt-success-history::-webkit-scrollbar-thumb{background:rgba(84,130,156,.45);border-radius:999px}
+          .mt-success-history::-webkit-scrollbar-track{background:rgba(11,20,32,.35);border-radius:999px}
           .mt-success-history-item{padding:6px 8px;border-radius:9px;border:1px solid rgba(84,130,156,.2);background:rgba(8,16,25,.36);animation:cardIn .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--history-i, 0) * .05s)}
           .mt-success-history-item.is-closed{border-color:rgba(255,166,0,.28);background:linear-gradient(160deg,rgba(29,17,3,.36),rgba(20,13,4,.22))}
           .mt-success-line{display:flex;align-items:center;gap:8px}
