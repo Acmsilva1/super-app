@@ -3692,7 +3692,7 @@
                 const totais = data.totais || { receitas: 0, despesas: 0, despesas_fixas: 0, liquido: 0 };
                 const bi = data.bi || {};
                 const tabelaGastos = bi.tabela_gastos || [];
-                const categorias = ['Alimentação','Habitação','Transporte','Lazer','Saúde','Compras','Contas','Receitas'];
+                const categorias = ['Alimentação','Habitação','Transporte','Lazer','Saúde','Compras','Contas','Receitas','Tickt'];
                 const mesAno = data.mes_ano || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const todayBrazilIso = this.getBrazilDateIsoFrom(new Date());

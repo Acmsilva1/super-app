@@ -31,6 +31,9 @@ export const MAPA_CATEGORIAS = {
     'faculdade', 'esporte', 'servicos bancarios', 'pensao', 'celular', 'assinatura',
     'imposto', 'cartao de credito', 'emprestimo', 'tarifa', 'seguro', 'anuidade', 'mei', 'irpf',
   ],
+  'Tickt': [
+    'tickt', 'ticket',
+  ],
   'Receitas': [
     'salario', 'ticket', 'vale', 'vendas', 'recebi', 'pix recebido', 'reembolso',
     'lucro de bolo', 'rendimento', 'dividendo', 'bonus', 'decimo terceiro', 'extra', 'freelance',
