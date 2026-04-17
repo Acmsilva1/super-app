@@ -3241,6 +3241,219 @@
                 });
             }
 
+            formatMesAnoLabel(mesAno) {
+                const s = String(mesAno || '');
+                const m = s.match(/^(\d{4})-(\d{2})$/);
+                if (!m) return s;
+                return `${m[2]}/${m[1]}`;
+            }
+
+            formatMoneyBr(value) {
+                return `R$ ${Number(value || 0).toFixed(2)}`;
+            }
+
+            downloadHtmlReport(filenameBase, htmlContent) {
+                const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${filenameBase}.html`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            }
+
+            async renderChartImageDataUrl(config, width = 1000, height = 420) {
+                if (typeof Chart === 'undefined') return '';
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return '';
+                const finalConfig = {
+                    ...config,
+                    options: {
+                        responsive: false,
+                        animation: false,
+                        ...(config.options || {}),
+                    },
+                };
+                const chart = new Chart(ctx, finalConfig);
+                await new Promise((resolve) => requestAnimationFrame(resolve));
+                const dataUrl = canvas.toDataURL('image/png');
+                chart.destroy();
+                return dataUrl;
+            }
+
+            buildReportHtml({ title, subtitle, summaryRows = [], chartSections = [], tableHeaders = [], tableRows = [] }) {
+                const summaryHtml = summaryRows.map((row) => `
+                    <div class="summary-card">
+                        <div class="summary-label">${escapeHtml(row.label || '')}</div>
+                        <div class="summary-value">${escapeHtml(String(row.value || ''))}</div>
+                    </div>
+                `).join('');
+                const chartsHtml = chartSections.map((section) => `
+                    <section class="section">
+                        <h3>${escapeHtml(section.title || '')}</h3>
+                        ${section.img ? `<img src="${section.img}" alt="${escapeHtml(section.title || 'Gráfico')}" />` : '<p>Sem dados para gráfico neste mês.</p>'}
+                    </section>
+                `).join('');
+                const tableHead = tableHeaders.map((h) => `<th>${escapeHtml(h)}</th>`).join('');
+                const tableBody = tableRows.length
+                    ? tableRows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(String(cell ?? ''))}</td>`).join('')}</tr>`).join('')
+                    : `<tr><td colspan="${Math.max(1, tableHeaders.length)}">Sem dados no período.</td></tr>`;
+
+                return `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:24px;color:#0f172a;background:#f8fafc}
+    h1{margin:0 0 4px 0;font-size:24px}
+    .subtitle{color:#475569;margin-bottom:16px}
+    .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:16px 0}
+    .summary-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px}
+    .summary-label{font-size:12px;color:#64748b}
+    .summary-value{font-size:18px;font-weight:700}
+    .section{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-top:12px}
+    .section h3{margin:0 0 10px 0;font-size:16px}
+    img{width:100%;height:auto;border:1px solid #e2e8f0;border-radius:8px;background:#fff}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    th,td{border:1px solid #e2e8f0;padding:8px;text-align:left;font-size:13px}
+    th{background:#f1f5f9}
+    .foot{margin-top:14px;color:#64748b;font-size:12px}
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <div class="subtitle">${escapeHtml(subtitle)}</div>
+  <div class="summary">${summaryHtml}</div>
+  ${chartsHtml}
+  <section class="section">
+    <h3>Dados Utilizados</h3>
+    <table>
+      <thead><tr>${tableHead}</tr></thead>
+      <tbody>${tableBody}</tbody>
+    </table>
+  </section>
+  <div class="foot">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+</body>
+</html>`;
+            }
+
+            async baixarRelatorioDespesasHtml(payload) {
+                const rows = payload?.rows || [];
+                const soma = Number(payload?.soma || 0);
+                const somaPago = Number(payload?.somaPago || 0);
+                const somaPendente = Number(payload?.somaPendente || 0);
+                const receitasFinancas = Number(payload?.receitasFinancas || 0);
+                const margem = Number(payload?.margem || 0);
+                const mesAno = String(payload?.mesAno || this.getMesAnoAtual());
+                const mesAnoLabel = this.formatMesAnoLabel(mesAno);
+
+                const barImg = await this.renderChartImageDataUrl({
+                    type: 'bar',
+                    data: {
+                        labels: ['Pagos', 'Pendentes', 'Total'],
+                        datasets: [{ data: [somaPago, somaPendente, soma], backgroundColor: ['#22c55e', '#ef4444', '#2563eb'] }],
+                    },
+                    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+                });
+                const pieImg = await this.renderChartImageDataUrl({
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pagos', 'Pendentes'],
+                        datasets: [{ data: [somaPago, somaPendente], backgroundColor: ['#22c55e', '#ef4444'] }],
+                    },
+                });
+
+                const html = this.buildReportHtml({
+                    title: 'Relatório Mensal - Despesas Fixas',
+                    subtitle: `Mês/Ano: ${mesAnoLabel}`,
+                    summaryRows: [
+                        { label: 'Receitas (Finanças)', value: this.formatMoneyBr(receitasFinancas) },
+                        { label: 'Total Pagos', value: this.formatMoneyBr(somaPago) },
+                        { label: 'Total Pendentes', value: this.formatMoneyBr(somaPendente) },
+                        { label: 'Total Geral', value: this.formatMoneyBr(soma) },
+                        { label: 'Margem', value: this.formatMoneyBr(margem) },
+                        { label: 'Itens', value: String(rows.length) },
+                    ],
+                    chartSections: [
+                        { title: 'Visão Geral de Valores', img: barImg },
+                        { title: 'Distribuição por Status', img: pieImg },
+                    ],
+                    tableHeaders: ['Descrição', 'Valor (R$)', 'Status'],
+                    tableRows: rows.map((r) => [r?.descricao || '', Number(r?.valor || 0).toFixed(2), String(r?.status || '')]),
+                });
+                this.downloadHtmlReport(`relatorio-despesas-fixas-${mesAno}`, html);
+            }
+
+            async baixarRelatorioFinancasHtml(payload) {
+                const rows = payload?.rows || [];
+                const totais = payload?.totais || {};
+                const tabelaGastos = payload?.tabelaGastos || [];
+                const mesAno = String(payload?.mesAno || this.getMesAnoAtual());
+                const mesAnoLabel = this.formatMesAnoLabel(mesAno);
+                const receitas = Number(totais.receitas || 0);
+                const despesasVariaveis = Number(totais.despesas || 0);
+                const despesasFixas = Number(totais.despesas_fixas || 0);
+                const liquido = Number(totais.liquido || (receitas - despesasVariaveis - despesasFixas));
+
+                let pieImg = '';
+                let barImg = '';
+                const pieCanvas = payload?.el?.querySelector('#fin-chart-pie');
+                const barCanvas = payload?.el?.querySelector('#fin-chart-bar');
+                if (pieCanvas && typeof pieCanvas.toDataURL === 'function') pieImg = pieCanvas.toDataURL('image/png');
+                if (barCanvas && typeof barCanvas.toDataURL === 'function') barImg = barCanvas.toDataURL('image/png');
+                if (!pieImg) {
+                    pieImg = await this.renderChartImageDataUrl({
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Receitas', 'Despesas variáveis', 'Despesas fixas'],
+                            datasets: [{ data: [receitas, despesasVariaveis, despesasFixas], backgroundColor: ['#22c55e', '#dc2626', '#b91c1c'] }],
+                        },
+                    });
+                }
+                if (!barImg && tabelaGastos.length) {
+                    barImg = await this.renderChartImageDataUrl({
+                        type: 'bar',
+                        data: {
+                            labels: tabelaGastos.map((x) => String(x[0] || '')),
+                            datasets: [{ data: tabelaGastos.map((x) => Number(x[1] || 0)), backgroundColor: '#2563eb' }],
+                        },
+                        options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
+                    });
+                }
+
+                const html = this.buildReportHtml({
+                    title: 'Relatório Mensal - Finanças',
+                    subtitle: `Mês/Ano: ${mesAnoLabel}`,
+                    summaryRows: [
+                        { label: 'Receitas', value: this.formatMoneyBr(receitas) },
+                        { label: 'Despesas Variáveis', value: this.formatMoneyBr(despesasVariaveis) },
+                        { label: 'Despesas Fixas', value: this.formatMoneyBr(despesasFixas) },
+                        { label: 'Líquido', value: this.formatMoneyBr(liquido) },
+                        { label: 'Lançamentos', value: String(rows.length) },
+                    ],
+                    chartSections: [
+                        { title: 'Receitas x Despesas', img: pieImg },
+                        { title: 'Categorias que Mais Gastam', img: barImg },
+                    ],
+                    tableHeaders: ['Data', 'Descrição', 'Tipo', 'Categoria', 'Valor (R$)'],
+                    tableRows: rows.map((r) => [
+                        String((r?.data_lancamento || (r?.created_at && String(r.created_at).slice(0, 10)) || '')).slice(0, 10),
+                        r?.descricao || '',
+                        r?.tipo || '',
+                        r?.categoria || '',
+                        Number(r?.valor || 0).toFixed(2),
+                    ]),
+                });
+                this.downloadHtmlReport(`relatorio-financas-${mesAno}`, html);
+            }
+
             // ============================================
             // GERENCIAR JANELAS DE APPS
             // ============================================
@@ -3521,6 +3734,7 @@
                         </div>
                         <button type="button" class="app-btn" data-action="df-save">Adicionar</button>
                         <button type="button" class="app-btn app-btn-secondary" data-action="df-exportar">Exportar dados</button>
+                        <button type="button" class="app-btn app-btn-secondary" data-action="df-report-html">Baixar relatório HTML</button>
                     </div>
                     <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:0 0 0.5rem 0">Novas despesas fixas entram no <strong>mês/ano selecionado acima</strong> (lançamentos retroativos: escolha o mês e depois adicione).</p>
                     <div class="df-colunas">
@@ -3588,6 +3802,21 @@
                 el.querySelector('#df-mes').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('notas'); };
                 el.querySelector('#df-ano').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('notas'); };
                 el.querySelector('[data-action="df-exportar"]').onclick = () => this.abrirExportarDespesasFixas(el, mesAno, meses, anos);
+                el.querySelector('[data-action="df-report-html"]').onclick = async () => {
+                    try {
+                        await this.baixarRelatorioDespesasHtml({
+                            rows,
+                            soma,
+                            somaPago,
+                            somaPendente,
+                            receitasFinancas,
+                            margem,
+                            mesAno,
+                        });
+                    } catch (e) {
+                        alert(e.message || 'Erro ao gerar relatório HTML.');
+                    }
+                };
                 let _prevMesAno = this.getMesAnoAtual();
                 el._mesCheckInterval = setInterval(() => {
                     const now = this.getMesAnoAtual();
@@ -3733,6 +3962,7 @@
                         </div>
                         <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:-0.25rem 0 0.5rem 0">O lançamento aparece no mês/ano escolhido no topo, conforme esta data.</p>
                         <button type="button" class="app-btn" data-action="financas-save">Registrar</button>
+                        <button type="button" class="app-btn app-btn-secondary" data-action="financas-report-html">Baixar relatório HTML</button>
                     </div>
                     <div class="app-charts">
                         <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas variáveis x Despesas fixas</p><canvas id="fin-chart-pie"></canvas></div>
@@ -3834,6 +4064,19 @@
                     root.querySelectorAll('[data-action="fin-delete"]').forEach((b) => { b.onclick = () => this.submitFinancasDelete(b.dataset.id, el); });
                 };
                 el.querySelector('[data-action="financas-save"]').onclick = () => this.submitFinancasSave(el);
+                el.querySelector('[data-action="financas-report-html"]').onclick = async () => {
+                    try {
+                        await this.baixarRelatorioFinancasHtml({
+                            el,
+                            rows,
+                            totais,
+                            tabelaGastos,
+                            mesAno,
+                        });
+                    } catch (e) {
+                        alert(e.message || 'Erro ao gerar relatório HTML.');
+                    }
+                };
                 wireFinList(listRec);
                 wireFinList(listDesp);
                 const syncFinDataLimits = () => {
