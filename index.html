@@ -719,6 +719,13 @@
             gap: 0.5rem;
             flex-wrap: wrap;
         }
+        .dashboard-control-item {
+            min-width: 170px;
+            display: grid;
+            gap: 0.28rem;
+            align-items: start;
+            flex: 1 1 190px;
+        }
 
         .dashboard-controls label {
             font-size: 0.8125rem;
@@ -729,7 +736,6 @@
         }
 
         .dashboard-profile-select {
-            min-width: 170px;
             background: #0f172a;
             color: #e2e8f0;
             border: 1px solid #334155;
@@ -737,9 +743,9 @@
             padding: 0.45rem 0.6rem;
             font-size: 0.875rem;
             font-weight: 600;
+            width: 100%;
         }
         .dashboard-filter-select {
-            min-width: 170px;
             background: #0f172a;
             color: #e2e8f0;
             border: 1px solid #334155;
@@ -747,6 +753,7 @@
             padding: 0.45rem 0.6rem;
             font-size: 0.875rem;
             font-weight: 600;
+            width: 100%;
         }
         .dashboard-insights {
             margin-top: 1rem;
@@ -1015,12 +1022,14 @@
                 height: 220px;
             }
             .dashboard-controls {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 0.65rem;
                 align-items: stretch;
             }
-            .dashboard-profile-select,
-            .dashboard-filter-select {
+            .dashboard-control-item {
                 min-width: 0;
-                width: 100%;
+                gap: 0.3rem;
             }
         }
         @media (max-width: 420px) {
@@ -1029,6 +1038,9 @@
             }
             .dashboard-chart-wrap {
                 height: 235px;
+            }
+            .dashboard-insights {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -2090,6 +2102,61 @@
         .df-form-grid .field > textarea {
             width: 100%;
         }
+        .app-form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            align-items: center;
+        }
+        .app-form-note {
+            font-size: 0.75rem;
+            color: var(--text-muted, #6b7280);
+            margin: 0 0 0.5rem 0;
+            line-height: 1.45;
+        }
+        .fin-col-titulo--with-filter {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.55rem;
+        }
+        .fin-filter-select {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            background: #0f172a;
+            color: #e5e7eb;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.8rem;
+            cursor: pointer;
+            max-width: 150px;
+        }
+        .fin-filter-select option {
+            background: #0f172a;
+            color: #e5e7eb;
+        }
+        @media (max-width: 640px) {
+            .fin-form-grid,
+            .df-form-grid {
+                grid-template-columns: 1fr;
+                gap: 0.65rem;
+            }
+            .app-form-actions {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 0.55rem;
+            }
+            .app-form-actions .app-btn {
+                width: 100%;
+            }
+            .fin-col-titulo--with-filter {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .fin-filter-select {
+                max-width: none;
+                width: 100%;
+            }
+        }
         .app-btn {
             padding: 0.5rem 1rem;
             border: 1px solid rgba(56, 189, 248, 0.42);
@@ -2800,23 +2867,29 @@
                 <h2>Bem-vindo ao SUPERAPP</h2>
                 <p>Plataforma unificada de microserviços e aplicações práticas. Acesse todas as suas ferramentas em um único lugar.</p>
                 <div class="dashboard-controls">
-                    <label for="dashboardProfileSelect">Perfil:</label>
-                    <select id="dashboardProfileSelect" class="dashboard-profile-select">
-                        <option value="weekly">Semanal</option>
-                        <option value="monthly">Mensal</option>
-                        <option value="total">Total</option>
-                    </select>
-                    <label for="dashboardEndpointSelect">Endpoint:</label>
-                    <select id="dashboardEndpointSelect" class="dashboard-filter-select">
-                        <option value="all">Todos</option>
-                    </select>
-                    <label for="dashboardHistoryWindowSelect">Histórico:</label>
-                    <select id="dashboardHistoryWindowSelect" class="dashboard-filter-select">
-                        <option value="all">Tudo</option>
-                        <option value="30">30 pontos</option>
-                        <option value="14">14 pontos</option>
-                        <option value="7">7 pontos</option>
-                    </select>
+                    <div class="dashboard-control-item">
+                        <label for="dashboardProfileSelect">Perfil:</label>
+                        <select id="dashboardProfileSelect" class="dashboard-profile-select">
+                            <option value="weekly">Semanal</option>
+                            <option value="monthly">Mensal</option>
+                            <option value="total">Total</option>
+                        </select>
+                    </div>
+                    <div class="dashboard-control-item">
+                        <label for="dashboardEndpointSelect">Endpoint:</label>
+                        <select id="dashboardEndpointSelect" class="dashboard-filter-select">
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
+                    <div class="dashboard-control-item">
+                        <label for="dashboardHistoryWindowSelect">Histórico:</label>
+                        <select id="dashboardHistoryWindowSelect" class="dashboard-filter-select">
+                            <option value="all">Tudo</option>
+                            <option value="30">30 pontos</option>
+                            <option value="14">14 pontos</option>
+                            <option value="7">7 pontos</option>
+                        </select>
+                    </div>
                 </div>
                 <p id="dashboardLastUpdate" class="dashboard-last-update">Última análise: carregando...</p>
             </div>
@@ -4620,11 +4693,13 @@
                             <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="df-valor" placeholder="0,00" /></div>
                             <div class="field"><label>Status</label><select id="df-status"><option value="pendente">Pendente</option><option value="pago">Pago</option></select></div>
                         </div>
-                        <button type="button" class="app-btn" data-action="df-save">Adicionar</button>
-                        <button type="button" class="app-btn app-btn-secondary" data-action="df-exportar">Exportar dados</button>
-                        <button type="button" class="app-btn app-btn-secondary" data-action="df-report-html">Baixar relatório HTML</button>
+                        <div class="app-form-actions">
+                            <button type="button" class="app-btn" data-action="df-save">Adicionar</button>
+                            <button type="button" class="app-btn app-btn-secondary" data-action="df-exportar">Exportar dados</button>
+                            <button type="button" class="app-btn app-btn-secondary" data-action="df-report-html">Baixar relatório HTML</button>
+                        </div>
                     </div>
-                    <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:0 0 0.5rem 0">Novas despesas fixas entram no <strong>mês/ano selecionado acima</strong> (lançamentos retroativos: escolha o mês e depois adicione).</p>
+                    <p class="app-form-note">Novas despesas fixas entram no <strong>mês/ano selecionado acima</strong> (lançamentos retroativos: escolha o mês e depois adicione).</p>
                     <div class="df-colunas">
                         <div class="df-col df-col--pagos">
                             <p class="df-col-titulo">Pagos</p>
@@ -4848,9 +4923,11 @@
                             <div class="field"><label>Categoria</label><select id="fin-categoria"><option value="">--</option>${categorias.map(c => '<option value="'+c+'">'+c+'</option>').join('')}</select></div>
                             <div class="field"><label>Data do lançamento</label><input type="date" id="fin-data" value="${defaultLancamento}" min="${firstDayMonth}" max="${lastDayMonth}" title="Dia no mês selecionado acima" /></div>
                         </div>
-                        <p style="font-size:0.75rem;color:var(--text-muted,#6b7280);margin:-0.25rem 0 0.5rem 0">O lançamento aparece no mês/ano escolhido no topo, conforme esta data.</p>
-                        <button type="button" class="app-btn" data-action="financas-save">Registrar</button>
-                        <button type="button" class="app-btn app-btn-secondary" data-action="financas-report-html">Baixar relatório HTML</button>
+                        <p class="app-form-note">O lançamento aparece no mês/ano escolhido no topo, conforme esta data.</p>
+                        <div class="app-form-actions">
+                            <button type="button" class="app-btn" data-action="financas-save">Registrar</button>
+                            <button type="button" class="app-btn app-btn-secondary" data-action="financas-report-html">Baixar relatório HTML</button>
+                        </div>
                     </div>
                     <div class="app-charts">
                         <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x Despesas variáveis x Despesas fixas</p><canvas id="fin-chart-pie"></canvas></div>
@@ -4862,11 +4939,11 @@
                             <ul class="app-list" id="fin-list-receitas"></ul>
                         </div>
                         <div class="fin-col fin-col--despesas">
-                            <div class="fin-col-titulo" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="fin-col-titulo fin-col-titulo--with-filter">
                                 <span>Despesas</span>
-                                <select id="fin-filter-despesas" style="padding: 0.2rem 0.5rem; border-radius: 4px; background: #0f172a; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; cursor: pointer; max-width: 150px;">
-                                    <option value="" style="background: #0f172a; color: #e5e7eb;">Todas categorias</option>
-                                    ${categorias.map(c => `<option value="${c}" style="background: #0f172a; color: #e5e7eb;">${c}</option>`).join('')}
+                                <select id="fin-filter-despesas" class="fin-filter-select">
+                                    <option value="">Todas categorias</option>
+                                    ${categorias.map(c => `<option value="${c}">${c}</option>`).join('')}
                                 </select>
                             </div>
                             <ul class="app-list" id="fin-list-despesas"></ul>
