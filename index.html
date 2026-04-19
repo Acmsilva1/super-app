@@ -18,8 +18,12 @@
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Chart.js -->
+    <!-- Chart.js (modulos legados) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- ECharts (dashboard moderno) -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <!-- Motion (animacoes modernas) -->
+    <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -653,6 +657,17 @@
             box-shadow: var(--shadow-sm);
             display: grid;
             gap: 0.35rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .dashboard-summary-card::before {
+            content: '';
+            position: absolute;
+            inset: 0 auto auto 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.9), rgba(34, 211, 238, 0.4), transparent);
+            pointer-events: none;
         }
         .dashboard-summary-label {
             font-size: 0.72rem;
@@ -722,6 +737,26 @@
             box-shadow: var(--shadow-sm);
             backdrop-filter: blur(8px);
             transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .dashboard-chart-card::before {
+            content: '';
+            position: absolute;
+            inset: -35% auto auto -25%;
+            width: 62%;
+            height: 70%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.14), transparent 68%);
+            pointer-events: none;
+        }
+        .dashboard-chart-card::after {
+            content: '';
+            position: absolute;
+            inset: auto -22% -40% auto;
+            width: 58%;
+            height: 68%;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.12), transparent 72%);
+            pointer-events: none;
         }
         .dashboard-chart-card:hover {
             transform: translateY(-2px);
@@ -739,11 +774,12 @@
 
         .dashboard-chart-wrap {
             position: relative;
-            height: 160px;
+            height: 205px;
         }
 
-        .dashboard-chart-wrap canvas {
-            max-height: 160px;
+        .dashboard-chart {
+            width: 100%;
+            height: 100%;
         }
         .dashboard-health-report {
             margin-top: 1rem;
@@ -897,10 +933,7 @@
                 margin-bottom: 0.6rem;
             }
             .dashboard-chart-wrap {
-                height: 190px;
-            }
-            .dashboard-chart-wrap canvas {
-                max-height: 190px;
+                height: 220px;
             }
         }
         @media (max-width: 420px) {
@@ -908,10 +941,7 @@
                 grid-template-columns: 1fr;
             }
             .dashboard-chart-wrap {
-                height: 210px;
-            }
-            .dashboard-chart-wrap canvas {
-                max-height: 210px;
+                height: 235px;
             }
         }
 
@@ -949,10 +979,12 @@
         }
 
         .app-card {
-            background: linear-gradient(160deg, rgba(16, 30, 56, 0.86), rgba(10, 20, 38, 0.9));
+            background:
+                radial-gradient(120% 120% at 0% 0%, rgba(125, 211, 252, 0.22), transparent 48%),
+                linear-gradient(162deg, rgba(16, 30, 56, 0.88), rgba(10, 20, 38, 0.9));
             border: 1px solid rgba(98, 136, 194, 0.34);
-            border-radius: 1rem;
-            min-height: 144px;
+            border-radius: 1.1rem;
+            min-height: 156px;
             padding: 1rem 0.85rem 0.9rem;
             box-shadow: var(--shadow-sm);
             transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, filter 0.22s ease;
@@ -974,10 +1006,32 @@
             pointer-events: none;
             opacity: 0.7;
         }
+        .app-card::after {
+            content: '';
+            position: absolute;
+            inset: auto -26% -45% auto;
+            width: 64%;
+            height: 68%;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.22), transparent 68%);
+            pointer-events: none;
+            opacity: 0.68;
+        }
+        .app-card[data-tone="cool"] .app-icon-box {
+            background: linear-gradient(135deg, #22d3ee, #0ea5e9 58%, #2563eb);
+        }
+        .app-card[data-tone="growth"] .app-icon-box {
+            background: linear-gradient(135deg, #34d399, #22c55e 58%, #16a34a);
+        }
+        .app-card[data-tone="warm"] .app-icon-box {
+            background: linear-gradient(135deg, #fbbf24, #f97316 58%, #ea580c);
+        }
+        .app-card[data-tone="energy"] .app-icon-box {
+            background: linear-gradient(135deg, #f472b6, #ec4899 58%, #db2777);
+        }
 
         .app-card:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 20px 36px rgba(2, 10, 22, 0.52);
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 22px 38px rgba(2, 10, 22, 0.56);
             border-color: rgba(56, 189, 248, 0.58);
             filter: saturate(1.08);
         }
@@ -990,22 +1044,56 @@
         }
 
         .app-icon-box {
-            width: 3.1rem;
-            height: 3.1rem;
-            background: linear-gradient(135deg, #22d3ee, #0ea5e9 58%, #2563eb);
-            border-radius: 0.75rem;
+            width: 3.3rem;
+            height: 3.3rem;
+            border-radius: 0.9rem;
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
+            gap: 0.08rem;
             font-size: 1.2rem;
             color: white;
             transition: transform 0.25s ease, box-shadow 0.25s ease;
             box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .app-icon-box::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255,255,255,0.18), transparent 46%);
+            pointer-events: none;
+        }
+        .app-emoji {
+            font-size: 1.3rem;
+            line-height: 1;
+            z-index: 1;
+            filter: drop-shadow(0 2px 6px rgba(2, 10, 22, 0.45));
+            transform-origin: center;
+            animation: emojiPulse 2.8s ease-in-out infinite;
+        }
+        .app-icon-glyph {
+            font-size: 0.68rem;
+            opacity: 0.9;
+            z-index: 1;
+            transform: translateY(-1px);
+        }
+        .app-emoji-orbit {
+            position: absolute;
+            top: -0.5rem;
+            right: -0.48rem;
+            font-size: 0.74rem;
+            animation: orbitBlink 2.1s ease-in-out infinite;
         }
 
         .app-card:hover .app-icon-box {
-            transform: scale(1.1) rotate(-2deg);
+            transform: scale(1.1) rotate(-3deg);
             box-shadow: 0 14px 28px rgba(14, 165, 233, 0.48), inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+        }
+        .app-card:hover .app-emoji {
+            animation-duration: 1.4s;
         }
 
         .app-card .badge {
@@ -1053,12 +1141,12 @@
                 gap: 0.8rem;
             }
             .app-card {
-                min-height: 132px;
+                min-height: 138px;
                 padding: 0.88rem 0.72rem 0.82rem;
             }
             .app-icon-box {
-                width: 2.8rem;
-                height: 2.8rem;
+                width: 2.95rem;
+                height: 2.95rem;
             }
             .app-title {
                 font-size: 0.78rem;
@@ -1071,6 +1159,15 @@
         @keyframes appCardIn {
             from { opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(2px); }
             to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        @keyframes emojiPulse {
+            0%, 100% { transform: translateY(0) scale(1); }
+            45% { transform: translateY(-2px) scale(1.07); }
+            75% { transform: translateY(0) scale(0.98); }
+        }
+        @keyframes orbitBlink {
+            0%, 100% { transform: scale(0.85); opacity: 0.48; }
+            50% { transform: scale(1.15); opacity: 1; }
         }
 
         .app-description,
@@ -2012,8 +2109,39 @@
         .lista-compras-col-list .lista-btn-del { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
         .app-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
         @media (max-width: 640px) { .app-charts { grid-template-columns: 1fr; } }
-        .app-chart-wrap { background: var(--bg-light); border-radius: var(--radius); padding: 1rem; min-height: 220px; }
-        .app-chart-wrap canvas { max-height: 220px; }
+        .app-chart-wrap {
+            background: linear-gradient(155deg, rgba(14, 27, 50, 0.82), rgba(10, 20, 38, 0.9));
+            border-radius: var(--radius);
+            padding: 1rem;
+            min-height: 260px;
+            border: 1px solid rgba(89, 132, 194, 0.3);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+        .app-chart-wrap::before {
+            content: '';
+            position: absolute;
+            inset: -45% auto auto -20%;
+            width: 58%;
+            height: 72%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.14), transparent 70%);
+            pointer-events: none;
+        }
+        .app-chart-wrap::after {
+            content: '';
+            position: absolute;
+            inset: auto -22% -42% auto;
+            width: 52%;
+            height: 68%;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.13), transparent 70%);
+            pointer-events: none;
+        }
+        .app-chart-wrap canvas {
+            max-height: 240px;
+            position: relative;
+            z-index: 1;
+        }
         .app-mes-ano { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
         .app-mes-ano label { font-size: 0.875rem; font-weight: 600; }
         .app-mes-ano select { padding: 0.4rem 0.6rem; border-radius: 0.5rem; border: 1px solid var(--border-color); font-size: 0.875rem; }
@@ -2512,27 +2640,27 @@
             <div id="dashboardCharts" class="dashboard-charts">
                 <div class="dashboard-chart-card">
                     <h4 class="dashboard-chart-title">Saúde da aplicação</h4>
-                    <div class="dashboard-chart-wrap"><canvas id="chartHealth"></canvas></div>
+                    <div class="dashboard-chart-wrap"><div id="chartHealth" class="dashboard-chart"></div></div>
                 </div>
                 <div class="dashboard-chart-card">
                     <h4 class="dashboard-chart-title">Status dos serviços</h4>
-                    <div class="dashboard-chart-wrap"><canvas id="chartApps"></canvas></div>
+                    <div class="dashboard-chart-wrap"><div id="chartApps" class="dashboard-chart"></div></div>
                 </div>
                 <div class="dashboard-chart-card">
                     <h4 class="dashboard-chart-title">Latência atual por endpoint</h4>
-                    <div class="dashboard-chart-wrap"><canvas id="chartData"></canvas></div>
+                    <div class="dashboard-chart-wrap"><div id="chartData" class="dashboard-chart"></div></div>
                 </div>
                 <div class="dashboard-chart-card">
                     <h4 class="dashboard-chart-title">Dados armazenados por aplicação</h4>
-                    <div class="dashboard-chart-wrap"><canvas id="chartSize"></canvas></div>
+                    <div class="dashboard-chart-wrap"><div id="chartSize" class="dashboard-chart"></div></div>
                 </div>
                 <div class="dashboard-chart-card">
                     <h4 class="dashboard-chart-title">Conexão com DB</h4>
-                    <div class="dashboard-chart-wrap"><canvas id="chartDb"></canvas></div>
+                    <div class="dashboard-chart-wrap"><div id="chartDb" class="dashboard-chart"></div></div>
                 </div>
                 <div class="dashboard-chart-card">
                     <h4 class="dashboard-chart-title">Histórico do xerife</h4>
-                    <div class="dashboard-chart-wrap"><canvas id="chartHistory"></canvas></div>
+                    <div class="dashboard-chart-wrap"><div id="chartHistory" class="dashboard-chart"></div></div>
                 </div>
             </div>
             <div id="dashboardHealthReport" class="dashboard-health-report">
@@ -2587,6 +2715,7 @@
                 localStorage.setItem('superapp-dark-mode', (!isDarkNow).toString());
                 const i = document.getElementById('darkModeIcon');
                 if (i) i.className = isDarkNow ? 'fas fa-moon' : 'fas fa-sun';
+                document.dispatchEvent(new CustomEvent('superapp:theme-change'));
             });
         })();
 
@@ -2622,6 +2751,7 @@
                 this.roadmap = [];
                 this.openWindows = new Map();
                 this.dashboardCharts = {};
+                this.dashboardResizeHandler = null;
                 this.notificationItems = [];
                 this.notificationTimer = null;
                 this.notificationDismissed = { targetDate: '', keys: [] };
@@ -2679,6 +2809,9 @@
                 });
                 document.getElementById('notificationsBtn')?.addEventListener('click', () => {
                     this.openNotificationsModal();
+                });
+                document.addEventListener('superapp:theme-change', () => {
+                    this.renderDashboardCharts();
                 });
             }
 
@@ -2762,240 +2895,229 @@
             // RENDERIZAR COMPONENTES
             // ============================================
             destroyDashboardCharts() {
-                Object.values(this.dashboardCharts).forEach(chart => { if (chart && chart.destroy) chart.destroy(); });
+                Object.values(this.dashboardCharts).forEach(chart => {
+                    if (chart && typeof chart.dispose === 'function') chart.dispose();
+                    else if (chart && typeof chart.destroy === 'function') chart.destroy();
+                });
                 this.dashboardCharts = {};
+                if (this.dashboardResizeHandler) {
+                    window.removeEventListener('resize', this.dashboardResizeHandler);
+                    this.dashboardResizeHandler = null;
+                }
             }
 
             renderDashboardCharts() {
-                if (typeof Chart === 'undefined') return;
+                if (typeof echarts === 'undefined') return;
                 this.destroyDashboardCharts();
                 const metrics = this.dashboardMetrics || {};
                 const health = metrics.health || { healthy: 0, attention: 100 };
-                const services = metrics.services || { labels: ['Total', 'Saudáveis', 'Falhas'], values: [0, 0, 0] };
+                const services = metrics.services || { labels: ['Total', 'Saudaveis', 'Falhas'], values: [0, 0, 0] };
                 const latencyCurrent = metrics.latency_current || { labels: [], values: [] };
                 const storageByApp = metrics.storage_by_app || { labels: [], values: [] };
                 const db = metrics.db || { connected: 0, unstable: 100 };
                 const history = Array.isArray(metrics.history) ? metrics.history : [];
-                const isCompactChart = window.innerWidth <= 480;
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-                const chartOptions = {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: {
-                        padding: {
-                            top: isCompactChart ? 22 : 16,
-                            right: isCompactChart ? 10 : 8,
-                            bottom: isCompactChart ? 6 : 4,
-                            left: isCompactChart ? 4 : 2,
-                        }
-                    }
+                const axisTextColor = isDark ? '#cbd5e1' : '#334155';
+                const axisLineColor = isDark ? 'rgba(148, 163, 184, 0.24)' : 'rgba(51, 65, 85, 0.16)';
+                const tooltipBg = isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(248, 250, 252, 0.96)';
+                const seriesBlue = ['#38bdf8', '#2563eb', '#1d4ed8', '#60a5fa', '#93c5fd'];
+                const seriesGood = '#22c55e';
+                const seriesWarn = '#f59e0b';
+                const seriesBad = '#ef4444';
+
+                const baseGrid = { top: 28, left: 18, right: 12, bottom: 22, containLabel: true };
+                const baseTooltip = {
+                    trigger: 'item',
+                    backgroundColor: tooltipBg,
+                    borderColor: axisLineColor,
+                    textStyle: { color: axisTextColor, fontFamily: 'Space Grotesk, sans-serif' }
                 };
-                const dashboardValuePlugin = {
-                    id: 'dashboardValuePlugin',
-                    afterDatasetsDraw(chart, _args, opts) {
-                        const dataset = chart.data?.datasets?.[0];
-                        if (!dataset) return;
-                        const meta = chart.getDatasetMeta(0);
-                        if (!meta?.data?.length) return;
-                        const { ctx } = chart;
-                        const type = chart.config.type;
-                        const color = opts?.color || '#e2e8f0';
-                        const formatter = typeof opts?.formatter === 'function'
-                            ? opts.formatter
-                            : (value) => `${Math.round(value)}`;
-
-                        ctx.save();
-                        ctx.fillStyle = color;
-                        ctx.font = `600 ${isCompactChart ? 10 : 11}px Poppins, sans-serif`;
-                        ctx.textBaseline = 'middle';
-
-                        meta.data.forEach((element, index) => {
-                            const value = Number(dataset.data?.[index] ?? 0);
-                            if (!Number.isFinite(value)) return;
-                            const point = element.tooltipPosition();
-                            const chartArea = chart.chartArea || {};
-                            if (type === 'doughnut') {
-                                if (value <= 0) return;
-                                ctx.textAlign = 'center';
-                                ctx.fillText(formatter(value, type, index), point.x, point.y);
-                                return;
-                            }
-
-                            if (type === 'bar') {
-                                const isHorizontal = chart.options?.indexAxis === 'y';
-                                ctx.textAlign = isHorizontal ? 'left' : 'center';
-                                const x = isHorizontal
-                                    ? Math.min(point.x + 8, (chartArea.right || point.x) - 18)
-                                    : point.x;
-                                const y = isHorizontal
-                                    ? point.y
-                                    : Math.max(point.y - (isCompactChart ? 8 : 10), (chartArea.top || point.y) + 8);
-                                ctx.fillText(formatter(value, type, index), x, y);
-                            }
-                        });
-
-                        ctx.restore();
-                    }
+                const axisStyle = {
+                    axisLine: { lineStyle: { color: axisLineColor } },
+                    axisTick: { show: false },
+                    axisLabel: { color: axisTextColor, fontSize: 11 },
+                    splitLine: { lineStyle: { color: axisLineColor, type: 'dashed' } }
                 };
 
-                const healthCtx = document.getElementById('chartHealth');
-                if (healthCtx) {
-                    this.dashboardCharts.health = new Chart(healthCtx, {
-                        type: 'doughnut',
-                        plugins: [dashboardValuePlugin],
-                        data: {
-                            labels: ['Saudável', 'Atenção'],
-                            datasets: [{ data: [Number(health.healthy || 0), Number(health.attention || 0)], backgroundColor: ['#22c55e', '#eab308'], borderWidth: 0 }]
-                        },
-                        options: {
-                            ...chartOptions,
-                            plugins: {
-                                legend: { position: 'bottom' },
-                                dashboardValuePlugin: { color: '#ffffff', formatter: (v) => `${v.toFixed(1)}%` }
-                            }
-                        }
-                    });
-                }
+                const createChart = (id, option) => {
+                    const el = document.getElementById(id);
+                    if (!el) return null;
+                    const chart = echarts.init(el, null, { renderer: 'canvas' });
+                    chart.setOption(option);
+                    this.dashboardCharts[id] = chart;
+                    return chart;
+                };
 
-                const appsCtx = document.getElementById('chartApps');
-                if (appsCtx) {
-                    this.dashboardCharts.apps = new Chart(appsCtx, {
+                createChart('chartHealth', {
+                    color: [seriesGood, seriesWarn],
+                    tooltip: baseTooltip,
+                    legend: { bottom: 0, textStyle: { color: axisTextColor } },
+                    series: [{
+                        type: 'pie',
+                        radius: ['56%', '82%'],
+                        center: ['50%', '44%'],
+                        label: {
+                            color: axisTextColor,
+                            formatter: '{b}\n{d}%',
+                            fontSize: 10
+                        },
+                        labelLine: { lineStyle: { color: axisLineColor } },
+                        itemStyle: { borderRadius: 8, borderColor: isDark ? '#0f172a' : '#ffffff', borderWidth: 2 },
+                        data: [
+                            { value: Number(health.healthy || 0), name: 'Saudavel' },
+                            { value: Number(health.attention || 0), name: 'Atencao' }
+                        ]
+                    }]
+                });
+
+                createChart('chartApps', {
+                    grid: baseGrid,
+                    tooltip: { ...baseTooltip, trigger: 'axis' },
+                    xAxis: { type: 'category', data: services.labels || ['Total', 'Saudaveis', 'Falhas'], ...axisStyle },
+                    yAxis: { type: 'value', ...axisStyle },
+                    series: [{
                         type: 'bar',
-                        plugins: [dashboardValuePlugin],
-                        data: {
-                            labels: services.labels || ['Total', 'Saudáveis', 'Falhas'],
-                            datasets: [{ label: 'Servicos', data: services.values || [0, 0, 0], backgroundColor: ['#2563eb', '#22c55e', '#ef4444'] }]
+                        data: services.values || [0, 0, 0],
+                        barWidth: '48%',
+                        itemStyle: {
+                            borderRadius: [8, 8, 0, 0],
+                            color: (params) => [seriesBlue[1], seriesGood, seriesBad][params.dataIndex] || seriesBlue[0]
                         },
-                        options: {
-                            ...chartOptions,
-                            scales: {
-                                x: {
-                                    ticks: { maxRotation: 0, minRotation: 0, font: { size: isCompactChart ? 10 : 12 } }
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: { precision: 0, font: { size: isCompactChart ? 10 : 12 } }
-                                }
-                            },
-                            plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}` } }
-                        }
-                    });
-                }
+                        label: { show: true, position: 'top', color: axisTextColor, fontSize: 11 }
+                    }]
+                });
 
-                const dataCtx = document.getElementById('chartData');
-                if (dataCtx) {
-                    this.dashboardCharts.data = new Chart(dataCtx, {
+                createChart('chartData', {
+                    grid: baseGrid,
+                    tooltip: { ...baseTooltip, trigger: 'axis' },
+                    xAxis: {
+                        type: 'category',
+                        data: (latencyCurrent.labels && latencyCurrent.labels.length ? latencyCurrent.labels : ['Sem dados']),
+                        ...axisStyle
+                    },
+                    yAxis: { type: 'value', ...axisStyle },
+                    series: [{
                         type: 'bar',
-                        plugins: [dashboardValuePlugin],
-                        data: {
-                            labels: (latencyCurrent.labels && latencyCurrent.labels.length ? latencyCurrent.labels : ['Sem dados']),
-                            datasets: [{ label: 'Latência (ms)', data: (latencyCurrent.values && latencyCurrent.values.length ? latencyCurrent.values : [0]), backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'] }]
+                        data: (latencyCurrent.values && latencyCurrent.values.length ? latencyCurrent.values : [0]),
+                        barWidth: '58%',
+                        itemStyle: {
+                            borderRadius: [8, 8, 0, 0],
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#38bdf8' },
+                                { offset: 1, color: '#1d4ed8' }
+                            ])
                         },
-                        options: {
-                            ...chartOptions,
-                            scales: {
-                                x: {
-                                    ticks: { maxRotation: 0, minRotation: 0, font: { size: isCompactChart ? 9 : 11 } }
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: { font: { size: isCompactChart ? 10 : 12 } }
-                                }
-                            },
-                            plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}ms` } }
-                        }
-                    });
-                }
+                        label: { show: true, position: 'top', formatter: '{c}ms', color: axisTextColor, fontSize: 10 }
+                    }]
+                });
 
-                const sizeCtx = document.getElementById('chartSize');
-                if (sizeCtx) {
-                    this.dashboardCharts.size = new Chart(sizeCtx, {
+                createChart('chartSize', {
+                    grid: { ...baseGrid, left: 10, right: 18 },
+                    tooltip: { ...baseTooltip, trigger: 'axis', axisPointer: { type: 'shadow' } },
+                    xAxis: { type: 'value', ...axisStyle },
+                    yAxis: {
+                        type: 'category',
+                        data: (storageByApp.labels && storageByApp.labels.length ? storageByApp.labels : ['Sem dados']),
+                        ...axisStyle
+                    },
+                    series: [{
                         type: 'bar',
-                        plugins: [dashboardValuePlugin],
-                        data: {
-                            labels: (storageByApp.labels && storageByApp.labels.length ? storageByApp.labels : ['Sem dados']),
-                            datasets: [{ label: 'Registros', data: (storageByApp.values && storageByApp.values.length ? storageByApp.values : [0]), backgroundColor: '#1e40af' }]
+                        data: (storageByApp.values && storageByApp.values.length ? storageByApp.values : [0]),
+                        barWidth: '62%',
+                        itemStyle: {
+                            borderRadius: [0, 9, 9, 0],
+                            color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                                { offset: 0, color: '#1d4ed8' },
+                                { offset: 1, color: '#22d3ee' }
+                            ])
                         },
-                        options: {
-                            ...chartOptions,
-                            indexAxis: 'y',
-                            scales: {
-                                x: { beginAtZero: true, ticks: { precision: 0, font: { size: isCompactChart ? 10 : 12 } } },
-                                y: { ticks: { font: { size: isCompactChart ? 10 : 12 } } }
+                        label: { show: true, position: 'right', color: axisTextColor, fontSize: 10 }
+                    }]
+                });
+
+                const dbConnected = Math.max(0, Math.min(100, Number(db.connected || 0)));
+                createChart('chartDb', {
+                    tooltip: baseTooltip,
+                    series: [{
+                        type: 'gauge',
+                        startAngle: 210,
+                        endAngle: -30,
+                        min: 0,
+                        max: 100,
+                        progress: { show: true, width: 12, itemStyle: { color: dbConnected >= 80 ? seriesGood : (dbConnected >= 50 ? seriesWarn : seriesBad) } },
+                        axisLine: { lineStyle: { width: 12, color: [[1, isDark ? '#334155' : '#cbd5e1']] } },
+                        axisTick: { show: false },
+                        splitLine: { show: false },
+                        axisLabel: { color: axisTextColor, distance: 12, fontSize: 10 },
+                        pointer: { show: false },
+                        detail: { valueAnimation: true, formatter: '{value}%', color: axisTextColor, fontSize: 22, offsetCenter: [0, '4%'] },
+                        title: { offsetCenter: [0, '64%'], color: axisTextColor, fontSize: 11 },
+                        data: [{ value: Math.round(dbConnected), name: 'Conexao DB' }]
+                    }]
+                });
+
+                const historyLabels = history.length
+                    ? history.map((item) => {
+                        const dt = new Date(item.measured_at);
+                        return Number.isNaN(dt.getTime()) ? '--' : dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                    })
+                    : ['Sem dados'];
+                const latencySeries = history.length ? history.map((item) => Number(item.p95_latency_ms || 0)) : [0];
+                const criticalSeries = history.length ? history.map((item) => Number(item.critical_failures || 0)) : [0];
+                createChart('chartHistory', {
+                    legend: { bottom: 0, textStyle: { color: axisTextColor } },
+                    tooltip: { ...baseTooltip, trigger: 'axis' },
+                    grid: { ...baseGrid, bottom: 36 },
+                    xAxis: { type: 'category', data: historyLabels, ...axisStyle },
+                    yAxis: [
+                        { type: 'value', name: 'ms', ...axisStyle },
+                        { type: 'value', name: 'falhas', ...axisStyle, splitLine: { show: false } }
+                    ],
+                    series: [
+                        {
+                            name: 'p95 (ms)',
+                            type: 'line',
+                            smooth: true,
+                            symbol: 'circle',
+                            symbolSize: 7,
+                            itemStyle: { color: seriesBlue[0] },
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: 'rgba(56, 189, 248, 0.34)' },
+                                    { offset: 1, color: 'rgba(56, 189, 248, 0.02)' }
+                                ])
                             },
-                            plugins: { legend: { display: false }, dashboardValuePlugin: { color: '#cbd5e1', formatter: (v) => `${Math.round(v)}` } }
-                        }
-                    });
-                }
-
-                const dbCtx = document.getElementById('chartDb');
-                if (dbCtx) {
-                    this.dashboardCharts.db = new Chart(dbCtx, {
-                        type: 'doughnut',
-                        plugins: [dashboardValuePlugin],
-                        data: {
-                            labels: ['Conectado', 'Instável'],
-                            datasets: [{ data: [Number(db.connected || 0), Number(db.unstable || 0)], backgroundColor: ['#22c55e', '#e5e7eb'], borderWidth: 0 }]
+                            data: latencySeries
                         },
-                        options: {
-                            ...chartOptions,
-                            plugins: {
-                                legend: { position: 'bottom' },
-                                dashboardValuePlugin: { color: '#111827', formatter: (v) => `${v.toFixed(1)}%` }
-                            }
+                        {
+                            name: 'Falhas criticas',
+                            type: 'bar',
+                            yAxisIndex: 1,
+                            barMaxWidth: 16,
+                            itemStyle: { color: seriesBad, borderRadius: [6, 6, 0, 0] },
+                            data: criticalSeries
                         }
-                    });
-                }
+                    ]
+                });
 
-                const historyCtx = document.getElementById('chartHistory');
-                if (historyCtx) {
-                    const labels = history.length
-                        ? history.map((item) => {
-                            const dt = new Date(item.measured_at);
-                            return Number.isNaN(dt.getTime()) ? '--' : dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-                        })
-                        : ['Sem dados'];
-                    const latencySeries = history.length ? history.map((item) => Number(item.p95_latency_ms || 0)) : [0];
-                    const criticalSeries = history.length ? history.map((item) => Number(item.critical_failures || 0)) : [0];
-
-                    this.dashboardCharts.history = new Chart(historyCtx, {
-                        type: 'line',
-                        data: {
-                            labels,
-                            datasets: [
-                                {
-                                    label: 'p95 (ms)',
-                                    data: latencySeries,
-                                    borderColor: '#2563eb',
-                                    backgroundColor: 'rgba(37, 99, 235, 0.16)',
-                                    tension: 0.3,
-                                    fill: true,
-                                    yAxisID: 'y',
-                                },
-                                {
-                                    label: 'Falhas críticas',
-                                    data: criticalSeries,
-                                    borderColor: '#dc2626',
-                                    backgroundColor: 'rgba(220, 38, 38, 0.15)',
-                                    tension: 0.25,
-                                    fill: false,
-                                    yAxisID: 'y1',
-                                }
-                            ]
-                        },
-                        options: {
-                            ...chartOptions,
-                            scales: {
-                                x: {
-                                    ticks: { maxRotation: 0, minRotation: 0, font: { size: isCompactChart ? 9 : 11 } }
-                                },
-                                y: { beginAtZero: true, position: 'left', ticks: { font: { size: isCompactChart ? 10 : 12 } } },
-                                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { font: { size: isCompactChart ? 10 : 12 } } }
-                            },
-                            plugins: { legend: { position: 'bottom', labels: { boxWidth: isCompactChart ? 10 : 14, font: { size: isCompactChart ? 10 : 12 } } } }
-                        }
+                this.dashboardResizeHandler = () => {
+                    Object.values(this.dashboardCharts).forEach(chart => {
+                        if (chart && typeof chart.resize === 'function') chart.resize();
                     });
-                }
+                };
+                window.addEventListener('resize', this.dashboardResizeHandler, { passive: true });
+
+                const cards = document.querySelectorAll('.dashboard-chart-card');
+                cards.forEach((card, index) => {
+                    card.animate(
+                        [
+                            { transform: 'translateY(18px)', opacity: 0 },
+                            { transform: 'translateY(0)', opacity: 1 }
+                        ],
+                        { duration: 460, delay: index * 55, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'both' }
+                    );
+                });
             }
 
             renderDashboardLastUpdate(fallbackText = null) {
@@ -3166,18 +3288,83 @@
                 }
 
                 container.innerHTML = this.apps.map((app, idx) => `
-                    <div class="app-card" style="--card-i:${idx};" onclick="superApp.launchApp('${app.id}')">
+                    <div class="app-card" data-tone="${this.getAppTone(app, idx)}" style="--card-i:${idx};" onclick="superApp.launchApp('${app.id}')">
                         <div class="app-header">
                             <div class="app-icon-wrap">
                                 <div class="app-icon-box">
-                                    <i class="fas ${app.icon}"></i>
+                                    <span class="app-emoji" aria-hidden="true">${this.getAppEmoji(app)}</span>
+                                    <i class="fas ${app.icon} app-icon-glyph" aria-hidden="true"></i>
                                 </div>
-                                
+                                <span class="app-emoji-orbit" aria-hidden="true">${this.getAppOrbitEmoji(app)}</span>
                             </div>
                         </div>
                         <span class="app-title">${app.title}</span>
                     </div>
                 `).join('');
+                this.animateAppCards();
+            }
+
+            getAppTone(app, idx = 0) {
+                const id = String(app?.id || '').toLowerCase();
+                if (id.includes('fin') || id.includes('despesa')) return 'warm';
+                if (id.includes('saude') || id.includes('treino')) return 'growth';
+                if (id.includes('flux')) return 'energy';
+                return ['cool', 'growth', 'warm', 'energy'][idx % 4];
+            }
+
+            getAppEmoji(app) {
+                const id = String(app?.id || '').toLowerCase();
+                const title = String(app?.title || '').toLowerCase();
+                if (id.includes('fin') || title.includes('finan')) return '💰';
+                if (id.includes('despesa')) return '🧾';
+                if (id.includes('lista') || title.includes('compra')) return '🛒';
+                if (id.includes('saude') || title.includes('saúde')) return '🩺';
+                if (id.includes('calend') || title.includes('agenda')) return '📅';
+                if (id.includes('flux')) return '🧠';
+                if (id.includes('treino') || title.includes('miss')) return '🔥';
+                if (id.includes('roadmap')) return '🗺️';
+                return '🚀';
+            }
+
+            getAppOrbitEmoji(app) {
+                const id = String(app?.id || '').toLowerCase();
+                if (id.includes('fin') || id.includes('despesa')) return '✨';
+                if (id.includes('saude') || id.includes('treino')) return '⚡';
+                if (id.includes('flux')) return '💫';
+                if (id.includes('lista')) return '✅';
+                if (id.includes('calend')) return '🔔';
+                return '✦';
+            }
+
+            getMotionHelpers() {
+                const root = window.motion || window.Motion || null;
+                if (!root || typeof root.animate !== 'function') return null;
+                return {
+                    animate: root.animate.bind(root),
+                    stagger: typeof root.stagger === 'function' ? root.stagger.bind(root) : null
+                };
+            }
+
+            animateAppCards() {
+                const helpers = this.getMotionHelpers();
+                const cards = document.querySelectorAll('#appsContainer .app-card');
+                if (!cards.length) return;
+                if (!helpers) return;
+                const delayPattern = helpers.stagger ? helpers.stagger(0.04) : 0;
+                helpers.animate(
+                    cards,
+                    { opacity: [0, 1], y: [18, 0], scale: [0.97, 1], filter: ['blur(2px)', 'blur(0px)'] },
+                    { duration: 0.55, delay: delayPattern, easing: 'cubic-bezier(.2,.8,.2,1)' }
+                );
+                cards.forEach((card) => {
+                    const emoji = card.querySelector('.app-emoji');
+                    if (!emoji) return;
+                    helpers.animate(
+                        emoji,
+                        { y: [0, -3, 0], rotate: [-2, 2, -2] },
+                        { duration: 2.2, repeat: Infinity, easing: 'ease-in-out' }
+                    );
+                });
             }
 
             renderRoadmap() {
@@ -3252,6 +3439,121 @@
                 return `R$ ${Number(value || 0).toFixed(2)}`;
             }
 
+            getChartThemeTokens(forceDark = null) {
+                const isDark = forceDark === null
+                    ? document.documentElement.getAttribute('data-theme') === 'dark'
+                    : Boolean(forceDark);
+                return {
+                    isDark,
+                    text: isDark ? '#e2ecff' : '#0f172a',
+                    textMuted: isDark ? '#94a3b8' : '#475569',
+                    grid: isDark ? 'rgba(148,163,184,0.22)' : 'rgba(51,65,85,0.16)',
+                    tooltipBg: isDark ? 'rgba(10,20,38,0.92)' : 'rgba(248,250,252,0.96)',
+                    tooltipBorder: isDark ? 'rgba(89,132,194,0.35)' : 'rgba(148,163,184,0.4)',
+                };
+            }
+
+            getModernChartBaseOptions({ indexAxis = 'x', legend = true, forceDark = null } = {}) {
+                const theme = this.getChartThemeTokens(forceDark);
+                const baseAxis = {
+                    ticks: { color: theme.textMuted, font: { family: 'Space Grotesk, sans-serif', size: 11 } },
+                    grid: { color: theme.grid, drawBorder: false },
+                    border: { display: false },
+                };
+                return {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis,
+                    animation: { duration: 620, easing: 'easeOutQuart' },
+                    layout: { padding: { top: 10, right: 8, bottom: 4, left: 8 } },
+                    plugins: {
+                        legend: {
+                            display: legend,
+                            position: 'bottom',
+                            labels: {
+                                color: theme.text,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                boxWidth: 10,
+                                padding: 12,
+                                font: { family: 'Space Grotesk, sans-serif', size: 11, weight: 600 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: theme.tooltipBg,
+                            borderColor: theme.tooltipBorder,
+                            borderWidth: 1,
+                            titleColor: theme.text,
+                            bodyColor: theme.text,
+                            titleFont: { family: 'Space Grotesk, sans-serif', size: 12, weight: 700 },
+                            bodyFont: { family: 'Space Grotesk, sans-serif', size: 11, weight: 500 },
+                            padding: 10,
+                            displayColors: true
+                        }
+                    },
+                    scales: {
+                        x: { ...baseAxis, beginAtZero: indexAxis === 'y' },
+                        y: { ...baseAxis, beginAtZero: indexAxis !== 'y' }
+                    }
+                };
+            }
+
+            mergeChartOptions(baseOptions = {}, incomingOptions = {}) {
+                const merged = { ...baseOptions, ...incomingOptions };
+                const basePlugins = baseOptions.plugins || {};
+                const incomingPlugins = incomingOptions.plugins || {};
+                merged.plugins = {
+                    ...basePlugins,
+                    ...incomingPlugins,
+                    legend: { ...(basePlugins.legend || {}), ...(incomingPlugins.legend || {}) },
+                    tooltip: { ...(basePlugins.tooltip || {}), ...(incomingPlugins.tooltip || {}) },
+                };
+                const baseScales = baseOptions.scales || {};
+                const incomingScales = incomingOptions.scales || {};
+                merged.scales = { ...baseScales, ...incomingScales };
+                ['x', 'y', 'y1'].forEach((axis) => {
+                    if (baseScales[axis] || incomingScales[axis]) {
+                        merged.scales[axis] = { ...(baseScales[axis] || {}), ...(incomingScales[axis] || {}) };
+                    }
+                });
+                return merged;
+            }
+
+            buildInlineChartValuePlugin({ asMoney = false, forceDark = null } = {}) {
+                const pluginId = `modernInlineValueLabels-${asMoney ? 'money' : 'plain'}-${forceDark === null ? 'auto' : (forceDark ? 'dark' : 'light')}`;
+                return {
+                    id: pluginId,
+                    afterDatasetsDraw: (chart) => {
+                        const dataset = chart?.data?.datasets?.[0];
+                        const meta = chart?.getDatasetMeta?.(0);
+                        if (!dataset || !meta?.data?.length) return;
+                        const theme = this.getChartThemeTokens(forceDark);
+                        const ctx = chart.ctx;
+                        ctx.save();
+                        ctx.font = '600 11px Space Grotesk, sans-serif';
+                        ctx.fillStyle = theme.text;
+                        ctx.textBaseline = 'middle';
+                        meta.data.forEach((element, index) => {
+                            const raw = Number(dataset.data?.[index] ?? 0);
+                            if (!Number.isFinite(raw) || raw <= 0) return;
+                            const label = asMoney ? this.formatMoneyBr(raw) : `${Math.round(raw)}`;
+                            const pos = element.tooltipPosition();
+                            if (chart.config.type === 'bar') {
+                                const isHorizontal = chart.options?.indexAxis === 'y';
+                                ctx.textAlign = isHorizontal ? 'left' : 'center';
+                                const x = isHorizontal ? pos.x + 8 : pos.x;
+                                const y = isHorizontal ? pos.y : pos.y - 10;
+                                ctx.fillText(label, x, y);
+                            } else {
+                                ctx.textAlign = 'center';
+                                ctx.fillText(label, pos.x, pos.y);
+                            }
+                        });
+                        ctx.restore();
+                    }
+                };
+            }
+
             downloadHtmlReport(filenameBase, htmlContent) {
                 const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
@@ -3271,13 +3573,27 @@
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 if (!ctx) return '';
+                const chartType = String(config?.type || 'bar').toLowerCase();
+                const incomingOptions = config?.options || {};
+                const incomingPlugins = Array.isArray(config?.plugins) ? config.plugins : [];
+                const baseOptions = this.getModernChartBaseOptions({
+                    indexAxis: incomingOptions.indexAxis || 'x',
+                    legend: chartType !== 'bar',
+                    forceDark: true
+                });
                 const finalConfig = {
                     ...config,
-                    options: {
-                        responsive: false,
-                        animation: false,
-                        ...(config.options || {}),
-                    },
+                    options: this.mergeChartOptions(
+                        {
+                            ...baseOptions,
+                            responsive: false,
+                            maintainAspectRatio: false,
+                            animation: false,
+                            devicePixelRatio: 2
+                        },
+                        incomingOptions
+                    ),
+                    plugins: [...incomingPlugins, this.buildInlineChartValuePlugin({ asMoney: false, forceDark: true })]
                 };
                 const chart = new Chart(ctx, finalConfig);
                 await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -3344,7 +3660,7 @@
     *{box-sizing:border-box}
     html,body{margin:0;padding:0}
     body{
-      font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;
+      font-family:'Space Grotesk','Segoe UI',sans-serif;
       color:var(--text);
       background:
         radial-gradient(1000px 500px at 10% -10%, rgba(56,189,248,.16), transparent 65%),
@@ -3480,7 +3796,12 @@
                     type: 'bar',
                     data: {
                         labels: ['Pagos', 'Pendentes', 'Total'],
-                        datasets: [{ data: [somaPago, somaPendente, soma], backgroundColor: ['#22c55e', '#ef4444', '#2563eb'] }],
+                        datasets: [{
+                            data: [somaPago, somaPendente, soma],
+                            backgroundColor: ['#22c55e', '#f97316', '#38bdf8'],
+                            borderRadius: 10,
+                            borderSkipped: false
+                        }],
                     },
                     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
                 });
@@ -3488,8 +3809,13 @@
                     type: 'doughnut',
                     data: {
                         labels: ['Pagos', 'Pendentes'],
-                        datasets: [{ data: [somaPago, somaPendente], backgroundColor: ['#22c55e', '#ef4444'] }],
+                        datasets: [{
+                            data: [somaPago, somaPendente],
+                            backgroundColor: ['#22c55e', '#f97316'],
+                            borderWidth: 0
+                        }],
                     },
+                    options: { cutout: '58%' },
                 });
 
                 const html = this.buildReportHtml({
@@ -3535,8 +3861,13 @@
                         type: 'doughnut',
                         data: {
                             labels: ['Receitas', 'Despesas variáveis', 'Despesas fixas'],
-                            datasets: [{ data: [receitas, despesasVariaveis, despesasFixas], backgroundColor: ['#22c55e', '#dc2626', '#b91c1c'] }],
+                            datasets: [{
+                                data: [receitas, despesasVariaveis, despesasFixas],
+                                backgroundColor: ['#22c55e', '#f97316', '#ef4444'],
+                                borderWidth: 0
+                            }],
                         },
+                        options: { cutout: '58%' },
                     });
                 }
                 if (!barImg && tabelaGastos.length) {
@@ -3544,7 +3875,12 @@
                         type: 'bar',
                         data: {
                             labels: tabelaGastos.map((x) => String(x[0] || '')),
-                            datasets: [{ data: tabelaGastos.map((x) => Number(x[1] || 0)), backgroundColor: '#2563eb' }],
+                            datasets: [{
+                                data: tabelaGastos.map((x) => Number(x[1] || 0)),
+                                backgroundColor: '#38bdf8',
+                                borderRadius: 10,
+                                borderSkipped: false
+                            }],
                         },
                         options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
                     });
@@ -3649,16 +3985,6 @@
                     } catch (err) {
                         console.error(err);
                         contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Nao foi possivel carregar Missoes de Treino.</div>';
-                    }
-                    return;
-                }
-                if (appId === 'neonkeep') {
-                    try {
-                        const mod = await import('./modulos/neonkeep/index.js');
-                        mod.renderNotasContent(contentEl);
-                    } catch (err) {
-                        console.error(err);
-                        contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Nao foi possivel carregar Notas.</div>';
                     }
                     return;
                 }
@@ -4243,55 +4569,27 @@
                     }
                 }, 60000);
                 if (typeof Chart !== 'undefined') {
-                    const formatMoneyLabel = (value) => `R$ ${Number(value || 0).toFixed(2)}`;
-                    const inlineValueLabelsPlugin = {
-                        id: 'inlineValueLabels',
-                        afterDatasetsDraw(chart) {
-                            const dataset = chart.data.datasets[0];
-                            const meta = chart.getDatasetMeta(0);
-                            const { ctx } = chart;
-                            const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
-                            ctx.save();
-                            ctx.font = '600 12px Arial';
-                            ctx.fillStyle = isDarkTheme ? '#ffffff' : '#111827';
-                            ctx.textBaseline = 'middle';
-                            meta.data.forEach((element, index) => {
-                                const rawValue = dataset && dataset.data ? dataset.data[index] : 0;
-                                if (!(Number(rawValue) > 0)) return;
-                                const label = formatMoneyLabel(rawValue);
-                                const pos = element.tooltipPosition();
-                                if (chart.config.type === 'bar') {
-                                    const centerX = (Number(element.x || 0) + Number(element.base || 0)) / 2;
-                                    const barWidth = Math.abs(Number(element.x || 0) - Number(element.base || 0));
-                                    const labelWidth = ctx.measureText(label).width;
-                                    if (labelWidth <= Math.max(barWidth - 12, 0)) {
-                                        ctx.textAlign = 'center';
-                                        ctx.fillStyle = '#dbeafe';
-                                        ctx.fillText(label, centerX, pos.y);
-                                    } else {
-                                        ctx.textAlign = 'left';
-                                        ctx.fillStyle = isDarkTheme ? '#ffffff' : '#111827';
-                                        ctx.fillText(label, pos.x + 8, pos.y);
-                                    }
-                                } else {
-                                    ctx.textAlign = 'center';
-                                    ctx.fillStyle = isDarkTheme ? '#ffffff' : '#111827';
-                                    ctx.fillText(label, pos.x, pos.y);
-                                }
-                            });
-                            ctx.restore();
-                        }
-                    };
+                    const finTheme = this.getChartThemeTokens();
+                    const valueLabelsPlugin = this.buildInlineChartValuePlugin({ asMoney: true });
                     const ctxPie = document.getElementById('fin-chart-pie');
                     if (ctxPie && (receitas > 0 || despesasVariaveis > 0 || despesasFixas > 0)) {
                         el._chartPie = new Chart(ctxPie, {
                             type: 'doughnut',
                             data: {
                                 labels: ['Receitas', 'Despesas variáveis', 'Despesas fixas'],
-                                datasets: [{ data: [receitas, despesasVariaveis, despesasFixas], backgroundColor: ['#22c55e', '#dc2626', '#b91c1c'], borderWidth: 0 }]
+                                datasets: [{
+                                    data: [receitas, despesasVariaveis, despesasFixas],
+                                    backgroundColor: ['#22c55e', '#f97316', '#ef4444'],
+                                    borderColor: finTheme.isDark ? '#0b1323' : '#ffffff',
+                                    borderWidth: 2,
+                                    hoverOffset: 8
+                                }]
                             },
-                            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } },
-                            plugins: [inlineValueLabelsPlugin]
+                            options: this.mergeChartOptions(
+                                this.getModernChartBaseOptions({ legend: true }),
+                                { cutout: '58%', plugins: { legend: { position: 'bottom' } } }
+                            ),
+                            plugins: [valueLabelsPlugin]
                         });
                     }
                     const ctxBar = document.getElementById('fin-chart-bar');
@@ -4302,10 +4600,27 @@
                             type: 'bar',
                             data: {
                                 labels: labelsBar,
-                                datasets: [{ label: 'Gasto (R$)', data: valuesBar, backgroundColor: '#2563eb', borderRadius: 4 }]
+                                datasets: [{
+                                    label: 'Gasto (R$)',
+                                    data: valuesBar,
+                                    borderRadius: 10,
+                                    borderSkipped: false,
+                                    backgroundColor: (context) => {
+                                        const chart = context.chart;
+                                        const area = chart.chartArea;
+                                        if (!area) return '#38bdf8';
+                                        const g = chart.ctx.createLinearGradient(area.left, 0, area.right, 0);
+                                        g.addColorStop(0, '#1d4ed8');
+                                        g.addColorStop(1, '#22d3ee');
+                                        return g;
+                                    }
+                                }]
                             },
-                            options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
-                            plugins: [inlineValueLabelsPlugin]
+                            options: this.mergeChartOptions(
+                                this.getModernChartBaseOptions({ indexAxis: 'y', legend: false }),
+                                { indexAxis: 'y', scales: { x: { beginAtZero: true } } }
+                            ),
+                            plugins: [valueLabelsPlugin]
                         });
                     }
                 }
@@ -5065,6 +5380,9 @@
     </script>
 </body>
 </html>
+
+
+
 
 
 

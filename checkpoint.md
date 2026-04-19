@@ -83,10 +83,8 @@
 
 ## 11. Atualizacoes Visuais e de UI (2026-04-08)
 - [x] Implementados popups de confirmacao baseados em Promise globais em `index.html`.
-- [x] Popups com efeito glassmorphism (neon para o Neon Keep, azul e limpo para financas).
+- [x] Popups com efeito glassmorphism (azul e limpo para financas).
 - [x] Substituicao de todos os `confirm()` nativos nos modulos de Financas e Despesas Fixas.
-- [x] Adicionado botao flutuante "GPS" no modulo Neon Keep, que calcula o bounding box de todas as notas e recentraliza o canvas com transicao suave (pan animation).
-- [x] Implementado suporte completo para touch (Mobile) no Neon Keep, abrangendo Pan infinito do fundo e arraste de notas (`touchstart`, `touchmove`, `touchend`), com `preventDefault` para bloquear scroll da pagina.
 - [x] O historico fragmentado do Git foi resetado e linearizado.
 
 ## 12. Melhorias no modulo Missões de Treino (2026-04-08)
