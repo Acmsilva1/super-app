@@ -240,6 +240,28 @@
             background: linear-gradient(165deg, rgba(255, 255, 255, 0.94), rgba(234, 246, 255, 0.96));
             border-color: rgba(125, 154, 196, 0.42);
         }
+        [data-theme="light"] .app-chip {
+            color: #1e3a8a;
+            background: rgba(224, 242, 254, 0.7);
+            border-color: rgba(125, 154, 196, 0.42);
+        }
+        [data-theme="light"] .app-chip--status {
+            color: #166534;
+            background: rgba(220, 252, 231, 0.88);
+            border-color: rgba(74, 222, 128, 0.48);
+        }
+        [data-theme="light"] .app-card[data-tone="warm"] .app-chip--status {
+            color: #9a3412;
+            background: rgba(254, 215, 170, 0.75);
+            border-color: rgba(251, 191, 36, 0.52);
+        }
+        [data-theme="light"] .app-card[data-tone="energy"] .app-chip--status {
+            color: #9d174d;
+            background: rgba(252, 231, 243, 0.9);
+            border-color: rgba(244, 114, 182, 0.52);
+        }
+        [data-theme="light"] .app-desc { color: #334155; }
+        [data-theme="light"] .app-open-hint { color: #0369a1; }
         [data-theme="light"] .window-header {
             background: linear-gradient(110deg, rgba(56, 189, 248, 0.28), rgba(59, 130, 246, 0.26));
             border-bottom-color: rgba(125, 154, 196, 0.5);
@@ -716,6 +738,51 @@
             font-size: 0.875rem;
             font-weight: 600;
         }
+        .dashboard-filter-select {
+            min-width: 170px;
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 0.45rem 0.6rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .dashboard-insights {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.75rem;
+        }
+        .dashboard-insight-card {
+            background: linear-gradient(150deg, rgba(14, 27, 50, 0.82), rgba(10, 20, 38, 0.9));
+            border: 1px solid rgba(89, 132, 194, 0.3);
+            border-radius: 12px;
+            padding: 0.75rem 0.8rem;
+            box-shadow: var(--shadow-sm);
+            display: grid;
+            gap: 0.2rem;
+        }
+        .dashboard-insight-card h5 {
+            margin: 0;
+            font-size: 0.74rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #cbd5e1;
+        }
+        .dashboard-insight-card strong {
+            font-size: 1.05rem;
+            color: #f8fafc;
+            line-height: 1.2;
+        }
+        .dashboard-insight-card p {
+            margin: 0;
+            font-size: 0.78rem;
+            color: #cbd5e1;
+        }
+        .dashboard-insight-card.bad { border-color: rgba(248, 113, 113, 0.55); }
+        .dashboard-insight-card.warn { border-color: rgba(251, 191, 36, 0.5); }
+        .dashboard-insight-card.good { border-color: rgba(74, 222, 128, 0.46); }
 
         .dashboard-charts {
             display: grid;
@@ -917,6 +984,18 @@
         [data-theme="dark"] .dashboard-health-list-item strong { color: #f8fafc; }
         [data-theme="dark"] .dashboard-health-list-item span,
         [data-theme="dark"] .dashboard-empty-note { color: #cbd5e1; }
+        [data-theme="light"] .dashboard-filter-select {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0f172a;
+            border-color: rgba(148, 163, 184, 0.55);
+        }
+        [data-theme="light"] .dashboard-insight-card {
+            background: linear-gradient(155deg, rgba(255, 255, 255, 0.9), rgba(236, 245, 255, 0.92));
+            border-color: rgba(125, 154, 196, 0.34);
+        }
+        [data-theme="light"] .dashboard-insight-card h5 { color: #475569; }
+        [data-theme="light"] .dashboard-insight-card strong { color: #0f172a; }
+        [data-theme="light"] .dashboard-insight-card p { color: #334155; }
 
         @media (max-width: 640px) {
             .dashboard-summary-grid {
@@ -934,6 +1013,14 @@
             }
             .dashboard-chart-wrap {
                 height: 220px;
+            }
+            .dashboard-controls {
+                align-items: stretch;
+            }
+            .dashboard-profile-select,
+            .dashboard-filter-select {
+                min-width: 0;
+                width: 100%;
             }
         }
         @media (max-width: 420px) {
@@ -959,22 +1046,15 @@
 
         .apps-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-            gap: 0.95rem;
+            grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
+            gap: 1rem;
             margin-top: 1rem;
             animation: riseIn 0.45s ease both;
         }
 
-        @media (min-width: 480px) {
+        @media (min-width: 1200px) {
             .apps-grid {
-                grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
-                gap: 1.05rem;
-            }
-        }
-
-        @media (min-width: 768px) {
-            .apps-grid {
-                grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(202px, 1fr));
             }
         }
 
@@ -984,15 +1064,15 @@
                 linear-gradient(162deg, rgba(16, 30, 56, 0.88), rgba(10, 20, 38, 0.9));
             border: 1px solid rgba(98, 136, 194, 0.34);
             border-radius: 1.1rem;
-            min-height: 156px;
-            padding: 1rem 0.85rem 0.9rem;
+            min-height: 222px;
+            padding: 0.95rem 0.9rem 0.88rem;
             box-shadow: var(--shadow-sm);
             transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, filter 0.22s ease;
             cursor: pointer;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
+            align-items: stretch;
+            text-align: left;
             position: relative;
             overflow: hidden;
         }
@@ -1038,9 +1118,48 @@
 
         .app-header {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.62rem;
+        }
+        .app-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.45rem;
+            margin-top: 0.58rem;
+            margin-bottom: 0.46rem;
+        }
+        .app-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            border-radius: 999px;
+            padding: 0.2rem 0.56rem;
+            font-size: 0.64rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            border: 1px solid rgba(148, 163, 184, 0.34);
+            color: #dbeafe;
+            background: rgba(30, 41, 59, 0.56);
+            max-width: 100%;
+        }
+        .app-chip--status {
+            color: #86efac;
+            background: rgba(20, 83, 45, 0.38);
+            border-color: rgba(74, 222, 128, 0.45);
+        }
+        .app-card[data-tone="warm"] .app-chip--status {
+            color: #fde68a;
+            background: rgba(146, 64, 14, 0.34);
+            border-color: rgba(251, 191, 36, 0.42);
+        }
+        .app-card[data-tone="energy"] .app-chip--status {
+            color: #fbcfe8;
+            background: rgba(131, 24, 67, 0.32);
+            border-color: rgba(244, 114, 182, 0.42);
         }
 
         .app-icon-box {
@@ -1126,30 +1245,65 @@
         .calendar-check-badge.denied { background: #dc2626; }
 
         .app-title {
-            font-size: 0.83rem;
+            font-size: 0.87rem;
             font-weight: 700;
             margin: 0;
-            line-height: 1.28;
+            line-height: 1.3;
             line-clamp: 2;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        .app-desc {
+            margin: 0;
+            font-size: 0.73rem;
+            color: #cbd5e1;
+            line-height: 1.42;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 3.05em;
+        }
+        .app-open-hint {
+            margin-top: auto;
+            padding-top: 0.52rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            color: #7dd3fc;
+            text-transform: uppercase;
+        }
+        .app-open-hint i {
+            font-size: 0.7rem;
+            transform: translateX(0);
+            transition: transform 0.22s ease;
+        }
+        .app-card:hover .app-open-hint i {
+            transform: translateX(3px);
+        }
         @media (max-width: 420px) {
             .apps-grid {
-                grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-                gap: 0.8rem;
+                grid-template-columns: repeat(auto-fill, minmax(162px, 1fr));
+                gap: 0.72rem;
             }
             .app-card {
-                min-height: 138px;
-                padding: 0.88rem 0.72rem 0.82rem;
+                min-height: 202px;
+                padding: 0.78rem 0.7rem 0.76rem;
             }
             .app-icon-box {
-                width: 2.95rem;
-                height: 2.95rem;
+                width: 2.85rem;
+                height: 2.85rem;
             }
             .app-title {
-                font-size: 0.78rem;
+                font-size: 0.8rem;
+            }
+            .app-desc {
+                font-size: 0.69rem;
+                min-height: 2.85em;
             }
         }
         .app-card {
@@ -1168,13 +1322,6 @@
         @keyframes orbitBlink {
             0%, 100% { transform: scale(0.85); opacity: 0.48; }
             50% { transform: scale(1.15); opacity: 1; }
-        }
-
-        .app-description,
-        .app-footer,
-        .app-category,
-        .app-arrow {
-            display: none !important;
         }
 
         .empty-state {
@@ -2628,6 +2775,17 @@
                         <option value="monthly">Mensal</option>
                         <option value="total">Total</option>
                     </select>
+                    <label for="dashboardEndpointSelect">Endpoint:</label>
+                    <select id="dashboardEndpointSelect" class="dashboard-filter-select">
+                        <option value="all">Todos</option>
+                    </select>
+                    <label for="dashboardHistoryWindowSelect">Histórico:</label>
+                    <select id="dashboardHistoryWindowSelect" class="dashboard-filter-select">
+                        <option value="all">Tudo</option>
+                        <option value="30">30 pontos</option>
+                        <option value="14">14 pontos</option>
+                        <option value="7">7 pontos</option>
+                    </select>
                 </div>
                 <p id="dashboardLastUpdate" class="dashboard-last-update">Última análise: carregando...</p>
             </div>
@@ -2669,6 +2827,7 @@
                     <p>Carregando resumo do monitoramento...</p>
                 </div>
             </div>
+            <div id="dashboardInsights" class="dashboard-insights"></div>
         </div>
     </section>
 
@@ -2730,6 +2889,8 @@
             constructor() {
                 this.apps = [];
                 this.dashboardProfile = localStorage.getItem('superapp-dashboard-profile') || 'weekly';
+                this.dashboardEndpointFilter = localStorage.getItem('superapp-dashboard-endpoint-filter') || 'all';
+                this.dashboardHistoryWindow = localStorage.getItem('superapp-dashboard-history-window') || 'all';
                 this.statistics = {
                     totalApps: 0,
                     activeApps: 0,
@@ -2769,6 +2930,8 @@
                 const navDashboard = document.getElementById('navDashboard');
                 const navApps = document.getElementById('navApps');
                 const profileSelect = document.getElementById('dashboardProfileSelect');
+                const endpointSelect = document.getElementById('dashboardEndpointSelect');
+                const historyWindowSelect = document.getElementById('dashboardHistoryWindowSelect');
                 if (profileSelect) {
                     profileSelect.value = this.dashboardProfile;
                     profileSelect.addEventListener('change', (e) => {
@@ -2776,6 +2939,24 @@
                         this.dashboardProfile = selected;
                         localStorage.setItem('superapp-dashboard-profile', selected);
                         this.loadDashboardAnalysis(true);
+                    });
+                }
+                if (endpointSelect) {
+                    endpointSelect.value = this.dashboardEndpointFilter;
+                    endpointSelect.addEventListener('change', (e) => {
+                        this.dashboardEndpointFilter = e.target.value || 'all';
+                        localStorage.setItem('superapp-dashboard-endpoint-filter', this.dashboardEndpointFilter);
+                        this.renderDashboardCharts();
+                        this.renderDashboardInsights();
+                    });
+                }
+                if (historyWindowSelect) {
+                    historyWindowSelect.value = this.dashboardHistoryWindow;
+                    historyWindowSelect.addEventListener('change', (e) => {
+                        this.dashboardHistoryWindow = e.target.value || 'all';
+                        localStorage.setItem('superapp-dashboard-history-window', this.dashboardHistoryWindow);
+                        this.renderDashboardCharts();
+                        this.renderDashboardInsights();
                     });
                 }
                 if (navDashboard) {
@@ -2878,16 +3059,19 @@
                     if (!response.ok) throw new Error('Falha ao carregar análise do sistema');
                     const data = await response.json();
                     this.dashboardMetrics = data || this.dashboardMetrics;
+                    this.updateDashboardEndpointOptions();
                     this.renderDashboardLastUpdate();
                     this.renderDashboardSummary();
                     this.renderDashboardCharts();
                     this.renderDashboardHealthReport();
+                    this.renderDashboardInsights();
                 } catch (error) {
                     console.error('Erro ao carregar análise do sistema:', error);
                     this.renderDashboardLastUpdate('Última análise: sem dados');
                     this.renderDashboardSummary('Sem dados');
                     this.renderDashboardCharts();
                     this.renderDashboardHealthReport('Sem dados de monitoramento no momento.');
+                    this.renderDashboardInsights('Sem dados de monitoramento no momento.');
                 }
             }
 
@@ -2917,6 +3101,9 @@
                 const db = metrics.db || { connected: 0, unstable: 100 };
                 const history = Array.isArray(metrics.history) ? metrics.history : [];
                 const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                const filteredLatency = this.getFilteredLatencyData(latencyCurrent);
+                const historyWindow = this.getHistoryWindowValue();
+                const historyFiltered = historyWindow ? history.slice(-historyWindow) : history;
 
                 const axisTextColor = isDark ? '#cbd5e1' : '#334155';
                 const axisLineColor = isDark ? 'rgba(148, 163, 184, 0.24)' : 'rgba(51, 65, 85, 0.16)';
@@ -2993,13 +3180,13 @@
                     tooltip: { ...baseTooltip, trigger: 'axis' },
                     xAxis: {
                         type: 'category',
-                        data: (latencyCurrent.labels && latencyCurrent.labels.length ? latencyCurrent.labels : ['Sem dados']),
+                        data: (filteredLatency.labels && filteredLatency.labels.length ? filteredLatency.labels : ['Sem dados']),
                         ...axisStyle
                     },
                     yAxis: { type: 'value', ...axisStyle },
                     series: [{
                         type: 'bar',
-                        data: (latencyCurrent.values && latencyCurrent.values.length ? latencyCurrent.values : [0]),
+                        data: (filteredLatency.values && filteredLatency.values.length ? filteredLatency.values : [0]),
                         barWidth: '58%',
                         itemStyle: {
                             borderRadius: [8, 8, 0, 0],
@@ -3057,14 +3244,14 @@
                     }]
                 });
 
-                const historyLabels = history.length
-                    ? history.map((item) => {
+                const historyLabels = historyFiltered.length
+                    ? historyFiltered.map((item) => {
                         const dt = new Date(item.measured_at);
                         return Number.isNaN(dt.getTime()) ? '--' : dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
                     })
                     : ['Sem dados'];
-                const latencySeries = history.length ? history.map((item) => Number(item.p95_latency_ms || 0)) : [0];
-                const criticalSeries = history.length ? history.map((item) => Number(item.critical_failures || 0)) : [0];
+                const latencySeries = historyFiltered.length ? historyFiltered.map((item) => Number(item.p95_latency_ms || 0)) : [0];
+                const criticalSeries = historyFiltered.length ? historyFiltered.map((item) => Number(item.critical_failures || 0)) : [0];
                 createChart('chartHistory', {
                     legend: { bottom: 0, textStyle: { color: axisTextColor } },
                     tooltip: { ...baseTooltip, trigger: 'axis' },
@@ -3098,7 +3285,11 @@
                             itemStyle: { color: seriesBad, borderRadius: [6, 6, 0, 0] },
                             data: criticalSeries
                         }
-                    ]
+                    ],
+                    dataZoom: historyLabels.length > 12 ? [
+                        { type: 'inside', start: 45, end: 100 },
+                        { type: 'slider', height: 14, bottom: 2, borderColor: axisLineColor, textStyle: { color: axisTextColor } }
+                    ] : []
                 });
 
                 this.dashboardResizeHandler = () => {
@@ -3118,6 +3309,43 @@
                         { duration: 460, delay: index * 55, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'both' }
                     );
                 });
+            }
+
+            getHistoryWindowValue() {
+                const n = Number(this.dashboardHistoryWindow || 0);
+                if (!Number.isFinite(n) || n <= 0) return null;
+                return Math.round(n);
+            }
+
+            getFilteredLatencyData(latencyCurrent) {
+                const labels = Array.isArray(latencyCurrent?.labels) ? latencyCurrent.labels : [];
+                const values = Array.isArray(latencyCurrent?.values) ? latencyCurrent.values : [];
+                if (this.dashboardEndpointFilter === 'all') {
+                    return {
+                        labels: labels.length ? labels : ['Sem dados'],
+                        values: values.length ? values : [0]
+                    };
+                }
+                const idx = labels.findIndex((label) => String(label).toLowerCase() === String(this.dashboardEndpointFilter).toLowerCase());
+                if (idx < 0) return { labels: ['Sem dados'], values: [0] };
+                return { labels: [labels[idx]], values: [Number(values[idx] || 0)] };
+            }
+
+            updateDashboardEndpointOptions() {
+                const select = document.getElementById('dashboardEndpointSelect');
+                if (!select) return;
+                const latencyCurrent = this.dashboardMetrics?.latency_current || { labels: [] };
+                const labels = Array.isArray(latencyCurrent.labels) ? latencyCurrent.labels : [];
+                const previous = this.dashboardEndpointFilter || 'all';
+                const options = ['all', ...labels];
+                select.innerHTML = options.map((value) => {
+                    const text = value === 'all' ? 'Todos' : value;
+                    return `<option value="${escapeHtml(value)}">${escapeHtml(text)}</option>`;
+                }).join('');
+                const hasPrev = options.some((value) => String(value).toLowerCase() === String(previous).toLowerCase());
+                this.dashboardEndpointFilter = hasPrev ? previous : 'all';
+                select.value = this.dashboardEndpointFilter;
+                localStorage.setItem('superapp-dashboard-endpoint-filter', this.dashboardEndpointFilter);
             }
 
             renderDashboardLastUpdate(fallbackText = null) {
@@ -3269,6 +3497,71 @@
                 `;
             }
 
+            renderDashboardInsights(fallbackText = null) {
+                const root = document.getElementById('dashboardInsights');
+                if (!root) return;
+                if (fallbackText) {
+                    root.innerHTML = `
+                        <article class="dashboard-insight-card warn">
+                            <h5>Insights</h5>
+                            <strong>Sem dados</strong>
+                            <p>${escapeHtml(fallbackText)}</p>
+                        </article>
+                    `;
+                    return;
+                }
+
+                const metrics = this.dashboardMetrics || {};
+                const summary = metrics.summary || {};
+                const latencyCurrent = this.getFilteredLatencyData(metrics.latency_current || { labels: [], values: [] });
+                const failedEndpoints = Array.isArray(metrics.failed_endpoints) ? metrics.failed_endpoints : [];
+                const db = metrics.db || {};
+                const history = Array.isArray(metrics.history) ? metrics.history : [];
+                const historyWindow = this.getHistoryWindowValue();
+                const historyFiltered = historyWindow ? history.slice(-historyWindow) : history;
+
+                const uptime = Number(summary.uptime_percent || 0);
+                const errorRate = Number(summary.error_rate_percent || 0);
+                const dbConnected = Number(db.connected || 0);
+                const criticalFailures = Number(summary.critical_failures || 0);
+                const latencyValues = Array.isArray(latencyCurrent.values) ? latencyCurrent.values.map((v) => Number(v || 0)) : [0];
+                const latencyPeak = latencyValues.length ? Math.max(...latencyValues) : 0;
+                const latencyAvg = latencyValues.length ? latencyValues.reduce((acc, cur) => acc + cur, 0) / latencyValues.length : 0;
+                const latestHistory = historyFiltered.length ? historyFiltered[historyFiltered.length - 1] : null;
+                const prevHistory = historyFiltered.length > 1 ? historyFiltered[historyFiltered.length - 2] : null;
+                const trend = (latestHistory && prevHistory)
+                    ? Number(latestHistory.p95_latency_ms || 0) - Number(prevHistory.p95_latency_ms || 0)
+                    : 0;
+
+                root.innerHTML = `
+                    <article class="dashboard-insight-card ${criticalFailures > 0 ? 'bad' : 'good'}">
+                        <h5>Confiabilidade</h5>
+                        <strong>${uptime.toFixed(2)}% uptime</strong>
+                        <p>Taxa de erro atual: ${errorRate.toFixed(2)}%.</p>
+                    </article>
+                    <article class="dashboard-insight-card ${latencyPeak > 900 ? 'bad' : (latencyPeak > 450 ? 'warn' : 'good')}">
+                        <h5>Latência</h5>
+                        <strong>Pico ${Math.round(latencyPeak)}ms</strong>
+                        <p>Média filtrada: ${Math.round(latencyAvg)}ms (${latencyCurrent.labels.length} endpoint(s)).</p>
+                    </article>
+                    <article class="dashboard-insight-card ${dbConnected < 85 ? 'warn' : 'good'}">
+                        <h5>Banco de Dados</h5>
+                        <strong>${dbConnected.toFixed(2)}% conectado</strong>
+                        <p>${dbConnected < 85 ? 'Instabilidade detectada no DB.' : 'Conectividade saudável no DB.'}</p>
+                    </article>
+                    <article class="dashboard-insight-card ${failedEndpoints.length ? 'bad' : 'good'}">
+                        <h5>Anomalias</h5>
+                        <strong>${failedEndpoints.length} endpoint(s) falho(s)</strong>
+                        <p>${failedEndpoints.length ? `Principal: ${escapeHtml(String(failedEndpoints[0]?.endpoint_name || 'desconhecido'))}.` : 'Nenhuma falha no último snapshot.'}</p>
+                    </article>
+                    <article class="dashboard-insight-card ${trend > 50 ? 'warn' : 'good'}">
+                        <h5>Tendência de p95</h5>
+                        <strong>${trend >= 0 ? '+' : ''}${Math.round(trend)}ms</strong>
+                        <p>${historyWindow ? `Comparando os últimos ${historyWindow} pontos.` : 'Comparando janela completa disponível.'}</p>
+                    </article>
+                `;
+            }
+
             renderApps() {
                 const container = document.getElementById('appsContainer');
 
@@ -3298,7 +3591,13 @@
                                 <span class="app-emoji-orbit" aria-hidden="true">${this.getAppOrbitEmoji(app)}</span>
                             </div>
                         </div>
-                        <span class="app-title">${app.title}</span>
+                        <span class="app-title">${escapeHtml(app.title || 'Aplicacao')}</span>
+                        <div class="app-meta-row">
+                            <span class="app-chip">${escapeHtml(this.getAppCategoryLabel(app))}</span>
+                            <span class="app-chip app-chip--status">${escapeHtml(this.getAppStatusLabel(app))}</span>
+                        </div>
+                        <p class="app-desc">${escapeHtml(this.getAppPreviewDescription(app))}</p>
+                        <span class="app-open-hint">Abrir modulo <i class="fas fa-arrow-right"></i></span>
                     </div>
                 `).join('');
                 this.animateAppCards();
@@ -3345,6 +3644,27 @@
                 };
             }
 
+            getAppCategoryLabel(app) {
+                const category = String(app?.category || '').trim();
+                if (!category) return 'Geral';
+                return category;
+            }
+
+            getAppStatusLabel(app) {
+                const status = String(app?.status || '').toLowerCase();
+                if (status === 'beta') return 'Beta';
+                if (status === 'open') return 'Aberto';
+                if (status === 'maintenance') return 'Manutencao';
+                return 'Ativo';
+            }
+
+            getAppPreviewDescription(app) {
+                const text = String(app?.description || '').replace(/\s+/g, ' ').trim();
+                if (!text) return 'Modulo pronto para uso no ecossistema do SUPERAPP.';
+                if (text.length <= 104) return text;
+                return `${text.slice(0, 101).trim()}...`;
+            }
+
             animateAppCards() {
                 const helpers = this.getMotionHelpers();
                 const cards = document.querySelectorAll('#appsContainer .app-card');
@@ -3364,6 +3684,15 @@
                         { y: [0, -3, 0], rotate: [-2, 2, -2] },
                         { duration: 2.2, repeat: Infinity, easing: 'ease-in-out' }
                     );
+                    const details = card.querySelectorAll('.app-title, .app-meta-row, .app-desc, .app-open-hint');
+                    if (details.length) {
+                        const detailsDelay = helpers.stagger ? helpers.stagger(0.03, { startDelay: 0.08 }) : 0.12;
+                        helpers.animate(
+                            details,
+                            { opacity: [0, 1], y: [8, 0] },
+                            { duration: 0.36, delay: detailsDelay, easing: 'ease-out' }
+                        );
+                    }
                 });
             }
 
