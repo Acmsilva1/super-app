@@ -2040,7 +2040,14 @@
             padding-bottom: 1.5rem;
             border-bottom: 1px solid rgba(99, 139, 198, 0.3);
         }
-        .app-form label { font-size: 0.875rem; font-weight: 600; color: var(--text-dark); }
+        .app-form label {
+            display: block;
+            font-size: 0.81rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
         .app-form input, .app-form select, .app-form textarea, .app-form-control {
             padding: 0.5rem 0.75rem;
             border: 1px solid rgba(99, 139, 198, 0.42);
@@ -2059,6 +2066,30 @@
         .app-form textarea { min-height: 4rem; resize: vertical; }
         .app-form-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end; }
         .app-form-row .field { flex: 1; min-width: 120px; }
+        .fin-form-grid,
+        .df-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 0.75rem;
+            align-items: start;
+        }
+        .fin-form-grid .field,
+        .df-form-grid .field {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.34rem;
+            min-width: 0;
+            flex: initial;
+        }
+        .fin-form-grid .field > input,
+        .fin-form-grid .field > select,
+        .fin-form-grid .field > textarea,
+        .df-form-grid .field > input,
+        .df-form-grid .field > select,
+        .df-form-grid .field > textarea {
+            width: 100%;
+        }
         .app-btn {
             padding: 0.5rem 1rem;
             border: 1px solid rgba(56, 189, 248, 0.42);
@@ -2913,6 +2944,8 @@
                 this.openWindows = new Map();
                 this.dashboardCharts = {};
                 this.dashboardResizeHandler = null;
+                this.vizLibrariesReady = false;
+                this.vizLibrariesLoading = null;
                 this.notificationItems = [];
                 this.notificationTimer = null;
                 this.notificationDismissed = { targetDate: '', keys: [] };
@@ -2920,10 +2953,71 @@
                 this.init();
             }
 
-            init() {
+            async init() {
                 this.setupEventListeners();
+                await this.ensureVisualizationLibraries();
                 this.loadData();
                 this.startNotificationCenter();
+            }
+
+            loadExternalScript(src) {
+                return new Promise((resolve, reject) => {
+                    const existing = document.querySelector(`script[data-src="${src}"]`);
+                    if (existing) {
+                        if (existing.dataset.loaded === 'true') return resolve(true);
+                        existing.addEventListener('load', () => resolve(true), { once: true });
+                        existing.addEventListener('error', () => reject(new Error(`Falha ao carregar script: ${src}`)), { once: true });
+                        return;
+                    }
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = false;
+                    script.dataset.src = src;
+                    script.onload = () => {
+                        script.dataset.loaded = 'true';
+                        resolve(true);
+                    };
+                    script.onerror = () => reject(new Error(`Falha ao carregar script: ${src}`));
+                    document.head.appendChild(script);
+                });
+            }
+
+            async ensureVisualizationLibraries() {
+                if (this.vizLibrariesReady) return true;
+                if (this.vizLibrariesLoading) return this.vizLibrariesLoading;
+
+                this.vizLibrariesLoading = (async () => {
+                    const ensureOne = async (globalName, urls) => {
+                        if (window[globalName]) return true;
+                        for (const url of urls) {
+                            try {
+                                await this.loadExternalScript(url);
+                                if (window[globalName]) return true;
+                            } catch (_err) {}
+                        }
+                        return Boolean(window[globalName]);
+                    };
+
+                    const [echartsOk, chartOk] = await Promise.all([
+                        ensureOne('echarts', [
+                            'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js',
+                            'https://unpkg.com/echarts@5.5.0/dist/echarts.min.js'
+                        ]),
+                        ensureOne('Chart', [
+                            'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+                            'https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js'
+                        ])
+                    ]);
+
+                    this.vizLibrariesReady = echartsOk && chartOk;
+                    return this.vizLibrariesReady;
+                })();
+
+                try {
+                    return await this.vizLibrariesLoading;
+                } finally {
+                    this.vizLibrariesLoading = null;
+                }
             }
 
             setupEventListeners() {
@@ -3091,7 +3185,10 @@
             }
 
             renderDashboardCharts() {
-                if (typeof echarts === 'undefined') return;
+                if (typeof echarts === 'undefined') {
+                    this.ensureVisualizationLibraries().then(() => this.renderDashboardCharts()).catch(() => {});
+                    return;
+                }
                 this.destroyDashboardCharts();
                 const metrics = this.dashboardMetrics || {};
                 const health = metrics.health || { healthy: 0, attention: 100 };
@@ -3794,7 +3891,7 @@
                     maintainAspectRatio: false,
                     indexAxis,
                     animation: { duration: 620, easing: 'easeOutQuart' },
-                    layout: { padding: { top: 10, right: 8, bottom: 4, left: 8 } },
+                    layout: { padding: { top: 10, right: 28, bottom: 4, left: 8 } },
                     plugins: {
                         legend: {
                             display: legend,
@@ -3862,16 +3959,30 @@
                         ctx.font = '600 11px Space Grotesk, sans-serif';
                         ctx.fillStyle = theme.text;
                         ctx.textBaseline = 'middle';
+                        const chartArea = chart.chartArea || {};
+                        const areaLeft = Number.isFinite(chartArea.left) ? chartArea.left : 0;
+                        const areaRight = Number.isFinite(chartArea.right) ? chartArea.right : chart.width;
+                        const areaTop = Number.isFinite(chartArea.top) ? chartArea.top : 0;
                         meta.data.forEach((element, index) => {
                             const raw = Number(dataset.data?.[index] ?? 0);
                             if (!Number.isFinite(raw) || raw <= 0) return;
                             const label = asMoney ? this.formatMoneyBr(raw) : `${Math.round(raw)}`;
                             const pos = element.tooltipPosition();
+                            const labelWidth = ctx.measureText(label).width;
                             if (chart.config.type === 'bar') {
                                 const isHorizontal = chart.options?.indexAxis === 'y';
-                                ctx.textAlign = isHorizontal ? 'left' : 'center';
-                                const x = isHorizontal ? pos.x + 8 : pos.x;
-                                const y = isHorizontal ? pos.y : pos.y - 10;
+                                if (isHorizontal) {
+                                    ctx.textAlign = 'left';
+                                    const rightLimit = areaRight - labelWidth - 4;
+                                    const leftLimit = areaLeft + 4;
+                                    const x = Math.max(leftLimit, Math.min(pos.x + 8, rightLimit));
+                                    const y = pos.y;
+                                    ctx.fillText(label, x, y);
+                                    return;
+                                }
+                                ctx.textAlign = 'center';
+                                const x = Math.max(areaLeft + (labelWidth / 2) + 2, Math.min(pos.x, areaRight - (labelWidth / 2) - 2));
+                                const y = Math.max(areaTop + 8, pos.y - 10);
                                 ctx.fillText(label, x, y);
                             } else {
                                 ctx.textAlign = 'center';
@@ -4504,7 +4615,7 @@
                     </div>
                     <div class="app-form">
                         <input type="hidden" id="df-edit-id" value="${escapeHtml(editId)}" />
-                        <div class="app-form-row">
+                        <div class="app-form-row df-form-grid">
                             <div class="field"><label>Descrição</label><input type="text" id="df-descricao" placeholder="Ex: Aluguel, Internet" /></div>
                             <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="df-valor" placeholder="0,00" /></div>
                             <div class="field"><label>Status</label><select id="df-status"><option value="pendente">Pendente</option><option value="pago">Pago</option></select></div>
@@ -4730,7 +4841,7 @@
                     </div>
                     <div class="app-form">
                         <input type="hidden" id="fin-edit-id" value="" />
-                        <div class="app-form-row">
+                        <div class="app-form-row fin-form-grid">
                             <div class="field"><label>Descrição</label><input type="text" id="fin-descricao" placeholder="Ex: Supermercado" /></div>
                             <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="fin-valor" placeholder="0,00" /></div>
                             <div class="field"><label>Tipo</label><select id="fin-tipo"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
@@ -4952,6 +5063,9 @@
                             plugins: [valueLabelsPlugin]
                         });
                     }
+                }
+                else {
+                    this.ensureVisualizationLibraries().then(() => this.refreshAppContent('financas')).catch(() => {});
                 }
             }
             async submitFinancasSave(el) {
