@@ -5104,7 +5104,14 @@
                             },
                             options: this.mergeChartOptions(
                                 this.getModernChartBaseOptions({ legend: true }),
-                                { cutout: '58%', plugins: { legend: { position: 'bottom' } } }
+                                {
+                                    cutout: '58%',
+                                    plugins: { legend: { position: 'bottom' } },
+                                    scales: {
+                                        x: { display: false, grid: { display: false }, ticks: { display: false }, border: { display: false } },
+                                        y: { display: false, grid: { display: false }, ticks: { display: false }, border: { display: false } }
+                                    }
+                                }
                             ),
                             plugins: [valueLabelsPlugin]
                         });
