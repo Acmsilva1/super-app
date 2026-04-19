@@ -4870,118 +4870,212 @@
 
             renderDespesasFixasContent(el, data) {
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
-                const aplicarLimiteVisualLista = (listEl, qtdVisivel = 10) => {
-                    if (!listEl) return;
-                    listEl.style.maxHeight = '';
-                    listEl.style.overflowY = '';
-                    const itens = Array.from(listEl.querySelectorAll(':scope > li'));
-                    if (itens.length <= qtdVisivel) return;
-                    const alturaLimite = itens
-                        .slice(0, qtdVisivel)
-                        .reduce((acc, li) => acc + li.getBoundingClientRect().height, 0);
-                    listEl.style.maxHeight = `${Math.ceil(alturaLimite)}px`;
-                    listEl.style.overflowY = 'auto';
-                };
+                if (el._dfChartPie) { el._dfChartPie.destroy(); el._dfChartPie = null; }
+                if (el._dfChartBar) { el._dfChartBar.destroy(); el._dfChartBar = null; }
+                const activeTab = (el.getAttribute('data-active-tab') || '').toLowerCase() === 'data' ? 'data' : 'summary';
+                el.setAttribute('data-active-tab', activeTab);
                 const rows = data.rows || data.despesas || [];
+                const rowsOrdered = [...rows].sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0));
                 const soma = data.soma != null ? Number(data.soma) : rows.reduce((a, r) => a + Number(r.valor || 0), 0);
                 const somaPago = data.somaPago != null ? Number(data.somaPago) : rows.filter(r => (r.status || '').toLowerCase() === 'pago').reduce((a, r) => a + Number(r.valor || 0), 0);
                 const somaPendente = data.somaPendente != null ? Number(data.somaPendente) : rows.filter(r => (r.status || '').toLowerCase() !== 'pago').reduce((a, r) => a + Number(r.valor || 0), 0);
                 const receitasFinancas = data.receitas_financas != null ? Number(data.receitas_financas) : 0;
                 const margem = Math.round((receitasFinancas - soma) * 100) / 100;
-                const editId = el.getAttribute('data-edit-id') || '';
                 const mesAno = data.mes_ano || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
                 const anos = Array.from({ length: 9 }, (_, i) => new Date().getFullYear() - 2 + i);
+                const tableRowsHtml = rowsOrdered.length
+                    ? rowsOrdered.map((r) => {
+                        const statusRaw = String(r.status || 'pendente').toLowerCase();
+                        const statusLabel = statusRaw === 'pago' ? 'Pago' : 'Pendente';
+                        const badgeClass = statusRaw === 'pago' ? 'is-paid' : 'is-pending';
+                        return `
+                            <tr data-status="${escapeHtml(statusRaw)}">
+                                <td><strong>${escapeHtml(r.descricao || '')}</strong></td>
+                                <td><span class="module-status-badge ${badgeClass}">${statusLabel}</span></td>
+                                <td style="color:${statusRaw === 'pago' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
+                                <td class="col-actions">
+                                    <div class="app-list-actions">
+                                        <button type="button" data-action="df-edit" data-id="${r.id}">Editar</button>
+                                        <button type="button" data-action="df-toggle" data-id="${r.id}" data-status="${statusRaw}">${statusRaw === 'pago' ? 'Marcar pendente' : 'Marcar pago'}</button>
+                                        <button type="button" data-action="df-delete" data-id="${r.id}">Excluir</button>
+                                    </div>
+                                </td>
+                            </tr>`;
+                    }).join('')
+                    : '<tr><td colspan="4" class="module-table-empty">Nenhuma despesa fixa neste mês.</td></tr>';
                 el.innerHTML = `
-                    <div class="app-mes-ano">
-                        <label>Mês/Ano</label>
-                        <select id="df-mes">${meses.map((m, i) => '<option value="'+(i+1)+'" '+(i+1===mes?'selected':'')+'>'+m+'</option>').join('')}</select>
-                        <select id="df-ano">${anos.map(a => '<option value="'+a+'" '+(a===ano?'selected':'')+'>'+a+'</option>').join('')}</select>
-                    </div>
-                    <div class="app-totais" style="margin-bottom:1rem;">
-                        <div class="totais-card"><div class="val" style="color:#22c55e">R$ ${receitasFinancas.toFixed(2)}</div><div class="stat-label">Receitas (Finanças)</div></div>
-                        <div class="totais-card"><div class="val" style="color:#2563eb">R$ ${soma.toFixed(2)}</div><div class="stat-label">Total geral (mês)</div></div>
-                        <div class="totais-card"><div class="val" style="color:${margem >= 0 ? '#16a34a' : '#dc2626'}">R$ ${margem.toFixed(2)}</div><div class="stat-label">Margem</div></div>
-                    </div>
-                    <div class="app-form">
-                        <input type="hidden" id="df-edit-id" value="${escapeHtml(editId)}" />
-                        <div class="app-form-row df-form-grid">
-                            <div class="field"><label>Descrição</label><input type="text" id="df-descricao" placeholder="Ex: Aluguel, Internet" /></div>
-                            <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="df-valor" placeholder="0,00" /></div>
-                            <div class="field"><label>Status</label><select id="df-status"><option value="pendente">Pendente</option><option value="pago">Pago</option></select></div>
+                    <div class="finance-module-shell fixed-expenses-shell">
+                        <div class="app-mes-ano">
+                            <label>Mês/Ano</label>
+                            <select id="df-mes">${meses.map((m, i) => '<option value="'+(i+1)+'" '+(i+1===mes?'selected':'')+'>'+m+'</option>').join('')}</select>
+                            <select id="df-ano">${anos.map(a => '<option value="'+a+'" '+(a===ano?'selected':'')+'>'+a+'</option>').join('')}</select>
                         </div>
-                        <div class="app-form-actions">
-                            <button type="button" class="app-btn" data-action="df-save">Adicionar</button>
-                            <button type="button" class="app-btn app-btn-secondary" data-action="df-exportar">Exportar dados</button>
-                            <button type="button" class="app-btn app-btn-secondary" data-action="df-report-html">Baixar relatório HTML</button>
+                        <div class="module-tabbar" role="tablist" aria-label="Subabas de despesas fixas">
+                            <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Resumo</button>
+                            <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
                         </div>
-                    </div>
-                    <p class="app-form-note">Novas despesas fixas entram no <strong>mês/ano selecionado acima</strong> (lançamentos retroativos: escolha o mês e depois adicione).</p>
-                    <div class="df-colunas">
-                        <div class="df-col df-col--pagos">
-                            <p class="df-col-titulo">Pagos</p>
-                            <ul class="app-list" id="df-list-pagos"></ul>
+                        <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
+                            <div class="app-totais">
+                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(receitasFinancas)}</div><div class="stat-label">Receitas (Finanças)</div></div>
+                                <div class="totais-card"><div class="val" style="color:#2563eb">${this.formatMoneyBr(soma)}</div><div class="stat-label">Total geral (mês)</div></div>
+                                <div class="totais-card"><div class="val" style="color:${margem >= 0 ? '#16a34a' : '#dc2626'}">${this.formatMoneyBr(margem)}</div><div class="stat-label">Margem</div></div>
+                            </div>
+                            <div class="df-totais-rodape" style="margin-top:0;">
+                                <div class="df-total-card"><span class="df-total-val" style="color:#22c55e">${this.formatMoneyBr(somaPago)}</span><span class="df-total-lbl">Total pagos</span></div>
+                                <div class="df-total-card"><span class="df-total-val" style="color:#ef4444">${this.formatMoneyBr(somaPendente)}</span><span class="df-total-lbl">Total pendentes</span></div>
+                                <div class="df-total-card"><span class="df-total-val" style="color:#2563eb">${this.formatMoneyBr(soma)}</span><span class="df-total-lbl">Total geral</span></div>
+                            </div>
+                            <div class="app-charts">
+                                <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Pago x Pendente</p><canvas id="df-chart-pie"></canvas></div>
+                                <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Top despesas por valor</p><canvas id="df-chart-bar"></canvas></div>
+                            </div>
                         </div>
-                        <div class="df-col df-col--pendentes">
-                            <p class="df-col-titulo">Pendentes</p>
-                            <ul class="app-list" id="df-list-pendentes"></ul>
+                        <div class="module-tab-panel ${activeTab === 'data' ? '' : 'hidden'}" data-tab-panel="data">
+                            <div class="module-data-toolbar">
+                                <p class="app-form-note" style="margin:0;">Tabela única de despesas fixas no mês selecionado.</p>
+                                <div class="module-data-actions">
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="df-exportar">Exportar dados</button>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="df-report-html">Baixar relatório HTML</button>
+                                </div>
+                            </div>
+                            <div class="module-filter-row">
+                                <div class="field">
+                                    <label>Status</label>
+                                    <select id="df-filter-status">
+                                        <option value="">Todos</option>
+                                        <option value="pago">Pago</option>
+                                        <option value="pendente">Pendente</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="module-table-wrap">
+                                <table class="module-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Descrição</th>
+                                            <th>Status</th>
+                                            <th>Valor</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="df-table-body">${tableRowsHtml}</tbody>
+                                </table>
+                            </div>
+                            <p class="app-form-note">Novas despesas fixas entram no <strong>mês/ano selecionado acima</strong> (lançamentos retroativos: escolha o mês e depois adicione).</p>
                         </div>
-                    </div>
-                    <div class="df-totais-rodape">
-                        <div class="df-total-card"><span class="df-total-val" style="color:#22c55e">R$ ${somaPago.toFixed(2)}</span><span class="df-total-lbl">Total pagos</span></div>
-                        <div class="df-total-card"><span class="df-total-val" style="color:#ef4444">R$ ${somaPendente.toFixed(2)}</span><span class="df-total-lbl">Total pendentes</span></div>
-                        <div class="df-total-card"><span class="df-total-val" style="color:#2563eb">R$ ${soma.toFixed(2)}</span><span class="df-total-lbl">Total geral</span></div>
+                        <button type="button" class="finance-fab" data-action="df-open-modal" aria-label="Adicionar despesa fixa">+</button>
                     </div>
                 `;
-                const isPago = (r) => (r.status || '').toLowerCase() === 'pago';
-                const ordemValor = (a, b) => Number(b.valor || 0) - Number(a.valor || 0);
-                const rowsPago = rows.filter(isPago).sort(ordemValor);
-                const rowsPend = rows.filter((r) => !isPago(r)).sort(ordemValor);
-                const itemLi = (r, colPago) => `
-                    <li>
-                        <div>
-                            <strong>${escapeHtml(r.descricao || '')}</strong>
-                            <span class="${colPago ? 'df-val-pago' : 'df-val-pendente'}" style="margin-left:0.5rem">R$ ${Number(r.valor).toFixed(2)}</span>
-                        </div>
-                        <div class="app-list-actions">
-                            <button type="button" data-action="df-toggle" data-id="${r.id}" data-status="${r.status}">${r.status === 'pago' ? 'Marcar pendente' : 'Marcar pago'}</button>
-                            <button type="button" data-action="df-edit" data-id="${r.id}" data-valor="${r.valor}" data-status="${r.status}">Editar</button>
-                            <button type="button" data-action="df-delete" data-id="${r.id}">Excluir</button>
-                        </div>
-                    </li>`;
-                const listPago = el.querySelector('#df-list-pagos');
-                const listPend = el.querySelector('#df-list-pendentes');
-                if (rows.length === 0) {
-                    const vazio = '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhuma despesa fixa. Adicione acima.</li>';
-                    listPago.innerHTML = vazio;
-                    listPend.innerHTML = vazio;
-                } else {
-                    listPago.innerHTML = rowsPago.length ? rowsPago.map((r) => itemLi(r, true)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhum pago.</li>';
-                    listPend.innerHTML = rowsPend.length ? rowsPend.map((r) => itemLi(r, false)).join('') : '<li style="color:#9ca3af;padding:1rem;text-align:center;border:none">Nenhum pendente.</li>';
-                }
-                aplicarLimiteVisualLista(listPago, 10);
-                aplicarLimiteVisualLista(listPend, 10);
-                const wireList = (root) => {
-                    root.querySelectorAll('[data-action="df-toggle"]').forEach((b) => { b.onclick = () => this.submitDespesaFixaToggle(b.dataset.id, b.dataset.status, el); });
-                    root.querySelectorAll('[data-action="df-edit"]').forEach((b) => {
-                        b.onclick = () => {
-                            const id = b.dataset.id;
-                            const r = rows.find((x) => String(x.id) === String(id));
-                            el.querySelector('#df-descricao').value = r ? (r.descricao || '') : '';
-                            el.querySelector('#df-valor').value = b.dataset.valor ?? '';
-                            el.querySelector('#df-status').value = b.dataset.status || 'pendente';
-                            el.querySelector('#df-edit-id').value = id || '';
-                            el.querySelector('[data-action="df-save"]').textContent = 'Salvar';
-                        };
-                    });
-                    root.querySelectorAll('[data-action="df-delete"]').forEach((b) => { b.onclick = () => this.submitDespesaFixaDelete(b.dataset.id, el); });
+                const rowsMap = new Map(rows.map((r) => [String(r.id), r]));
+                const ensureCharts = () => {
+                    const summaryPanel = el.querySelector('[data-tab-panel="summary"]');
+                    if (!summaryPanel || summaryPanel.classList.contains('hidden')) return;
+                    if (typeof Chart === 'undefined') {
+                        this.ensureVisualizationLibraries().then(() => this.refreshAppContent('notas')).catch(() => {});
+                        return;
+                    }
+                    const chartTheme = this.getChartThemeTokens();
+                    const valueLabelsPlugin = this.buildInlineChartValuePlugin({ asMoney: true });
+                    const pieCtx = el.querySelector('#df-chart-pie');
+                    if (pieCtx && !el._dfChartPie && (somaPago > 0 || somaPendente > 0)) {
+                        el._dfChartPie = new Chart(pieCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Pago', 'Pendente'],
+                                datasets: [{
+                                    data: [somaPago, somaPendente],
+                                    backgroundColor: ['#22c55e', '#ef4444'],
+                                    borderColor: chartTheme.isDark ? '#0b1323' : '#ffffff',
+                                    borderWidth: 2,
+                                    hoverOffset: 8
+                                }]
+                            },
+                            options: this.mergeChartOptions(
+                                this.getModernChartBaseOptions({ legend: true }),
+                                {
+                                    cutout: '58%',
+                                    plugins: { legend: { position: 'bottom' } },
+                                    scales: {
+                                        x: { display: false, grid: { display: false }, ticks: { display: false }, border: { display: false } },
+                                        y: { display: false, grid: { display: false }, ticks: { display: false }, border: { display: false } }
+                                    }
+                                }
+                            ),
+                            plugins: [valueLabelsPlugin]
+                        });
+                    }
+                    const topRows = rowsOrdered.slice(0, 8);
+                    const barCtx = el.querySelector('#df-chart-bar');
+                    if (barCtx && !el._dfChartBar && topRows.length > 0) {
+                        el._dfChartBar = new Chart(barCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: topRows.map((r) => String(r.descricao || '--')),
+                                datasets: [{
+                                    label: 'Valor (R$)',
+                                    data: topRows.map((r) => Number(r.valor || 0)),
+                                    borderRadius: 10,
+                                    borderSkipped: false,
+                                    backgroundColor: (context) => {
+                                        const chart = context.chart;
+                                        const area = chart.chartArea;
+                                        if (!area) return '#38bdf8';
+                                        const g = chart.ctx.createLinearGradient(area.left, 0, area.right, 0);
+                                        g.addColorStop(0, '#0891b2');
+                                        g.addColorStop(1, '#2563eb');
+                                        return g;
+                                    }
+                                }]
+                            },
+                            options: this.mergeChartOptions(
+                                this.getModernChartBaseOptions({ indexAxis: 'y', legend: false }),
+                                { indexAxis: 'y', scales: { x: { beginAtZero: true } } }
+                            ),
+                            plugins: [valueLabelsPlugin]
+                        });
+                    }
+                    if (el._dfChartPie) el._dfChartPie.resize();
+                    if (el._dfChartBar) el._dfChartBar.resize();
                 };
-                el.querySelector('[data-action="df-save"]').onclick = () => this.submitDespesaFixaSave(el);
-                wireList(listPago);
-                wireList(listPend);
-                el.querySelector('#df-mes').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('notas'); };
-                el.querySelector('#df-ano').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+m.padStart(2,'0')); this.refreshAppContent('notas'); };
+                const setTab = (tab) => {
+                    el.setAttribute('data-active-tab', tab);
+                    el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
+                        const active = btn.dataset.tab === tab;
+                        btn.classList.toggle('is-active', active);
+                        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+                    });
+                    el.querySelectorAll('[data-tab-panel]').forEach((panel) => {
+                        panel.classList.toggle('hidden', panel.dataset.tabPanel !== tab);
+                    });
+                    if (tab === 'summary') ensureCharts();
+                };
+                el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
+                    btn.onclick = () => setTab(btn.dataset.tab || 'summary');
+                });
+                setTab(activeTab);
+                const applyDfFilter = () => {
+                    const status = String(el.querySelector('#df-filter-status')?.value || '').toLowerCase();
+                    el.querySelectorAll('#df-table-body tr[data-status]').forEach((row) => {
+                        const okStatus = !status || row.dataset.status === status;
+                        row.style.display = okStatus ? '' : 'none';
+                    });
+                };
+                const statusFilter = el.querySelector('#df-filter-status');
+                if (statusFilter) statusFilter.onchange = applyDfFilter;
+                el.querySelectorAll('[data-action="df-edit"]').forEach((b) => {
+                    b.onclick = () => this.openDespesaFixaModal(el, { item: rowsMap.get(String(b.dataset.id)) });
+                });
+                el.querySelectorAll('[data-action="df-toggle"]').forEach((b) => {
+                    b.onclick = () => this.submitDespesaFixaToggle(b.dataset.id, b.dataset.status, el);
+                });
+                el.querySelectorAll('[data-action="df-delete"]').forEach((b) => {
+                    b.onclick = () => this.submitDespesaFixaDelete(b.dataset.id, el);
+                });
+                el.querySelector('[data-action="df-open-modal"]').onclick = () => this.openDespesaFixaModal(el);
+                el.querySelector('#df-mes').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+String(m).padStart(2,'0')); this.refreshAppContent('notas'); };
+                el.querySelector('#df-ano').onchange = () => { const m = el.querySelector('#df-mes').value; const a = el.querySelector('#df-ano').value; el.setAttribute('data-mes-ano', a+'-'+String(m).padStart(2,'0')); this.refreshAppContent('notas'); };
                 el.querySelector('[data-action="df-exportar"]').onclick = () => this.abrirExportarDespesasFixas(el, mesAno, meses, anos);
                 el.querySelector('[data-action="df-report-html"]').onclick = async () => {
                     try {
@@ -5005,13 +5099,49 @@
                     _prevMesAno = now;
                 }, 60000);
             }
-            async submitDespesaFixaSave(el) {
-                const editId = el.querySelector('#df-edit-id').value.trim();
-                const descricao = el.querySelector('#df-descricao').value.trim();
-                const valor = parseFloat(el.querySelector('#df-valor').value) || 0;
-                const status = el.querySelector('#df-status').value;
+            openDespesaFixaModal(el, { item = null } = {}) {
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                if (!descricao) { alert('Descrição é obrigatória'); return; }
+                const overlay = document.createElement('div');
+                overlay.className = 'app-modal-overlay';
+                overlay.innerHTML = `
+                    <div class="app-modal finance-entry-modal">
+                        <h4>${item ? 'Editar despesa fixa' : 'Nova despesa fixa'}</h4>
+                        <p class="app-form-note">Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong></p>
+                        <div class="app-form">
+                            <div class="app-form-row df-form-grid">
+                                <div class="field"><label>Descrição</label><input type="text" id="df-modal-descricao" placeholder="Ex: Aluguel, Internet" value="${escapeHtml(item?.descricao || '')}" /></div>
+                                <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="df-modal-valor" placeholder="0,00" value="${item ? Number(item.valor || 0) : ''}" /></div>
+                                <div class="field"><label>Status</label><select id="df-modal-status"><option value="pendente" ${(!item || String(item.status).toLowerCase() !== 'pago') ? 'selected' : ''}>Pendente</option><option value="pago" ${(item && String(item.status).toLowerCase() === 'pago') ? 'selected' : ''}>Pago</option></select></div>
+                            </div>
+                        </div>
+                        <div class="app-modal-actions">
+                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
+                            <button type="button" class="app-btn" data-action="modal-save">${item ? 'Salvar' : 'Registrar'}</button>
+                        </div>
+                    </div>
+                `;
+                const close = () => overlay.remove();
+                overlay.querySelector('[data-action="modal-cancel"]').onclick = close;
+                overlay.onclick = (e) => { if (e.target === overlay) close(); };
+                overlay.querySelector('[data-action="modal-save"]').onclick = async () => {
+                    const ok = await this.submitDespesaFixaSave(el, {
+                        editId: item?.id || '',
+                        descricao: overlay.querySelector('#df-modal-descricao').value.trim(),
+                        valor: parseFloat(overlay.querySelector('#df-modal-valor').value) || 0,
+                        status: overlay.querySelector('#df-modal-status').value || 'pendente',
+                        mesAno,
+                    });
+                    if (ok) close();
+                };
+                document.body.appendChild(overlay);
+            }
+            async submitDespesaFixaSave(el, payload = null) {
+                const editId = String(payload?.editId || '').trim();
+                const descricao = String(payload?.descricao || '').trim();
+                const valor = Number(payload?.valor || 0);
+                const status = String(payload?.status || 'pendente');
+                const mesAno = payload?.mesAno || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
+                if (!descricao) { alert('Descrição é obrigatória'); return false; }
                 try {
                     if (editId) {
                         const res = await fetch('/api/despesas-fixas', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, descricao, valor, status }) });
@@ -5020,10 +5150,12 @@
                         const res = await fetch('/api/despesas-fixas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descricao, valor, status, mes_ano: mesAno }) });
                         if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao salvar'); }
                     }
-                    el.querySelector('#df-edit-id').value = '';
-                    el.querySelector('[data-action="df-save"]').textContent = 'Adicionar';
                     await this.refreshAppContent('notas');
-                } catch (e) { alert(e.message); }
+                    return true;
+                } catch (e) {
+                    alert(e.message);
+                    return false;
+                }
             }
             async submitDespesaFixaToggle(id, currentStatus, el) {
                 const newStatus = currentStatus === 'pago' ? 'pendente' : 'pago';
