@@ -34,20 +34,16 @@ const ENDPOINTS = [
     successHint: "roadmap carregado",
   },
   {
-    name: "despesas_fixas",
-    path: "/api/despesas-fixas?mes_ano={{currentMonth}}",
+    name: "financeiro",
+    path: "/api/financeiro?bi=1&mes_ano={{currentMonth}}",
     expectedStatus: 200,
     critical: true,
-    validateBody: (body) => Array.isArray(body?.rows) && typeof body?.mes_ano === "string",
-    successHint: "módulo de despesas fixas respondeu",
-  },
-  {
-    name: "financas",
-    path: "/api/financas?bi=1&mes_ano={{currentMonth}}",
-    expectedStatus: 200,
-    critical: true,
-    validateBody: (body) => Array.isArray(body?.rows) && typeof body?.mes_ano === "string" && typeof body?.totais === "object",
-    successHint: "módulo financeiro respondeu",
+    validateBody: (body) =>
+      typeof body?.mes_ano === "string" &&
+      typeof body?.dashboard === "object" &&
+      typeof body?.graficos === "object" &&
+      typeof body?.tabelas === "object",
+    successHint: "módulo financeiro unificado respondeu",
   },
   {
     name: "lista_compras",

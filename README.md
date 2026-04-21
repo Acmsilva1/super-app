@@ -30,8 +30,7 @@ super-app-1/
 
 | Modulo | Tabela principal | Responsabilidade |
 |---|---|---|
-| `despesas_fixas` | `tb_despesas_fixas` | Controle de despesas recorrentes e exportacao entre meses |
-| `financas` | `tb_financas` | Lancamentos financeiros, totais e BI mensal |
+| `financeiro` | `tb_financas` + `tb_despesas_fixas` | Dashboard financeiro unificado com receitas, gastos variados e despesas fixas |
 | `lista_compras` | `tb_lista_compras` | Itens, categorias e marcacao de compra |
 | `saude` | `tb_saude_familiar` | Registros de saude por membro da familia |
 | `calendario` | `tb_calendario` | Agenda, visualizacao mensal e status de confirmacao |
@@ -98,8 +97,7 @@ flowchart TD
 
 | Endpoint | Metodos | Tabela(s) | Observacoes |
 |---|---|---|---|
-| `/api/despesas-fixas` | `GET, POST, PATCH, DELETE` | `tb_despesas_fixas`, leitura auxiliar de `tb_financas` | suporta exportacao entre meses |
-| `/api/financas` | `GET, POST, PATCH, DELETE` | `tb_financas`, leitura auxiliar de `tb_despesas_fixas` | calcula totais e BI |
+| `/api/financeiro` | `GET, POST, PATCH, DELETE` | `tb_financas`, `tb_despesas_fixas` | endpoint financeiro unico com dashboard, graficos e tabelas por tipo |
 | `/api/lista-compras` | `GET, POST, PATCH, DELETE` | `tb_lista_compras` | suporta toggle e reset global |
 | `/api/saude` | `GET, POST, PATCH, DELETE` | `tb_saude_familiar` | opcionalmente monta resumo por membro |
 | `/api/calendario` | `GET, POST, PATCH, DELETE` | `tb_calendario` | GET aceita `action=config`, `action=view` e `action=sync_status` |
@@ -167,8 +165,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - `GET /api/apps`
 - `GET /api/statistics`
 - `GET /api/roadmap`
-- `GET /api/despesas-fixas?mes_ano=YYYY-MM`
-- `GET /api/financas?bi=1&mes_ano=YYYY-MM`
+- `GET /api/financeiro?bi=1&mes_ano=YYYY-MM`
 - `GET /api/lista-compras`
 - `GET /api/saude`
 - `GET /api/calendario?action=config`

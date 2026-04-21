@@ -4,19 +4,11 @@
  */
 export const APPS = [
   {
-    id: 'notas',
-    icon: 'fa-book',
-    status: 'active',
-    title: 'Despesas Fixas',
-    description: 'Registro de despesas fixas: descricao, valor, status pago/pendente e soma no final.',
-    category: 'Produtividade',
-  },
-  {
-    id: 'financas',
+    id: 'financeiro',
     icon: 'fa-wallet',
     status: 'active',
-    title: 'Financas',
-    description: 'Registro de receitas e despesas com categorias e BI.',
+    title: 'Financeiro',
+    description: 'Dashboard financeiro completo com despesas fixas, gastos variaveis e receitas.',
     category: 'Financeiro',
   },
   {
