@@ -20,10 +20,7 @@ export const CATEGORIAS_GASTO_VARIADO = [
 ];
 
 export const CATEGORIAS_RECEITA = [
-  'Salario',
-  'Freelance',
-  'Vendas',
-  'Rendimentos',
-  'Reembolso',
-  'Outras receitas',
+  'Salário',
+  'Benefício',
+  'Outro',
 ];
