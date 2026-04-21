@@ -4870,7 +4870,7 @@
                 const pad = (n) => String(n).padStart(2, '0');
                 const firstDayMonth = `${ano}-${pad(mes)}-01`;
                 const lastDayMonth = `${ano}-${pad(mes)}-${pad(new Date(ano, mes, 0).getDate())}`;
-                const gastoCategorias = ['Alimentacao','Habitacao','Transporte','Lazer','Saude','Compras','Contas','Ticket','Outros'];
+                const gastoCategorias = ['Alimentacao','Habitacao','Transporte','Lazer','Saude','Compras','Contas','Outros'];
                 const receitaCategorias = ['Salario','Freelance','Vendas','Rendimentos','Reembolso','Outras receitas'];
                 const tipoRegistro = item?.tipo_registro || defaultTipo || 'gasto_variado';
                 const overlay = document.createElement('div');

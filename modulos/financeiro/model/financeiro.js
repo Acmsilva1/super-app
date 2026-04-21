@@ -16,7 +16,6 @@ export const CATEGORIAS_GASTO_VARIADO = [
   'Saude',
   'Compras',
   'Contas',
-  'Ticket',
   'Outros',
 ];
 
