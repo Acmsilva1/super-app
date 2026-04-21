@@ -2219,8 +2219,8 @@
             justify-content: space-between;
         }
         .finance-data-filter-bar {
-            position: sticky;
-            top: 4.4rem;
+            position: relative;
+            top: auto;
             z-index: 18;
             display: flex;
             flex-wrap: wrap;
@@ -2406,9 +2406,6 @@
             }
             .module-data-actions .app-btn {
                 flex: 1 1 auto;
-            }
-            .finance-data-filter-bar {
-                top: 6.2rem;
             }
             .finance-entry-modal {
                 width: min(520px, calc(100vw - 0.75rem));
@@ -4891,6 +4888,8 @@
                     el.querySelectorAll('[data-tab-panel]').forEach((panel) => {
                         panel.classList.toggle('hidden', panel.dataset.tabPanel !== tab);
                     });
+                    const dataFilterBar = el.querySelector('.finance-data-filter-bar');
+                    if (dataFilterBar) dataFilterBar.style.display = tab === 'data' ? '' : 'none';
                     if (tab === 'summary') ensureCharts();
                 };
 
