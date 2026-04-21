@@ -2298,9 +2298,8 @@
             border-color: rgba(248, 113, 113, 0.32);
         }
         .finance-fab {
-            position: sticky;
-            justify-self: end;
-            right: 0;
+            position: fixed;
+            right: max(1.1rem, env(safe-area-inset-right));
             bottom: max(0.85rem, env(safe-area-inset-bottom));
             width: 3.2rem;
             height: 3.2rem;
@@ -2317,7 +2316,7 @@
             align-items: center;
             justify-content: center;
             transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
-            z-index: 5;
+            z-index: 1200;
         }
         .finance-fab:hover {
             transform: translateY(-2px) scale(1.03);
