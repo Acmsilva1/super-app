@@ -4758,6 +4758,20 @@
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Resumo</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
                             </div>
+                            <div class="finance-data-filter-bar" style="${activeTab === 'data' ? '' : 'display:none;'}">
+                                <label for="financeiro-data-target">Tabela</label>
+                                <select id="financeiro-data-target">
+                                    <option value="all">Todas</option>
+                                    <option value="despesas_fixas">Despesas Fixas</option>
+                                    <option value="gastos_variados">Gastos Variados</option>
+                                    <option value="receitas">Receitas</option>
+                                </select>
+                                <div class="finance-jump-actions">
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="despesas_fixas">Ir p/ Fixas</button>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="gastos_variados">Ir p/ Variadas</button>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="receitas">Ir p/ Receitas</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
                             <div class="app-totais">
@@ -4772,20 +4786,6 @@
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'data' ? '' : 'hidden'}" data-tab-panel="data">
-                            <div class="finance-data-filter-bar">
-                                <label for="financeiro-data-target">Tabela</label>
-                                <select id="financeiro-data-target">
-                                    <option value="all">Todas</option>
-                                    <option value="despesas_fixas">Despesas Fixas</option>
-                                    <option value="gastos_variados">Gastos Variados</option>
-                                    <option value="receitas">Receitas</option>
-                                </select>
-                                <div class="finance-jump-actions">
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="despesas_fixas">Ir p/ Fixas</button>
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="gastos_variados">Ir p/ Variadas</button>
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="receitas">Ir p/ Receitas</button>
-                                </div>
-                            </div>
                             <div class="module-data-toolbar">
                                 <p class="app-form-note" style="margin:0;">3 tabelas em ordem cronológica (mais recente primeiro).</p>
                             </div>
@@ -5938,6 +5938,7 @@
     </script>
 </body>
 </html>
+
 
 
 
