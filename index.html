@@ -2163,6 +2163,16 @@
             position: relative;
             padding-bottom: 5rem;
         }
+        .finance-sticky-head {
+            position: sticky;
+            top: 0;
+            z-index: 25;
+            display: grid;
+            gap: 0.65rem;
+            padding: 0.45rem 0 0.35rem;
+            background: linear-gradient(180deg, rgba(9, 20, 38, 0.98), rgba(9, 20, 38, 0.86) 72%, rgba(9, 20, 38, 0));
+            backdrop-filter: blur(4px);
+        }
         .module-tabbar {
             display: inline-flex;
             align-items: center;
@@ -2207,6 +2217,44 @@
             gap: 0.55rem;
             align-items: center;
             justify-content: space-between;
+        }
+        .finance-data-filter-bar {
+            position: sticky;
+            top: 4.4rem;
+            z-index: 18;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            align-items: center;
+            padding: 0.55rem 0.6rem;
+            border: 1px solid rgba(89, 132, 194, 0.32);
+            border-radius: 0.75rem;
+            background: linear-gradient(180deg, rgba(11, 22, 42, 0.96), rgba(11, 22, 42, 0.92));
+            box-shadow: var(--shadow-sm);
+        }
+        .finance-data-filter-bar label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #9fb5d8;
+            letter-spacing: 0.04em;
+        }
+        .finance-data-filter-bar select {
+            min-height: 2rem;
+            min-width: 220px;
+        }
+        .finance-jump-actions {
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+        .finance-jump-actions .app-btn {
+            padding: 0.35rem 0.65rem;
+            font-size: 0.76rem;
+        }
+        .finance-data-section.hidden-by-filter {
+            display: none;
         }
         .module-data-actions {
             display: flex;
@@ -2358,6 +2406,9 @@
             }
             .module-data-actions .app-btn {
                 flex: 1 1 auto;
+            }
+            .finance-data-filter-bar {
+                top: 6.2rem;
             }
             .finance-entry-modal {
                 width: min(520px, calc(100vw - 0.75rem));
@@ -4700,14 +4751,16 @@
 
                 el.innerHTML = `
                     <div class="finance-module-shell">
-                        <div class="app-mes-ano">
-                            <label>Mês/Ano</label>
-                            <select id="financeiro-mes">${meses.map((m, i) => `<option value="${i + 1}" ${(i + 1 === mes) ? 'selected' : ''}>${m}</option>`).join('')}</select>
-                            <select id="financeiro-ano">${anos.map((a) => `<option value="${a}" ${(a === ano) ? 'selected' : ''}>${a}</option>`).join('')}</select>
-                        </div>
-                        <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
-                            <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Resumo</button>
-                            <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
+                        <div class="finance-sticky-head">
+                            <div class="app-mes-ano">
+                                <label>Mês/Ano</label>
+                                <select id="financeiro-mes">${meses.map((m, i) => `<option value="${i + 1}" ${(i + 1 === mes) ? 'selected' : ''}>${m}</option>`).join('')}</select>
+                                <select id="financeiro-ano">${anos.map((a) => `<option value="${a}" ${(a === ano) ? 'selected' : ''}>${a}</option>`).join('')}</select>
+                            </div>
+                            <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
+                                <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Resumo</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
+                            </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
                             <div class="app-totais">
@@ -4722,24 +4775,38 @@
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'data' ? '' : 'hidden'}" data-tab-panel="data">
+                            <div class="finance-data-filter-bar">
+                                <label for="financeiro-data-target">Tabela</label>
+                                <select id="financeiro-data-target">
+                                    <option value="all">Todas</option>
+                                    <option value="despesas_fixas">Despesas Fixas</option>
+                                    <option value="gastos_variados">Gastos Variados</option>
+                                    <option value="receitas">Receitas</option>
+                                </select>
+                                <div class="finance-jump-actions">
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="despesas_fixas">Ir p/ Fixas</button>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="gastos_variados">Ir p/ Variadas</button>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="receitas">Ir p/ Receitas</button>
+                                </div>
+                            </div>
                             <div class="module-data-toolbar">
                                 <p class="app-form-note" style="margin:0;">3 tabelas em ordem cronológica (mais recente primeiro).</p>
                             </div>
-                            <div class="module-table-wrap">
+                            <div class="module-table-wrap finance-data-section" data-table-section="despesas_fixas" id="financeiro-section-despesas-fixas">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Despesas fixas</p>
                                 <table class="module-table">
                                     <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                     <tbody id="financeiro-table-fixas">${rowsFixasHtml}</tbody>
                                 </table>
                             </div>
-                            <div class="module-table-wrap" style="margin-top:0.85rem;">
+                            <div class="module-table-wrap finance-data-section" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Gastos variados</p>
                                 <table class="module-table">
                                     <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                     <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
                                 </table>
                             </div>
-                            <div class="module-table-wrap" style="margin-top:0.85rem;">
+                            <div class="module-table-wrap finance-data-section" data-table-section="receitas" id="financeiro-section-receitas" style="margin-top:0.85rem;">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Receitas</p>
                                 <table class="module-table">
                                     <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
@@ -4831,6 +4898,34 @@
                     btn.onclick = () => setTab(btn.dataset.tab || 'summary');
                 });
                 setTab(activeTab);
+
+                const applyDataTableFilter = () => {
+                    const target = String(el.querySelector('#financeiro-data-target')?.value || 'all');
+                    el.querySelectorAll('[data-table-section]').forEach((section) => {
+                        const key = section.getAttribute('data-table-section');
+                        const show = target === 'all' || key === target;
+                        section.classList.toggle('hidden-by-filter', !show);
+                    });
+                };
+                const jumpToDataSection = (target) => {
+                    if (!target) return;
+                    const select = el.querySelector('#financeiro-data-target');
+                    if (select) {
+                        select.value = target;
+                        applyDataTableFilter();
+                    }
+                    const section = el.querySelector(`[data-table-section="${target}"]`);
+                    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                };
+                const dataTargetSelect = el.querySelector('#financeiro-data-target');
+                if (dataTargetSelect) dataTargetSelect.onchange = applyDataTableFilter;
+                el.querySelectorAll('[data-action="financeiro-jump"]').forEach((btn) => {
+                    btn.onclick = () => {
+                        setTab('data');
+                        jumpToDataSection(btn.dataset.target || '');
+                    };
+                });
+                applyDataTableFilter();
 
                 const refreshMesAno = () => {
                     const m = el.querySelector('#financeiro-mes').value;
