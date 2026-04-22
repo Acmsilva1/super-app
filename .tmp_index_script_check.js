@@ -1536,7 +1536,6 @@
                 const metaProgresso = metaValor > 0 ? Math.max(0, Math.min(1, poupancaTotal / metaValor)) : 0;
                 const metaPercent = Math.round(metaProgresso * 100);
                 const metaRestante = Math.max(0, Math.round((metaValor - poupancaTotal) * 100) / 100);
-                const metaCor = metaProgresso >= 1 ? '#22c55e' : metaProgresso >= 0.7 ? '#facc15' : '#38bdf8';
 
                 el.innerHTML = `
                     <div class="finance-module-shell">
@@ -1629,7 +1628,16 @@
                                             <button type="button" class="app-btn app-btn-secondary" data-action="poupanca-meta-delete" data-id="${metaId}">Excluir</button>
                                         </div>
                                     </div>
-                                    <div class="poupanca-meta-thermo"><div class="poupanca-meta-thermo-fill" style="width:${metaPercent}%;background:linear-gradient(90deg, ${metaCor}, ${metaCor});"></div></div>
+                                    <div class="poupanca-meta-chart-grid">
+                                        <div class="poupanca-meta-chart-wrap">
+                                            <div id="financeiro-poupanca-meta-chart" class="poupanca-meta-chart"></div>
+                                        </div>
+                                        <div class="poupanca-meta-insight">
+                                            <div class="title">TermÃ´metro da meta</div>
+                                            <div class="value">${metaPercent}%</div>
+                                            <p class="meta-sub" style="margin-top:0.25rem;">Faixas: atÃ© 29% em azul, de 30% a 99% em amarelo, e meta concluÃ­da em verde.</p>
+                                        </div>
+                                    </div>
                                     <div class="poupanca-meta-stats">
                                         <div><span>Meta</span><strong>${this.formatMoneyBr(metaValor)}</strong></div>
                                         <div><span>Acumulado</span><strong>${this.formatMoneyBr(poupancaTotal)}</strong></div>
@@ -1648,6 +1656,10 @@
                         <button type="button" class="finance-fab finance-fab-pulse" data-action="financeiro-open-modal" aria-label="Adicionar registro financeiro">+</button>
                     </div>
                 `;
+                if (el._financeiroPoupancaMetaChart) {
+                    try { el._financeiroPoupancaMetaChart.dispose(); } catch (_) {}
+                    el._financeiroPoupancaMetaChart = null;
+                }
 
                 const itemMap = new Map();
                 despesasFixas.forEach((r) => itemMap.set(`despesa_fixa:${r.id}`, r));
@@ -1712,6 +1724,69 @@
                         }
                     }
                 };
+                const ensurePoupancaMetaChart = () => {
+                    const poupancaPanel = el.querySelector('[data-tab-panel="poupanca"]');
+                    if (!poupancaPanel || poupancaPanel.classList.contains('hidden')) return;
+                    const chartNode = el.querySelector('#financeiro-poupanca-meta-chart');
+                    if (!chartNode || !(metaValor > 0)) return;
+                    if (typeof echarts === 'undefined') {
+                        this.ensureVisualizationLibraries().then(() => this.refreshAppContent('financeiro')).catch(() => {});
+                        return;
+                    }
+                    const progress = Math.max(0, Math.min(100, Number(metaPercent) || 0));
+                    const progressColor = progress >= 100 ? '#22c55e' : (progress >= 30 ? '#facc15' : '#38bdf8');
+                    let chart = el._financeiroPoupancaMetaChart;
+                    if (!chart || chart.isDisposed?.()) {
+                        chart = echarts.init(chartNode);
+                        el._financeiroPoupancaMetaChart = chart;
+                    }
+                    chart.setOption({
+                        animationDuration: 700,
+                        animationEasing: 'cubicOut',
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: () => `Progresso: ${progress}%<br/>Acumulado: ${this.formatMoneyBr(poupancaTotal)}<br/>Meta: ${this.formatMoneyBr(metaValor)}`,
+                            backgroundColor: 'rgba(8, 20, 38, 0.96)',
+                            borderColor: 'rgba(148, 163, 184, 0.35)',
+                            textStyle: { color: '#dbeafe' },
+                        },
+                        series: [{
+                            type: 'gauge',
+                            min: 0,
+                            max: 100,
+                            startAngle: 225,
+                            endAngle: -45,
+                            center: ['50%', '58%'],
+                            radius: '95%',
+                            pointer: { show: false },
+                            progress: {
+                                show: true,
+                                roundCap: true,
+                                width: 20,
+                                itemStyle: { color: progressColor, shadowBlur: 14, shadowColor: `${progressColor}55` },
+                            },
+                            axisLine: {
+                                roundCap: true,
+                                lineStyle: { width: 20, color: [[1, 'rgba(71, 98, 138, 0.35)']] },
+                            },
+                            axisTick: { show: false },
+                            splitLine: { show: false },
+                            axisLabel: { show: false },
+                            anchor: { show: false },
+                            title: { show: false },
+                            detail: {
+                                valueAnimation: true,
+                                offsetCenter: [0, '8%'],
+                                formatter: '{value}%',
+                                color: '#f8fbff',
+                                fontSize: 32,
+                                fontWeight: 800,
+                            },
+                            data: [{ value: progress }],
+                        }],
+                    }, true);
+                    chart.resize();
+                };
 
                 const setTab = (tab) => {
                     el.setAttribute('data-active-tab', tab);
@@ -1728,6 +1803,7 @@
                     const mesAnoBar = el.querySelector('.finance-sticky-head .app-mes-ano');
                     if (mesAnoBar) mesAnoBar.style.display = tab === 'poupanca' ? 'none' : '';
                     if (tab === 'summary') ensureCharts();
+                    if (tab === 'poupanca') ensurePoupancaMetaChart();
                 };
 
                 el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
