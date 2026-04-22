@@ -2,8 +2,10 @@ import { supabase } from '../lib/supabase.js';
 import {
   TABLE_DESPESAS_FIXAS,
   TABLE_FINANCAS,
+  TABLE_POUPANCA,
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
+  TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
   parseMesAno,
   rangeMes,
@@ -26,6 +28,12 @@ function rowOrFirst(data) {
   return data || null;
 }
 
+function isMissingTableError(error) {
+  const code = String(error?.code || '');
+  const message = String(error?.message || '').toLowerCase();
+  return code === '42P01' || message.includes('does not exist') || message.includes('não existe');
+}
+
 export async function obterFinanceiroMes(query = {}) {
   const { ano, mes } = parseMesAno(query.mes_ano);
   const { start, end, mes_ano } = rangeMes(ano, mes);
@@ -44,12 +52,31 @@ export async function obterFinanceiroMes(query = {}) {
     .order('created_at', { ascending: false });
   if (errFixas) return { error: errFixas.message, status: 500 };
 
+  let poupancaRowsRaw = [];
+  let poupancaConfigured = true;
+  const { data: poupaData, error: errPoupa } = await supabase
+    .from(TABLE_POUPANCA)
+    .select('*')
+    .order('data_lancamento', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (errPoupa) {
+    if (isMissingTableError(errPoupa)) {
+      poupancaConfigured = false;
+      poupancaRowsRaw = [];
+    } else {
+      return { error: errPoupa.message, status: 500 };
+    }
+  } else {
+    poupancaRowsRaw = poupaData || [];
+  }
+
   const financasMes = filtrarFinancasPorMes(allFinancasRows || [], ano, mes);
   const { receitas, gastosVariados } = classificarFinancas(financasMes);
 
   const receitasTabela = montarTabelaFinanceiroRows(receitas, TIPO_REGISTRO_RECEITA);
   const gastosVariadosTabela = montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO);
   const despesasFixasTabela = montarTabelaFinanceiroRows(despesasFixasRowsRaw || [], TIPO_REGISTRO_DESPESA_FIXA);
+  const poupancaTabela = montarTabelaFinanceiroRows(poupancaRowsRaw || [], TIPO_REGISTRO_POUPANCA);
 
   const dashboard = calcularDashboard({
     receitasRows: receitas,
@@ -71,6 +98,12 @@ export async function obterFinanceiroMes(query = {}) {
         despesas_fixas: despesasFixasTabela,
         gastos_variados: gastosVariadosTabela,
         receitas: receitasTabela,
+        poupanca: poupancaTabela,
+      },
+      poupanca: {
+        configurada: poupancaConfigured,
+        total: Math.round((poupancaRowsRaw || []).reduce((acc, r) => acc + (Number(r?.valor) || 0), 0) * 100) / 100,
+        logs: poupancaTabela,
       },
     },
   };
@@ -81,7 +114,11 @@ export async function criarRegistroFinanceiro(req) {
   const parsed = payloadInsertFinanceiro(body);
   if (parsed.error) return { status: 400, data: { error: parsed.error } };
 
-  const table = parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA ? TABLE_DESPESAS_FIXAS : TABLE_FINANCAS;
+  const table = parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA
+    ? TABLE_DESPESAS_FIXAS
+    : parsed.tipo_registro === TIPO_REGISTRO_POUPANCA
+      ? TABLE_POUPANCA
+      : TABLE_FINANCAS;
   const payload = { ...parsed.payload };
   if (parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA && body.mes_ano && /^\d{4}-\d{2}$/.test(String(body.mes_ano))) {
     const { ano, mes } = parseMesAno(String(body.mes_ano));
@@ -99,7 +136,11 @@ export async function atualizarRegistroFinanceiro(req) {
   const parsed = payloadUpdateFinanceiro(body);
   if (parsed.error) return { status: 400, data: { error: parsed.error } };
 
-  const table = parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA ? TABLE_DESPESAS_FIXAS : TABLE_FINANCAS;
+  const table = parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA
+    ? TABLE_DESPESAS_FIXAS
+    : parsed.tipo_registro === TIPO_REGISTRO_POUPANCA
+      ? TABLE_POUPANCA
+      : TABLE_FINANCAS;
   const { data, error } = await supabase.from(table).update(parsed.payload).eq('id', parsed.id).select().single();
   if (error) return { status: 500, data: { error: error.message } };
   const row = rowOrFirst(data);
@@ -122,13 +163,22 @@ export async function removerRegistroFinanceiro(req) {
       if (errFix) return { status: 500, data: { error: errFix.message } };
       if (Array.isArray(inFix) && inFix.length > 0) tipoRegistro = TIPO_REGISTRO_DESPESA_FIXA;
     }
+    if (!tipoRegistro) {
+      const { data: inPoupa, error: errPoupa } = await supabase.from(TABLE_POUPANCA).select('id').eq('id', id).limit(1);
+      if (errPoupa && !isMissingTableError(errPoupa)) return { status: 500, data: { error: errPoupa.message } };
+      if (Array.isArray(inPoupa) && inPoupa.length > 0) tipoRegistro = TIPO_REGISTRO_POUPANCA;
+    }
     if (!tipoRegistro) return { status: 404, data: { error: 'registro nao encontrado para exclusao' } };
   }
 
-  if (![TIPO_REGISTRO_DESPESA_FIXA, TIPO_REGISTRO_GASTO_VARIADO, TIPO_REGISTRO_RECEITA].includes(tipoRegistro)) {
+  if (![TIPO_REGISTRO_DESPESA_FIXA, TIPO_REGISTRO_GASTO_VARIADO, TIPO_REGISTRO_RECEITA, TIPO_REGISTRO_POUPANCA].includes(tipoRegistro)) {
     return { status: 400, data: { error: 'tipo_registro invalido' } };
   }
-  const table = tipoRegistro === TIPO_REGISTRO_DESPESA_FIXA ? TABLE_DESPESAS_FIXAS : TABLE_FINANCAS;
+  const table = tipoRegistro === TIPO_REGISTRO_DESPESA_FIXA
+    ? TABLE_DESPESAS_FIXAS
+    : tipoRegistro === TIPO_REGISTRO_POUPANCA
+      ? TABLE_POUPANCA
+      : TABLE_FINANCAS;
   const { error } = await supabase.from(table).delete().eq('id', id);
   if (error) return { status: 500, data: { error: error.message } };
   return { status: 200, data: { ok: true } };

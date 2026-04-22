@@ -4673,7 +4673,8 @@
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
                 if (el._financeiroChartCategoria) { el._financeiroChartCategoria.destroy(); el._financeiroChartCategoria = null; }
                 if (el._financeiroChartStatus) { el._financeiroChartStatus.destroy(); el._financeiroChartStatus = null; }
-                const activeTab = (el.getAttribute('data-active-tab') || '').toLowerCase() === 'data' ? 'data' : 'summary';
+                const tabRaw = (el.getAttribute('data-active-tab') || '').toLowerCase();
+                const activeTab = ['summary', 'data', 'poupanca'].includes(tabRaw) ? tabRaw : 'summary';
                 el.setAttribute('data-active-tab', activeTab);
 
                 const dashboard = data.dashboard || {};
@@ -4682,6 +4683,9 @@
                 const despesasFixas = tabelas.despesas_fixas || [];
                 const gastosVariados = tabelas.gastos_variados || [];
                 const receitas = tabelas.receitas || [];
+                const poupancaLogs = (data.poupanca && data.poupanca.logs) || tabelas.poupanca || [];
+                const poupancaTotal = Number((data.poupanca && data.poupanca.total) || 0);
+                const poupancaConfigurada = data.poupanca ? data.poupanca.configurada !== false : true;
                 const receitasVal = Number(dashboard.receitas) || 0;
                 const despesasFixasVal = Number(dashboard.despesas_fixas) || 0;
                 const despesasVariadasVal = Number(dashboard.despesas_variadas) || 0;
@@ -4745,6 +4749,22 @@
                 const rowsFixasHtml = despesasFixas.length ? despesasFixas.map(mkRowFixa).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma despesa fixa neste mês.</td></tr>';
                 const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mês.</td></tr>';
                 const rowsReceitasHtml = receitas.length ? receitas.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mês.</td></tr>';
+                const rowsPoupancaHtml = poupancaLogs.length
+                    ? poupancaLogs.map((r) => {
+                        const hora = fmtHoraBrasilia(r.created_at);
+                        return `<tr>
+                            <td><strong>${escapeHtml(r.descricao || '')}</strong></td>
+                            <td style="color:#22c55e">${this.formatMoneyBr(Number(r.valor || 0))}</td>
+                            <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
+                            <td class="col-actions">
+                                <div class="app-list-actions">
+                                    <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="poupanca">Editar</button>
+                                    <button type="button" data-action="financeiro-delete" data-id="${r.id}" data-tipo-registro="poupanca">Excluir</button>
+                                </div>
+                            </td>
+                        </tr>`;
+                    }).join('')
+                    : '<tr><td colspan="4" class="module-table-empty">Nenhum lançamento em poupança.</td></tr>';
 
                 el.innerHTML = `
                     <div class="finance-module-shell">
@@ -4757,6 +4777,7 @@
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Resumo</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupança</button>
                             </div>
                             <div class="finance-data-filter-bar" style="${activeTab === 'data' ? '' : 'display:none;'}">
                                 <label for="financeiro-data-target">Tabela</label>
@@ -4811,6 +4832,18 @@
                                 </table>
                             </div>
                         </div>
+                        <div class="module-tab-panel ${activeTab === 'poupanca' ? '' : 'hidden'}" data-tab-panel="poupanca">
+                            <div class="app-totais">
+                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(poupancaTotal)}</div><div class="stat-label">Total acumulado em poupança</div></div>
+                            </div>
+                            ${poupancaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca` não encontrada no Supabase. Crie a tabela para habilitar este módulo.</p>'}
+                            <div class="module-table-wrap">
+                                <table class="module-table">
+                                    <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                                    <tbody id="financeiro-table-poupanca">${rowsPoupancaHtml}</tbody>
+                                </table>
+                            </div>
+                        </div>
                         <button type="button" class="finance-fab finance-fab-pulse" data-action="financeiro-open-modal" aria-label="Adicionar registro financeiro">+</button>
                     </div>
                 `;
@@ -4819,6 +4852,7 @@
                 despesasFixas.forEach((r) => itemMap.set(`despesa_fixa:${r.id}`, r));
                 gastosVariados.forEach((r) => itemMap.set(`gasto_variado:${r.id}`, r));
                 receitas.forEach((r) => itemMap.set(`receita:${r.id}`, r));
+                poupancaLogs.forEach((r) => itemMap.set(`poupanca:${r.id}`, r));
 
                 const ensureCharts = () => {
                     const summaryPanel = el.querySelector('[data-tab-panel="summary"]');
@@ -4890,6 +4924,8 @@
                     });
                     const dataFilterBar = el.querySelector('.finance-data-filter-bar');
                     if (dataFilterBar) dataFilterBar.style.display = tab === 'data' ? '' : 'none';
+                    const mesAnoBar = el.querySelector('.finance-sticky-head .app-mes-ano');
+                    if (mesAnoBar) mesAnoBar.style.display = tab === 'poupanca' ? 'none' : '';
                     if (tab === 'summary') ensureCharts();
                 };
 
@@ -4935,7 +4971,11 @@
                 el.querySelector('#financeiro-mes').onchange = refreshMesAno;
                 el.querySelector('#financeiro-ano').onchange = refreshMesAno;
 
-                el.querySelector('[data-action="financeiro-open-modal"]').onclick = () => this.openFinanceiroModal(el, { defaultTipo: 'gasto_variado' });
+                el.querySelector('[data-action="financeiro-open-modal"]').onclick = () => {
+                    const currentTab = String(el.getAttribute('data-active-tab') || 'summary');
+                    const defaultTipo = currentTab === 'poupanca' ? 'poupanca' : 'gasto_variado';
+                    this.openFinanceiroModal(el, { defaultTipo });
+                };
                 el.querySelectorAll('[data-action="financeiro-edit"]').forEach((btn) => {
                     btn.onclick = () => {
                         const tipo = btn.dataset.tipoRegistro || 'gasto_variado';
@@ -4973,7 +5013,7 @@
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
                         <h4>${item ? 'Editar registro financeiro' : 'Novo registro financeiro'}</h4>
-                        <p class="app-form-note">Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong></p>
+                        <p class="app-form-note" id="financeiro-modal-contexto">Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong></p>
                         <div class="app-form">
                             <div class="app-form-row fin-form-grid">
                                 <div class="field"><label>Tipo de registro</label>
@@ -4981,6 +5021,7 @@
                                         <option value="despesa_fixa" ${tipoRegistro === 'despesa_fixa' ? 'selected' : ''}>Despesa fixa</option>
                                         <option value="gasto_variado" ${tipoRegistro === 'gasto_variado' ? 'selected' : ''}>Despesa variada</option>
                                         <option value="receita" ${tipoRegistro === 'receita' ? 'selected' : ''}>Receita</option>
+                                        <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>Poupança</option>
                                     </select>
                                 </div>
                                 <div class="field"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
@@ -5001,12 +5042,20 @@
                 const catWrap = overlay.querySelector('#financeiro-categoria-wrap');
                 const statusWrap = overlay.querySelector('#financeiro-status-wrap');
                 const dataWrap = overlay.querySelector('#financeiro-data-wrap');
+                const contextoEl = overlay.querySelector('#financeiro-modal-contexto');
                 const setTipoUI = (tipo) => {
                     if (tipo === 'despesa_fixa') {
                         catWrap.style.display = 'none';
                         dataWrap.style.display = 'none';
                         statusWrap.style.display = '';
                         catEl.innerHTML = '<option value="">--</option>';
+                        if (contextoEl) contextoEl.innerHTML = `Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong>`;
+                    } else if (tipo === 'poupanca') {
+                        statusWrap.style.display = 'none';
+                        dataWrap.style.display = '';
+                        catWrap.style.display = 'none';
+                        catEl.innerHTML = '<option value="">--</option>';
+                        if (contextoEl) contextoEl.textContent = 'Registro de poupança (sem filtro mensal).';
                     } else {
                         statusWrap.style.display = 'none';
                         dataWrap.style.display = '';
@@ -5014,6 +5063,7 @@
                         const categories = tipo === 'receita' ? receitaCategorias : gastoCategorias;
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
                         if (item?.categoria) catEl.value = item.categoria;
+                        if (contextoEl) contextoEl.innerHTML = `Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong>`;
                     }
                 };
                 setTipoUI(tipoEl.value);
@@ -5049,8 +5099,8 @@
                 const dataLanc = String(payload?.data_lancamento || '');
                 const mesAno = payload?.mesAno || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 if (!descricao) { alert('Descrição é obrigatória'); return false; }
-                if (!['despesa_fixa', 'gasto_variado', 'receita'].includes(tipoRegistro)) { alert('Tipo de registro inválido'); return false; }
-                if (tipoRegistro !== 'despesa_fixa') {
+                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro inválido'); return false; }
+                if (tipoRegistro !== 'despesa_fixa' && tipoRegistro !== 'poupanca') {
                     const [yy, mm] = mesAno.split('-').map(Number);
                     const [dy, dm] = dataLanc.split('-').map(Number);
                     if (dy !== yy || dm !== mm) {
@@ -5065,7 +5115,9 @@
                     mes_ano: mesAno,
                 };
                 if (tipoRegistro === 'despesa_fixa') requestBody.status = status === 'pago' ? 'pago' : 'pendente';
-                else {
+                else if (tipoRegistro === 'poupanca') {
+                    requestBody.data_lancamento = dataLanc;
+                } else {
                     requestBody.categoria = categoria;
                     requestBody.data_lancamento = dataLanc;
                 }

@@ -3,6 +3,7 @@ import {
   STATUS_PENDENTE,
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
+  TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
 } from '../model/financeiro.js';
 
@@ -13,6 +14,7 @@ export function inferTipoRegistro(body = {}) {
   const hasStatus = body.status !== undefined;
   const tipo = String(body.tipo || '').toLowerCase().trim();
   if (hasStatus) return TIPO_REGISTRO_DESPESA_FIXA;
+  if (tipo === 'poupanca' || tipo === 'poupança') return TIPO_REGISTRO_POUPANCA;
   if (tipo === 'receita') return TIPO_REGISTRO_RECEITA;
   if (tipo === 'despesa') return TIPO_REGISTRO_GASTO_VARIADO;
   return '';
@@ -169,6 +171,18 @@ export function payloadInsertFinanceiro(body = {}) {
     };
   }
 
+  if (tipoRegistro === TIPO_REGISTRO_POUPANCA) {
+    if (!(body.descricao != null && String(body.descricao).trim() !== '')) return { error: 'descricao obrigatoria' };
+    return {
+      tipo_registro: tipoRegistro,
+      payload: {
+        descricao: String(body.descricao || '').trim(),
+        valor: Math.round((Number(body.valor) || 0) * 100) / 100,
+        data_lancamento: body.data_lancamento || getBrazilTodayIso(),
+      },
+    };
+  }
+
   return { error: 'tipo_registro invalido' };
 }
 
@@ -193,6 +207,15 @@ export function payloadUpdateFinanceiro(body = {}) {
     if (body.categoria !== undefined) out.categoria = body.categoria || null;
     if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
     out.tipo = tipoRegistro === TIPO_REGISTRO_RECEITA ? 'receita' : 'despesa';
+    if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
+    return { tipo_registro: tipoRegistro, id: body.id, payload: out };
+  }
+
+  if (tipoRegistro === TIPO_REGISTRO_POUPANCA) {
+    const out = {};
+    if (body.descricao !== undefined) out.descricao = String(body.descricao).trim();
+    if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
+    if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }
