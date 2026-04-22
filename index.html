@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -20,7 +20,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Chart.js (modulos legados) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <!-- ECharts (dashboard moderno) -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <!-- Motion (animacoes modernas) -->
     <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.min.js"></script>
@@ -130,8 +129,6 @@
                 linear-gradient(155deg, #020617 0%, #0b1222 36%, #0f1b32 70%, #0b1323 100%);
         }
 
-        [data-theme="dark"] .dashboard-section { background: transparent; }
-        [data-theme="dark"] .dashboard-chart-card { background: var(--bg-gray); border-color: var(--border-color); }
         [data-theme="dark"] .apps-section { background: transparent; }
         [data-theme="dark"] .stat-card,
         [data-theme="dark"] .app-card { background: var(--bg-gray); border-color: var(--border-color); }
@@ -200,31 +197,20 @@
         }
         [data-theme="light"] .hero h2 { color: #0f172a; text-shadow: 0 8px 24px rgba(59, 130, 246, 0.16); }
         [data-theme="light"] .hero p { color: #334155; }
-        [data-theme="light"] .dashboard-last-update { color: #475569; }
-        [data-theme="light"] .dashboard-controls label { color: #334155; }
-        [data-theme="light"] .dashboard-profile-select {
             background: rgba(255, 255, 255, 0.9);
             color: #0f172a;
             border-color: rgba(148, 163, 184, 0.55);
         }
-        [data-theme="light"] .dashboard-chart-card {
             background: linear-gradient(155deg, rgba(255, 255, 255, 0.9), rgba(236, 245, 255, 0.92));
             border-color: rgba(125, 154, 196, 0.38);
             box-shadow: 0 14px 30px rgba(59, 130, 246, 0.08);
         }
-        [data-theme="light"] .dashboard-chart-card:hover {
             border-color: rgba(56, 189, 248, 0.5);
             box-shadow: 0 18px 38px rgba(59, 130, 246, 0.14);
         }
-        [data-theme="light"] .dashboard-chart-title { color: #0f172a; }
-        [data-theme="light"] .dashboard-summary-card {
             background: rgba(255, 255, 255, 0.88);
             border-color: rgba(148, 163, 184, 0.45);
         }
-        [data-theme="light"] .dashboard-summary-label,
-        [data-theme="light"] .dashboard-summary-meta { color: #475569; }
-        [data-theme="light"] .dashboard-summary-value { color: #0f172a; }
-        [data-theme="light"] .dashboard-health-report {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.86) 0%, rgba(240, 249, 255, 0.94) 100%);
             border-color: #93c5fd;
         }
@@ -500,7 +486,6 @@
             }
         }
 
-        body.view-apps #dashboard {
             display: none;
         }
 
@@ -508,11 +493,9 @@
             display: block;
         }
 
-        body.view-dashboard #dashboard {
             display: block;
         }
 
-        body.view-dashboard #apps {
             display: none;
         }
 
@@ -646,402 +629,6 @@
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
-        }
-
-        /* DASHBOARD */
-        .dashboard-section {
-            background: transparent;
-            padding: 1.5rem 0;
-            border-bottom: 1px solid rgba(56, 189, 248, 0.12);
-        }
-
-        .dashboard-section .hero {
-            margin-bottom: 1.5rem;
-        }
-
-        .dashboard-last-update {
-            margin-top: 0.5rem;
-            font-size: 0.875rem;
-            color: #94a3b8;
-        }
-        .dashboard-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-            gap: 0.85rem;
-            margin-top: 1rem;
-            margin-bottom: 1rem;
-        }
-        .dashboard-summary-card {
-            background: white;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            padding: 0.95rem 1rem;
-            box-shadow: var(--shadow-sm);
-            display: grid;
-            gap: 0.35rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .dashboard-summary-card::before {
-            content: '';
-            position: absolute;
-            inset: 0 auto auto 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, rgba(56, 189, 248, 0.9), rgba(34, 211, 238, 0.4), transparent);
-            pointer-events: none;
-        }
-        .dashboard-summary-label {
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #64748b;
-            font-weight: 700;
-        }
-        .dashboard-summary-value {
-            font-size: 1.45rem;
-            font-weight: 800;
-            color: #0f172a;
-            line-height: 1.1;
-        }
-        .dashboard-summary-meta {
-            font-size: 0.8rem;
-            color: #64748b;
-        }
-        .dashboard-summary-value.is-ok { color: #15803d; }
-        .dashboard-summary-value.is-warn { color: #b45309; }
-        .dashboard-summary-value.is-bad { color: #b91c1c; }
-
-        .dashboard-controls {
-            margin-top: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        .dashboard-control-item {
-            min-width: 170px;
-            display: grid;
-            gap: 0.28rem;
-            align-items: start;
-            flex: 1 1 190px;
-        }
-
-        .dashboard-controls label {
-            font-size: 0.8125rem;
-            color: #cbd5e1;
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-        }
-
-        .dashboard-profile-select {
-            background: #0f172a;
-            color: #e2e8f0;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 0.45rem 0.6rem;
-            font-size: 0.875rem;
-            font-weight: 600;
-            width: 100%;
-        }
-        .dashboard-filter-select {
-            background: #0f172a;
-            color: #e2e8f0;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 0.45rem 0.6rem;
-            font-size: 0.875rem;
-            font-weight: 600;
-            width: 100%;
-        }
-        .dashboard-insights {
-            margin-top: 1rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 0.75rem;
-        }
-        .dashboard-insight-card {
-            background: linear-gradient(150deg, rgba(14, 27, 50, 0.82), rgba(10, 20, 38, 0.9));
-            border: 1px solid rgba(89, 132, 194, 0.3);
-            border-radius: 12px;
-            padding: 0.75rem 0.8rem;
-            box-shadow: var(--shadow-sm);
-            display: grid;
-            gap: 0.2rem;
-        }
-        .dashboard-insight-card h5 {
-            margin: 0;
-            font-size: 0.74rem;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            color: #cbd5e1;
-        }
-        .dashboard-insight-card strong {
-            font-size: 1.05rem;
-            color: #f8fafc;
-            line-height: 1.2;
-        }
-        .dashboard-insight-card p {
-            margin: 0;
-            font-size: 0.78rem;
-            color: #cbd5e1;
-        }
-        .dashboard-insight-card.bad { border-color: rgba(248, 113, 113, 0.55); }
-        .dashboard-insight-card.warn { border-color: rgba(251, 191, 36, 0.5); }
-        .dashboard-insight-card.good { border-color: rgba(74, 222, 128, 0.46); }
-
-        .dashboard-charts {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 1rem;
-            animation: riseIn 0.5s ease both;
-        }
-        #dashboardSummary { animation: riseIn 0.42s ease both; }
-        @keyframes riseIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .dashboard-chart-card {
-            background: linear-gradient(150deg, rgba(14, 27, 50, 0.84), rgba(10, 20, 38, 0.9));
-            border: 1px solid rgba(89, 132, 194, 0.32);
-            border-radius: var(--radius);
-            padding: 1rem;
-            box-shadow: var(--shadow-sm);
-            backdrop-filter: blur(8px);
-            transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .dashboard-chart-card::before {
-            content: '';
-            position: absolute;
-            inset: -35% auto auto -25%;
-            width: 62%;
-            height: 70%;
-            background: radial-gradient(circle, rgba(56, 189, 248, 0.14), transparent 68%);
-            pointer-events: none;
-        }
-        .dashboard-chart-card::after {
-            content: '';
-            position: absolute;
-            inset: auto -22% -40% auto;
-            width: 58%;
-            height: 68%;
-            background: radial-gradient(circle, rgba(34, 211, 238, 0.12), transparent 72%);
-            pointer-events: none;
-        }
-        .dashboard-chart-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-            border-color: rgba(56, 189, 248, 0.46);
-        }
-
-        .dashboard-chart-title {
-            font-size: 0.875rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: var(--text-dark);
-            margin-bottom: 0.75rem;
-        }
-
-        .dashboard-chart-wrap {
-            position: relative;
-            height: 205px;
-        }
-
-        .dashboard-chart {
-            width: 100%;
-            height: 100%;
-        }
-        .dashboard-health-report {
-            margin-top: 1rem;
-            background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
-            border: 1px solid #bfdbfe;
-            border-radius: var(--radius);
-            padding: 1rem;
-            box-shadow: var(--shadow-sm);
-        }
-        .dashboard-health-report-title {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            font-size: 0.9rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: #1e3a8a;
-            margin-bottom: 0.65rem;
-        }
-        .dashboard-health-report-title i { color: #2563eb; }
-        .dashboard-health-report-body {
-            color: #0f172a;
-            font-size: 0.88rem;
-            line-height: 1.55;
-            display: grid;
-            gap: 0.45rem;
-        }
-        .dashboard-health-report-body p { margin: 0; }
-        .dashboard-health-status-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.6rem;
-            margin-bottom: 0.35rem;
-        }
-        .dashboard-status-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.35rem 0.7rem;
-            border-radius: 999px;
-            font-size: 0.76rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            border: 1px solid transparent;
-        }
-        .dashboard-status-chip.ok {
-            background: #dcfce7;
-            color: #166534;
-            border-color: #86efac;
-        }
-        .dashboard-status-chip.warn {
-            background: #fef3c7;
-            color: #92400e;
-            border-color: #fcd34d;
-        }
-        .dashboard-status-chip.bad {
-            background: #fee2e2;
-            color: #991b1b;
-            border-color: #fca5a5;
-        }
-        .dashboard-health-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 0.85rem;
-            margin-top: 0.25rem;
-        }
-        .dashboard-health-panel {
-            background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(148, 163, 184, 0.28);
-            border-radius: 14px;
-            padding: 0.85rem;
-            display: grid;
-            gap: 0.5rem;
-        }
-        .dashboard-health-panel h5 {
-            margin: 0;
-            font-size: 0.78rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: #334155;
-        }
-        .dashboard-health-list {
-            display: grid;
-            gap: 0.45rem;
-        }
-        .dashboard-health-list-item {
-            background: rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(203, 213, 225, 0.9);
-            border-radius: 12px;
-            padding: 0.6rem 0.7rem;
-            display: grid;
-            gap: 0.18rem;
-        }
-        .dashboard-health-list-item strong {
-            color: #0f172a;
-            font-size: 0.83rem;
-        }
-        .dashboard-health-list-item span {
-            font-size: 0.78rem;
-            color: #475569;
-            line-height: 1.4;
-        }
-        .dashboard-empty-note {
-            font-size: 0.82rem;
-            color: #64748b;
-            padding: 0.2rem 0;
-        }
-        [data-theme="dark"] .dashboard-health-report {
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.14) 0%, rgba(15, 23, 42, 0.92) 100%);
-            border-color: #1d4ed8;
-        }
-        [data-theme="dark"] .dashboard-health-report-title { color: #bfdbfe; }
-        [data-theme="dark"] .dashboard-health-report-body { color: #e2e8f0; }
-        [data-theme="dark"] .dashboard-summary-card {
-            background: var(--bg-gray);
-            border-color: var(--border-color);
-        }
-        [data-theme="dark"] .dashboard-summary-label,
-        [data-theme="dark"] .dashboard-summary-meta { color: #94a3b8; }
-        [data-theme="dark"] .dashboard-summary-value { color: #f8fafc; }
-        [data-theme="dark"] .dashboard-summary-value.is-ok { color: #86efac; }
-        [data-theme="dark"] .dashboard-summary-value.is-warn { color: #fcd34d; }
-        [data-theme="dark"] .dashboard-summary-value.is-bad { color: #fca5a5; }
-        [data-theme="dark"] .dashboard-health-panel {
-            background: rgba(15, 23, 42, 0.58);
-            border-color: rgba(59, 130, 246, 0.22);
-        }
-        [data-theme="dark"] .dashboard-health-panel h5 { color: #bfdbfe; }
-        [data-theme="dark"] .dashboard-health-list-item {
-            background: rgba(15, 23, 42, 0.74);
-            border-color: rgba(51, 65, 85, 0.9);
-        }
-        [data-theme="dark"] .dashboard-health-list-item strong { color: #f8fafc; }
-        [data-theme="dark"] .dashboard-health-list-item span,
-        [data-theme="dark"] .dashboard-empty-note { color: #cbd5e1; }
-        [data-theme="light"] .dashboard-filter-select {
-            background: rgba(255, 255, 255, 0.9);
-            color: #0f172a;
-            border-color: rgba(148, 163, 184, 0.55);
-        }
-        [data-theme="light"] .dashboard-insight-card {
-            background: linear-gradient(155deg, rgba(255, 255, 255, 0.9), rgba(236, 245, 255, 0.92));
-            border-color: rgba(125, 154, 196, 0.34);
-        }
-        [data-theme="light"] .dashboard-insight-card h5 { color: #475569; }
-        [data-theme="light"] .dashboard-insight-card strong { color: #0f172a; }
-        [data-theme="light"] .dashboard-insight-card p { color: #334155; }
-
-        @media (max-width: 640px) {
-            .dashboard-summary-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            .dashboard-charts {
-                grid-template-columns: 1fr;
-            }
-            .dashboard-chart-card {
-                padding: 0.85rem;
-            }
-            .dashboard-chart-title {
-                font-size: 0.8rem;
-                margin-bottom: 0.6rem;
-            }
-            .dashboard-chart-wrap {
-                height: 220px;
-            }
-            .dashboard-controls {
-                display: grid;
-                grid-template-columns: 1fr;
-                gap: 0.65rem;
-                align-items: stretch;
-            }
-            .dashboard-control-item {
-                min-width: 0;
-                gap: 0.3rem;
-            }
-        }
-        @media (max-width: 420px) {
-            .dashboard-summary-grid {
-                grid-template-columns: 1fr;
-            }
-            .dashboard-chart-wrap {
-                height: 235px;
-            }
-            .dashboard-insights {
-                grid-template-columns: 1fr;
-            }
         }
 
         /* APPLICATIONS SECTION  cones compactos e arredondados */
@@ -3220,7 +2807,7 @@
 
         /* PWA/mobile: evitar overflow e colunas pretas */
         @media (max-width: 768px) {
-            section, .container, .header-content, .hero, .dashboard-section, .apps-section {
+            section, .container, .header-content, .hero, .apps-section {
                 min-width: 0;
                 max-width: 100%;
             }
@@ -3243,7 +2830,6 @@
                 </div>
 
                 <nav>
-                    <a href="#dashboard" id="navDashboard" class="nav-link">Dashboard</a>
                     <a href="#apps" id="navApps" class="nav-link active">Aplicações</a>
                 </nav>
 
@@ -3265,81 +2851,6 @@
             </div>
         </div>
     </header>
-
-    <!-- DASHBOARD -->
-    <section id="dashboard" class="dashboard-section">
-        <div class="container">
-            <div class="hero">
-                <h2>Bem-vindo ao SUPERAPP</h2>
-                <p>Plataforma unificada de microserviços e aplicações práticas. Acesse todas as suas ferramentas em um único lugar.</p>
-                <div class="dashboard-controls">
-                    <div class="dashboard-control-item">
-                        <label for="dashboardProfileSelect">Perfil:</label>
-                        <select id="dashboardProfileSelect" class="dashboard-profile-select">
-                            <option value="weekly">Semanal</option>
-                            <option value="monthly">Mensal</option>
-                            <option value="total">Total</option>
-                        </select>
-                    </div>
-                    <div class="dashboard-control-item">
-                        <label for="dashboardEndpointSelect">Endpoint:</label>
-                        <select id="dashboardEndpointSelect" class="dashboard-filter-select">
-                            <option value="all">Todos</option>
-                        </select>
-                    </div>
-                    <div class="dashboard-control-item">
-                        <label for="dashboardHistoryWindowSelect">Histórico:</label>
-                        <select id="dashboardHistoryWindowSelect" class="dashboard-filter-select">
-                            <option value="all">Tudo</option>
-                            <option value="30">30 pontos</option>
-                            <option value="14">14 pontos</option>
-                            <option value="7">7 pontos</option>
-                        </select>
-                    </div>
-                </div>
-                <p id="dashboardLastUpdate" class="dashboard-last-update">Última análise: carregando...</p>
-            </div>
-            <div id="dashboardSummary" class="dashboard-summary-grid">
-                <div class="dashboard-summary-card"><span class="dashboard-summary-label">Status</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
-                <div class="dashboard-summary-card"><span class="dashboard-summary-label">Cobertura</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
-                <div class="dashboard-summary-card"><span class="dashboard-summary-label">Falhas Críticas</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
-                <div class="dashboard-summary-card"><span class="dashboard-summary-label">Falhas</span><strong class="dashboard-summary-value">...</strong><span class="dashboard-summary-meta">Carregando</span></div>
-            </div>
-            <div id="dashboardCharts" class="dashboard-charts">
-                <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Saúde da aplicação</h4>
-                    <div class="dashboard-chart-wrap"><div id="chartHealth" class="dashboard-chart"></div></div>
-                </div>
-                <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Status dos serviços</h4>
-                    <div class="dashboard-chart-wrap"><div id="chartApps" class="dashboard-chart"></div></div>
-                </div>
-                <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Latência atual por endpoint</h4>
-                    <div class="dashboard-chart-wrap"><div id="chartData" class="dashboard-chart"></div></div>
-                </div>
-                <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Dados armazenados por aplicação</h4>
-                    <div class="dashboard-chart-wrap"><div id="chartSize" class="dashboard-chart"></div></div>
-                </div>
-                <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Conexão com DB</h4>
-                    <div class="dashboard-chart-wrap"><div id="chartDb" class="dashboard-chart"></div></div>
-                </div>
-                <div class="dashboard-chart-card">
-                    <h4 class="dashboard-chart-title">Histórico do xerife</h4>
-                    <div class="dashboard-chart-wrap"><div id="chartHistory" class="dashboard-chart"></div></div>
-                </div>
-            </div>
-            <div id="dashboardHealthReport" class="dashboard-health-report">
-                <div class="dashboard-health-report-title"><i class="fas fa-heart-pulse"></i> Relatório de saúde</div>
-                <div class="dashboard-health-report-body">
-                    <p>Carregando resumo do monitoramento...</p>
-                </div>
-            </div>
-            <div id="dashboardInsights" class="dashboard-insights"></div>
-        </div>
-    </section>
 
     <!-- APPLICATIONS -->
     <section id="apps" class="apps-section">
@@ -3398,31 +2909,8 @@
         class SuperApp {
             constructor() {
                 this.apps = [];
-                this.dashboardProfile = localStorage.getItem('superapp-dashboard-profile') || 'weekly';
-                this.dashboardEndpointFilter = localStorage.getItem('superapp-dashboard-endpoint-filter') || 'all';
-                this.dashboardHistoryWindow = localStorage.getItem('superapp-dashboard-history-window') || 'all';
-                this.statistics = {
-                    totalApps: 0,
-                    activeApps: 0,
-                    betaApps: 0,
-                    openApps: 0
-                };
-                this.dashboardMetrics = {
-                    generated_at: null,
-                    latest_at: null,
-                    summary: { status: 'no_data', uptime_percent: 0, error_rate_percent: 0, p95_latency_ms: 0, checks_total: 0, checks_success: 0, checks_failed: 0, critical_failures: 0 },
-                    health: { healthy: 0, attention: 100 },
-                    services: { labels: ['Total', 'Saudáveis', 'Falhas'], values: [0, 0, 0] },
-                    latency_current: { labels: [], values: [] },
-                    storage_by_app: { labels: [], values: [] },
-                    db: { connected: 0, unstable: 100 },
-                    failed_endpoints: [],
-                    history: []
-                };
                 this.roadmap = [];
                 this.openWindows = new Map();
-                this.dashboardCharts = {};
-                this.dashboardResizeHandler = null;
                 this.vizLibrariesReady = false;
                 this.vizLibrariesLoading = null;
                 this.notificationItems = [];
@@ -3498,58 +2986,13 @@
                     this.vizLibrariesLoading = null;
                 }
             }
-
             setupEventListeners() {
-                const navDashboard = document.getElementById('navDashboard');
                 const navApps = document.getElementById('navApps');
-                const profileSelect = document.getElementById('dashboardProfileSelect');
-                const endpointSelect = document.getElementById('dashboardEndpointSelect');
-                const historyWindowSelect = document.getElementById('dashboardHistoryWindowSelect');
-                if (profileSelect) {
-                    profileSelect.value = this.dashboardProfile;
-                    profileSelect.addEventListener('change', (e) => {
-                        const selected = e.target.value || 'weekly';
-                        this.dashboardProfile = selected;
-                        localStorage.setItem('superapp-dashboard-profile', selected);
-                        this.loadDashboardAnalysis(true);
-                    });
-                }
-                if (endpointSelect) {
-                    endpointSelect.value = this.dashboardEndpointFilter;
-                    endpointSelect.addEventListener('change', (e) => {
-                        this.dashboardEndpointFilter = e.target.value || 'all';
-                        localStorage.setItem('superapp-dashboard-endpoint-filter', this.dashboardEndpointFilter);
-                        this.renderDashboardCharts();
-                        this.renderDashboardInsights();
-                    });
-                }
-                if (historyWindowSelect) {
-                    historyWindowSelect.value = this.dashboardHistoryWindow;
-                    historyWindowSelect.addEventListener('change', (e) => {
-                        this.dashboardHistoryWindow = e.target.value || 'all';
-                        localStorage.setItem('superapp-dashboard-history-window', this.dashboardHistoryWindow);
-                        this.renderDashboardCharts();
-                        this.renderDashboardInsights();
-                    });
-                }
-                if (navDashboard) {
-                    navDashboard.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        document.body.classList.remove('view-apps');
-                        document.body.classList.add('view-dashboard');
-                        navDashboard.classList.add('active');
-                        if (navApps) navApps.classList.remove('active');
-                        this.loadDashboardAnalysis(true);
-                        setTimeout(() => this.renderDashboardCharts(), 50);
-                    });
-                }
                 if (navApps) {
                     navApps.addEventListener('click', (e) => {
                         e.preventDefault();
-                        document.body.classList.remove('view-dashboard');
                         document.body.classList.add('view-apps');
                         navApps.classList.add('active');
-                        if (navDashboard) navDashboard.classList.remove('active');
                     });
                 }
                 document.querySelector('.menu-toggle').addEventListener('click', () => {
@@ -3564,11 +3007,7 @@
                 document.getElementById('notificationsBtn')?.addEventListener('click', () => {
                     this.openNotificationsModal();
                 });
-                document.addEventListener('superapp:theme-change', () => {
-                    this.renderDashboardCharts();
-                });
             }
-
             // ============================================
             // CARREGAR DADOS DO BACKEND
             // ============================================
@@ -3576,38 +3015,31 @@
                 this.loadApps();
                 this.loadStatistics();
                 this.loadRoadmap();
-                this.loadDashboardAnalysis();
             }
-
             async loadApps() {
                 try {
                     const response = await fetch('/api/apps');
-                    if (!response.ok) throw new Error('Falha ao carregar aplicações');
+                    if (!response.ok) throw new Error('Falha ao carregar aplica??es');
                     const data = await response.json();
                     this.apps = Array.isArray(data) ? data : (data.apps || []);
                     this.renderApps();
-                    if (document.getElementById('chartSize')) this.renderDashboardCharts();
                 } catch (error) {
-                    console.error('Erro ao carregar aplicações:', error);
+                    console.error('Erro ao carregar aplica??es:', error);
                     this.apps = [];
                     this.renderApps();
                 }
             }
-
             async loadStatistics() {
                 try {
                     const response = await fetch('/api/statistics');
-                    if (!response.ok) throw new Error('Falha ao carregar estatísticas');
+                    if (!response.ok) throw new Error('Falha ao carregar estat?sticas');
                     const data = await response.json();
                     this.statistics = { ...data, openApps: this.openWindows.size };
-                    this.renderDashboardCharts();
                 } catch (error) {
-                    console.error('Erro ao carregar estatísticas:', error);
+                    console.error('Erro ao carregar estat?sticas:', error);
                     this.statistics = { totalApps: 0, activeApps: 0, betaApps: 0, openApps: this.openWindows.size };
-                    this.renderDashboardCharts();
                 }
             }
-
             async loadRoadmap() {
                 try {
                     const response = await fetch('/api/roadmap');
@@ -3621,523 +3053,6 @@
                     this.renderRoadmap();
                 }
             }
-
-            async loadDashboardAnalysis(forceRefresh = false) {
-                try {
-                    const profile = this.dashboardProfile || 'weekly';
-                    const url = forceRefresh
-                        ? `/api/system-analysis-dashboard?profile=${encodeURIComponent(profile)}&t=${Date.now()}`
-                        : `/api/system-analysis-dashboard?profile=${encodeURIComponent(profile)}`;
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error('Falha ao carregar análise do sistema');
-                    const data = await response.json();
-                    this.dashboardMetrics = data || this.dashboardMetrics;
-                    this.updateDashboardEndpointOptions();
-                    this.renderDashboardLastUpdate();
-                    this.renderDashboardSummary();
-                    this.renderDashboardCharts();
-                    this.renderDashboardHealthReport();
-                    this.renderDashboardInsights();
-                } catch (error) {
-                    console.error('Erro ao carregar análise do sistema:', error);
-                    this.renderDashboardLastUpdate('Última análise: sem dados');
-                    this.renderDashboardSummary('Sem dados');
-                    this.renderDashboardCharts();
-                    this.renderDashboardHealthReport('Sem dados de monitoramento no momento.');
-                    this.renderDashboardInsights('Sem dados de monitoramento no momento.');
-                }
-            }
-
-            // ============================================
-            // RENDERIZAR COMPONENTES
-            // ============================================
-            destroyDashboardCharts() {
-                Object.values(this.dashboardCharts).forEach(chart => {
-                    if (chart && typeof chart.dispose === 'function') chart.dispose();
-                    else if (chart && typeof chart.destroy === 'function') chart.destroy();
-                });
-                this.dashboardCharts = {};
-                if (this.dashboardResizeHandler) {
-                    window.removeEventListener('resize', this.dashboardResizeHandler);
-                    this.dashboardResizeHandler = null;
-                }
-            }
-
-            renderDashboardCharts() {
-                if (typeof echarts === 'undefined') {
-                    this.ensureVisualizationLibraries().then(() => this.renderDashboardCharts()).catch(() => {});
-                    return;
-                }
-                this.destroyDashboardCharts();
-                const metrics = this.dashboardMetrics || {};
-                const health = metrics.health || { healthy: 0, attention: 100 };
-                const services = metrics.services || { labels: ['Total', 'Saudaveis', 'Falhas'], values: [0, 0, 0] };
-                const latencyCurrent = metrics.latency_current || { labels: [], values: [] };
-                const storageByApp = metrics.storage_by_app || { labels: [], values: [] };
-                const db = metrics.db || { connected: 0, unstable: 100 };
-                const history = Array.isArray(metrics.history) ? metrics.history : [];
-                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                const filteredLatency = this.getFilteredLatencyData(latencyCurrent);
-                const historyWindow = this.getHistoryWindowValue();
-                const historyFiltered = historyWindow ? history.slice(-historyWindow) : history;
-
-                const axisTextColor = isDark ? '#cbd5e1' : '#334155';
-                const axisLineColor = isDark ? 'rgba(148, 163, 184, 0.24)' : 'rgba(51, 65, 85, 0.16)';
-                const tooltipBg = isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(248, 250, 252, 0.96)';
-                const seriesBlue = ['#38bdf8', '#2563eb', '#1d4ed8', '#60a5fa', '#93c5fd'];
-                const seriesGood = '#22c55e';
-                const seriesWarn = '#f59e0b';
-                const seriesBad = '#ef4444';
-
-                const baseGrid = { top: 28, left: 18, right: 12, bottom: 22, containLabel: true };
-                const baseTooltip = {
-                    trigger: 'item',
-                    backgroundColor: tooltipBg,
-                    borderColor: axisLineColor,
-                    textStyle: { color: axisTextColor, fontFamily: 'Space Grotesk, sans-serif' }
-                };
-                const axisStyle = {
-                    axisLine: { lineStyle: { color: axisLineColor } },
-                    axisTick: { show: false },
-                    axisLabel: { color: axisTextColor, fontSize: 11 },
-                    splitLine: { lineStyle: { color: axisLineColor, type: 'dashed' } }
-                };
-
-                const createChart = (id, option) => {
-                    const el = document.getElementById(id);
-                    if (!el) return null;
-                    const chart = echarts.init(el, null, { renderer: 'canvas' });
-                    chart.setOption(option);
-                    this.dashboardCharts[id] = chart;
-                    return chart;
-                };
-
-                createChart('chartHealth', {
-                    color: [seriesGood, seriesWarn],
-                    tooltip: baseTooltip,
-                    legend: { bottom: 0, textStyle: { color: axisTextColor } },
-                    series: [{
-                        type: 'pie',
-                        radius: ['56%', '82%'],
-                        center: ['50%', '44%'],
-                        label: {
-                            color: axisTextColor,
-                            formatter: '{b}\n{d}%',
-                            fontSize: 10
-                        },
-                        labelLine: { lineStyle: { color: axisLineColor } },
-                        itemStyle: { borderRadius: 8, borderColor: isDark ? '#0f172a' : '#ffffff', borderWidth: 2 },
-                        data: [
-                            { value: Number(health.healthy || 0), name: 'Saudavel' },
-                            { value: Number(health.attention || 0), name: 'Atencao' }
-                        ]
-                    }]
-                });
-
-                createChart('chartApps', {
-                    grid: baseGrid,
-                    tooltip: { ...baseTooltip, trigger: 'axis' },
-                    xAxis: { type: 'category', data: services.labels || ['Total', 'Saudaveis', 'Falhas'], ...axisStyle },
-                    yAxis: { type: 'value', ...axisStyle },
-                    series: [{
-                        type: 'bar',
-                        data: services.values || [0, 0, 0],
-                        barWidth: '48%',
-                        itemStyle: {
-                            borderRadius: [8, 8, 0, 0],
-                            color: (params) => [seriesBlue[1], seriesGood, seriesBad][params.dataIndex] || seriesBlue[0]
-                        },
-                        label: { show: true, position: 'top', color: axisTextColor, fontSize: 11 }
-                    }]
-                });
-
-                createChart('chartData', {
-                    grid: baseGrid,
-                    tooltip: { ...baseTooltip, trigger: 'axis' },
-                    xAxis: {
-                        type: 'category',
-                        data: (filteredLatency.labels && filteredLatency.labels.length ? filteredLatency.labels : ['Sem dados']),
-                        ...axisStyle
-                    },
-                    yAxis: { type: 'value', ...axisStyle },
-                    series: [{
-                        type: 'bar',
-                        data: (filteredLatency.values && filteredLatency.values.length ? filteredLatency.values : [0]),
-                        barWidth: '58%',
-                        itemStyle: {
-                            borderRadius: [8, 8, 0, 0],
-                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: '#38bdf8' },
-                                { offset: 1, color: '#1d4ed8' }
-                            ])
-                        },
-                        label: { show: true, position: 'top', formatter: '{c}ms', color: axisTextColor, fontSize: 10 }
-                    }]
-                });
-
-                createChart('chartSize', {
-                    grid: { ...baseGrid, left: 10, right: 18 },
-                    tooltip: { ...baseTooltip, trigger: 'axis', axisPointer: { type: 'shadow' } },
-                    xAxis: { type: 'value', ...axisStyle },
-                    yAxis: {
-                        type: 'category',
-                        data: (storageByApp.labels && storageByApp.labels.length ? storageByApp.labels : ['Sem dados']),
-                        ...axisStyle
-                    },
-                    series: [{
-                        type: 'bar',
-                        data: (storageByApp.values && storageByApp.values.length ? storageByApp.values : [0]),
-                        barWidth: '62%',
-                        itemStyle: {
-                            borderRadius: [0, 9, 9, 0],
-                            color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-                                { offset: 0, color: '#1d4ed8' },
-                                { offset: 1, color: '#22d3ee' }
-                            ])
-                        },
-                        label: { show: true, position: 'right', color: axisTextColor, fontSize: 10 }
-                    }]
-                });
-
-                const dbConnected = Math.max(0, Math.min(100, Number(db.connected || 0)));
-                createChart('chartDb', {
-                    tooltip: baseTooltip,
-                    series: [{
-                        type: 'gauge',
-                        startAngle: 210,
-                        endAngle: -30,
-                        min: 0,
-                        max: 100,
-                        progress: { show: true, width: 12, itemStyle: { color: dbConnected >= 80 ? seriesGood : (dbConnected >= 50 ? seriesWarn : seriesBad) } },
-                        axisLine: { lineStyle: { width: 12, color: [[1, isDark ? '#334155' : '#cbd5e1']] } },
-                        axisTick: { show: false },
-                        splitLine: { show: false },
-                        axisLabel: { color: axisTextColor, distance: 12, fontSize: 10 },
-                        pointer: { show: false },
-                        detail: { valueAnimation: true, formatter: '{value}%', color: axisTextColor, fontSize: 22, offsetCenter: [0, '4%'] },
-                        title: { offsetCenter: [0, '64%'], color: axisTextColor, fontSize: 11 },
-                        data: [{ value: Math.round(dbConnected), name: 'Conexao DB' }]
-                    }]
-                });
-
-                const historyLabels = historyFiltered.length
-                    ? historyFiltered.map((item) => {
-                        const dt = new Date(item.measured_at);
-                        return Number.isNaN(dt.getTime()) ? '--' : dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-                    })
-                    : ['Sem dados'];
-                const latencySeries = historyFiltered.length ? historyFiltered.map((item) => Number(item.p95_latency_ms || 0)) : [0];
-                const criticalSeries = historyFiltered.length ? historyFiltered.map((item) => Number(item.critical_failures || 0)) : [0];
-                createChart('chartHistory', {
-                    legend: { bottom: 0, textStyle: { color: axisTextColor } },
-                    tooltip: { ...baseTooltip, trigger: 'axis' },
-                    grid: { ...baseGrid, bottom: 36 },
-                    xAxis: { type: 'category', data: historyLabels, ...axisStyle },
-                    yAxis: [
-                        { type: 'value', name: 'ms', ...axisStyle },
-                        { type: 'value', name: 'falhas', ...axisStyle, splitLine: { show: false } }
-                    ],
-                    series: [
-                        {
-                            name: 'p95 (ms)',
-                            type: 'line',
-                            smooth: true,
-                            symbol: 'circle',
-                            symbolSize: 7,
-                            itemStyle: { color: seriesBlue[0] },
-                            areaStyle: {
-                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                    { offset: 0, color: 'rgba(56, 189, 248, 0.34)' },
-                                    { offset: 1, color: 'rgba(56, 189, 248, 0.02)' }
-                                ])
-                            },
-                            data: latencySeries
-                        },
-                        {
-                            name: 'Falhas criticas',
-                            type: 'bar',
-                            yAxisIndex: 1,
-                            barMaxWidth: 16,
-                            itemStyle: { color: seriesBad, borderRadius: [6, 6, 0, 0] },
-                            data: criticalSeries
-                        }
-                    ],
-                    dataZoom: historyLabels.length > 12 ? [
-                        { type: 'inside', start: 45, end: 100 },
-                        { type: 'slider', height: 14, bottom: 2, borderColor: axisLineColor, textStyle: { color: axisTextColor } }
-                    ] : []
-                });
-
-                this.dashboardResizeHandler = () => {
-                    Object.values(this.dashboardCharts).forEach(chart => {
-                        if (chart && typeof chart.resize === 'function') chart.resize();
-                    });
-                };
-                window.addEventListener('resize', this.dashboardResizeHandler, { passive: true });
-
-                const cards = document.querySelectorAll('.dashboard-chart-card');
-                cards.forEach((card, index) => {
-                    card.animate(
-                        [
-                            { transform: 'translateY(18px)', opacity: 0 },
-                            { transform: 'translateY(0)', opacity: 1 }
-                        ],
-                        { duration: 460, delay: index * 55, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'both' }
-                    );
-                });
-            }
-
-            getHistoryWindowValue() {
-                const n = Number(this.dashboardHistoryWindow || 0);
-                if (!Number.isFinite(n) || n <= 0) return null;
-                return Math.round(n);
-            }
-
-            getFilteredLatencyData(latencyCurrent) {
-                const labels = Array.isArray(latencyCurrent?.labels) ? latencyCurrent.labels : [];
-                const values = Array.isArray(latencyCurrent?.values) ? latencyCurrent.values : [];
-                if (this.dashboardEndpointFilter === 'all') {
-                    return {
-                        labels: labels.length ? labels : ['Sem dados'],
-                        values: values.length ? values : [0]
-                    };
-                }
-                const idx = labels.findIndex((label) => String(label).toLowerCase() === String(this.dashboardEndpointFilter).toLowerCase());
-                if (idx < 0) return { labels: ['Sem dados'], values: [0] };
-                return { labels: [labels[idx]], values: [Number(values[idx] || 0)] };
-            }
-
-            updateDashboardEndpointOptions() {
-                const select = document.getElementById('dashboardEndpointSelect');
-                if (!select) return;
-                const latencyCurrent = this.dashboardMetrics?.latency_current || { labels: [] };
-                const labels = Array.isArray(latencyCurrent.labels) ? latencyCurrent.labels : [];
-                const previous = this.dashboardEndpointFilter || 'all';
-                const options = ['all', ...labels];
-                select.innerHTML = options.map((value) => {
-                    const text = value === 'all' ? 'Todos' : value;
-                    return `<option value="${escapeHtml(value)}">${escapeHtml(text)}</option>`;
-                }).join('');
-                const hasPrev = options.some((value) => String(value).toLowerCase() === String(previous).toLowerCase());
-                this.dashboardEndpointFilter = hasPrev ? previous : 'all';
-                select.value = this.dashboardEndpointFilter;
-                localStorage.setItem('superapp-dashboard-endpoint-filter', this.dashboardEndpointFilter);
-            }
-
-            renderDashboardLastUpdate(fallbackText = null) {
-                const el = document.getElementById('dashboardLastUpdate');
-                if (!el) return;
-                const profileMap = { weekly: 'Semanal', monthly: 'Mensal', total: 'Total' };
-                const profileLabel = profileMap[this.dashboardProfile] || 'Semanal';
-                if (fallbackText) {
-                    el.textContent = `${fallbackText} (${profileLabel})`;
-                    return;
-                }
-                const latestAt = this.dashboardMetrics?.latest_at;
-                if (!latestAt) {
-                    el.textContent = `Última análise: sem dados (${profileLabel})`;
-                    return;
-                }
-                const dt = new Date(latestAt);
-                if (Number.isNaN(dt.getTime())) {
-                    el.textContent = `Última análise: sem dados (${profileLabel})`;
-                    return;
-                }
-                el.textContent = `Última análise: ${dt.toLocaleString('pt-BR')} (${profileLabel})`;
-            }
-
-            renderDashboardSummary(fallbackText = null) {
-                const root = document.getElementById('dashboardSummary');
-                if (!root) return;
-
-                if (fallbackText) {
-                    root.innerHTML = Array.from({ length: 3 }).map(() => `
-                        <div class="dashboard-summary-card">
-                            <span class="dashboard-summary-label">Monitor</span>
-                            <strong class="dashboard-summary-value">--</strong>
-                            <span class="dashboard-summary-meta">${escapeHtml(fallbackText)}</span>
-                        </div>
-                    `).join('');
-                    return;
-                }
-
-                const metrics = this.dashboardMetrics || {};
-                const summary = metrics.summary || {};
-                const checksTotal = Number(summary.checks_total || 0);
-                const checksSuccess = Number(summary.checks_success || 0);
-                const checksFailed = Number(summary.checks_failed || 0);
-                const criticalFailures = Number(summary.critical_failures || 0);
-                const uptime = Number(summary.uptime_percent || 0);
-                const status = String(summary.status || 'no_data').toLowerCase();
-                const statusMap = {
-                    healthy: { label: 'Saudável', className: 'is-ok' },
-                    attention: { label: 'Atenção', className: criticalFailures > 0 ? 'is-bad' : 'is-warn' },
-                    no_data: { label: 'Sem dados', className: 'is-warn' }
-                };
-                const statusView = statusMap[status] || { label: 'Indefinido', className: 'is-warn' };
-
-                root.innerHTML = `
-                    <div class="dashboard-summary-card">
-                        <span class="dashboard-summary-label">Status Geral</span>
-                        <strong class="dashboard-summary-value ${statusView.className}">${escapeHtml(statusView.label)}</strong>
-                        <span class="dashboard-summary-meta">${uptime.toFixed(2)}% de uptime</span>
-                    </div>
-                    <div class="dashboard-summary-card">
-                        <span class="dashboard-summary-label">Cobertura do Xerife</span>
-                        <strong class="dashboard-summary-value ${checksFailed > 0 ? 'is-warn' : 'is-ok'}">${checksSuccess}/${checksTotal}</strong>
-                        <span class="dashboard-summary-meta">${checksFailed} check(s) com falha</span>
-                    </div>
-                    <div class="dashboard-summary-card">
-                        <span class="dashboard-summary-label">Falhas Críticas</span>
-                        <strong class="dashboard-summary-value ${criticalFailures > 0 ? 'is-bad' : 'is-ok'}">${criticalFailures}</strong>
-                        <span class="dashboard-summary-meta">Pontos vitais fora do ar</span>
-                    </div>
-                `;
-            }
-
-            renderDashboardHealthReport(fallbackText = null) {
-                const root = document.getElementById('dashboardHealthReport');
-                if (!root) return;
-                const body = root.querySelector('.dashboard-health-report-body');
-                if (!body) return;
-
-                if (fallbackText) {
-                    body.innerHTML = `<p>${escapeHtml(fallbackText)}</p>`;
-                    return;
-                }
-
-                const metrics = this.dashboardMetrics || {};
-                const summary = metrics.summary || {};
-                const services = metrics.services || {};
-                const latencyCurrent = metrics.latency_current || { labels: [], values: [] };
-                const db = metrics.db || {};
-                const failedEndpoints = Array.isArray(metrics.failed_endpoints) ? metrics.failed_endpoints : [];
-
-                const status = String(summary.status || 'no_data').toLowerCase();
-                const statusLabel = status === 'healthy' ? 'Saudável' : (status === 'attention' ? 'Atenção' : 'Sem dados');
-                const checksTotal = Number(summary.checks_total || services.values?.[0] || 0);
-                const checksOk = Number(summary.checks_success || services.values?.[1] || 0);
-                const checksFail = Number(summary.checks_failed || services.values?.[2] || 0);
-                const criticalFailures = Number(summary.critical_failures || 0);
-                const uptime = Number(summary.uptime_percent || 0);
-                const errorRate = Number(summary.error_rate_percent || 0);
-                const p95 = Number(summary.p95_latency_ms || 0);
-                const dbConnected = Number(db.connected || 0);
-
-                let slowLabel = 'sem dados';
-                let slowValue = 0;
-                const labels = Array.isArray(latencyCurrent.labels) ? latencyCurrent.labels : [];
-                const values = Array.isArray(latencyCurrent.values) ? latencyCurrent.values : [];
-                values.forEach((v, i) => {
-                    const n = Number(v || 0);
-                    if (n >= slowValue) {
-                        slowValue = n;
-                        slowLabel = String(labels[i] || `endpoint ${i + 1}`);
-                    }
-                });
-
-                const latestAt = metrics.latest_at ? new Date(metrics.latest_at) : null;
-                const latestText = latestAt && !Number.isNaN(latestAt.getTime())
-                    ? latestAt.toLocaleString('pt-BR')
-                    : 'sem horario valido';
-                const statusChipClass = status === 'healthy' ? 'ok' : (criticalFailures > 0 ? 'bad' : 'warn');
-                const failuresHtml = failedEndpoints.length
-                    ? failedEndpoints.slice(0, 6).map((item) => `
-                        <div class="dashboard-health-list-item">
-                            <strong>${escapeHtml(item.endpoint_name || 'endpoint')}</strong>
-                            <span>Status: ${escapeHtml(String(item.status_code ?? 'sem status'))} | Crítico: ${item.critical ? 'sim' : 'não'}</span>
-                            <span>${escapeHtml(item.error_message || 'Falha sem detalhe')}</span>
-                        </div>
-                    `).join('')
-                    : `<div class="dashboard-empty-note">Nenhuma falha detectada no ultimo snapshot.</div>`;
-
-                body.innerHTML = `
-                    <div class="dashboard-health-status-row">
-                        <span class="dashboard-status-chip ${statusChipClass}"><i class="fas fa-shield-halved"></i>${escapeHtml(statusLabel)}</span>
-                        <span class="dashboard-status-chip ${criticalFailures > 0 ? 'bad' : 'ok'}"><i class="fas fa-triangle-exclamation"></i>${criticalFailures} falha(s) crítica(s)</span>
-                    </div>
-                    <div class="dashboard-health-grid">
-                        <div class="dashboard-health-panel">
-                            <h5>Resumo Executivo</h5>
-                            <p><strong>Status geral:</strong> ${escapeHtml(statusLabel)}. ${checksOk}/${checksTotal} checks passaram e ${checksFail} falharam.</p>
-                            <p><strong>Confiabilidade:</strong> uptime ${uptime.toFixed(2)}% | taxa de erro ${errorRate.toFixed(2)}% | p95 ${Math.round(p95)}ms.</p>
-                            <p><strong>Ponto de atenção:</strong> endpoint mais lento recente: ${escapeHtml(slowLabel)} (${Math.round(slowValue)}ms).</p>
-                            <p><strong>Banco:</strong> conexão com DB em ${dbConnected.toFixed(2)}%.</p>
-                            <p><strong>Última amostra:</strong> ${escapeHtml(latestText)}.</p>
-                        </div>
-                        <div class="dashboard-health-panel" style="grid-column: 1 / -1;">
-                            <h5>Falhas do Último Snapshot</h5>
-                            <div class="dashboard-health-list">${failuresHtml}</div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            renderDashboardInsights(fallbackText = null) {
-                const root = document.getElementById('dashboardInsights');
-                if (!root) return;
-                if (fallbackText) {
-                    root.innerHTML = `
-                        <article class="dashboard-insight-card warn">
-                            <h5>Insights</h5>
-                            <strong>Sem dados</strong>
-                            <p>${escapeHtml(fallbackText)}</p>
-                        </article>
-                    `;
-                    return;
-                }
-
-                const metrics = this.dashboardMetrics || {};
-                const summary = metrics.summary || {};
-                const latencyCurrent = this.getFilteredLatencyData(metrics.latency_current || { labels: [], values: [] });
-                const failedEndpoints = Array.isArray(metrics.failed_endpoints) ? metrics.failed_endpoints : [];
-                const db = metrics.db || {};
-                const history = Array.isArray(metrics.history) ? metrics.history : [];
-                const historyWindow = this.getHistoryWindowValue();
-                const historyFiltered = historyWindow ? history.slice(-historyWindow) : history;
-
-                const uptime = Number(summary.uptime_percent || 0);
-                const errorRate = Number(summary.error_rate_percent || 0);
-                const dbConnected = Number(db.connected || 0);
-                const criticalFailures = Number(summary.critical_failures || 0);
-                const latencyValues = Array.isArray(latencyCurrent.values) ? latencyCurrent.values.map((v) => Number(v || 0)) : [0];
-                const latencyPeak = latencyValues.length ? Math.max(...latencyValues) : 0;
-                const latencyAvg = latencyValues.length ? latencyValues.reduce((acc, cur) => acc + cur, 0) / latencyValues.length : 0;
-                const latestHistory = historyFiltered.length ? historyFiltered[historyFiltered.length - 1] : null;
-                const prevHistory = historyFiltered.length > 1 ? historyFiltered[historyFiltered.length - 2] : null;
-                const trend = (latestHistory && prevHistory)
-                    ? Number(latestHistory.p95_latency_ms || 0) - Number(prevHistory.p95_latency_ms || 0)
-                    : 0;
-
-                root.innerHTML = `
-                    <article class="dashboard-insight-card ${criticalFailures > 0 ? 'bad' : 'good'}">
-                        <h5>Confiabilidade</h5>
-                        <strong>${uptime.toFixed(2)}% uptime</strong>
-                        <p>Taxa de erro atual: ${errorRate.toFixed(2)}%.</p>
-                    </article>
-                    <article class="dashboard-insight-card ${latencyPeak > 900 ? 'bad' : (latencyPeak > 450 ? 'warn' : 'good')}">
-                        <h5>Latência</h5>
-                        <strong>Pico ${Math.round(latencyPeak)}ms</strong>
-                        <p>Média filtrada: ${Math.round(latencyAvg)}ms (${latencyCurrent.labels.length} endpoint(s)).</p>
-                    </article>
-                    <article class="dashboard-insight-card ${dbConnected < 85 ? 'warn' : 'good'}">
-                        <h5>Banco de Dados</h5>
-                        <strong>${dbConnected.toFixed(2)}% conectado</strong>
-                        <p>${dbConnected < 85 ? 'Instabilidade detectada no DB.' : 'Conectividade saudável no DB.'}</p>
-                    </article>
-                    <article class="dashboard-insight-card ${failedEndpoints.length ? 'bad' : 'good'}">
-                        <h5>Anomalias</h5>
-                        <strong>${failedEndpoints.length} endpoint(s) falho(s)</strong>
-                        <p>${failedEndpoints.length ? `Principal: ${escapeHtml(String(failedEndpoints[0]?.endpoint_name || 'desconhecido'))}.` : 'Nenhuma falha no último snapshot.'}</p>
-                    </article>
-                    <article class="dashboard-insight-card ${trend > 50 ? 'warn' : 'good'}">
-                        <h5>Tendência de p95</h5>
-                        <strong>${trend >= 0 ? '+' : ''}${Math.round(trend)}ms</strong>
-                        <p>${historyWindow ? `Comparando os últimos ${historyWindow} pontos.` : 'Comparando janela completa disponível.'}</p>
-                    </article>
-                `;
-            }
-
             renderApps() {
                 const container = document.getElementById('appsContainer');
 
@@ -4809,7 +3724,6 @@
                 const activeTab = ['summary', 'data', 'poupanca'].includes(tabRaw) ? tabRaw : 'summary';
                 el.setAttribute('data-active-tab', activeTab);
 
-                const dashboard = data.dashboard || {};
                 const graficos = data.graficos || {};
                 const tabelas = data.tabelas || {};
                 const despesasFixas = tabelas.despesas_fixas || [];
@@ -4820,10 +3734,6 @@
                 const poupancaConfigurada = data.poupanca ? data.poupanca.configurada !== false : true;
                 const poupancaMetaConfigurada = data.poupanca ? data.poupanca.meta_configurada !== false : true;
                 const poupancaMetaAtiva = (data.poupanca && data.poupanca.meta_ativa) || null;
-                const receitasVal = Number(dashboard.receitas) || 0;
-                const despesasFixasVal = Number(dashboard.despesas_fixas) || 0;
-                const despesasVariadasVal = Number(dashboard.despesas_variadas) || 0;
-                const liquidoVal = Number(dashboard.liquido) || 0;
                 const pagosPendentes = graficos.pagos_pendentes || {};
                 const categoriasGastos = graficos.categorias_gastos || [];
 
@@ -4879,6 +3789,12 @@
                         </td>
                     </tr>`;
                 };
+
+                const resumoFinanceiro = data?.dashboard || {};
+                const receitasVal = Number(resumoFinanceiro.receitas) || 0;
+                const despesasFixasVal = Number(resumoFinanceiro.despesas_fixas) || 0;
+                const despesasVariadasVal = Number(resumoFinanceiro.despesas_variadas) || 0;
+                const liquidoVal = Number(resumoFinanceiro.liquido) || 0;
 
                 const rowsFixasHtml = despesasFixas.length ? despesasFixas.map(mkRowFixa).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma despesa fixa neste mês.</td></tr>';
                 const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mês.</td></tr>';
@@ -6202,7 +5118,6 @@
 
             updateStatistics() {
                 this.statistics.openApps = this.openWindows.size;
-                this.renderDashboardCharts();
             }
 
             // ============================================
@@ -6224,7 +5139,6 @@
              */
             setStatistics(stats) {
                 this.statistics = { ...stats, openApps: this.openWindows.size };
-                this.renderDashboardCharts();
             }
 
             /**
@@ -6363,6 +5277,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 

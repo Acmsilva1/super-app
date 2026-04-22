@@ -3,12 +3,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".",
   "framework": null,
-  "rewrites": [
-    {
-      "source": "/api/system-analysis",
-      "destination": "/api/system-analysis-dashboard"
-    }
-  ],
   "headers": [
     {
       "source": "/manifest.json",

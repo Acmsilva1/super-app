@@ -20,8 +20,8 @@ const ROADMAP = [
   },
   {
     step: '4',
-    title: 'Observabilidade técnica',
-    description: 'System analysis mede endpoints e conexão com banco, grava snapshots e alimenta dashboard operacional.',
+    title: 'Evolução contínua',
+    description: 'Base está pronta para evolução incremental de módulos e melhorias de confiabilidade.',
   },
 ];
 
