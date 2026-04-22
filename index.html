@@ -2256,6 +2256,105 @@
         .finance-data-section.hidden-by-filter {
             display: none;
         }
+        .poupanca-meta-builder {
+            position: sticky;
+            top: 4.5rem;
+            z-index: 14;
+            display: grid;
+            gap: 0.55rem;
+            padding: 0.75rem;
+            border: 1px solid rgba(89, 132, 194, 0.32);
+            border-radius: 0.8rem;
+            background: linear-gradient(180deg, rgba(10, 22, 44, 0.97), rgba(9, 19, 36, 0.94));
+            box-shadow: var(--shadow-sm);
+        }
+        .poupanca-meta-grid {
+            display: grid;
+            gap: 0.55rem;
+            grid-template-columns: 1.1fr 0.9fr 1.2fr auto;
+            align-items: end;
+        }
+        .poupanca-meta-grid .field {
+            display: grid;
+            gap: 0.3rem;
+        }
+        .poupanca-meta-grid .field label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #9fb5d8;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .poupanca-meta-slider-wrap {
+            display: grid;
+            gap: 0.35rem;
+        }
+        .poupanca-meta-slider-wrap input[type="range"] {
+            width: 100%;
+        }
+        .poupanca-meta-slider-legend {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: #9fb5d8;
+        }
+        .poupanca-meta-card {
+            border: 1px solid rgba(89, 132, 194, 0.32);
+            border-radius: 0.85rem;
+            padding: 0.9rem;
+            background: radial-gradient(circle at 12% 8%, rgba(34, 197, 94, 0.12), rgba(8, 17, 33, 0.64));
+            box-shadow: var(--shadow-sm);
+            display: grid;
+            gap: 0.55rem;
+        }
+        .poupanca-meta-card h4 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #dbeafe;
+        }
+        .poupanca-meta-card .meta-sub {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #9fb5d8;
+        }
+        .poupanca-meta-thermo {
+            position: relative;
+            height: 0.92rem;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.2);
+            overflow: hidden;
+            border: 1px solid rgba(89, 132, 194, 0.35);
+        }
+        .poupanca-meta-thermo-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            transition: width 0.32s ease, background 0.32s ease;
+            background: linear-gradient(90deg, #2563eb, #38bdf8);
+        }
+        .poupanca-meta-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.45rem;
+        }
+        .poupanca-meta-stats div {
+            border: 1px solid rgba(89, 132, 194, 0.25);
+            border-radius: 0.6rem;
+            padding: 0.5rem 0.55rem;
+            background: rgba(15, 27, 48, 0.55);
+        }
+        .poupanca-meta-stats span {
+            display: block;
+            font-size: 0.72rem;
+            color: #9fb5d8;
+        }
+        .poupanca-meta-stats strong {
+            display: block;
+            margin-top: 0.1rem;
+            font-size: 0.86rem;
+            color: #f8fbff;
+        }
         .module-data-actions {
             display: flex;
             gap: 0.5rem;
@@ -2410,6 +2509,12 @@
             .finance-entry-modal {
                 width: min(520px, calc(100vw - 0.75rem));
                 max-height: min(90vh, 760px);
+            }
+            .poupanca-meta-builder {
+                top: 6.2rem;
+            }
+            .poupanca-meta-grid {
+                grid-template-columns: 1fr;
             }
         }
         @media (max-width: 540px) {
@@ -4686,6 +4791,8 @@
                 const poupancaLogs = (data.poupanca && data.poupanca.logs) || tabelas.poupanca || [];
                 const poupancaTotal = Number((data.poupanca && data.poupanca.total) || 0);
                 const poupancaConfigurada = data.poupanca ? data.poupanca.configurada !== false : true;
+                const poupancaMetaConfigurada = data.poupanca ? data.poupanca.meta_configurada !== false : true;
+                const poupancaMetaAtiva = (data.poupanca && data.poupanca.meta_ativa) || null;
                 const receitasVal = Number(dashboard.receitas) || 0;
                 const despesasFixasVal = Number(dashboard.despesas_fixas) || 0;
                 const despesasVariadasVal = Number(dashboard.despesas_variadas) || 0;
@@ -4765,6 +4872,13 @@
                         </tr>`;
                     }).join('')
                     : '<tr><td colspan="4" class="module-table-empty">Nenhum lançamento em poupança.</td></tr>';
+                const metaNome = String(poupancaMetaAtiva?.nome_meta || '').trim();
+                const metaValor = Number(poupancaMetaAtiva?.valor_meta || 0);
+                const metaInicio = String(poupancaMetaAtiva?.data_inicio || '').slice(0, 10);
+                const metaProgresso = metaValor > 0 ? Math.max(0, Math.min(1, poupancaTotal / metaValor)) : 0;
+                const metaPercent = Math.round(metaProgresso * 100);
+                const metaRestante = Math.max(0, Math.round((metaValor - poupancaTotal) * 100) / 100);
+                const metaCor = metaProgresso >= 1 ? '#22c55e' : metaProgresso >= 0.7 ? '#facc15' : '#38bdf8';
 
                 el.innerHTML = `
                     <div class="finance-module-shell">
@@ -4837,6 +4951,38 @@
                                 <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(poupancaTotal)}</div><div class="stat-label">Total acumulado em poupança</div></div>
                             </div>
                             ${poupancaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca` não encontrada no Supabase. Crie a tabela para habilitar este módulo.</p>'}
+                            ${poupancaMetaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca_metas` não encontrada no Supabase. Crie a tabela para habilitar metas.</p>'}
+                            <div class="poupanca-meta-builder">
+                                <div class="poupanca-meta-grid">
+                                    <div class="field">
+                                        <label>Nome da meta</label>
+                                        <input type="text" id="poupanca-meta-nome" placeholder="Ex: Reserva de emergência" value="${escapeHtml(metaNome || '')}" />
+                                    </div>
+                                    <div class="field">
+                                        <label>Data de início</label>
+                                        <input type="date" id="poupanca-meta-inicio" value="${escapeHtml(metaInicio || this.getBrazilDateIsoFrom(new Date()))}" />
+                                    </div>
+                                    <div class="field poupanca-meta-slider-wrap">
+                                        <label>Valor da meta (${this.formatMoneyBr(metaValor || 1000)})</label>
+                                        <input type="range" id="poupanca-meta-range" min="100" max="200000" step="50" value="${Math.max(100, Math.round(metaValor || 1000))}" />
+                                        <div class="poupanca-meta-slider-legend"><span>R$ 100</span><span>R$ 200.000</span></div>
+                                    </div>
+                                    <button type="button" class="app-btn" data-action="poupanca-save-meta">Salvar meta</button>
+                                </div>
+                            </div>
+                            ${metaValor > 0 ? `
+                                <div class="poupanca-meta-card">
+                                    <h4>${escapeHtml(metaNome || 'Meta de poupança')}</h4>
+                                    <p class="meta-sub">Início: ${escapeHtml(metaInicio ? this.formatDateBr(metaInicio) : '--')}</p>
+                                    <div class="poupanca-meta-thermo"><div class="poupanca-meta-thermo-fill" style="width:${metaPercent}%;background:linear-gradient(90deg, ${metaCor}, ${metaCor});"></div></div>
+                                    <div class="poupanca-meta-stats">
+                                        <div><span>Meta</span><strong>${this.formatMoneyBr(metaValor)}</strong></div>
+                                        <div><span>Acumulado</span><strong>${this.formatMoneyBr(poupancaTotal)}</strong></div>
+                                        <div><span>Progresso</span><strong>${metaPercent}%</strong></div>
+                                        <div><span>Faltam</span><strong>${this.formatMoneyBr(metaRestante)}</strong></div>
+                                    </div>
+                                </div>
+                            ` : ''}
                             <div class="module-table-wrap">
                                 <table class="module-table">
                                     <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
@@ -4986,6 +5132,24 @@
                 el.querySelectorAll('[data-action="financeiro-delete"]').forEach((btn) => {
                     btn.onclick = () => this.submitFinanceiroDelete(btn.dataset.id, btn.dataset.tipoRegistro || 'gasto_variado', el);
                 });
+                const metaRange = el.querySelector('#poupanca-meta-range');
+                const metaLabel = el.querySelector('.poupanca-meta-slider-wrap label');
+                if (metaRange && metaLabel) {
+                    const renderMetaLabel = () => {
+                        metaLabel.textContent = `Valor da meta (${this.formatMoneyBr(Number(metaRange.value || 0))})`;
+                    };
+                    metaRange.oninput = renderMetaLabel;
+                    renderMetaLabel();
+                }
+                const saveMetaBtn = el.querySelector('[data-action="poupanca-save-meta"]');
+                if (saveMetaBtn) {
+                    saveMetaBtn.onclick = async () => {
+                        const nomeMeta = String(el.querySelector('#poupanca-meta-nome')?.value || '').trim();
+                        const dataInicio = String(el.querySelector('#poupanca-meta-inicio')?.value || this.getBrazilDateIsoFrom(new Date()));
+                        const valorMeta = Number(el.querySelector('#poupanca-meta-range')?.value || 0);
+                        await this.submitFinanceiroMetaSave(el, { nomeMeta, dataInicio, valorMeta });
+                    };
+                }
 
                 let prevMesAno = this.getMesAnoAtual();
                 el._mesCheckInterval = setInterval(() => {
@@ -4996,6 +5160,32 @@
                     }
                     prevMesAno = now;
                 }, 60000);
+            }
+
+            async submitFinanceiroMetaSave(el, { nomeMeta, dataInicio, valorMeta } = {}) {
+                if (!nomeMeta) { alert('Nome da meta é obrigatório'); return false; }
+                if (!(valorMeta > 0)) { alert('Valor da meta precisa ser maior que zero'); return false; }
+                try {
+                    const res = await fetch('/api/financeiro', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            tipo_registro: 'meta_poupanca',
+                            nome_meta: nomeMeta,
+                            data_inicio: dataInicio || this.getBrazilDateIsoFrom(new Date()),
+                            valor_meta: valorMeta,
+                        }),
+                    });
+                    if (!res.ok) {
+                        const d = await res.json();
+                        throw new Error(d.error || 'Erro ao salvar meta');
+                    }
+                    await this.refreshAppContent('financeiro');
+                    return true;
+                } catch (e) {
+                    alert(e.message);
+                    return false;
+                }
             }
 
             openFinanceiroModal(el, { item = null, defaultTipo = 'gasto_variado' } = {}) {
@@ -5024,7 +5214,7 @@
                                         <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>Poupança</option>
                                     </select>
                                 </div>
-                                <div class="field"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
+                                <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
                                 <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
                                 <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
                                 <div class="field" id="financeiro-status-wrap"><label>Status (fixa)</label><select id="financeiro-modal-status"><option value="pendente" ${(String(item?.status || 'pendente').toLowerCase() === 'pendente') ? 'selected' : ''}>Pendente</option><option value="pago" ${(String(item?.status || '').toLowerCase() === 'pago') ? 'selected' : ''}>Pago</option></select></div>
@@ -5042,23 +5232,42 @@
                 const catWrap = overlay.querySelector('#financeiro-categoria-wrap');
                 const statusWrap = overlay.querySelector('#financeiro-status-wrap');
                 const dataWrap = overlay.querySelector('#financeiro-data-wrap');
+                const descricaoWrap = overlay.querySelector('#financeiro-descricao-wrap');
+                const descricaoEl = overlay.querySelector('#financeiro-modal-descricao');
+                const dataEl = overlay.querySelector('#financeiro-modal-data');
                 const contextoEl = overlay.querySelector('#financeiro-modal-contexto');
                 const setTipoUI = (tipo) => {
                     if (tipo === 'despesa_fixa') {
+                        if (descricaoWrap) descricaoWrap.style.display = '';
                         catWrap.style.display = 'none';
                         dataWrap.style.display = 'none';
+                        if (dataEl) {
+                            dataEl.setAttribute('min', firstDayMonth);
+                            dataEl.setAttribute('max', lastDayMonth);
+                        }
                         statusWrap.style.display = '';
                         catEl.innerHTML = '<option value="">--</option>';
                         if (contextoEl) contextoEl.innerHTML = `Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong>`;
                     } else if (tipo === 'poupanca') {
+                        if (descricaoWrap) descricaoWrap.style.display = 'none';
+                        if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'Poupança';
                         statusWrap.style.display = 'none';
                         dataWrap.style.display = '';
+                        if (dataEl) {
+                            dataEl.removeAttribute('min');
+                            dataEl.removeAttribute('max');
+                        }
                         catWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
                         if (contextoEl) contextoEl.textContent = 'Registro de poupança (sem filtro mensal).';
                     } else {
+                        if (descricaoWrap) descricaoWrap.style.display = '';
                         statusWrap.style.display = 'none';
                         dataWrap.style.display = '';
+                        if (dataEl) {
+                            dataEl.setAttribute('min', firstDayMonth);
+                            dataEl.setAttribute('max', lastDayMonth);
+                        }
                         catWrap.style.display = '';
                         const categories = tipo === 'receita' ? receitaCategorias : gastoCategorias;
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
@@ -5098,8 +5307,8 @@
                 const status = String(payload?.status || 'pendente').toLowerCase();
                 const dataLanc = String(payload?.data_lancamento || '');
                 const mesAno = payload?.mesAno || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                if (!descricao) { alert('Descrição é obrigatória'); return false; }
                 if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro inválido'); return false; }
+                if (tipoRegistro !== 'poupanca' && !descricao) { alert('Descrição é obrigatória'); return false; }
                 if (tipoRegistro !== 'despesa_fixa' && tipoRegistro !== 'poupanca') {
                     const [yy, mm] = mesAno.split('-').map(Number);
                     const [dy, dm] = dataLanc.split('-').map(Number);
@@ -5110,7 +5319,7 @@
                 }
                 const requestBody = {
                     tipo_registro: tipoRegistro,
-                    descricao,
+                    descricao: tipoRegistro === 'poupanca' ? (descricao || 'Poupança') : descricao,
                     valor,
                     mes_ano: mesAno,
                 };

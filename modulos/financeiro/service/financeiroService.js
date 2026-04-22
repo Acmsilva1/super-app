@@ -3,6 +3,7 @@ import {
   STATUS_PENDENTE,
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
+  TIPO_REGISTRO_META_POUPANCA,
   TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
 } from '../model/financeiro.js';
@@ -14,6 +15,7 @@ export function inferTipoRegistro(body = {}) {
   const hasStatus = body.status !== undefined;
   const tipo = String(body.tipo || '').toLowerCase().trim();
   if (hasStatus) return TIPO_REGISTRO_DESPESA_FIXA;
+  if (explicit === TIPO_REGISTRO_META_POUPANCA) return TIPO_REGISTRO_META_POUPANCA;
   if (tipo === 'poupanca' || tipo === 'poupança') return TIPO_REGISTRO_POUPANCA;
   if (tipo === 'receita') return TIPO_REGISTRO_RECEITA;
   if (tipo === 'despesa') return TIPO_REGISTRO_GASTO_VARIADO;
@@ -172,13 +174,30 @@ export function payloadInsertFinanceiro(body = {}) {
   }
 
   if (tipoRegistro === TIPO_REGISTRO_POUPANCA) {
-    if (!(body.descricao != null && String(body.descricao).trim() !== '')) return { error: 'descricao obrigatoria' };
     return {
       tipo_registro: tipoRegistro,
       payload: {
-        descricao: String(body.descricao || '').trim(),
+        descricao: String(body.descricao || 'Poupança').trim() || 'Poupança',
         valor: Math.round((Number(body.valor) || 0) * 100) / 100,
         data_lancamento: body.data_lancamento || getBrazilTodayIso(),
+      },
+    };
+  }
+
+  if (tipoRegistro === TIPO_REGISTRO_META_POUPANCA) {
+    const nomeMeta = String(body.nome_meta || body.descricao || '').trim();
+    if (!nomeMeta) return { error: 'nome_meta obrigatorio' };
+    const valorMetaRaw = body.valor_meta ?? body.valor;
+    const valorMeta = Math.round((Number(valorMetaRaw) || 0) * 100) / 100;
+    if (!(valorMeta > 0)) return { error: 'valor_meta deve ser maior que zero' };
+    const dataInicio = body.data_inicio || getBrazilTodayIso();
+    return {
+      tipo_registro: tipoRegistro,
+      payload: {
+        nome_meta: nomeMeta,
+        valor_meta: valorMeta,
+        data_inicio: dataInicio,
+        ativa: true,
       },
     };
   }
@@ -213,9 +232,26 @@ export function payloadUpdateFinanceiro(body = {}) {
 
   if (tipoRegistro === TIPO_REGISTRO_POUPANCA) {
     const out = {};
-    if (body.descricao !== undefined) out.descricao = String(body.descricao).trim();
+    if (body.descricao !== undefined) out.descricao = String(body.descricao || 'Poupança').trim() || 'Poupança';
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
     if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
+    if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
+    return { tipo_registro: tipoRegistro, id: body.id, payload: out };
+  }
+
+  if (tipoRegistro === TIPO_REGISTRO_META_POUPANCA) {
+    const out = {};
+    if (body.nome_meta !== undefined || body.descricao !== undefined) {
+      out.nome_meta = String(body.nome_meta || body.descricao || '').trim();
+      if (!out.nome_meta) return { error: 'nome_meta obrigatorio' };
+    }
+    if (body.valor_meta !== undefined || body.valor !== undefined) {
+      const v = Math.round((Number(body.valor_meta ?? body.valor) || 0) * 100) / 100;
+      if (!(v > 0)) return { error: 'valor_meta deve ser maior que zero' };
+      out.valor_meta = v;
+    }
+    if (body.data_inicio !== undefined) out.data_inicio = body.data_inicio || null;
+    if (body.ativa !== undefined) out.ativa = Boolean(body.ativa);
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }
