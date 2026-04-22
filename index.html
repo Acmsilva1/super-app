@@ -2256,107 +2256,29 @@
         .finance-data-section.hidden-by-filter {
             display: none;
         }
-        .poupanca-meta-builder {
+        .poupanca-meta-entry-card {
             position: sticky;
             top: 4.5rem;
             z-index: 14;
-            display: grid;
-            gap: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.7rem;
             padding: 0.9rem;
             border: 1px solid rgba(89, 132, 194, 0.32);
             border-radius: 0.8rem;
             background: radial-gradient(circle at 8% 6%, rgba(56, 189, 248, 0.12), rgba(10, 22, 44, 0.97));
             box-shadow: var(--shadow-sm);
         }
-        .poupanca-meta-grid {
-            display: grid;
-            gap: 0.7rem;
-            grid-template-columns: 1.1fr 0.9fr auto;
-            align-items: end;
-        }
-        .poupanca-meta-grid .field {
-            display: grid;
-            gap: 0.3rem;
-        }
-        .poupanca-meta-grid .field label {
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: #9fb5d8;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-        .poupanca-meta-slider-wrap {
-            display: grid;
-            gap: 0.45rem;
-            grid-column: 1 / -1;
-        }
-        .poupanca-meta-slider-wrap input[type="range"] {
-            width: 100%;
-            accent-color: #38bdf8;
-        }
-        .poupanca-ruler-shell {
-            position: relative;
-            border: 1px solid rgba(89, 132, 194, 0.32);
-            border-radius: 0.75rem;
-            padding: 0.65rem 0.65rem 0.55rem;
-            background: linear-gradient(180deg, rgba(15, 27, 48, 0.7), rgba(11, 22, 42, 0.78));
-        }
-        .poupanca-ruler-track {
-            position: relative;
-            height: 0.92rem;
-            border-radius: 999px;
-            border: 1px solid rgba(89, 132, 194, 0.35);
-            background: linear-gradient(90deg, #1d4ed8 0%, #38bdf8 70%, #facc15 88%, #22c55e 100%);
-            overflow: hidden;
-        }
-        .poupanca-ruler-fill {
-            position: absolute;
-            inset: 0 auto 0 0;
-            width: 0%;
-            background: linear-gradient(90deg, rgba(15, 23, 42, 0.14), rgba(15, 23, 42, 0));
-            border-radius: inherit;
-            transition: width 0.25s ease;
-        }
-        .poupanca-ruler-thumb {
-            position: absolute;
-            top: 50%;
-            left: 0%;
-            transform: translate(-50%, -50%);
-            width: 1.05rem;
-            height: 1.05rem;
-            border-radius: 999px;
-            border: 2px solid rgba(255, 255, 255, 0.92);
-            background: #0ea5e9;
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.26);
-            transition: left 0.25s ease, background 0.25s ease;
-        }
-        .poupanca-ruler-value {
-            margin-top: 0.45rem;
-            display: inline-flex;
-            align-items: center;
-            border: 1px solid rgba(56, 189, 248, 0.42);
-            border-radius: 999px;
-            padding: 0.2rem 0.55rem;
-            font-size: 0.78rem;
-            font-weight: 700;
+        .poupanca-meta-entry-card h4 {
+            margin: 0;
+            font-size: 1rem;
             color: #dbeafe;
-            background: rgba(15, 27, 48, 0.8);
         }
-        .poupanca-meta-slider-legend {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.72rem;
+        .poupanca-meta-entry-card p {
+            margin: 0;
+            font-size: 0.8rem;
             color: #9fb5d8;
-            margin-top: 0.35rem;
-        }
-        .poupanca-meta-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            flex-wrap: wrap;
-        }
-        .poupanca-meta-actions .app-btn {
-            min-height: 2.2rem;
         }
         .poupanca-meta-card {
             border: 1px solid rgba(89, 132, 194, 0.32);
@@ -2581,17 +2503,13 @@
                 width: min(520px, calc(100vw - 0.75rem));
                 max-height: min(90vh, 760px);
             }
-            .poupanca-meta-builder {
+            .poupanca-meta-entry-card {
                 top: 6.2rem;
+                align-items: flex-start;
+                flex-direction: column;
             }
-            .poupanca-meta-grid {
-                grid-template-columns: 1fr;
-            }
-            .poupanca-meta-actions {
+            .poupanca-meta-entry-card .app-btn {
                 width: 100%;
-            }
-            .poupanca-meta-actions .app-btn {
-                flex: 1 1 auto;
             }
         }
         @media (max-width: 540px) {
@@ -5030,34 +4948,12 @@
                             </div>
                             ${poupancaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca` não encontrada no Supabase. Crie a tabela para habilitar este módulo.</p>'}
                             ${poupancaMetaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca_metas` não encontrada no Supabase. Crie a tabela para habilitar metas.</p>'}
-                            <div class="poupanca-meta-builder">
-                                <div class="poupanca-meta-grid">
-                                    <div class="field">
-                                        <label>Nome da meta</label>
-                                        <input type="text" id="poupanca-meta-nome" placeholder="Ex: Reserva de emergência" value="${escapeHtml(metaNome || '')}" />
-                                        <input type="hidden" id="poupanca-meta-id" value="${metaId > 0 ? metaId : ''}" />
-                                    </div>
-                                    <div class="field">
-                                        <label>Data de início</label>
-                                        <input type="date" id="poupanca-meta-inicio" value="${escapeHtml(metaInicio || this.getBrazilDateIsoFrom(new Date()))}" />
-                                    </div>
-                                    <div class="poupanca-meta-actions">
-                                        <button type="button" class="app-btn" data-action="poupanca-save-meta">${metaId > 0 ? 'Atualizar meta' : 'Salvar meta'}</button>
-                                        ${metaId > 0 ? '<button type="button" class="app-btn app-btn-secondary" data-action="poupanca-cancel-edit">Cancelar edição</button>' : ''}
-                                    </div>
-                                    <div class="field poupanca-meta-slider-wrap">
-                                        <label>Regua da meta</label>
-                                        <div class="poupanca-ruler-shell">
-                                            <div class="poupanca-ruler-track">
-                                                <div class="poupanca-ruler-fill" id="poupanca-meta-ruler-fill"></div>
-                                                <div class="poupanca-ruler-thumb" id="poupanca-meta-ruler-thumb"></div>
-                                            </div>
-                                            <span class="poupanca-ruler-value" id="poupanca-meta-ruler-value">${this.formatMoneyBr(metaValor || 1000)}</span>
-                                            <input type="range" id="poupanca-meta-range" min="100" max="200000" step="50" value="${Math.max(100, Math.round(metaValor || 1000))}" />
-                                            <div class="poupanca-meta-slider-legend"><span>R$ 100</span><span>R$ 50k</span><span>R$ 100k</span><span>R$ 150k</span><span>R$ 200k</span></div>
-                                        </div>
-                                    </div>
+                            <div class="poupanca-meta-entry-card">
+                                <div>
+                                    <h4>Adicionar Meta</h4>
+                                    <p>Abra o formulário padrão para cadastrar descrição, valor e data de início.</p>
                                 </div>
+                                <button type="button" class="app-btn" data-action="poupanca-open-meta-modal">Adicionar Meta</button>
                             </div>
                             ${metaValor > 0 ? `
                                 <div class="poupanca-meta-card">
@@ -5229,59 +5125,18 @@
                 el.querySelectorAll('[data-action="financeiro-delete"]').forEach((btn) => {
                     btn.onclick = () => this.submitFinanceiroDelete(btn.dataset.id, btn.dataset.tipoRegistro || 'gasto_variado', el);
                 });
-                const metaRange = el.querySelector('#poupanca-meta-range');
-                const metaLabel = el.querySelector('.poupanca-meta-slider-wrap label');
-                const metaRulerValue = el.querySelector('#poupanca-meta-ruler-value');
-                const metaRulerFill = el.querySelector('#poupanca-meta-ruler-fill');
-                const metaRulerThumb = el.querySelector('#poupanca-meta-ruler-thumb');
-                if (metaRange && metaLabel) {
-                    const min = Number(metaRange.min || 0);
-                    const max = Number(metaRange.max || 100);
-                    const renderMetaRuler = () => {
-                        const value = Number(metaRange.value || 0);
-                        const pct = max > min ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100)) : 0;
-                        metaLabel.textContent = `Regua da meta (${this.formatMoneyBr(value)})`;
-                        if (metaRulerValue) metaRulerValue.textContent = this.formatMoneyBr(value);
-                        if (metaRulerFill) metaRulerFill.style.width = `${pct}%`;
-                        if (metaRulerThumb) {
-                            metaRulerThumb.style.left = `${pct}%`;
-                            if (pct >= 100) metaRulerThumb.style.background = '#22c55e';
-                            else if (pct >= 30) metaRulerThumb.style.background = '#facc15';
-                            else metaRulerThumb.style.background = '#0ea5e9';
-                        }
-                    };
-                    metaRange.oninput = renderMetaRuler;
-                    renderMetaRuler();
+                const openMetaBtn = el.querySelector('[data-action="poupanca-open-meta-modal"]');
+                if (openMetaBtn) {
+                    openMetaBtn.onclick = () => this.openPoupancaMetaModal(el);
                 }
-                const saveMetaBtn = el.querySelector('[data-action="poupanca-save-meta"]');
-                if (saveMetaBtn) {
-                    saveMetaBtn.onclick = async () => {
-                        const nomeMeta = String(el.querySelector('#poupanca-meta-nome')?.value || '').trim();
-                        const dataInicio = String(el.querySelector('#poupanca-meta-inicio')?.value || this.getBrazilDateIsoFrom(new Date()));
-                        const valorMeta = Number(el.querySelector('#poupanca-meta-range')?.value || 0);
-                        const editId = Number(el.querySelector('#poupanca-meta-id')?.value || 0);
-                        await this.submitFinanceiroMetaSave(el, { editId, nomeMeta, dataInicio, valorMeta });
-                    };
-                }
-                const cancelEditMetaBtn = el.querySelector('[data-action="poupanca-cancel-edit"]');
-                if (cancelEditMetaBtn) cancelEditMetaBtn.onclick = () => this.refreshAppContent('financeiro');
                 const editMetaBtn = el.querySelector('[data-action="poupanca-meta-edit"]');
                 if (editMetaBtn) {
-                    editMetaBtn.onclick = () => {
-                        const metaIdEl = el.querySelector('#poupanca-meta-id');
-                        const metaNomeEl = el.querySelector('#poupanca-meta-nome');
-                        const metaInicioEl = el.querySelector('#poupanca-meta-inicio');
-                        const metaRangeEl = el.querySelector('#poupanca-meta-range');
-                        if (metaIdEl) metaIdEl.value = String(metaId || '');
-                        if (metaNomeEl) metaNomeEl.value = String(metaNome || '');
-                        if (metaInicioEl) metaInicioEl.value = String(metaInicio || this.getBrazilDateIsoFrom(new Date()));
-                        if (metaRangeEl) {
-                            metaRangeEl.value = String(Math.max(100, Math.round(metaValor || 1000)));
-                            if (typeof metaRangeEl.oninput === 'function') metaRangeEl.oninput();
-                        }
-                        const saveButton = el.querySelector('[data-action="poupanca-save-meta"]');
-                        if (saveButton) saveButton.textContent = 'Atualizar meta';
-                    };
+                    editMetaBtn.onclick = () => this.openPoupancaMetaModal(el, {
+                        id: metaId,
+                        nome_meta: metaNome,
+                        valor_meta: metaValor,
+                        data_inicio: metaInicio,
+                    });
                 }
                 const deleteMetaBtn = el.querySelector('[data-action="poupanca-meta-delete"]');
                 if (deleteMetaBtn) {
@@ -5344,6 +5199,49 @@
                     alert(e.message);
                     return false;
                 }
+            }
+
+            openPoupancaMetaModal(el, meta = null) {
+                const editId = Number(meta?.id || 0);
+                const overlay = document.createElement('div');
+                overlay.className = 'app-modal-overlay';
+                overlay.innerHTML = `
+                    <div class="app-modal finance-entry-modal">
+                        <h4>${editId > 0 ? 'Editar meta de poupança' : 'Adicionar meta de poupança'}</h4>
+                        <div class="app-form">
+                            <div class="app-form-row fin-form-grid">
+                                <div class="field">
+                                    <label>Descrição</label>
+                                    <input type="text" id="poupanca-meta-modal-nome" value="${escapeHtml(String(meta?.nome_meta || ''))}" placeholder="Ex: Reserva de emergência" />
+                                </div>
+                                <div class="field">
+                                    <label>Valor (R$)</label>
+                                    <input type="number" step="0.01" id="poupanca-meta-modal-valor" value="${editId > 0 ? Number(meta?.valor_meta || 0) : ''}" />
+                                </div>
+                                <div class="field">
+                                    <label>Data de início</label>
+                                    <input type="date" id="poupanca-meta-modal-inicio" value="${escapeHtml(String(meta?.data_inicio || this.getBrazilDateIsoFrom(new Date())).slice(0, 10))}" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="app-modal-actions">
+                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
+                            <button type="button" class="app-btn" data-action="modal-save-meta">${editId > 0 ? 'Salvar' : 'Adicionar meta'}</button>
+                        </div>
+                    </div>
+                `;
+
+                const close = () => overlay.remove();
+                overlay.querySelector('[data-action="modal-cancel"]').onclick = close;
+                overlay.onclick = (e) => { if (e.target === overlay) close(); };
+                overlay.querySelector('[data-action="modal-save-meta"]').onclick = async () => {
+                    const nomeMeta = String(overlay.querySelector('#poupanca-meta-modal-nome')?.value || '').trim();
+                    const valorMeta = Number(overlay.querySelector('#poupanca-meta-modal-valor')?.value || 0);
+                    const dataInicio = String(overlay.querySelector('#poupanca-meta-modal-inicio')?.value || this.getBrazilDateIsoFrom(new Date()));
+                    const ok = await this.submitFinanceiroMetaSave(el, { editId, nomeMeta, dataInicio, valorMeta });
+                    if (ok) close();
+                };
+                document.body.appendChild(overlay);
             }
 
             openFinanceiroModal(el, { item = null, defaultTipo = 'gasto_variado' } = {}) {
