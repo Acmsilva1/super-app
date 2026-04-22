@@ -2261,17 +2261,17 @@
             top: 4.5rem;
             z-index: 14;
             display: grid;
-            gap: 0.55rem;
-            padding: 0.75rem;
+            gap: 0.75rem;
+            padding: 0.9rem;
             border: 1px solid rgba(89, 132, 194, 0.32);
             border-radius: 0.8rem;
-            background: linear-gradient(180deg, rgba(10, 22, 44, 0.97), rgba(9, 19, 36, 0.94));
+            background: radial-gradient(circle at 8% 6%, rgba(56, 189, 248, 0.12), rgba(10, 22, 44, 0.97));
             box-shadow: var(--shadow-sm);
         }
         .poupanca-meta-grid {
             display: grid;
-            gap: 0.55rem;
-            grid-template-columns: 1.1fr 0.9fr 1.2fr auto;
+            gap: 0.7rem;
+            grid-template-columns: 1.1fr 0.9fr auto;
             align-items: end;
         }
         .poupanca-meta-grid .field {
@@ -2287,16 +2287,76 @@
         }
         .poupanca-meta-slider-wrap {
             display: grid;
-            gap: 0.35rem;
+            gap: 0.45rem;
+            grid-column: 1 / -1;
         }
         .poupanca-meta-slider-wrap input[type="range"] {
             width: 100%;
+            accent-color: #38bdf8;
+        }
+        .poupanca-ruler-shell {
+            position: relative;
+            border: 1px solid rgba(89, 132, 194, 0.32);
+            border-radius: 0.75rem;
+            padding: 0.65rem 0.65rem 0.55rem;
+            background: linear-gradient(180deg, rgba(15, 27, 48, 0.7), rgba(11, 22, 42, 0.78));
+        }
+        .poupanca-ruler-track {
+            position: relative;
+            height: 0.92rem;
+            border-radius: 999px;
+            border: 1px solid rgba(89, 132, 194, 0.35);
+            background: linear-gradient(90deg, #1d4ed8 0%, #38bdf8 70%, #facc15 88%, #22c55e 100%);
+            overflow: hidden;
+        }
+        .poupanca-ruler-fill {
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 0%;
+            background: linear-gradient(90deg, rgba(15, 23, 42, 0.14), rgba(15, 23, 42, 0));
+            border-radius: inherit;
+            transition: width 0.25s ease;
+        }
+        .poupanca-ruler-thumb {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            transform: translate(-50%, -50%);
+            width: 1.05rem;
+            height: 1.05rem;
+            border-radius: 999px;
+            border: 2px solid rgba(255, 255, 255, 0.92);
+            background: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.26);
+            transition: left 0.25s ease, background 0.25s ease;
+        }
+        .poupanca-ruler-value {
+            margin-top: 0.45rem;
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid rgba(56, 189, 248, 0.42);
+            border-radius: 999px;
+            padding: 0.2rem 0.55rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #dbeafe;
+            background: rgba(15, 27, 48, 0.8);
         }
         .poupanca-meta-slider-legend {
             display: flex;
             justify-content: space-between;
             font-size: 0.72rem;
             color: #9fb5d8;
+            margin-top: 0.35rem;
+        }
+        .poupanca-meta-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+        .poupanca-meta-actions .app-btn {
+            min-height: 2.2rem;
         }
         .poupanca-meta-card {
             border: 1px solid rgba(89, 132, 194, 0.32);
@@ -2306,6 +2366,17 @@
             box-shadow: var(--shadow-sm);
             display: grid;
             gap: 0.55rem;
+        }
+        .poupanca-meta-card-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.65rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .poupanca-meta-card-actions {
+            display: flex;
+            gap: 0.45rem;
         }
         .poupanca-meta-card h4 {
             margin: 0;
@@ -2515,6 +2586,12 @@
             }
             .poupanca-meta-grid {
                 grid-template-columns: 1fr;
+            }
+            .poupanca-meta-actions {
+                width: 100%;
+            }
+            .poupanca-meta-actions .app-btn {
+                flex: 1 1 auto;
             }
         }
         @media (max-width: 540px) {
@@ -4873,6 +4950,7 @@
                     }).join('')
                     : '<tr><td colspan="4" class="module-table-empty">Nenhum lançamento em poupança.</td></tr>';
                 const metaNome = String(poupancaMetaAtiva?.nome_meta || '').trim();
+                const metaId = Number(poupancaMetaAtiva?.id || 0);
                 const metaValor = Number(poupancaMetaAtiva?.valor_meta || 0);
                 const metaInicio = String(poupancaMetaAtiva?.data_inicio || '').slice(0, 10);
                 const metaProgresso = metaValor > 0 ? Math.max(0, Math.min(1, poupancaTotal / metaValor)) : 0;
@@ -4957,23 +5035,42 @@
                                     <div class="field">
                                         <label>Nome da meta</label>
                                         <input type="text" id="poupanca-meta-nome" placeholder="Ex: Reserva de emergência" value="${escapeHtml(metaNome || '')}" />
+                                        <input type="hidden" id="poupanca-meta-id" value="${metaId > 0 ? metaId : ''}" />
                                     </div>
                                     <div class="field">
                                         <label>Data de início</label>
                                         <input type="date" id="poupanca-meta-inicio" value="${escapeHtml(metaInicio || this.getBrazilDateIsoFrom(new Date()))}" />
                                     </div>
-                                    <div class="field poupanca-meta-slider-wrap">
-                                        <label>Valor da meta (${this.formatMoneyBr(metaValor || 1000)})</label>
-                                        <input type="range" id="poupanca-meta-range" min="100" max="200000" step="50" value="${Math.max(100, Math.round(metaValor || 1000))}" />
-                                        <div class="poupanca-meta-slider-legend"><span>R$ 100</span><span>R$ 200.000</span></div>
+                                    <div class="poupanca-meta-actions">
+                                        <button type="button" class="app-btn" data-action="poupanca-save-meta">${metaId > 0 ? 'Atualizar meta' : 'Salvar meta'}</button>
+                                        ${metaId > 0 ? '<button type="button" class="app-btn app-btn-secondary" data-action="poupanca-cancel-edit">Cancelar edição</button>' : ''}
                                     </div>
-                                    <button type="button" class="app-btn" data-action="poupanca-save-meta">Salvar meta</button>
+                                    <div class="field poupanca-meta-slider-wrap">
+                                        <label>Regua da meta</label>
+                                        <div class="poupanca-ruler-shell">
+                                            <div class="poupanca-ruler-track">
+                                                <div class="poupanca-ruler-fill" id="poupanca-meta-ruler-fill"></div>
+                                                <div class="poupanca-ruler-thumb" id="poupanca-meta-ruler-thumb"></div>
+                                            </div>
+                                            <span class="poupanca-ruler-value" id="poupanca-meta-ruler-value">${this.formatMoneyBr(metaValor || 1000)}</span>
+                                            <input type="range" id="poupanca-meta-range" min="100" max="200000" step="50" value="${Math.max(100, Math.round(metaValor || 1000))}" />
+                                            <div class="poupanca-meta-slider-legend"><span>R$ 100</span><span>R$ 50k</span><span>R$ 100k</span><span>R$ 150k</span><span>R$ 200k</span></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             ${metaValor > 0 ? `
                                 <div class="poupanca-meta-card">
-                                    <h4>${escapeHtml(metaNome || 'Meta de poupança')}</h4>
-                                    <p class="meta-sub">Início: ${escapeHtml(metaInicio ? this.formatDateBr(metaInicio) : '--')}</p>
+                                    <div class="poupanca-meta-card-top">
+                                        <div>
+                                            <h4>${escapeHtml(metaNome || 'Meta de poupança')}</h4>
+                                            <p class="meta-sub">Início: ${escapeHtml(metaInicio ? this.formatDateBr(metaInicio) : '--')}</p>
+                                        </div>
+                                        <div class="poupanca-meta-card-actions">
+                                            <button type="button" class="app-btn app-btn-secondary" data-action="poupanca-meta-edit" data-id="${metaId}">Editar</button>
+                                            <button type="button" class="app-btn app-btn-secondary" data-action="poupanca-meta-delete" data-id="${metaId}">Excluir</button>
+                                        </div>
+                                    </div>
                                     <div class="poupanca-meta-thermo"><div class="poupanca-meta-thermo-fill" style="width:${metaPercent}%;background:linear-gradient(90deg, ${metaCor}, ${metaCor});"></div></div>
                                     <div class="poupanca-meta-stats">
                                         <div><span>Meta</span><strong>${this.formatMoneyBr(metaValor)}</strong></div>
@@ -5134,12 +5231,27 @@
                 });
                 const metaRange = el.querySelector('#poupanca-meta-range');
                 const metaLabel = el.querySelector('.poupanca-meta-slider-wrap label');
+                const metaRulerValue = el.querySelector('#poupanca-meta-ruler-value');
+                const metaRulerFill = el.querySelector('#poupanca-meta-ruler-fill');
+                const metaRulerThumb = el.querySelector('#poupanca-meta-ruler-thumb');
                 if (metaRange && metaLabel) {
-                    const renderMetaLabel = () => {
-                        metaLabel.textContent = `Valor da meta (${this.formatMoneyBr(Number(metaRange.value || 0))})`;
+                    const min = Number(metaRange.min || 0);
+                    const max = Number(metaRange.max || 100);
+                    const renderMetaRuler = () => {
+                        const value = Number(metaRange.value || 0);
+                        const pct = max > min ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100)) : 0;
+                        metaLabel.textContent = `Regua da meta (${this.formatMoneyBr(value)})`;
+                        if (metaRulerValue) metaRulerValue.textContent = this.formatMoneyBr(value);
+                        if (metaRulerFill) metaRulerFill.style.width = `${pct}%`;
+                        if (metaRulerThumb) {
+                            metaRulerThumb.style.left = `${pct}%`;
+                            if (pct >= 100) metaRulerThumb.style.background = '#22c55e';
+                            else if (pct >= 30) metaRulerThumb.style.background = '#facc15';
+                            else metaRulerThumb.style.background = '#0ea5e9';
+                        }
                     };
-                    metaRange.oninput = renderMetaLabel;
-                    renderMetaLabel();
+                    metaRange.oninput = renderMetaRuler;
+                    renderMetaRuler();
                 }
                 const saveMetaBtn = el.querySelector('[data-action="poupanca-save-meta"]');
                 if (saveMetaBtn) {
@@ -5147,7 +5259,36 @@
                         const nomeMeta = String(el.querySelector('#poupanca-meta-nome')?.value || '').trim();
                         const dataInicio = String(el.querySelector('#poupanca-meta-inicio')?.value || this.getBrazilDateIsoFrom(new Date()));
                         const valorMeta = Number(el.querySelector('#poupanca-meta-range')?.value || 0);
-                        await this.submitFinanceiroMetaSave(el, { nomeMeta, dataInicio, valorMeta });
+                        const editId = Number(el.querySelector('#poupanca-meta-id')?.value || 0);
+                        await this.submitFinanceiroMetaSave(el, { editId, nomeMeta, dataInicio, valorMeta });
+                    };
+                }
+                const cancelEditMetaBtn = el.querySelector('[data-action="poupanca-cancel-edit"]');
+                if (cancelEditMetaBtn) cancelEditMetaBtn.onclick = () => this.refreshAppContent('financeiro');
+                const editMetaBtn = el.querySelector('[data-action="poupanca-meta-edit"]');
+                if (editMetaBtn) {
+                    editMetaBtn.onclick = () => {
+                        const metaIdEl = el.querySelector('#poupanca-meta-id');
+                        const metaNomeEl = el.querySelector('#poupanca-meta-nome');
+                        const metaInicioEl = el.querySelector('#poupanca-meta-inicio');
+                        const metaRangeEl = el.querySelector('#poupanca-meta-range');
+                        if (metaIdEl) metaIdEl.value = String(metaId || '');
+                        if (metaNomeEl) metaNomeEl.value = String(metaNome || '');
+                        if (metaInicioEl) metaInicioEl.value = String(metaInicio || this.getBrazilDateIsoFrom(new Date()));
+                        if (metaRangeEl) {
+                            metaRangeEl.value = String(Math.max(100, Math.round(metaValor || 1000)));
+                            if (typeof metaRangeEl.oninput === 'function') metaRangeEl.oninput();
+                        }
+                        const saveButton = el.querySelector('[data-action="poupanca-save-meta"]');
+                        if (saveButton) saveButton.textContent = 'Atualizar meta';
+                    };
+                }
+                const deleteMetaBtn = el.querySelector('[data-action="poupanca-meta-delete"]');
+                if (deleteMetaBtn) {
+                    deleteMetaBtn.onclick = async () => {
+                        const rawId = Number(deleteMetaBtn.dataset.id || 0);
+                        if (!(rawId > 0)) return;
+                        await this.submitFinanceiroMetaDelete(rawId, el);
                     };
                 }
 
@@ -5162,14 +5303,15 @@
                 }, 60000);
             }
 
-            async submitFinanceiroMetaSave(el, { nomeMeta, dataInicio, valorMeta } = {}) {
+            async submitFinanceiroMetaSave(el, { editId = 0, nomeMeta, dataInicio, valorMeta } = {}) {
                 if (!nomeMeta) { alert('Nome da meta é obrigatório'); return false; }
                 if (!(valorMeta > 0)) { alert('Valor da meta precisa ser maior que zero'); return false; }
                 try {
                     const res = await fetch('/api/financeiro', {
-                        method: 'POST',
+                        method: editId > 0 ? 'PATCH' : 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            ...(editId > 0 ? { id: editId } : {}),
                             tipo_registro: 'meta_poupanca',
                             nome_meta: nomeMeta,
                             data_inicio: dataInicio || this.getBrazilDateIsoFrom(new Date()),
@@ -5179,6 +5321,22 @@
                     if (!res.ok) {
                         const d = await res.json();
                         throw new Error(d.error || 'Erro ao salvar meta');
+                    }
+                    await this.refreshAppContent('financeiro');
+                    return true;
+                } catch (e) {
+                    alert(e.message);
+                    return false;
+                }
+            }
+
+            async submitFinanceiroMetaDelete(id, el) {
+                if (!(await this.showConfirm('Excluir meta', 'Tem certeza que deseja excluir esta meta de poupança?'))) return false;
+                try {
+                    const res = await fetch(`/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=meta_poupanca`, { method: 'DELETE' });
+                    if (!res.ok) {
+                        const d = await res.json();
+                        throw new Error(d.error || 'Erro ao excluir meta');
                     }
                     await this.refreshAppContent('financeiro');
                     return true;
