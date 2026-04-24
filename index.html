@@ -884,35 +884,8 @@
         .app-card:hover .app-open-hint i {
             transform: translateX(3px);
         }
-        .app-quick-add-btn {
-            position: absolute;
-            top: 0.6rem;
-            right: 0.6rem;
-            width: 2rem;
-            height: 2rem;
-            border: 1px solid rgba(251, 191, 36, 0.65);
-            border-radius: 999px;
-            background: linear-gradient(135deg, rgba(251, 191, 36, 0.98), rgba(249, 115, 22, 0.98));
-            color: #0f172a;
-            font-size: 1.2rem;
-            font-weight: 800;
-            line-height: 1;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 2;
-            box-shadow: 0 8px 18px rgba(249, 115, 22, 0.45);
-            transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
-        }
-        .app-quick-add-btn:hover {
-            transform: translateY(-1px) scale(1.04);
-            filter: brightness(1.04);
-            box-shadow: 0 12px 24px rgba(249, 115, 22, 0.52);
-        }
-        .app-quick-add-btn:focus-visible {
-            outline: 2px solid rgba(253, 224, 71, 0.92);
-            outline-offset: 2px;
+        .home-finance-fab {
+            z-index: 1150;
         }
         @media (max-width: 420px) {
             .apps-grid {
@@ -2908,6 +2881,7 @@
 
     <!-- APP WINDOWS CONTAINER -->
     <div id="windowsContainer"></div>
+    <button id="homeFinanceFab" type="button" class="finance-fab finance-fab-pulse home-finance-fab" aria-label="Lançamento rápido no financeiro" title="Lançamento rápido no financeiro">+</button>
 
     <script>
         // ============================================
@@ -2940,6 +2914,7 @@
             constructor() {
                 this.apps = [];
                 this.roadmap = [];
+                this.statistics = { totalApps: 0, activeApps: 0, betaApps: 0, openApps: 0 };
                 this.openWindows = new Map();
                 this.vizLibrariesReady = false;
                 this.vizLibrariesLoading = null;
@@ -2954,6 +2929,7 @@
                 this.setupEventListeners();
                 await this.ensureVisualizationLibraries();
                 this.loadData();
+                this.updateStatistics();
                 this.startNotificationCenter();
             }
 
@@ -3037,6 +3013,9 @@
                 document.getElementById('notificationsBtn')?.addEventListener('click', () => {
                     this.openNotificationsModal();
                 });
+                document.getElementById('homeFinanceFab')?.addEventListener('click', (e) => {
+                    this.quickAddFinanceiro(e);
+                });
             }
             // ============================================
             // CARREGAR DADOS DO BACKEND
@@ -3103,7 +3082,6 @@
 
                 container.innerHTML = this.apps.map((app, idx) => `
                     <div class="app-card" data-tone="${this.getAppTone(app, idx)}" style="--card-i:${idx};" onclick="superApp.launchApp('${app.id}')">
-                        ${String(app?.id || '').toLowerCase() === 'financeiro' ? '<button type="button" class="app-quick-add-btn" onclick="superApp.quickAddFinanceiro(event)" title="Lançamento rápido no financeiro" aria-label="Lançamento rápido no financeiro">+</button>' : ''}
                         <div class="app-header">
                             <div class="app-icon-wrap">
                                 <div class="app-icon-box">
@@ -3130,19 +3108,11 @@
                     event.preventDefault();
                     event.stopPropagation();
                 }
-                const appId = 'financeiro';
-                let win = this.openWindows.get(appId);
-                if (!win) {
-                    this.launchApp(appId);
-                    win = this.openWindows.get(appId);
+                if (!this._quickFinanceiroContextEl) {
+                    this._quickFinanceiroContextEl = document.createElement('div');
                 }
-                if (!win) return;
-                const contentEl = win.querySelector('.window-content');
-                if (!contentEl) return;
-                if (!contentEl.querySelector('.finance-module-shell')) {
-                    await this.loadAppContent(appId, contentEl);
-                }
-                this.openFinanceiroModal(contentEl, { defaultTipo: 'gasto_variado' });
+                this._quickFinanceiroContextEl.setAttribute('data-mes-ano', this.getMesAnoAtual());
+                this.openFinanceiroModal(this._quickFinanceiroContextEl, { defaultTipo: 'gasto_variado' });
             }
 
             getAppTone(app, idx = 0) {
@@ -5170,6 +5140,10 @@
 
             updateStatistics() {
                 this.statistics.openApps = this.openWindows.size;
+                const homeFab = document.getElementById('homeFinanceFab');
+                if (homeFab) {
+                    homeFab.style.display = this.openWindows.size === 0 ? 'inline-flex' : 'none';
+                }
             }
 
             // ============================================
