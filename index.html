@@ -4279,7 +4279,8 @@
                 const tipoRegistro = item?.tipo_registro || defaultTipo || 'gasto_variado';
                 const overlay = document.createElement('div');
                 overlay.className = 'app-modal-overlay';
-                const initialDate = item?.data_lancamento ? String(item.data_lancamento).slice(0, 10) : firstDayMonth;
+                const todayIso = this.getBrazilDateIsoFrom(new Date());
+                const initialDate = item?.data_lancamento ? String(item.data_lancamento).slice(0, 10) : todayIso;
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
                         <h4>${item ? 'Editar registro financeiro' : 'Novo registro financeiro'}</h4>
@@ -4369,7 +4370,7 @@
                         valor: Number(overlay.querySelector('#financeiro-modal-valor').value || 0),
                         categoria: catEl.value || null,
                         status: overlay.querySelector('#financeiro-modal-status').value || 'pendente',
-                        data_lancamento: overlay.querySelector('#financeiro-modal-data').value || firstDayMonth,
+                        data_lancamento: overlay.querySelector('#financeiro-modal-data').value || todayIso,
                         mesAno,
                     };
                     const ok = await this.submitFinanceiroSave(el, payload);
