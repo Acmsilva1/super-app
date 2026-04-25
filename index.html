@@ -2226,6 +2226,17 @@
         .app-totais.app-totais--financeiro .totais-card {
             grid-column: span 1;
         }
+        .app-totais.app-totais--financeiro .totais-group-title {
+            grid-column: span 2;
+            margin: 0.15rem 0 0.1rem;
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #93c5fd;
+            text-align: left;
+            opacity: 0.95;
+        }
         .app-totais.app-totais--financeiro .totais-card--main {
             min-height: 146px;
         }
@@ -2335,6 +2346,9 @@
         [data-theme="light"] .app-totais .totais-card--despesas-total {
             border-color: rgba(234, 88, 12, 0.42);
             background: linear-gradient(160deg, rgba(255, 247, 237, 0.98), rgba(255, 237, 213, 0.98));
+        }
+        [data-theme="light"] .app-totais.app-totais--financeiro .totais-group-title {
+            color: #1d4ed8;
         }
         [data-theme="light"] .app-totais .totais-card--receitas .stat-label {
             color: #0c4a6e;
@@ -3916,10 +3930,13 @@
                         </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
                             <div class="app-totais app-totais--financeiro">
+                                <p class="totais-group-title">Valores brutos</p>
                                 <div class="totais-card totais-card--main totais-card--receitas"><div class="val">${this.formatMoneyBr(receitasVal)}</div><div class="stat-label">Receitas</div></div>
                                 <div class="totais-card totais-card--main totais-card--despesas-total"><div class="val">${this.formatMoneyBr(despesasTotalVal)}</div><div class="stat-label">Total despesas</div></div>
+                                <p class="totais-group-title">Resumo de despesas</p>
                                 <div class="totais-card totais-card--despesas-fixas"><div class="val">${this.formatMoneyBr(despesasFixasVal)}</div><div class="stat-label">Despesas fixas</div></div>
                                 <div class="totais-card totais-card--despesas-variadas"><div class="val">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label">Despesas variadas</div></div>
+                                <p class="totais-group-title">Status das despesas</p>
                                 <div class="totais-card totais-card--pago"><div class="val">${this.formatMoneyBr(pagoVal)}</div><div class="stat-label">PAGO</div></div>
                                 <div class="totais-card totais-card--pendente"><div class="val">${this.formatMoneyBr(pendenteVal)}</div><div class="stat-label">PENDENTE</div></div>
                             </div>
