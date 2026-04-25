@@ -3815,7 +3815,8 @@
                 const receitasVal = Number(resumoFinanceiro.receitas) || 0;
                 const despesasFixasVal = Number(resumoFinanceiro.despesas_fixas) || 0;
                 const despesasVariadasVal = Number(resumoFinanceiro.despesas_variadas) || 0;
-                const liquidoVal = Number(resumoFinanceiro.liquido) || 0;
+                const pagoVal = Number(pagosPendentes.pago) || 0;
+                const pendenteVal = Number(pagosPendentes.pendente) || 0;
 
                 const rowsFixasHtml = despesasFixas.length ? despesasFixas.map(mkRowFixa).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma despesa fixa neste mês.</td></tr>';
                 const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mês.</td></tr>';
@@ -3877,7 +3878,8 @@
                                 <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(receitasVal)}</div><div class="stat-label">Receitas</div></div>
                                 <div class="totais-card"><div class="val" style="color:#ef4444">${this.formatMoneyBr(despesasFixasVal)}</div><div class="stat-label">Despesas fixas</div></div>
                                 <div class="totais-card"><div class="val" style="color:#f97316">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label">Despesas variadas</div></div>
-                                <div class="totais-card"><div class="val" style="color:${liquidoVal >= 0 ? '#2563eb' : '#dc2626'}">${this.formatMoneyBr(liquidoVal)}</div><div class="stat-label">Líquido</div></div>
+                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(pagoVal)}</div><div class="stat-label">PAGO</div></div>
+                                <div class="totais-card"><div class="val" style="color:#ef4444">${this.formatMoneyBr(pendenteVal)}</div><div class="stat-label">PENDENTE</div></div>
                             </div>
                             <div class="app-charts">
                                 <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias de gastos</p><canvas id="financeiro-chart-categorias"></canvas></div>
