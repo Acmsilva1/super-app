@@ -2214,6 +2214,14 @@
             gap: 0.35rem;
             text-align: center;
         }
+        .app-totais .totais-card--receitas {
+            border-color: rgba(56, 189, 248, 0.55);
+            background: linear-gradient(160deg, rgba(9, 43, 78, 0.92), rgba(10, 29, 55, 0.95));
+            box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.38), 0 14px 32px rgba(2, 132, 199, 0.24);
+        }
+        .app-totais .totais-card--receitas .stat-label {
+            color: #bae6fd;
+        }
         .app-totais .totais-card .val {
             font-weight: 800;
             font-size: 1.45rem;
@@ -2298,6 +2306,14 @@
         [data-theme="light"] .app-totais .totais-card {
             border-color: rgba(148, 163, 184, 0.48);
             background: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(232, 244, 255, 0.92));
+        }
+        [data-theme="light"] .app-totais .totais-card--receitas {
+            border-color: rgba(2, 132, 199, 0.45);
+            background: linear-gradient(160deg, rgba(239, 246, 255, 0.97), rgba(224, 242, 254, 0.98));
+            box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.18), 0 10px 24px rgba(14, 116, 144, 0.14);
+        }
+        [data-theme="light"] .app-totais .totais-card--receitas .stat-label {
+            color: #0c4a6e;
         }
         [data-theme="light"] .app-totais .totais-card .stat-label { color: #475569; }
         [data-theme="light"] .app-totais .totais-card--despesas .despesas-titulo { color: #475569; }
@@ -3875,7 +3891,7 @@
                         </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
                             <div class="app-totais">
-                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(receitasVal)}</div><div class="stat-label">Receitas</div></div>
+                                <div class="totais-card totais-card--receitas"><div class="val" style="color:#38bdf8">${this.formatMoneyBr(receitasVal)}</div><div class="stat-label">Receitas</div></div>
                                 <div class="totais-card"><div class="val" style="color:#ef4444">${this.formatMoneyBr(despesasFixasVal)}</div><div class="stat-label">Despesas fixas</div></div>
                                 <div class="totais-card"><div class="val" style="color:#f97316">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label">Despesas variadas</div></div>
                                 <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(pagoVal)}</div><div class="stat-label">PAGO</div></div>
