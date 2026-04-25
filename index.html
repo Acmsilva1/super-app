@@ -2219,9 +2219,29 @@
             background: linear-gradient(160deg, rgba(9, 43, 78, 0.92), rgba(10, 29, 55, 0.95));
             box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.38), 0 14px 32px rgba(2, 132, 199, 0.24);
         }
+        .app-totais.app-totais--financeiro {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.9rem;
+        }
+        .app-totais.app-totais--financeiro .totais-card {
+            grid-column: span 1;
+        }
+        .app-totais.app-totais--financeiro .totais-card--main {
+            min-height: 146px;
+        }
         .app-totais .totais-card--receitas .stat-label {
             color: #bae6fd;
         }
+        .app-totais .totais-card--receitas .val { color: #38bdf8; }
+        .app-totais .totais-card--despesas-total {
+            border-color: rgba(251, 146, 60, 0.55);
+            background: linear-gradient(160deg, rgba(69, 32, 8, 0.9), rgba(51, 24, 7, 0.95));
+        }
+        .app-totais .totais-card--despesas-total .val { color: #fb923c; }
+        .app-totais .totais-card--despesas-fixas .val { color: #c084fc; }
+        .app-totais .totais-card--despesas-variadas .val { color: #b45309; }
+        .app-totais .totais-card--pago .val { color: #22c55e; }
+        .app-totais .totais-card--pendente .val { color: #ef4444; }
         .app-totais .totais-card .val {
             font-weight: 800;
             font-size: 1.45rem;
@@ -2311,6 +2331,10 @@
             border-color: rgba(2, 132, 199, 0.45);
             background: linear-gradient(160deg, rgba(239, 246, 255, 0.97), rgba(224, 242, 254, 0.98));
             box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.18), 0 10px 24px rgba(14, 116, 144, 0.14);
+        }
+        [data-theme="light"] .app-totais .totais-card--despesas-total {
+            border-color: rgba(234, 88, 12, 0.42);
+            background: linear-gradient(160deg, rgba(255, 247, 237, 0.98), rgba(255, 237, 213, 0.98));
         }
         [data-theme="light"] .app-totais .totais-card--receitas .stat-label {
             color: #0c4a6e;
@@ -3831,6 +3855,7 @@
                 const receitasVal = Number(resumoFinanceiro.receitas) || 0;
                 const despesasFixasVal = Number(resumoFinanceiro.despesas_fixas) || 0;
                 const despesasVariadasVal = Number(resumoFinanceiro.despesas_variadas) || 0;
+                const despesasTotalVal = despesasFixasVal + despesasVariadasVal;
                 const pagoVal = Number(pagosPendentes.pago) || 0;
                 const pendenteVal = Number(pagosPendentes.pendente) || 0;
 
@@ -3890,12 +3915,13 @@
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
-                            <div class="app-totais">
-                                <div class="totais-card totais-card--receitas"><div class="val" style="color:#38bdf8">${this.formatMoneyBr(receitasVal)}</div><div class="stat-label">Receitas</div></div>
-                                <div class="totais-card"><div class="val" style="color:#ef4444">${this.formatMoneyBr(despesasFixasVal)}</div><div class="stat-label">Despesas fixas</div></div>
-                                <div class="totais-card"><div class="val" style="color:#f97316">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label">Despesas variadas</div></div>
-                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(pagoVal)}</div><div class="stat-label">PAGO</div></div>
-                                <div class="totais-card"><div class="val" style="color:#ef4444">${this.formatMoneyBr(pendenteVal)}</div><div class="stat-label">PENDENTE</div></div>
+                            <div class="app-totais app-totais--financeiro">
+                                <div class="totais-card totais-card--main totais-card--receitas"><div class="val">${this.formatMoneyBr(receitasVal)}</div><div class="stat-label">Receitas</div></div>
+                                <div class="totais-card totais-card--main totais-card--despesas-total"><div class="val">${this.formatMoneyBr(despesasTotalVal)}</div><div class="stat-label">Total despesas</div></div>
+                                <div class="totais-card totais-card--despesas-fixas"><div class="val">${this.formatMoneyBr(despesasFixasVal)}</div><div class="stat-label">Despesas fixas</div></div>
+                                <div class="totais-card totais-card--despesas-variadas"><div class="val">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label">Despesas variadas</div></div>
+                                <div class="totais-card totais-card--pago"><div class="val">${this.formatMoneyBr(pagoVal)}</div><div class="stat-label">PAGO</div></div>
+                                <div class="totais-card totais-card--pendente"><div class="val">${this.formatMoneyBr(pendenteVal)}</div><div class="stat-label">PENDENTE</div></div>
                             </div>
                             <div class="app-charts">
                                 <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias de gastos</p><canvas id="financeiro-chart-categorias"></canvas></div>
