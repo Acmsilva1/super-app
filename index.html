@@ -1846,6 +1846,11 @@
         .finance-data-section.hidden-by-filter {
             display: none;
         }
+        .finance-data-section.finance-data-table-limited {
+            max-height: calc((10 * 2.45rem) + 2.3rem);
+            overflow-y: auto;
+            scrollbar-gutter: stable;
+        }
         .poupanca-meta-entry-card {
             position: sticky;
             top: 4.5rem;
@@ -3952,21 +3957,21 @@
                             <div class="module-data-toolbar">
                                 <p class="app-form-note" style="margin:0;">3 tabelas em ordem cronológica (mais recente primeiro).</p>
                             </div>
-                            <div class="module-table-wrap finance-data-section" data-table-section="despesas_fixas" id="financeiro-section-despesas-fixas">
+                            <div class="module-table-wrap finance-data-section finance-data-table-limited" data-table-section="despesas_fixas" id="financeiro-section-despesas-fixas">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Despesas fixas</p>
                                 <table class="module-table">
                                     <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                     <tbody id="financeiro-table-fixas">${rowsFixasHtml}</tbody>
                                 </table>
                             </div>
-                            <div class="module-table-wrap finance-data-section" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
+                            <div class="module-table-wrap finance-data-section finance-data-table-limited" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Gastos variados</p>
                                 <table class="module-table">
                                     <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                     <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
                                 </table>
                             </div>
-                            <div class="module-table-wrap finance-data-section" data-table-section="receitas" id="financeiro-section-receitas" style="margin-top:0.85rem;">
+                            <div class="module-table-wrap finance-data-section finance-data-table-limited" data-table-section="receitas" id="financeiro-section-receitas" style="margin-top:0.85rem;">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Receitas</p>
                                 <table class="module-table">
                                     <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
