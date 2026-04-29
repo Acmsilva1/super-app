@@ -5,7 +5,7 @@ import {
   payloadUpdate,
   renderizarResumo,
   parseRowsSupabase,
-} from '../modulos/saude/index.js';
+} from '../features/saude/index.js';
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');

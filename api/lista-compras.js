@@ -7,7 +7,7 @@ import {
   resetChecksPayload,
   ordenarPorCategoria,
   parseRowsSupabase,
-} from '../modulos/lista_compras/index.js';
+} from '../features/lista_compras/index.js';
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');

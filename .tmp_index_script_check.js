@@ -1396,7 +1396,7 @@
                 }
                 if (appId === 'missoes_treino') {
                     try {
-                        const mod = await import('./modulos/missoes_treino/index.js');
+                        const mod = await import('./features/missoes_treino/index.js');
                         mod.renderMissoesTreinoContent(contentEl);
                     } catch (err) {
                         console.error(err);
@@ -2262,8 +2262,8 @@
                         </div>
                     </div>`;
                 try {
-                    const mod = await import('./modulos/fluxograma/index.js');
-                    const shell = await import('./modulos/fluxograma/cloudSync.js');
+                    const mod = await import('./features/fluxograma/index.js');
+                    const shell = await import('./features/fluxograma/cloudSync.js');
                     await shell.initFluxogramaApp(mod);
                 } catch (err) {
                     console.error(err);

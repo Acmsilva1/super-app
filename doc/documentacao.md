@@ -5,7 +5,7 @@ O Super App e uma aplicacao web em formato PWA com frontend principal em um unic
 
 - Frontend: `index.html`
 - Backend HTTP: pasta `api/`
-- Regras de dominio: pasta `modulos/`
+- Regras de dominio: pasta `features/`
 - Persistencia: Supabase
 - Deploy: Vercel (configurado em `vercel.json`)
 
@@ -23,7 +23,7 @@ Dependencias declaradas em `package.json`:
 super-app-1/
 |-- index.html
 |-- api/
-|-- modulos/
+|-- features/
 |-- lib/
 |-- sql/
 |-- docs/
@@ -35,13 +35,13 @@ super-app-1/
 
 ### 3.1 Principais pastas
 - `api/`: endpoints serverless (CRUD e consultas)
-- `modulos/`: models/services por dominio
+- `features/`: models/services por dominio
 - `lib/`: utilitarios compartilhados (cliente Supabase)
 - `sql/`: scripts de banco de dados
 - `docs/`: reservado para documentos auxiliares (atualmente vazio)
 
 ## 4. Arquitetura
-O frontend consome os endpoints de `api/`, que por sua vez usam o cliente Supabase de `lib/supabase.js` e funcoes de dominio em `modulos/`.
+O frontend consome os endpoints de `api/`, que por sua vez usam o cliente Supabase de `lib/supabase.js` e funcoes de dominio em `features/`.
 
 Fluxo resumido:
 1. Usuario interage no `index.html`
@@ -52,7 +52,7 @@ Fluxo resumido:
 6. Frontend atualiza a interface
 
 ## 5. Modulos de dominio
-Pastas encontradas em `modulos/`:
+Pastas encontradas em `features/`:
 - `financeiro`
 - `financas`
 - `despesas_fixas`

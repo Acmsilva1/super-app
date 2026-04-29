@@ -19,7 +19,7 @@ import {
   payloadInsertFinanceiro,
   payloadUpdateFinanceiro,
   inferTipoRegistro,
-} from '../modulos/financeiro/index.js';
+} from '../features/financeiro/index.js';
 
 function getBody(req) {
   return typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});

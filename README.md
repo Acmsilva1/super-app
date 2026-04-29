@@ -2,10 +2,12 @@
 
 Super App e uma aplicacao web estatica/PWA publicada na Vercel, com backend em funcoes serverless Node.js, persistencia no Supabase e automacoes agendadas pelo GitHub Actions para notificacoes e analise operacional.
 
+**Documentacao de arquitetura e agentes:** [mudanca_arquitetura.md](mudanca_arquitetura.md), **[agents.md](agents.md)** (com **Checkpoint**).
+
 ## Visao Geral
 
 - Frontend unico em [`index.html`](/c:/super%20app/super-app-1/index.html) que consome APIs em [`api/`](/c:/super%20app/super-app-1/api).
-- Dominio organizado por modulos em [`modulos/`](/c:/super%20app/super-app-1/modulos).
+- Dominio organizado por features em [`features/`](./features).
 - Persistencia centralizada no Supabase via [`lib/supabase.js`](/c:/super%20app/super-app-1/lib/supabase.js).
 - Monitoramento tecnico em [`monitoring/system-analysis/run-system-analysis.js`](/c:/super%20app/super-app-1/monitoring/system-analysis/run-system-analysis.js).
 - Agendamentos externos via GitHub Actions em [`.github/workflows/despertador.yml`](/c:/super%20app/super-app-1/.github/workflows/despertador.yml) e [`.github/workflows/analise-sistema.yml`](/c:/super%20app/super-app-1/.github/workflows/analise-sistema.yml).
@@ -19,7 +21,7 @@ super-app-1/
 |-- index.html                 # shell principal do frontend
 |-- api/                       # funcoes serverless consumidas pelo frontend e jobs
 |-- lib/                       # clientes e utilitarios compartilhados
-|-- modulos/                   # regras por dominio (model + service + index)
+|-- features/                  # regras por dominio (model + service + index)
 |-- monitoring/system-analysis # rotina de health check e snapshot operacional
 |-- docs/                      # SQL e documentos auxiliares
 |-- .github/workflows/         # agendamentos externos
@@ -39,11 +41,11 @@ super-app-1/
 
 ### Aderencia ao padrao de arquitetura
 
-O projeto segue uma modularizacao por dominio em `modulos/`, com frontend concentrado no `index.html` e APIs serverless em `api/`.
+O projeto segue uma modularizacao por dominio em `features/`, com frontend concentrado no `index.html` e APIs serverless em `api/`.
 
 Estado atual observado:
 
-- O projeto ja esta modularizado por dominio em `modulos/`, o que e positivo.
+- O projeto ja esta modularizado por dominio em `features/`, o que e positivo.
 - A estrutura real ainda usa `model/` e `service/`, sem a divisao formal `domain/application/infrastructure/features`.
 - Nao ha READMEs tecnicos por feature dentro dos modulos.
 - O frontend principal permanece concentrado em um unico [`index.html`](/c:/super%20app/super-app-1/index.html).
@@ -56,7 +58,7 @@ Conclusao: a base atual atende parcialmente um modelo de modularizacao mais avan
 flowchart TD
     A[Usuario abre index.html] --> B[Frontend/PWA]
     B --> C[APIs Vercel em /api]
-    C --> D[Modulos de dominio em modulos/]
+    C --> D[Modulos de dominio em features/]
     D --> E[Supabase]
 
     F[GitHub Actions - despertador] --> G[POST /api/notificar]
@@ -222,4 +224,4 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 
 ## Resumo da Arquitetura Adotada
 
-Arquitetura atual baseada em frontend estatico + APIs serverless + modulos de dominio + Supabase + automacoes GitHub Actions. Os artefatos de documentacao consolidados ficaram em [`README.md`](/c:/super%20app/super-app-1/README.md) e [`checkpoint.md`](/c:/super%20app/super-app-1/checkpoint.md).
+Arquitetura atual baseada em frontend estatico + APIs serverless + features de dominio + Supabase + automacoes GitHub Actions. Os artefatos de documentacao consolidados ficaram em [`README.md`](/c:/super%20app/super-app-1/README.md) e [`checkpoint.md`](/c:/super%20app/super-app-1/checkpoint.md).
