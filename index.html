@@ -2387,6 +2387,324 @@
         .lista-compras-col-list li { border-bottom: 1px solid var(--border-color); }
         .lista-compras-col-list li:last-child { border-bottom: none; }
         .lista-compras-cols li.lista-compras-empty { display: block; width: 100%; text-align: center; color: #9ca3af; padding: 0.85rem; font-size: 0.875rem; border: none; list-style: none; }
+
+        /* Lista de compras — formulário “mercado” (grid + chips, cara própria) */
+        .lista-entry-shell { margin-bottom: 1.15rem; }
+        .lista-entry-card {
+            position: relative;
+            border-radius: 1rem;
+            padding: 1rem 1rem 0.95rem;
+            background: linear-gradient(145deg, rgba(58, 32, 12, 0.55), rgba(18, 28, 48, 0.92));
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.12), 0 18px 40px rgba(15, 23, 42, 0.45);
+            overflow: hidden;
+        }
+        .lista-entry-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(900px 180px at 10% -20%, rgba(251, 191, 36, 0.22), transparent 55%),
+                radial-gradient(600px 120px at 95% 110%, rgba(132, 204, 22, 0.14), transparent 50%);
+            pointer-events: none;
+        }
+        .lista-entry-card > * { position: relative; z-index: 1; }
+        .lista-entry-hero {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.85rem;
+        }
+        .lista-entry-hero-badge {
+            flex-shrink: 0;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.35rem 0.55rem;
+            border-radius: 0.45rem;
+            background: linear-gradient(120deg, rgba(251, 191, 36, 0.95), rgba(245, 158, 11, 0.88));
+            color: #1c1206;
+            box-shadow: 0 6px 14px rgba(245, 158, 11, 0.35);
+        }
+        .lista-entry-title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #fff7ed;
+        }
+        .lista-entry-sub {
+            margin: 0.2rem 0 0;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            color: rgba(254, 243, 199, 0.82);
+            max-width: 36ch;
+        }
+        .lista-entry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.75rem;
+            align-items: start;
+            margin-bottom: 0.85rem;
+        }
+        .lista-entry-grid .field { display: flex; flex-direction: column; gap: 0.34rem; min-width: 0; }
+        .lista-entry-grid .lista-field-span-2 { grid-column: span 2; }
+        @media (max-width: 540px) {
+            .lista-entry-grid .lista-field-span-2 { grid-column: span 1; }
+        }
+        .lista-entry-card .app-form label { color: rgba(254, 243, 199, 0.88); }
+        .lista-entry-card .app-form input,
+        .lista-entry-card .app-form select {
+            border-color: rgba(251, 191, 36, 0.38);
+            background: rgba(12, 20, 38, 0.88);
+            color: #fffbeb;
+        }
+        .lista-entry-card .app-form input:focus,
+        .lista-entry-card .app-form select:focus {
+            border-color: rgba(132, 204, 22, 0.75);
+            box-shadow: 0 0 0 3px rgba(132, 204, 22, 0.18);
+            background: rgba(15, 28, 52, 0.94);
+        }
+        .lista-cat-block { margin-bottom: 0.75rem; }
+        .lista-cat-heading {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: rgba(253, 230, 138, 0.9);
+            margin-bottom: 0.45rem;
+        }
+        .lista-cat-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+        .lista-cat-chip {
+            cursor: pointer;
+            border: 1px solid rgba(251, 191, 36, 0.42);
+            background: rgba(30, 41, 59, 0.65);
+            color: #fde68a;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.38rem 0.65rem;
+            border-radius: 999px;
+            font-family: inherit;
+            transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+        }
+        .lista-cat-chip:hover {
+            border-color: rgba(253, 224, 71, 0.65);
+            background: rgba(51, 65, 85, 0.85);
+            transform: translateY(-1px);
+        }
+        .lista-cat-chip.is-active {
+            border-color: rgba(132, 204, 22, 0.85);
+            background: linear-gradient(120deg, rgba(190, 242, 100, 0.22), rgba(245, 158, 11, 0.18));
+            color: #ecfccb;
+            box-shadow: 0 0 0 1px rgba(132, 204, 22, 0.35);
+        }
+        .lista-categoria-native {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        .lista-entry-actions { justify-content: flex-start; }
+        .lista-entry-actions .lista-btn-main {
+            background: linear-gradient(125deg, rgba(251, 191, 36, 0.95), rgba(234, 88, 12, 0.88));
+            border-color: rgba(253, 224, 71, 0.55);
+            color: #1c1208;
+            box-shadow: 0 10px 22px rgba(234, 88, 12, 0.28);
+        }
+        .lista-entry-actions .lista-btn-main:hover {
+            filter: brightness(1.06);
+            box-shadow: 0 12px 26px rgba(234, 88, 12, 0.38);
+        }
+        .lista-entry-actions .lista-btn-danger-outline {
+            margin-left: auto;
+            background: rgba(127, 29, 29, 0.35);
+            border-color: rgba(248, 113, 113, 0.55);
+            color: #fecaca;
+        }
+        .lista-entry-actions .lista-btn-danger-outline:hover {
+            background: rgba(153, 27, 27, 0.55);
+            color: #fff;
+        }
+
+        /* Saúde familiar — formulário “prontuário” (painéis numerados) */
+        .saude-entry-shell { margin-bottom: 1.15rem; }
+        .saude-entry-card {
+            border-radius: 1rem;
+            padding: 1rem 1rem 0.95rem;
+            background: linear-gradient(165deg, rgba(10, 42, 46, 0.62), rgba(15, 26, 48, 0.94));
+            border: 1px solid rgba(45, 212, 191, 0.38);
+            box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.12), 0 18px 42px rgba(15, 23, 42, 0.48);
+            overflow: hidden;
+        }
+        .saude-entry-hero {
+            display: flex;
+            gap: 0.85rem;
+            align-items: flex-start;
+            margin-bottom: 0.9rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(94, 234, 212, 0.22);
+        }
+        .saude-entry-hero-icon {
+            flex-shrink: 0;
+            width: 2.55rem;
+            height: 2.55rem;
+            border-radius: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            background: linear-gradient(145deg, rgba(45, 212, 191, 0.35), rgba(14, 165, 233, 0.28));
+            border: 1px solid rgba(94, 234, 212, 0.45);
+            box-shadow: 0 8px 18px rgba(13, 148, 136, 0.25);
+        }
+        .saude-entry-title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #ecfeff;
+        }
+        .saude-entry-sub {
+            margin: 0.18rem 0 0;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            color: rgba(165, 243, 252, 0.82);
+            max-width: 40ch;
+        }
+        .saude-panels { display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 0.85rem; }
+        .saude-panel {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.65rem;
+            align-items: start;
+            padding: 0.65rem 0.75rem;
+            border-radius: 0.75rem;
+            background: rgba(12, 26, 42, 0.72);
+            border: 1px solid rgba(56, 189, 248, 0.22);
+        }
+        .saude-panel-badge {
+            width: 1.65rem;
+            height: 1.65rem;
+            border-radius: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 800;
+            background: rgba(6, 182, 212, 0.22);
+            border: 1px solid rgba(34, 211, 238, 0.45);
+            color: #cffafe;
+        }
+        .saude-panel--who { border-left: 3px solid rgba(45, 212, 191, 0.85); }
+        .saude-panel--what { border-left: 3px solid rgba(56, 189, 248, 0.78); }
+        .saude-panel--when { border-left: 3px solid rgba(129, 140, 248, 0.85); }
+        .saude-panel-body { min-width: 0; }
+        .saude-panel-body .saude-panel-label {
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: rgba(165, 243, 252, 0.78);
+            margin-bottom: 0.45rem;
+        }
+        .saude-panel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.65rem;
+            align-items: start;
+        }
+        .saude-panel-grid .field { display: flex; flex-direction: column; gap: 0.34rem; min-width: 0; }
+        .saude-entry-card .app-form label { color: rgba(207, 250, 254, 0.88); }
+        .saude-entry-card .app-form input,
+        .saude-entry-card .app-form select {
+            border-color: rgba(45, 212, 191, 0.35);
+            background: rgba(10, 24, 42, 0.88);
+            color: #ecfeff;
+        }
+        .saude-entry-card .app-form input:focus,
+        .saude-entry-card .app-form select:focus {
+            border-color: rgba(56, 189, 248, 0.78);
+            box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
+            background: rgba(12, 30, 52, 0.94);
+        }
+        .saude-when-highlight {
+            padding: 0.55rem 0.6rem;
+            border-radius: 0.55rem;
+            background: rgba(8, 47, 73, 0.55);
+            border: 1px dashed rgba(94, 234, 212, 0.35);
+        }
+        .saude-entry-actions .saude-btn-main {
+            background: linear-gradient(125deg, rgba(34, 211, 238, 0.42), rgba(45, 212, 191, 0.52));
+            border-color: rgba(94, 234, 212, 0.58);
+            color: #042f2e;
+            box-shadow: 0 10px 24px rgba(13, 148, 136, 0.28);
+        }
+        .saude-entry-actions .saude-btn-main:hover {
+            filter: brightness(1.08);
+            box-shadow: 0 12px 28px rgba(13, 148, 136, 0.38);
+        }
+
+        [data-theme="light"] .lista-entry-card {
+            background: linear-gradient(145deg, rgba(255, 251, 235, 0.98), rgba(255, 255, 255, 0.96));
+            border-color: rgba(245, 158, 11, 0.42);
+            box-shadow: 0 10px 28px rgba(251, 191, 36, 0.15);
+        }
+        [data-theme="light"] .lista-entry-title { color: #78350f; }
+        [data-theme="light"] .lista-entry-sub { color: rgba(120, 53, 15, 0.78); }
+        [data-theme="light"] .lista-entry-card .app-form label { color: #92400e; }
+        [data-theme="light"] .lista-entry-card .app-form input,
+        [data-theme="light"] .lista-entry-card .app-form select {
+            background: rgba(255, 255, 255, 0.95);
+            color: #1c1917;
+            border-color: rgba(251, 191, 36, 0.55);
+        }
+        [data-theme="light"] .lista-cat-chip {
+            background: rgba(255, 255, 255, 0.9);
+            color: #92400e;
+            border-color: rgba(251, 191, 36, 0.5);
+        }
+        [data-theme="light"] .lista-cat-chip.is-active {
+            background: linear-gradient(120deg, rgba(254, 243, 199, 0.95), rgba(217, 249, 157, 0.85));
+            color: #365314;
+        }
+        [data-theme="light"] .lista-entry-actions .lista-btn-main { color: #1c1208; }
+
+        [data-theme="light"] .saude-entry-card {
+            background: linear-gradient(165deg, rgba(240, 253, 250, 0.96), rgba(255, 255, 255, 0.98));
+            border-color: rgba(45, 212, 191, 0.45);
+            box-shadow: 0 12px 32px rgba(13, 148, 136, 0.12);
+        }
+        [data-theme="light"] .saude-entry-title { color: #134e4a; }
+        [data-theme="light"] .saude-entry-sub { color: rgba(19, 78, 74, 0.78); }
+        [data-theme="light"] .saude-panel {
+            background: rgba(255, 255, 255, 0.92);
+            border-color: rgba(45, 212, 191, 0.35);
+        }
+        [data-theme="light"] .saude-panel-badge {
+            background: rgba(204, 251, 241, 0.95);
+            color: #0f766e;
+            border-color: rgba(45, 212, 191, 0.5);
+        }
+        [data-theme="light"] .saude-entry-card .app-form label { color: #115e59; }
+        [data-theme="light"] .saude-entry-card .app-form input,
+        [data-theme="light"] .saude-entry-card .app-form select {
+            background: rgba(255, 255, 255, 0.98);
+            color: #134e4a;
+            border-color: rgba(45, 212, 191, 0.45);
+        }
+        [data-theme="light"] .saude-when-highlight {
+            background: rgba(236, 253, 245, 0.95);
+            border-color: rgba(45, 212, 191, 0.45);
+        }
+        [data-theme="light"] .saude-entry-actions .saude-btn-main { color: #042f2e; }
+
         .df-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem; align-items: start; }
         @media (max-width: 768px) { .df-colunas { grid-template-columns: 1fr; } }
         .df-col { background: var(--bg-light); border-radius: var(--radius); border: 1px solid var(--border-color); overflow: hidden; min-width: 0; }
@@ -4686,30 +5004,65 @@
                         <button type="button" class="lista-compras-col-head" aria-expanded="${!isCollapsed}">
                             <span class="lista-compras-col-title">${escapeHtml(cat)}</span>
                             <span class="lista-compras-col-badge">${items.length}</span>
-                            <span class="lista-compras-col-chevron" aria-hidden="true">?</span>
+                            <span class="lista-compras-col-chevron" aria-hidden="true">\u25BC</span>
                         </button>
                         <div class="lista-compras-col-body">
                             <ul class="app-list lista-compras-col-list">${inner}</ul>
                         </div>
                     </div>`;
                 }).join('');
+                const chipsHtml = categorias.map((c) => {
+                    const esc = escapeHtml(c);
+                    return `<button type="button" class="lista-cat-chip" data-cat="${esc}" title="${esc}">${esc}</button>`;
+                }).join('');
+                const catOptionsHtml = categorias.map((c) => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
                 el.innerHTML = `
-                    <div class="app-form">
-                        <input type="hidden" id="lista-edit-id" value="" />
-                        <div class="app-form-row">
-                            <div class="field"><label>Item</label><input type="text" id="lista-item" placeholder="Ex: Leite" /></div>
-                            <div class="field"><label>Qtd</label><input type="number" min="1" id="lista-qtd" value="1" /></div>
-                            <div class="field"><label>Unidade</label><select id="lista-unidade"><option value=""></option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
-                            <div class="field"><label>Categoria</label><select id="lista-categoria">${categorias.map(c => '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>').join('')}</select></div>
-                        </div>
-                        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
-                            <button type="button" class="app-btn" data-action="lista-save">Adicionar</button>
-                            <button type="button" class="app-btn app-btn-secondary" data-action="lista-cancel" style="display:none">Cancelar</button>
-                            <button type="button" class="app-btn app-btn-secondary" data-action="lista-delete-all" style="background:#fef2f2;color:#dc2626;margin-left:auto">Apagar todos</button>
+                    <div class="lista-entry-shell">
+                        <div class="lista-entry-card app-form">
+                            <input type="hidden" id="lista-edit-id" value="" />
+                            <header class="lista-entry-hero">
+                                <span class="lista-entry-hero-badge">Mercado</span>
+                                <div>
+                                    <h3 class="lista-entry-title">Adicionar à lista</h3>
+                                    <p class="lista-entry-sub">Escolha o corredor, a quantidade e pronto — visual inspirado no financeiro, com cara de compras.</p>
+                                </div>
+                            </header>
+                            <div class="lista-entry-grid">
+                                <div class="field lista-field-span-2"><label for="lista-item">Produto</label><input type="text" id="lista-item" placeholder="Ex.: Leite integral, papel toalha..." autocomplete="off" /></div>
+                                <div class="field"><label for="lista-qtd">Quantidade</label><input type="number" min="1" id="lista-qtd" value="1" /></div>
+                                <div class="field"><label for="lista-unidade">Unidade</label><select id="lista-unidade"><option value="">—</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
+                            </div>
+                            <div class="lista-cat-block">
+                                <span class="lista-cat-heading">Corredor</span>
+                                <div class="lista-cat-chips" id="lista-cat-chips" role="group" aria-label="Corredor do mercado">${chipsHtml}</div>
+                                <select id="lista-categoria" class="lista-categoria-native" tabindex="-1" aria-hidden="true" aria-label="Categoria">${catOptionsHtml}</select>
+                            </div>
+                            <div class="lista-entry-actions app-form-actions">
+                                <button type="button" class="app-btn lista-btn-main" data-action="lista-save">Adicionar</button>
+                                <button type="button" class="app-btn app-btn-secondary" data-action="lista-cancel" style="display:none">Cancelar</button>
+                                <button type="button" class="app-btn app-btn-secondary lista-btn-danger-outline" data-action="lista-delete-all">Apagar todos</button>
+                            </div>
                         </div>
                     </div>
                     <div class="lista-compras-cols" id="lista-compras-cols">${colsHtml}</div>
                 `;
+                const selListaCat = el.querySelector('#lista-categoria');
+                const syncListaCatChips = () => {
+                    const v = selListaCat ? selListaCat.value : '';
+                    el.querySelectorAll('.lista-cat-chip').forEach((b) => {
+                        b.classList.toggle('is-active', b.dataset.cat === v);
+                    });
+                };
+                el.querySelectorAll('.lista-cat-chip').forEach((b) => {
+                    b.onclick = () => {
+                        if (selListaCat) selListaCat.value = b.dataset.cat || '';
+                        syncListaCatChips();
+                    };
+                });
+                if (selListaCat) {
+                    selListaCat.addEventListener('change', syncListaCatChips);
+                    syncListaCatChips();
+                }
                 const clearListaForm = () => {
                     el.querySelector('#lista-edit-id').value = '';
                     el.querySelector('#lista-item').value = '';
@@ -4717,6 +5070,10 @@
                     el.querySelector('#lista-unidade').value = '';
                     el.querySelector('[data-action="lista-save"]').textContent = 'Adicionar';
                     el.querySelector('[data-action="lista-cancel"]').style.display = 'none';
+                    if (selListaCat) {
+                        selListaCat.value = categorias[0] || '';
+                        selListaCat.dispatchEvent(new Event('change'));
+                    }
                 };
                 el.querySelector('[data-action="lista-save"]').onclick = () => this.submitListaSave(el, clearListaForm);
                 el.querySelector('[data-action="lista-cancel"]').onclick = () => clearListaForm();
@@ -4751,6 +5108,7 @@
                         el.querySelector('#lista-qtd').value = r.quantidade || 1;
                         { const u = (r.unidade_medida || '').trim(); const opts = ['Kg', 'L', 'g', 'UN']; const hit = opts.find((o) => o.toLowerCase() === u.toLowerCase()); el.querySelector('#lista-unidade').value = hit || (opts.includes(u) ? u : ''); }
                         el.querySelector('#lista-categoria').value = categorias.includes(r.categoria) ? r.categoria : categorias[0];
+                        el.querySelector('#lista-categoria').dispatchEvent(new Event('change'));
                         el.querySelector('[data-action="lista-save"]').textContent = 'Salvar';
                         el.querySelector('[data-action="lista-cancel"]').style.display = '';
                         el.querySelector('#lista-item').focus();
@@ -4847,18 +5205,52 @@
                     });
                 });
                 delete el.dataset.saudeEditingId;
+                const saudeTipoOpts = tipos.map((t) => '<option value="' + t + '">' + t + '</option>').join('');
                 el.innerHTML = `
-                    <div class="app-form">
-                        <div class="app-form-row">
-                            <div class="field"><label>Membro</label><input type="text" id="saude-membro" placeholder="Nome" /></div>
-                            <div class="field"><label>Tipo</label><select id="saude-tipo">${tipos.map((t) => '<option value="' + t + '">' + t + '</option>').join('')}</select></div>
-                            <div class="field"><label>Detalhes</label><input type="text" id="saude-detalhes" placeholder="Ex: Dose 1" /></div>
-                            <div class="field"><label>Data</label><input type="date" id="saude-data" autocomplete="off" /></div>
-                            <div class="field"><label>Hora</label><input type="time" id="saude-hora" step="60" /></div>
-                        </div>
-                        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
-                            <button type="button" class="app-btn" data-action="saude-submit">Registrar</button>
-                            <button type="button" class="app-btn app-btn-secondary" data-action="saude-cancel" style="display:none">Cancelar</button>
+                    <div class="saude-entry-shell">
+                        <div class="saude-entry-card app-form">
+                            <header class="saude-entry-hero">
+                                <span class="saude-entry-hero-icon" aria-hidden="true">&#128137;</span>
+                                <div>
+                                    <h3 class="saude-entry-title">Registro familiar</h3>
+                                    <p class="saude-entry-sub">Três passos: quem é, qual o cuidado e quando aconteceu — visual próprio, inspirado na clareza do financeiro.</p>
+                                </div>
+                            </header>
+                            <div class="saude-panels">
+                                <section class="saude-panel saude-panel--who" aria-labelledby="saude-membro-label">
+                                    <span class="saude-panel-badge">1</span>
+                                    <div class="saude-panel-body">
+                                        <span id="saude-membro-label" class="saude-panel-label">Quem</span>
+                                        <div class="field"><label for="saude-membro">Nome no núcleo familiar</label><input type="text" id="saude-membro" placeholder="Ex.: Ana, Pedro..." autocomplete="name" /></div>
+                                    </div>
+                                </section>
+                                <section class="saude-panel saude-panel--what">
+                                    <span class="saude-panel-badge">2</span>
+                                    <div class="saude-panel-body">
+                                        <span class="saude-panel-label">O quê</span>
+                                        <div class="saude-panel-grid">
+                                            <div class="field"><label for="saude-tipo">Tipo</label><select id="saude-tipo">${saudeTipoOpts}</select></div>
+                                            <div class="field"><label for="saude-detalhes">Detalhes</label><input type="text" id="saude-detalhes" placeholder="Ex.: Dose 1, jejum, especialidade..." /></div>
+                                        </div>
+                                    </div>
+                                </section>
+                                <section class="saude-panel saude-panel--when">
+                                    <span class="saude-panel-badge">3</span>
+                                    <div class="saude-panel-body">
+                                        <span class="saude-panel-label">Quando</span>
+                                        <div class="saude-when-highlight">
+                                            <div class="saude-panel-grid">
+                                                <div class="field"><label for="saude-data">Data</label><input type="date" id="saude-data" autocomplete="off" /></div>
+                                                <div class="field"><label for="saude-hora">Hora</label><input type="time" id="saude-hora" step="60" /></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                            <div class="saude-entry-actions app-form-actions">
+                                <button type="button" class="app-btn saude-btn-main" data-action="saude-submit">Registrar</button>
+                                <button type="button" class="app-btn app-btn-secondary" data-action="saude-cancel" style="display:none">Cancelar</button>
+                            </div>
                         </div>
                     </div>
                     <div class="lista-compras-cols" id="saude-cols"></div>
@@ -4889,7 +5281,7 @@
                         <button type="button" class="lista-compras-col-head" aria-expanded="${!isCollapsed}">
                             <span class="lista-compras-col-title">${escapeHtml(tipoNome)}</span>
                             <span class="lista-compras-col-badge">${items.length}</span>
-                            <span class="lista-compras-col-chevron" aria-hidden="true">?</span>
+                            <span class="lista-compras-col-chevron" aria-hidden="true">\u25BC</span>
                         </button>
                         <div class="lista-compras-col-body"><ul class="app-list lista-compras-col-list">${inner}</ul></div>
                     </div>`;
@@ -4968,7 +5360,7 @@
                 const detalhes = (el.querySelector('#saude-detalhes').value || '').trim();
                 const data_evento = (el.querySelector('#saude-data').value || '').trim() || null;
                 if (data_evento && !/^\d{4}-\d{2}-\d{2}$/.test(data_evento)) {
-                    alert('Data invlida.');
+                    alert('Data inválida.');
                     return;
                 }
                 const horaVal = (el.querySelector('#saude-hora') && el.querySelector('#saude-hora').value) || '';
