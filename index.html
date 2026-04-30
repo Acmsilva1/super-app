@@ -2390,6 +2390,115 @@
 
         /* Lista de compras — formulário “mercado” (grid + chips, cara própria) */
         .lista-entry-shell { margin-bottom: 1.15rem; }
+        .lista-compras-module-shell,
+        .saude-module-shell {
+            display: grid;
+            gap: 0.9rem;
+            position: relative;
+            padding-bottom: 5rem;
+        }
+        .lista-compras-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .lista-compras-toolbar .lista-toolbar-clear {
+            background: rgba(127, 29, 29, 0.38);
+            border-color: rgba(248, 113, 113, 0.55);
+            color: #fecaca;
+        }
+        .lista-compras-toolbar .lista-toolbar-clear:hover {
+            background: rgba(153, 27, 27, 0.55);
+            color: #fff;
+        }
+        .lista-compras-fab {
+            position: fixed;
+            right: max(1.1rem, env(safe-area-inset-right));
+            bottom: max(0.85rem, env(safe-area-inset-bottom));
+            width: 3.2rem;
+            height: 3.2rem;
+            border-radius: 999px;
+            border: 1px solid rgba(251, 191, 36, 0.65);
+            background: radial-gradient(circle at 30% 25%, rgba(253, 224, 71, 0.9), rgba(234, 88, 12, 0.92));
+            color: #1c1208;
+            font-size: 1.9rem;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 16px 32px rgba(234, 88, 12, 0.38);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+            z-index: 1200;
+        }
+        .lista-compras-fab:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 20px 38px rgba(234, 88, 12, 0.45);
+            filter: saturate(1.08);
+        }
+        @keyframes listaComprasFabPulse {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45), 0 16px 32px rgba(234, 88, 12, 0.38); }
+            70% { box-shadow: 0 0 0 14px rgba(245, 158, 11, 0), 0 16px 32px rgba(234, 88, 12, 0.38); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0), 0 16px 32px rgba(234, 88, 12, 0.38); }
+        }
+        .lista-compras-fab.lista-compras-fab-pulse {
+            animation: listaComprasFabPulse 1.8s ease-in-out infinite;
+        }
+        .saude-fab {
+            position: fixed;
+            right: max(1.1rem, env(safe-area-inset-right));
+            bottom: max(0.85rem, env(safe-area-inset-bottom));
+            width: 3.2rem;
+            height: 3.2rem;
+            border-radius: 999px;
+            border: 1px solid rgba(94, 234, 212, 0.62);
+            background: radial-gradient(circle at 28% 22%, rgba(94, 234, 212, 0.85), rgba(13, 148, 136, 0.94));
+            color: #042f2e;
+            font-size: 1.9rem;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 16px 34px rgba(13, 148, 136, 0.38);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+            z-index: 1200;
+        }
+        .saude-fab:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 20px 40px rgba(13, 148, 136, 0.46);
+            filter: saturate(1.08);
+        }
+        @keyframes saudeFabPulse {
+            0% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.45), 0 16px 34px rgba(13, 148, 136, 0.38); }
+            70% { box-shadow: 0 0 0 14px rgba(45, 212, 191, 0), 0 16px 34px rgba(13, 148, 136, 0.38); }
+            100% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0), 0 16px 34px rgba(13, 148, 136, 0.38); }
+        }
+        .saude-fab.saude-fab-pulse {
+            animation: saudeFabPulse 1.8s ease-in-out infinite;
+        }
+        .lista-compras-entry-modal,
+        .saude-entry-modal {
+            width: min(540px, calc(100vw - 1.25rem));
+            max-height: min(88vh, 760px);
+            overflow-x: hidden;
+            overflow-y: auto;
+            border-radius: 1rem;
+            padding: 0.75rem 0.85rem 0.9rem;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            color: inherit;
+        }
+        .lista-compras-entry-modal .app-modal-actions,
+        .saude-entry-modal .app-modal-actions {
+            margin-top: 0.75rem;
+            padding-top: 0.35rem;
+        }
         .lista-entry-card {
             position: relative;
             border-radius: 1rem;
@@ -2511,13 +2620,13 @@
             border: 0;
         }
         .lista-entry-actions { justify-content: flex-start; }
-        .lista-entry-actions .lista-btn-main {
+        .lista-btn-main {
             background: linear-gradient(125deg, rgba(251, 191, 36, 0.95), rgba(234, 88, 12, 0.88));
             border-color: rgba(253, 224, 71, 0.55);
             color: #1c1208;
             box-shadow: 0 10px 22px rgba(234, 88, 12, 0.28);
         }
-        .lista-entry-actions .lista-btn-main:hover {
+        .lista-btn-main:hover {
             filter: brightness(1.06);
             box-shadow: 0 12px 26px rgba(234, 88, 12, 0.38);
         }
@@ -2640,13 +2749,13 @@
             background: rgba(8, 47, 73, 0.55);
             border: 1px dashed rgba(94, 234, 212, 0.35);
         }
-        .saude-entry-actions .saude-btn-main {
+        .saude-btn-main {
             background: linear-gradient(125deg, rgba(34, 211, 238, 0.42), rgba(45, 212, 191, 0.52));
             border-color: rgba(94, 234, 212, 0.58);
             color: #042f2e;
             box-shadow: 0 10px 24px rgba(13, 148, 136, 0.28);
         }
-        .saude-entry-actions .saude-btn-main:hover {
+        .saude-btn-main:hover {
             filter: brightness(1.08);
             box-shadow: 0 12px 28px rgba(13, 148, 136, 0.38);
         }
@@ -2674,7 +2783,7 @@
             background: linear-gradient(120deg, rgba(254, 243, 199, 0.95), rgba(217, 249, 157, 0.85));
             color: #365314;
         }
-        [data-theme="light"] .lista-entry-actions .lista-btn-main { color: #1c1208; }
+        [data-theme="light"] .lista-btn-main { color: #1c1208; }
 
         [data-theme="light"] .saude-entry-card {
             background: linear-gradient(165deg, rgba(240, 253, 250, 0.96), rgba(255, 255, 255, 0.98));
@@ -2703,7 +2812,7 @@
             background: rgba(236, 253, 245, 0.95);
             border-color: rgba(45, 212, 191, 0.45);
         }
-        [data-theme="light"] .saude-entry-actions .saude-btn-main { color: #042f2e; }
+        [data-theme="light"] .saude-btn-main { color: #042f2e; }
 
         .df-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem; align-items: start; }
         @media (max-width: 768px) { .df-colunas { grid-template-columns: 1fr; } }
@@ -5011,72 +5120,16 @@
                         </div>
                     </div>`;
                 }).join('');
-                const chipsHtml = categorias.map((c) => {
-                    const esc = escapeHtml(c);
-                    return `<button type="button" class="lista-cat-chip" data-cat="${esc}" title="${esc}">${esc}</button>`;
-                }).join('');
-                const catOptionsHtml = categorias.map((c) => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
                 el.innerHTML = `
-                    <div class="lista-entry-shell">
-                        <div class="lista-entry-card app-form">
-                            <input type="hidden" id="lista-edit-id" value="" />
-                            <header class="lista-entry-hero">
-                                <span class="lista-entry-hero-badge">Mercado</span>
-                                <div>
-                                    <h3 class="lista-entry-title">Adicionar à lista</h3>
-                                    <p class="lista-entry-sub">Escolha o corredor, a quantidade e pronto — visual inspirado no financeiro, com cara de compras.</p>
-                                </div>
-                            </header>
-                            <div class="lista-entry-grid">
-                                <div class="field lista-field-span-2"><label for="lista-item">Produto</label><input type="text" id="lista-item" placeholder="Ex.: Leite integral, papel toalha..." autocomplete="off" /></div>
-                                <div class="field"><label for="lista-qtd">Quantidade</label><input type="number" min="1" id="lista-qtd" value="1" /></div>
-                                <div class="field"><label for="lista-unidade">Unidade</label><select id="lista-unidade"><option value="">—</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
-                            </div>
-                            <div class="lista-cat-block">
-                                <span class="lista-cat-heading">Corredor</span>
-                                <div class="lista-cat-chips" id="lista-cat-chips" role="group" aria-label="Corredor do mercado">${chipsHtml}</div>
-                                <select id="lista-categoria" class="lista-categoria-native" tabindex="-1" aria-hidden="true" aria-label="Categoria">${catOptionsHtml}</select>
-                            </div>
-                            <div class="lista-entry-actions app-form-actions">
-                                <button type="button" class="app-btn lista-btn-main" data-action="lista-save">Adicionar</button>
-                                <button type="button" class="app-btn app-btn-secondary" data-action="lista-cancel" style="display:none">Cancelar</button>
-                                <button type="button" class="app-btn app-btn-secondary lista-btn-danger-outline" data-action="lista-delete-all">Apagar todos</button>
-                            </div>
+                    <div class="lista-compras-module-shell">
+                        <div class="lista-compras-toolbar">
+                            <button type="button" class="app-btn app-btn-secondary lista-toolbar-clear" data-action="lista-delete-all">Apagar todos</button>
                         </div>
+                        <div class="lista-compras-cols" id="lista-compras-cols">${colsHtml}</div>
+                        <button type="button" class="lista-compras-fab lista-compras-fab-pulse" data-action="lista-open-modal" aria-label="Adicionar item à lista">+</button>
                     </div>
-                    <div class="lista-compras-cols" id="lista-compras-cols">${colsHtml}</div>
                 `;
-                const selListaCat = el.querySelector('#lista-categoria');
-                const syncListaCatChips = () => {
-                    const v = selListaCat ? selListaCat.value : '';
-                    el.querySelectorAll('.lista-cat-chip').forEach((b) => {
-                        b.classList.toggle('is-active', b.dataset.cat === v);
-                    });
-                };
-                el.querySelectorAll('.lista-cat-chip').forEach((b) => {
-                    b.onclick = () => {
-                        if (selListaCat) selListaCat.value = b.dataset.cat || '';
-                        syncListaCatChips();
-                    };
-                });
-                if (selListaCat) {
-                    selListaCat.addEventListener('change', syncListaCatChips);
-                    syncListaCatChips();
-                }
-                const clearListaForm = () => {
-                    el.querySelector('#lista-edit-id').value = '';
-                    el.querySelector('#lista-item').value = '';
-                    el.querySelector('#lista-qtd').value = '1';
-                    el.querySelector('#lista-unidade').value = '';
-                    el.querySelector('[data-action="lista-save"]').textContent = 'Adicionar';
-                    el.querySelector('[data-action="lista-cancel"]').style.display = 'none';
-                    if (selListaCat) {
-                        selListaCat.value = categorias[0] || '';
-                        selListaCat.dispatchEvent(new Event('change'));
-                    }
-                };
-                el.querySelector('[data-action="lista-save"]').onclick = () => this.submitListaSave(el, clearListaForm);
-                el.querySelector('[data-action="lista-cancel"]').onclick = () => clearListaForm();
+                el.querySelector('[data-action="lista-open-modal"]').onclick = () => this.openListaComprasModal(el);
                 el.querySelector('[data-action="lista-delete-all"]').onclick = () => this.submitListaDeleteAll(el);
                 el.querySelectorAll('.lista-compras-col-head').forEach((btn) => {
                     btn.onclick = () => {
@@ -5103,21 +5156,101 @@
                         const id = btn.dataset.id;
                         const r = rows.find((x) => String(x.id) === String(id));
                         if (!r) return;
-                        el.querySelector('#lista-edit-id').value = id;
-                        el.querySelector('#lista-item').value = r.item || '';
-                        el.querySelector('#lista-qtd').value = r.quantidade || 1;
-                        { const u = (r.unidade_medida || '').trim(); const opts = ['Kg', 'L', 'g', 'UN']; const hit = opts.find((o) => o.toLowerCase() === u.toLowerCase()); el.querySelector('#lista-unidade').value = hit || (opts.includes(u) ? u : ''); }
-                        el.querySelector('#lista-categoria').value = categorias.includes(r.categoria) ? r.categoria : categorias[0];
-                        el.querySelector('#lista-categoria').dispatchEvent(new Event('change'));
-                        el.querySelector('[data-action="lista-save"]').textContent = 'Salvar';
-                        el.querySelector('[data-action="lista-cancel"]').style.display = '';
-                        el.querySelector('#lista-item').focus();
+                        this.openListaComprasModal(el, { item: r });
                     };
                 });
                 el.querySelectorAll('[data-action="lista-delete-item"]').forEach((btn) => {
                     btn.onclick = (e) => { e.stopPropagation(); this.submitListaItemDelete(btn.dataset.id, el); };
                 });
             }
+
+            openListaComprasModal(el, { item = null } = {}) {
+                const categorias = ['Mantimentos', 'Higiene / limpeza', 'Feira', 'Carnes'];
+                const editId = item?.id != null ? String(item.id) : '';
+                const chipsHtml = categorias.map((c) => {
+                    const esc = escapeHtml(c);
+                    return `<button type="button" class="lista-cat-chip" data-cat="${esc}" title="${esc}">${esc}</button>`;
+                }).join('');
+                const catOptionsHtml = categorias.map((c) => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
+                const initialItem = item ? escapeHtml(item.item || '') : '';
+                const initialQtd = item ? Number(item.quantidade || 1) : 1;
+                const initialCat = item && categorias.includes(item.categoria) ? item.categoria : categorias[0];
+                const uRaw = item ? String(item.unidade_medida || '').trim() : '';
+                const unidadeOpts = ['Kg', 'L', 'g', 'UN'];
+                let unidadeValue = '';
+                if (uRaw) {
+                    const hit = unidadeOpts.find((o) => o.toLowerCase() === uRaw.toLowerCase());
+                    unidadeValue = hit || (unidadeOpts.includes(uRaw) ? uRaw : '');
+                }
+                const overlay = document.createElement('div');
+                overlay.className = 'app-modal-overlay';
+                overlay.innerHTML = `
+                    <div class="app-modal lista-compras-entry-modal" role="dialog" aria-modal="true" aria-labelledby="lista-modal-heading">
+                        <div class="lista-entry-card app-form">
+                            <input type="hidden" id="lista-modal-edit-id" value="${escapeHtml(editId)}" />
+                            <header class="lista-entry-hero">
+                                <span class="lista-entry-hero-badge">Mercado</span>
+                                <div>
+                                    <h3 class="lista-entry-title" id="lista-modal-heading">${item ? 'Editar item' : 'Adicionar à lista'}</h3>
+                                    <p class="lista-entry-sub">${item ? 'Ajuste nome, quantidade ou corredor.' : 'Abra o formulário pelo + e monte o item antes de ir ao mercado.'}</p>
+                                </div>
+                            </header>
+                            <div class="lista-entry-grid">
+                                <div class="field lista-field-span-2"><label for="lista-modal-item">Produto</label><input type="text" id="lista-modal-item" value="${initialItem}" placeholder="Ex.: Leite integral, papel toalha..." autocomplete="off" /></div>
+                                <div class="field"><label for="lista-modal-qtd">Quantidade</label><input type="number" min="1" id="lista-modal-qtd" value="${initialQtd}" /></div>
+                                <div class="field"><label for="lista-modal-unidade">Unidade</label><select id="lista-modal-unidade"><option value="">—</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
+                            </div>
+                            <div class="lista-cat-block">
+                                <span class="lista-cat-heading">Corredor</span>
+                                <div class="lista-cat-chips" role="group" aria-label="Corredor do mercado">${chipsHtml}</div>
+                                <select id="lista-modal-categoria" class="lista-categoria-native" tabindex="-1" aria-hidden="true" aria-label="Categoria">${catOptionsHtml}</select>
+                            </div>
+                        </div>
+                        <div class="app-modal-actions">
+                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
+                            <button type="button" class="app-btn lista-btn-main" data-action="modal-save">${item ? 'Salvar' : 'Adicionar'}</button>
+                        </div>
+                    </div>
+                `;
+                const unidadeSel = overlay.querySelector('#lista-modal-unidade');
+                if (unidadeSel && unidadeValue) unidadeSel.value = unidadeValue;
+                const selListaCat = overlay.querySelector('#lista-modal-categoria');
+                if (selListaCat) selListaCat.value = initialCat;
+                const syncListaCatChips = () => {
+                    const v = selListaCat ? selListaCat.value : '';
+                    overlay.querySelectorAll('.lista-cat-chip').forEach((b) => {
+                        b.classList.toggle('is-active', b.dataset.cat === v);
+                    });
+                };
+                overlay.querySelectorAll('.lista-cat-chip').forEach((b) => {
+                    b.onclick = () => {
+                        if (selListaCat) selListaCat.value = b.dataset.cat || '';
+                        syncListaCatChips();
+                    };
+                });
+                if (selListaCat) {
+                    selListaCat.addEventListener('change', syncListaCatChips);
+                    syncListaCatChips();
+                }
+                const close = () => overlay.remove();
+                overlay.querySelector('[data-action="modal-cancel"]').onclick = close;
+                overlay.onclick = (e) => { if (e.target === overlay) close(); };
+                overlay.querySelector('[data-action="modal-save"]').onclick = async () => {
+                    const payload = {
+                        editId: (overlay.querySelector('#lista-modal-edit-id').value || '').trim(),
+                        item: overlay.querySelector('#lista-modal-item').value.trim(),
+                        quantidade: parseInt(overlay.querySelector('#lista-modal-qtd').value, 10) || 1,
+                        categoria: selListaCat ? selListaCat.value : categorias[0],
+                        unidade: (overlay.querySelector('#lista-modal-unidade').value || '').trim(),
+                    };
+                    const ok = await this.submitListaComprasPayload(payload);
+                    if (ok) close();
+                };
+                document.body.appendChild(overlay);
+                const focusEl = overlay.querySelector('#lista-modal-item');
+                if (focusEl) focusEl.focus();
+            }
+
             async submitListaSetComprado(id, comprado, el) {
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, comprado }) });
@@ -5128,13 +5261,13 @@
                     await this.refreshAppContent('lista_compras');
                 }
             }
-            async submitListaSave(el, clearListaForm) {
-                const editId = (el.querySelector('#lista-edit-id').value || '').trim();
-                const item = el.querySelector('#lista-item').value.trim();
-                const quantidade = parseInt(el.querySelector('#lista-qtd').value, 10) || 1;
-                const categoria = el.querySelector('#lista-categoria').value || 'Mantimentos';
-                const unidade = (el.querySelector('#lista-unidade').value || '').trim();
-                if (!item) { alert('Item é obrigatório'); return; }
+            async submitListaComprasPayload(payload) {
+                const editId = String(payload?.editId || '').trim();
+                const item = String(payload?.item || '').trim();
+                const quantidade = parseInt(payload?.quantidade, 10) || 1;
+                const categoria = payload?.categoria || 'Mantimentos';
+                const unidade = String(payload?.unidade || '').trim();
+                if (!item) { alert('Item é obrigatório'); return false; }
                 try {
                     if (editId) {
                         const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, item, quantidade, categoria, unidade_medida: unidade }) });
@@ -5143,9 +5276,12 @@
                         const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade, categoria, unidade_medida: unidade || undefined }) });
                         if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
                     }
-                    if (typeof clearListaForm === 'function') clearListaForm();
                     await this.refreshAppContent('lista_compras');
-                } catch (e) { alert(e.message); }
+                    return true;
+                } catch (e) {
+                    alert(e.message);
+                    return false;
+                }
             }
             async submitListaItemDelete(id, el) {
                 if (!confirm('Excluir este item da lista?')) return;
@@ -5205,62 +5341,18 @@
                     });
                 });
                 delete el.dataset.saudeEditingId;
-                const saudeTipoOpts = tipos.map((t) => '<option value="' + t + '">' + t + '</option>').join('');
                 el.innerHTML = `
-                    <div class="saude-entry-shell">
-                        <div class="saude-entry-card app-form">
-                            <header class="saude-entry-hero">
-                                <span class="saude-entry-hero-icon" aria-hidden="true">&#128137;</span>
-                                <div>
-                                    <h3 class="saude-entry-title">Registro familiar</h3>
-                                    <p class="saude-entry-sub">Três passos: quem é, qual o cuidado e quando aconteceu — visual próprio, inspirado na clareza do financeiro.</p>
-                                </div>
-                            </header>
-                            <div class="saude-panels">
-                                <section class="saude-panel saude-panel--who" aria-labelledby="saude-membro-label">
-                                    <span class="saude-panel-badge">1</span>
-                                    <div class="saude-panel-body">
-                                        <span id="saude-membro-label" class="saude-panel-label">Quem</span>
-                                        <div class="field"><label for="saude-membro">Nome no núcleo familiar</label><input type="text" id="saude-membro" placeholder="Ex.: Ana, Pedro..." autocomplete="name" /></div>
-                                    </div>
-                                </section>
-                                <section class="saude-panel saude-panel--what">
-                                    <span class="saude-panel-badge">2</span>
-                                    <div class="saude-panel-body">
-                                        <span class="saude-panel-label">O quê</span>
-                                        <div class="saude-panel-grid">
-                                            <div class="field"><label for="saude-tipo">Tipo</label><select id="saude-tipo">${saudeTipoOpts}</select></div>
-                                            <div class="field"><label for="saude-detalhes">Detalhes</label><input type="text" id="saude-detalhes" placeholder="Ex.: Dose 1, jejum, especialidade..." /></div>
-                                        </div>
-                                    </div>
-                                </section>
-                                <section class="saude-panel saude-panel--when">
-                                    <span class="saude-panel-badge">3</span>
-                                    <div class="saude-panel-body">
-                                        <span class="saude-panel-label">Quando</span>
-                                        <div class="saude-when-highlight">
-                                            <div class="saude-panel-grid">
-                                                <div class="field"><label for="saude-data">Data</label><input type="date" id="saude-data" autocomplete="off" /></div>
-                                                <div class="field"><label for="saude-hora">Hora</label><input type="time" id="saude-hora" step="60" /></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </section>
-                            </div>
-                            <div class="saude-entry-actions app-form-actions">
-                                <button type="button" class="app-btn saude-btn-main" data-action="saude-submit">Registrar</button>
-                                <button type="button" class="app-btn app-btn-secondary" data-action="saude-cancel" style="display:none">Cancelar</button>
-                            </div>
-                        </div>
+                    <div class="saude-module-shell">
+                        <div class="lista-compras-cols" id="saude-cols"></div>
+                        <button type="button" class="saude-fab saude-fab-pulse" data-action="saude-open-modal" aria-label="Novo registro de saúde familiar">+</button>
                     </div>
-                    <div class="lista-compras-cols" id="saude-cols"></div>
                 `;
                 const fmtDataBR = (d) => this.saudeFmtDataBR(d);
                 const fmtHora = (h) => this.saudeFmtHora(h);
                 const itemLi = (r, colTipo) => {
                     const dataBr = fmtDataBR(r.data_evento);
                     const hora = fmtHora(r.hora_evento);
-                    const quando = [dataBr || null, hora ? 's ' + hora : null].filter(Boolean).join('  ');
+                    const quando = [dataBr || null, hora ? (' às ' + hora) : null].filter(Boolean).join(' · ');
                     const rotuloTipo = colTipo === 'Consulta' && r.tipo_registro && r.tipo_registro !== 'Consulta' ? ' <span style="font-size:0.75rem;color:#9ca3af">(' + escapeHtml(r.tipo_registro) + ')</span>' : '';
                     return `<li data-id="${escapeHtml(r.id || '')}">
                         <div><strong>${escapeHtml(r.membro_familia || '')}</strong>${rotuloTipo}${r.detalhes ? '  ' + escapeHtml(r.detalhes) : ''}${quando ? '<br/><span style="font-size:0.8rem;color:#9ca3af">' + escapeHtml(quando) + '</span>' : ''}</div>
@@ -5287,9 +5379,13 @@
                     </div>`;
                 }).join('');
                 el.querySelector('#saude-cols').innerHTML = colsHtml;
+                el.querySelector('[data-action="saude-open-modal"]').onclick = () => this.openSaudeModal(el);
                 const wireSaudeCol = (root) => {
                     root.querySelectorAll('[data-action="saude-edit"]').forEach((btn) => {
-                        btn.onclick = () => this.saudeEdit(el, btn.dataset.id, rows);
+                        btn.onclick = () => {
+                            const r = rows.find((x) => String(x.id) === String(btn.dataset.id));
+                            if (r) this.openSaudeModal(el, { item: r });
+                        };
                     });
                     root.querySelectorAll('[data-action="saude-delete"]').forEach((btn) => {
                         btn.onclick = () => this.submitSaudeDelete(btn.dataset.id, el);
@@ -5309,84 +5405,112 @@
                         localStorage.setItem(LS_SAU, JSON.stringify(m));
                     };
                 });
-                el.querySelector('[data-action="saude-submit"]').onclick = () => this.submitSaudeAdd(el);
-                el.querySelector('[data-action="saude-cancel"]').onclick = () => this.saudeCancelForm(el);
             }
-            saudeCancelForm(el) {
+
+            openSaudeModal(el, { item = null } = {}) {
                 const tiposStd = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
-                const sel = el.querySelector('#saude-tipo');
-                if (sel) sel.querySelectorAll('option').forEach((o) => { if (!tiposStd.includes(o.value)) o.remove(); });
-                delete el.dataset.saudeEditingId;
-                el.querySelector('#saude-membro').value = '';
-                el.querySelector('#saude-tipo').value = 'Vacina';
-                el.querySelector('#saude-detalhes').value = '';
-                el.querySelector('#saude-data').value = '';
-                const h = el.querySelector('#saude-hora');
-                if (h) h.value = '';
-                const btn = el.querySelector('[data-action="saude-submit"]');
-                if (btn) btn.textContent = 'Registrar';
-                const c = el.querySelector('[data-action="saude-cancel"]');
-                if (c) c.style.display = 'none';
+                const saudeTipoOpts = tiposStd.map((t) => '<option value="' + t + '">' + t + '</option>').join('');
+                const editingId = item?.id != null ? String(item.id) : '';
+                const membro0 = item ? escapeHtml(item.membro_familia || '') : '';
+                const detalhes0 = item ? escapeHtml(item.detalhes || '') : '';
+                const data0 = item?.data_evento ? String(item.data_evento).slice(0, 10) : '';
+                const hora0 = item?.hora_evento ? escapeHtml(this.saudeFmtHora(item.hora_evento)) : '';
+                const tipoRow = item?.tipo_registro;
+                const needsExtraOpt = tipoRow && !tiposStd.includes(tipoRow);
+                const overlay = document.createElement('div');
+                overlay.className = 'app-modal-overlay';
+                overlay.innerHTML = `
+                    <div class="app-modal saude-entry-modal" role="dialog" aria-modal="true" aria-labelledby="saude-modal-heading">
+                        <div class="saude-entry-card app-form">
+                            <input type="hidden" id="saude-modal-edit-id" value="${escapeHtml(editingId)}" />
+                            <header class="saude-entry-hero">
+                                <span class="saude-entry-hero-icon" aria-hidden="true">&#128137;</span>
+                                <div>
+                                    <h3 class="saude-entry-title" id="saude-modal-heading">${item ? 'Editar registro' : 'Registro familiar'}</h3>
+                                    <p class="saude-entry-sub">${item ? 'Atualize os dados do cuidado de saúde.' : 'Use o + para abrir este formulário — três passos rápidos, em janela.'}</p>
+                                </div>
+                            </header>
+                            <div class="saude-panels">
+                                <section class="saude-panel saude-panel--who" aria-labelledby="saude-modal-membro-label">
+                                    <span class="saude-panel-badge">1</span>
+                                    <div class="saude-panel-body">
+                                        <span id="saude-modal-membro-label" class="saude-panel-label">Quem</span>
+                                        <div class="field"><label for="saude-modal-membro">Nome no núcleo familiar</label><input type="text" id="saude-modal-membro" value="${membro0}" placeholder="Ex.: Ana, Pedro..." autocomplete="name" /></div>
+                                    </div>
+                                </section>
+                                <section class="saude-panel saude-panel--what">
+                                    <span class="saude-panel-badge">2</span>
+                                    <div class="saude-panel-body">
+                                        <span class="saude-panel-label">O quê</span>
+                                        <div class="saude-panel-grid">
+                                            <div class="field"><label for="saude-modal-tipo">Tipo</label><select id="saude-modal-tipo">${saudeTipoOpts}${needsExtraOpt ? '<option value="' + escapeHtml(tipoRow) + '">' + escapeHtml(tipoRow) + '</option>' : ''}</select></div>
+                                            <div class="field"><label for="saude-modal-detalhes">Detalhes</label><input type="text" id="saude-modal-detalhes" value="${detalhes0}" placeholder="Ex.: Dose 1, jejum, especialidade..." /></div>
+                                        </div>
+                                    </div>
+                                </section>
+                                <section class="saude-panel saude-panel--when">
+                                    <span class="saude-panel-badge">3</span>
+                                    <div class="saude-panel-body">
+                                        <span class="saude-panel-label">Quando</span>
+                                        <div class="saude-when-highlight">
+                                            <div class="saude-panel-grid">
+                                                <div class="field"><label for="saude-modal-data">Data</label><input type="date" id="saude-modal-data" value="${escapeHtml(data0)}" autocomplete="off" /></div>
+                                                <div class="field"><label for="saude-modal-hora">Hora</label><input type="time" id="saude-modal-hora" value="${hora0}" step="60" /></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                        <div class="app-modal-actions">
+                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
+                            <button type="button" class="app-btn saude-btn-main" data-action="modal-save">${item ? 'Atualizar' : 'Registrar'}</button>
+                        </div>
+                    </div>
+                `;
+                const selTipo = overlay.querySelector('#saude-modal-tipo');
+                if (selTipo && item) selTipo.value = tiposStd.includes(item.tipo_registro) ? item.tipo_registro : (item.tipo_registro || 'Vacina');
+                const close = () => overlay.remove();
+                overlay.querySelector('[data-action="modal-cancel"]').onclick = close;
+                overlay.onclick = (e) => { if (e.target === overlay) close(); };
+                overlay.querySelector('[data-action="modal-save"]').onclick = async () => {
+                    const membro_familia = overlay.querySelector('#saude-modal-membro').value.trim();
+                    const tipo_registro = overlay.querySelector('#saude-modal-tipo').value;
+                    const detalhes = (overlay.querySelector('#saude-modal-detalhes').value || '').trim();
+                    const data_evento = (overlay.querySelector('#saude-modal-data').value || '').trim() || null;
+                    const horaVal = (overlay.querySelector('#saude-modal-hora') && overlay.querySelector('#saude-modal-hora').value) || '';
+                    const hora_evento = horaVal.trim() ? horaVal.trim().slice(0, 5) : null;
+                    const idEdit = (overlay.querySelector('#saude-modal-edit-id').value || '').trim();
+                    const ok = await this.submitSaudePayload({ editingId: idEdit, membro_familia, tipo_registro, detalhes, data_evento, hora_evento });
+                    if (ok) close();
+                };
+                document.body.appendChild(overlay);
+                overlay.querySelector('#saude-modal-membro').focus();
             }
-            saudeEdit(el, id, rows) {
-                const tiposStd = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
-                const r = rows.find((x) => x.id === id) || rows.find((x) => x.id === String(id));
-                if (!r) return;
-                const sel = el.querySelector('#saude-tipo');
-                sel.querySelectorAll('option').forEach((o) => {
-                    if (!tiposStd.includes(o.value)) o.remove();
-                });
-                el.querySelector('#saude-membro').value = r.membro_familia || '';
-                if (!tiposStd.includes(r.tipo_registro) && r.tipo_registro) {
-                    const o = document.createElement('option');
-                    o.value = r.tipo_registro;
-                    o.textContent = r.tipo_registro;
-                    sel.appendChild(o);
-                }
-                sel.value = r.tipo_registro || 'Vacina';
-                el.querySelector('#saude-detalhes').value = r.detalhes || '';
-                el.querySelector('#saude-data').value = r.data_evento ? String(r.data_evento).slice(0,10) : '';
-                const hi = el.querySelector('#saude-hora');
-                if (hi) hi.value = r.hora_evento ? this.saudeFmtHora(r.hora_evento) : '';
-                el.dataset.saudeEditingId = id;
-                const btn = el.querySelector('[data-action="saude-submit"]');
-                if (btn) btn.textContent = 'Atualizar';
-                const c = el.querySelector('[data-action="saude-cancel"]');
-                if (c) c.style.display = '';
-            }
-            async submitSaudeAdd(el) {
-                const membro_familia = el.querySelector('#saude-membro').value.trim();
-                const tipo_registro = el.querySelector('#saude-tipo').value;
-                const detalhes = (el.querySelector('#saude-detalhes').value || '').trim();
-                const data_evento = (el.querySelector('#saude-data').value || '').trim() || null;
+
+            async submitSaudePayload({ editingId = '', membro_familia, tipo_registro, detalhes, data_evento, hora_evento }) {
                 if (data_evento && !/^\d{4}-\d{2}-\d{2}$/.test(data_evento)) {
                     alert('Data inválida.');
-                    return;
+                    return false;
                 }
-                const horaVal = (el.querySelector('#saude-hora') && el.querySelector('#saude-hora').value) || '';
-                const hora_evento = horaVal.trim() ? horaVal.trim().slice(0, 5) : null;
-                if (!membro_familia) { alert('Membro é obrigatório'); return; }
-                const editingId = el.dataset.saudeEditingId;
+                if (!String(membro_familia || '').trim()) { alert('Membro é obrigatório'); return false; }
                 try {
                     if (editingId) {
                         const res = await fetch('/api/saude', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingId, membro_familia, tipo_registro, detalhes, data_evento, hora_evento }) });
                         const data = await res.json();
                         if (!res.ok) throw new Error(data.error || 'Erro ao atualizar');
-                        this.saudeCancelForm(el);
                     } else {
                         const res = await fetch('/api/saude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membro_familia, tipo_registro, detalhes, data_evento, hora_evento: hora_evento || undefined }) });
                         const data = await res.json();
                         if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
-                        
-                        el.querySelector('#saude-membro').value = '';
-                        el.querySelector('#saude-tipo').value = 'Vacina';
-                        el.querySelector('#saude-detalhes').value = '';
-                        el.querySelector('#saude-data').value = '';
-                        if (el.querySelector('#saude-hora')) el.querySelector('#saude-hora').value = '';
                     }
                     await this.refreshAppContent('saude');
                     this.refreshEventNotifications();
-                } catch (e) { alert(e.message); }
+                    return true;
+                } catch (e) {
+                    alert(e.message);
+                    return false;
+                }
             }
             async submitSaudeDelete(id, el) {
                 if (!id) return;
@@ -5394,7 +5518,7 @@
                 try {
                     const res = await fetch('/api/saude', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
-                    if (el.dataset.saudeEditingId === id) this.saudeCancelForm(el);
+                    delete el.dataset.saudeEditingId;
                     await this.refreshAppContent('saude');
                     this.refreshEventNotifications();
                 } catch (e) { alert(e.message); }
