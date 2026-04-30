@@ -4371,7 +4371,16 @@
                 const pagoVal = Number(pagosPendentes.pago) || 0;
                 const pendenteVal = Number(pagosPendentes.pendente) || 0;
 
-                const rowsFixasHtml = despesasFixas.length ? despesasFixas.map(mkRowFixa).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma despesa fixa neste mês.</td></tr>';
+                const rankFixaStatus = (r) => (String(r?.status || 'pendente').toLowerCase() === 'pago' ? 1 : 0);
+                const stampFixa = (r) => String(r?.created_at || r?.data_lancamento || '');
+                const despesasFixasOrdenadas = [...despesasFixas].sort((a, b) => {
+                    const da = rankFixaStatus(a);
+                    const db = rankFixaStatus(b);
+                    if (da !== db) return da - db;
+                    return stampFixa(b).localeCompare(stampFixa(a));
+                });
+
+                const rowsFixasHtml = despesasFixasOrdenadas.length ? despesasFixasOrdenadas.map(mkRowFixa).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma despesa fixa neste mês.</td></tr>';
                 const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mês.</td></tr>';
                 const rowsReceitasHtml = receitas.length ? receitas.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mês.</td></tr>';
                 const rowsPoupancaHtml = poupancaLogs.length
