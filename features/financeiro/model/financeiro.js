@@ -18,6 +18,7 @@ export const CATEGORIAS_GASTO_VARIADO = [
   'Transporte',
   'Lazer',
   'Saude',
+  'Ticket',
   'Compras',
   'Contas',
   'Outros',
@@ -26,5 +27,6 @@ export const CATEGORIAS_GASTO_VARIADO = [
 export const CATEGORIAS_RECEITA = [
   'Salário',
   'Benefício',
+  'Ticket',
   'Outro',
 ];
