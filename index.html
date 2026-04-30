@@ -2397,6 +2397,69 @@
             position: relative;
             padding-bottom: 5rem;
         }
+        /* Linhas da lista — nome e detalhe separados (evita “André influenza” colado) */
+        .saude-module-shell .app-list li { align-items: flex-start; }
+        .saude-item-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 0.28rem;
+            min-width: 0;
+            flex: 1;
+        }
+        .saude-item-membro {
+            font-weight: 800;
+            font-size: 0.9rem;
+            letter-spacing: 0.01em;
+            color: var(--text-dark, #f1f5f9);
+            line-height: 1.3;
+        }
+        .saude-item-detalhe {
+            margin: 0;
+            padding: 0.28rem 0.45rem;
+            border-radius: 0.4rem;
+            border-left: 3px solid rgba(45, 212, 191, 0.55);
+            background: rgba(15, 30, 52, 0.55);
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: rgba(226, 232, 240, 0.95);
+            line-height: 1.35;
+        }
+        .saude-item-tag {
+            display: inline-block;
+            width: fit-content;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.12rem 0.38rem;
+            border-radius: 0.3rem;
+            background: rgba(56, 189, 248, 0.18);
+            border: 1px solid rgba(56, 189, 248, 0.38);
+            color: #7dd3fc;
+        }
+        .saude-item-quando {
+            margin: 0.12rem 0 0;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #94a3b8;
+            letter-spacing: 0.02em;
+        }
+        [data-theme="light"] .saude-item-membro {
+            color: #0f172a;
+        }
+        [data-theme="light"] .saude-item-detalhe {
+            background: rgba(240, 253, 250, 0.95);
+            border-left-color: rgba(13, 148, 136, 0.55);
+            color: #134e4a;
+        }
+        [data-theme="light"] .saude-item-tag {
+            background: rgba(224, 242, 254, 0.95);
+            border-color: rgba(14, 165, 233, 0.45);
+            color: #0369a1;
+        }
+        [data-theme="light"] .saude-item-quando {
+            color: #64748b;
+        }
         .lista-compras-toolbar {
             display: flex;
             flex-wrap: wrap;
@@ -5352,10 +5415,24 @@
                 const itemLi = (r, colTipo) => {
                     const dataBr = fmtDataBR(r.data_evento);
                     const hora = fmtHora(r.hora_evento);
-                    const quando = [dataBr || null, hora ? (' às ' + hora) : null].filter(Boolean).join(' · ');
-                    const rotuloTipo = colTipo === 'Consulta' && r.tipo_registro && r.tipo_registro !== 'Consulta' ? ' <span style="font-size:0.75rem;color:#9ca3af">(' + escapeHtml(r.tipo_registro) + ')</span>' : '';
+                    const quando = [dataBr || null, hora ? ('às ' + hora) : null].filter(Boolean).join(' · ');
+                    const det = String(r.detalhes || '').trim();
+                    const detBlock = det
+                        ? `<p class="saude-item-detalhe" title="${escapeHtml(det)}">${escapeHtml(det)}</p>`
+                        : '';
+                    const tagTipo = (colTipo === 'Consulta' && r.tipo_registro && r.tipo_registro !== 'Consulta')
+                        ? `<span class="saude-item-tag">${escapeHtml(r.tipo_registro)}</span>`
+                        : '';
+                    const quandoBlock = quando
+                        ? `<p class="saude-item-quando">${escapeHtml(quando)}</p>`
+                        : '';
                     return `<li data-id="${escapeHtml(r.id || '')}">
-                        <div><strong>${escapeHtml(r.membro_familia || '')}</strong>${rotuloTipo}${r.detalhes ? '  ' + escapeHtml(r.detalhes) : ''}${quando ? '<br/><span style="font-size:0.8rem;color:#9ca3af">' + escapeHtml(quando) + '</span>' : ''}</div>
+                        <div class="saude-item-cell">
+                            <span class="saude-item-membro">${escapeHtml(r.membro_familia || '')}</span>
+                            ${tagTipo}
+                            ${detBlock}
+                            ${quandoBlock}
+                        </div>
                         <div class="app-list-actions">
                             <button type="button" data-action="saude-edit" data-id="${escapeHtml(r.id || '')}">Editar</button>
                             <button type="button" data-action="saude-delete" data-id="${escapeHtml(r.id || '')}" style="background:#fef2f2;color:#dc2626">Excluir</button>
