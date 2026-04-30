@@ -4850,6 +4850,11 @@
 
             openFinanceiroModal(el, { item = null, defaultTipo = 'gasto_variado' } = {}) {
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
+                let initialMesRef = mesAno;
+                if (item?.tipo_registro === 'despesa_fixa' && item?.created_at) {
+                    const iso = String(item.created_at).slice(0, 10);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) initialMesRef = iso.slice(0, 7);
+                }
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const pad = (n) => String(n).padStart(2, '0');
                 const firstDayMonth = `${ano}-${pad(mes)}-01`;
@@ -4875,6 +4880,7 @@
                                         <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>Poupança</option>
                                     </select>
                                 </div>
+                                <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">Mês vigente (competência)</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
                                 <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
                                 <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
                                 <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
@@ -4897,20 +4903,35 @@
                 const descricaoEl = overlay.querySelector('#financeiro-modal-descricao');
                 const dataEl = overlay.querySelector('#financeiro-modal-data');
                 const contextoEl = overlay.querySelector('#financeiro-modal-contexto');
+                const mesRefWrap = overlay.querySelector('#financeiro-mes-ref-wrap');
+                const mesRefEl = overlay.querySelector('#financeiro-modal-mes-ref');
+                const mesForBounds = () => {
+                    const v = mesRefEl && mesRefEl.value ? mesRefEl.value.trim() : '';
+                    if (v && /^\d{4}-\d{2}$/.test(v)) return v;
+                    return mesAno;
+                };
+                const applyDateBoundsFromMes = (maStr) => {
+                    if (!dataEl || !maStr || !/^\d{4}-\d{2}$/.test(maStr)) return;
+                    const [aa, mm] = maStr.split('-').map(Number);
+                    const fd = `${aa}-${pad(mm)}-01`;
+                    const ld = `${aa}-${pad(mm)}-${pad(new Date(aa, mm, 0).getDate())}`;
+                    dataEl.setAttribute('min', fd);
+                    dataEl.setAttribute('max', ld);
+                };
                 const setTipoUI = (tipo) => {
                     if (tipo === 'despesa_fixa') {
                         if (descricaoWrap) descricaoWrap.style.display = '';
+                        if (mesRefWrap) mesRefWrap.style.display = '';
                         catWrap.style.display = 'none';
                         dataWrap.style.display = 'none';
-                        if (dataEl) {
-                            dataEl.setAttribute('min', firstDayMonth);
-                            dataEl.setAttribute('max', lastDayMonth);
-                        }
+                        applyDateBoundsFromMes(mesForBounds());
                         statusWrap.style.display = '';
                         catEl.innerHTML = '<option value="">--</option>';
-                        if (contextoEl) contextoEl.innerHTML = `Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong>`;
+                        const mr = mesForBounds();
+                        if (contextoEl) contextoEl.innerHTML = `A despesa fixa vale para o mês em <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
                     } else if (tipo === 'poupanca') {
                         if (descricaoWrap) descricaoWrap.style.display = 'none';
+                        if (mesRefWrap) mesRefWrap.style.display = 'none';
                         if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'Poupança';
                         statusWrap.style.display = 'none';
                         dataWrap.style.display = '';
@@ -4923,35 +4944,45 @@
                         if (contextoEl) contextoEl.textContent = 'Registro de poupança (sem filtro mensal).';
                     } else {
                         if (descricaoWrap) descricaoWrap.style.display = '';
+                        if (mesRefWrap) mesRefWrap.style.display = 'none';
                         statusWrap.style.display = 'none';
                         dataWrap.style.display = '';
-                        if (dataEl) {
-                            dataEl.setAttribute('min', firstDayMonth);
-                            dataEl.setAttribute('max', lastDayMonth);
-                        }
+                        const mb = mesForBounds();
+                        applyDateBoundsFromMes(mb);
                         catWrap.style.display = '';
                         const categories = tipo === 'receita' ? receitaCategorias : gastoCategorias;
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
                         if (item?.categoria) catEl.value = item.categoria;
-                        if (contextoEl) contextoEl.innerHTML = `Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong>`;
+                        if (contextoEl) contextoEl.innerHTML = `Mês do lançamento: <strong>${this.formatMesAnoLabel(mb)}</strong> (data dentro deste mês).`;
                     }
                 };
                 setTipoUI(tipoEl.value);
                 tipoEl.onchange = () => setTipoUI(tipoEl.value);
+                if (mesRefEl) mesRefEl.addEventListener('change', () => setTipoUI(tipoEl.value));
 
                 const close = () => overlay.remove();
                 overlay.querySelector('[data-action="modal-cancel"]').onclick = close;
                 overlay.onclick = (e) => { if (e.target === overlay) close(); };
                 overlay.querySelector('[data-action="modal-save"]').onclick = async () => {
+                    let mesAnoPayload = mesAno;
+                    const tipoVal = tipoEl.value;
+                    if (tipoVal === 'despesa_fixa') {
+                        const v = mesRefEl && mesRefEl.value ? mesRefEl.value.trim() : '';
+                        if (!v || !/^\d{4}-\d{2}$/.test(v)) {
+                            alert('Selecione o mês vigente (competência) da despesa fixa.');
+                            return;
+                        }
+                        mesAnoPayload = v;
+                    }
                     const payload = {
                         editId: item?.id || '',
-                        tipo_registro: tipoEl.value,
+                        tipo_registro: tipoVal,
                         descricao: overlay.querySelector('#financeiro-modal-descricao').value.trim(),
                         valor: Number(overlay.querySelector('#financeiro-modal-valor').value || 0),
                         categoria: catEl.value || null,
                         status: overlay.querySelector('#financeiro-modal-status').value || 'pendente',
                         data_lancamento: overlay.querySelector('#financeiro-modal-data').value || todayIso,
-                        mesAno,
+                        mesAno: mesAnoPayload,
                     };
                     const ok = await this.submitFinanceiroSave(el, payload);
                     if (ok) close();
@@ -5002,6 +5033,7 @@
                         const d = await res.json();
                         throw new Error(d.error || 'Erro ao salvar');
                     }
+                    if (tipoRegistro === 'despesa_fixa' && mesAno) el.setAttribute('data-mes-ano', mesAno);
                     await this.refreshAppContent('financeiro');
                     return true;
                 } catch (e) {

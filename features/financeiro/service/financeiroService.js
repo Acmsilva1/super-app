@@ -215,6 +215,13 @@ export function payloadUpdateFinanceiro(body = {}) {
     if (body.descricao !== undefined) out.descricao = String(body.descricao).trim();
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
     if (body.status !== undefined) out.status = String(body.status).toLowerCase() === STATUS_PAGO ? STATUS_PAGO : STATUS_PENDENTE;
+    if (body.mes_ano !== undefined) {
+      const ma = String(body.mes_ano || '').trim();
+      if (ma && /^\d{4}-\d{2}$/.test(ma)) {
+        const { ano, mes } = parseMesAno(ma);
+        out.created_at = new Date(ano, mes - 1, 1, 12, 0, 0, 0).toISOString();
+      }
+    }
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }
