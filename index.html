@@ -1948,6 +1948,10 @@
             overflow: hidden;
             min-height: 0;
         }
+        /* Sobrescreve display:flex acima quando o filtro oculta a secção (mesma especificidade + classe extra) */
+        .module-table-wrap.finance-data-section.finance-data-table-limited.hidden-by-filter {
+            display: none;
+        }
         .module-table-wrap.finance-data-section.finance-data-table-limited > p {
             flex-shrink: 0;
         }
@@ -2268,6 +2272,45 @@
                 width: 3.05rem;
                 height: 3.05rem;
                 font-size: 1.8rem;
+            }
+            /* Filtros da aba Dados: mais compactos em telas estreitas */
+            .finance-data-jump-bar {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.4rem;
+                padding: 0.2rem 0 0.45rem;
+                align-items: stretch;
+            }
+            .finance-filter-chip {
+                min-height: 0;
+                padding: 0.42rem 0.35rem;
+                border-radius: 0.68rem;
+                font-size: 0.62rem;
+                letter-spacing: 0.03em;
+                box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2), 0 6px 14px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            }
+            .finance-filter-chip:hover {
+                transform: none;
+            }
+            .finance-filter-chip:active {
+                transform: scale(0.98);
+            }
+            .finance-filter-chip-label {
+                display: none;
+            }
+            .finance-filter-chip-title {
+                font-size: 0.74rem;
+                font-weight: 800;
+                letter-spacing: 0.01em;
+                text-transform: none;
+                line-height: 1.2;
+            }
+            .finance-filter-chip.is-active {
+                box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.55), 0 4px 16px rgba(56, 189, 248, 0.35), 0 2px 0 rgba(14, 116, 144, 0.45);
+            }
+            .finance-data-empty-state {
+                padding: 1.35rem 0.85rem;
+                font-size: 0.84rem;
             }
         }
         .app-btn {
@@ -4565,7 +4608,7 @@
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'data' ? '' : 'hidden'}" data-tab-panel="data">
-                            <div class="module-data-toolbar">
+                            <div class="module-data-toolbar" id="financeiro-data-toolbar-hint">
                                 <p class="app-form-note" style="margin:0;">Toque num filtro acima para abrir uma tabela. Fixas: pendentes primeiro; variadas e receitas por data.</p>
                             </div>
                             <div id="financeiro-data-empty" class="finance-data-empty-state">
@@ -4788,6 +4831,7 @@
 
                 const applyFinanceDataFilter = (target) => {
                     const emptyEl = el.querySelector('#financeiro-data-empty');
+                    const hintBar = el.querySelector('#financeiro-data-toolbar-hint');
                     el.querySelectorAll('[data-action="financeiro-data-filter"]').forEach((b) => {
                         const on = Boolean(target && b.dataset.target === target);
                         b.classList.toggle('is-active', on);
@@ -4798,6 +4842,7 @@
                         section.classList.toggle('hidden-by-filter', !(target && key === target));
                     });
                     if (emptyEl) emptyEl.style.display = target ? 'none' : '';
+                    if (hintBar) hintBar.style.display = target ? 'none' : '';
                 };
 
                 const setTab = (tab) => {
