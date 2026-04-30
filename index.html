@@ -4986,11 +4986,12 @@
                 if (item?.tipo_registro === 'despesa_fixa' && item?.created_at) {
                     const iso = String(item.created_at).slice(0, 10);
                     if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) initialMesRef = iso.slice(0, 7);
+                } else if (item?.data_lancamento) {
+                    const iso = String(item.data_lancamento).slice(0, 10);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) initialMesRef = iso.slice(0, 7);
                 }
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const pad = (n) => String(n).padStart(2, '0');
-                const firstDayMonth = `${ano}-${pad(mes)}-01`;
-                const lastDayMonth = `${ano}-${pad(mes)}-${pad(new Date(ano, mes, 0).getDate())}`;
                 const gastoCategorias = ['Alimentacao','Habitacao','Transporte','Lazer','Saude','Ticket','Compras','Contas','Outros'];
                 const receitaCategorias = ['Salário','Benefício','Ticket','Outro'];
                 const tipoRegistro = item?.tipo_registro || defaultTipo || 'gasto_variado';
@@ -5012,12 +5013,12 @@
                                         <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>Poupança</option>
                                     </select>
                                 </div>
-                                <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">Mês vigente (competência)</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
+                                <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">Mês de competência</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
                                 <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
                                 <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
                                 <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
                                 <div class="field" id="financeiro-status-wrap"><label>Status (fixa)</label><select id="financeiro-modal-status"><option value="pendente" ${(String(item?.status || 'pendente').toLowerCase() === 'pendente') ? 'selected' : ''}>Pendente</option><option value="pago" ${(String(item?.status || '').toLowerCase() === 'pago') ? 'selected' : ''}>Pago</option></select></div>
-                                <div class="field" id="financeiro-data-wrap"><label>Data do lançamento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" min="${firstDayMonth}" max="${lastDayMonth}" /></div>
+                                <div class="field" id="financeiro-data-wrap"><label>Data do lançamento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" /></div>
                             </div>
                         </div>
                         <div class="app-modal-actions">
@@ -5079,13 +5080,15 @@
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
                         statusWrap.style.display = 'none';
                         dataWrap.style.display = '';
-                        const mb = mesForBounds();
-                        applyDateBoundsFromMes(mb);
+                        if (dataEl) {
+                            dataEl.removeAttribute('min');
+                            dataEl.removeAttribute('max');
+                        }
                         catWrap.style.display = '';
                         const categories = tipo === 'receita' ? receitaCategorias : gastoCategorias;
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
                         if (item?.categoria) catEl.value = item.categoria;
-                        if (contextoEl) contextoEl.innerHTML = `Mês do lançamento: <strong>${this.formatMesAnoLabel(mb)}</strong> (data dentro deste mês).`;
+                        if (contextoEl) contextoEl.innerHTML = 'Escolha <strong>qualquer data</strong>: o lançamento aparece no mês correspondente a essa data.';
                     }
                 };
                 setTipoUI(tipoEl.value);
@@ -5101,11 +5104,19 @@
                     if (tipoVal === 'despesa_fixa') {
                         const v = mesRefEl && mesRefEl.value ? mesRefEl.value.trim() : '';
                         if (!v || !/^\d{4}-\d{2}$/.test(v)) {
-                            alert('Selecione o mês vigente (competência) da despesa fixa.');
+                            alert('Selecione o mês de competência da despesa fixa.');
                             return;
                         }
                         mesAnoPayload = v;
+                    } else if (tipoVal === 'gasto_variado' || tipoVal === 'receita') {
+                        const dl = String(overlay.querySelector('#financeiro-modal-data')?.value || '').trim();
+                        if (!/^\d{4}-\d{2}-\d{2}$/.test(dl)) {
+                            alert('Informe a data do lançamento.');
+                            return;
+                        }
+                        mesAnoPayload = dl.slice(0, 7);
                     }
+                    const dataValRaw = String(overlay.querySelector('#financeiro-modal-data')?.value || '').trim();
                     const payload = {
                         editId: item?.id || '',
                         tipo_registro: tipoVal,
@@ -5113,7 +5124,9 @@
                         valor: Number(overlay.querySelector('#financeiro-modal-valor').value || 0),
                         categoria: catEl.value || null,
                         status: overlay.querySelector('#financeiro-modal-status').value || 'pendente',
-                        data_lancamento: overlay.querySelector('#financeiro-modal-data').value || todayIso,
+                        data_lancamento: (tipoVal === 'gasto_variado' || tipoVal === 'receita')
+                            ? dataValRaw
+                            : (dataValRaw || todayIso),
                         mesAno: mesAnoPayload,
                     };
                     const ok = await this.submitFinanceiroSave(el, payload);
@@ -5165,7 +5178,9 @@
                         const d = await res.json();
                         throw new Error(d.error || 'Erro ao salvar');
                     }
-                    if (tipoRegistro === 'despesa_fixa' && mesAno) el.setAttribute('data-mes-ano', mesAno);
+                    if ((tipoRegistro === 'despesa_fixa' || tipoRegistro === 'gasto_variado' || tipoRegistro === 'receita') && mesAno) {
+                        el.setAttribute('data-mes-ano', mesAno);
+                    }
                     await this.refreshAppContent('financeiro');
                     return true;
                 } catch (e) {
