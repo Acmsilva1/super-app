@@ -1808,38 +1808,17 @@
             align-items: center;
             justify-content: space-between;
         }
-        .finance-data-filter-bar {
+        .finance-data-jump-bar {
             position: relative;
-            top: auto;
             z-index: 18;
             display: flex;
             flex-wrap: wrap;
-            gap: 0.55rem;
-            align-items: center;
-            padding: 0.55rem 0.6rem;
-            border: 1px solid rgba(89, 132, 194, 0.32);
-            border-radius: 0.75rem;
-            background: linear-gradient(180deg, rgba(11, 22, 42, 0.96), rgba(11, 22, 42, 0.92));
-            box-shadow: var(--shadow-sm);
-        }
-        .finance-data-filter-bar label {
-            font-size: 0.72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #9fb5d8;
-            letter-spacing: 0.04em;
-        }
-        .finance-data-filter-bar select {
-            min-height: 2rem;
-            min-width: 220px;
-        }
-        .finance-jump-actions {
-            display: flex;
             gap: 0.45rem;
-            flex-wrap: wrap;
-            margin-left: auto;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0.45rem 0;
         }
-        .finance-jump-actions .app-btn {
+        .finance-data-jump-bar .app-btn {
             padding: 0.35rem 0.65rem;
             font-size: 0.76rem;
         }
@@ -4420,19 +4399,10 @@
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupança</button>
                             </div>
-                            <div class="finance-data-filter-bar" style="${activeTab === 'data' ? '' : 'display:none;'}">
-                                <label for="financeiro-data-target">Tabela</label>
-                                <select id="financeiro-data-target">
-                                    <option value="all">Todas</option>
-                                    <option value="despesas_fixas">Despesas Fixas</option>
-                                    <option value="gastos_variados">Gastos Variados</option>
-                                    <option value="receitas">Receitas</option>
-                                </select>
-                                <div class="finance-jump-actions">
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="despesas_fixas">Ir p/ Fixas</button>
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="gastos_variados">Ir p/ Variadas</button>
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="receitas">Ir p/ Receitas</button>
-                                </div>
+                            <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}">
+                                <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="despesas_fixas">Ir p/ Fixas</button>
+                                <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="gastos_variados">Ir p/ Variadas</button>
+                                <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-jump" data-target="receitas">Ir p/ Receitas</button>
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
@@ -4673,8 +4643,8 @@
                     el.querySelectorAll('[data-tab-panel]').forEach((panel) => {
                         panel.classList.toggle('hidden', panel.dataset.tabPanel !== tab);
                     });
-                    const dataFilterBar = el.querySelector('.finance-data-filter-bar');
-                    if (dataFilterBar) dataFilterBar.style.display = tab === 'data' ? '' : 'none';
+                    const dataJumpBar = el.querySelector('.finance-data-jump-bar');
+                    if (dataJumpBar) dataJumpBar.style.display = tab === 'data' ? '' : 'none';
                     const mesAnoBar = el.querySelector('.finance-sticky-head .app-mes-ano');
                     if (mesAnoBar) mesAnoBar.style.display = tab === 'poupanca' ? 'none' : '';
                     if (tab === 'summary') ensureCharts();
@@ -4686,33 +4656,18 @@
                 });
                 setTab(activeTab);
 
-                const applyDataTableFilter = () => {
-                    const target = String(el.querySelector('#financeiro-data-target')?.value || 'all');
-                    el.querySelectorAll('[data-table-section]').forEach((section) => {
-                        const key = section.getAttribute('data-table-section');
-                        const show = target === 'all' || key === target;
-                        section.classList.toggle('hidden-by-filter', !show);
-                    });
-                };
                 const jumpToDataSection = (target) => {
                     if (!target) return;
-                    const select = el.querySelector('#financeiro-data-target');
-                    if (select) {
-                        select.value = target;
-                        applyDataTableFilter();
-                    }
+                    el.querySelectorAll('[data-table-section]').forEach((section) => section.classList.remove('hidden-by-filter'));
                     const section = el.querySelector(`[data-table-section="${target}"]`);
                     if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 };
-                const dataTargetSelect = el.querySelector('#financeiro-data-target');
-                if (dataTargetSelect) dataTargetSelect.onchange = applyDataTableFilter;
                 el.querySelectorAll('[data-action="financeiro-jump"]').forEach((btn) => {
                     btn.onclick = () => {
                         setTab('data');
                         jumpToDataSection(btn.dataset.target || '');
                     };
                 });
-                applyDataTableFilter();
 
                 const refreshMesAno = () => {
                     const m = el.querySelector('#financeiro-mes').value;
