@@ -1940,10 +1940,28 @@
         .finance-data-section.hidden-by-filter {
             display: none;
         }
-        .finance-data-section.finance-data-table-limited {
+        /* Scroll apenas dentro da grelha (≈10 linhas); cabeçalho da tabela colado ao topo deste bloco — não herda o scroll da janela no mobile */
+        .module-table-wrap.finance-data-section.finance-data-table-limited,
+        .module-table-wrap.finance-poupanca-table-wrap {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .module-table-wrap.finance-data-section.finance-data-table-limited > p {
+            flex-shrink: 0;
+        }
+        .finance-table-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
             max-height: calc((10 * 2.45rem) + 2.3rem);
+            overflow-x: auto;
             overflow-y: auto;
             scrollbar-gutter: stable;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            touch-action: pan-x pan-y;
+            border-radius: 0 0 0.75rem 0.75rem;
         }
         .poupanca-meta-entry-card {
             position: sticky;
@@ -4555,24 +4573,30 @@
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="despesas_fixas" id="financeiro-section-despesas-fixas">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Despesas fixas</p>
-                                <table class="module-table">
-                                    <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
-                                    <tbody id="financeiro-table-fixas">${rowsFixasHtml}</tbody>
-                                </table>
+                                <div class="finance-table-scroll">
+                                    <table class="module-table">
+                                        <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                                        <tbody id="financeiro-table-fixas">${rowsFixasHtml}</tbody>
+                                    </table>
+                                </div>
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Gastos variados</p>
-                                <table class="module-table">
-                                    <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
-                                    <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
-                                </table>
+                                <div class="finance-table-scroll">
+                                    <table class="module-table">
+                                        <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                                        <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
+                                    </table>
+                                </div>
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="receitas" id="financeiro-section-receitas" style="margin-top:0.85rem;">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Receitas</p>
-                                <table class="module-table">
-                                    <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
-                                    <tbody id="financeiro-table-receitas">${rowsReceitasHtml}</tbody>
-                                </table>
+                                <div class="finance-table-scroll">
+                                    <table class="module-table">
+                                        <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                                        <tbody id="financeiro-table-receitas">${rowsReceitasHtml}</tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'poupanca' ? '' : 'hidden'}" data-tab-panel="poupanca">
@@ -4618,11 +4642,13 @@
                                     </div>
                                 </div>
                             ` : ''}
-                            <div class="module-table-wrap">
-                                <table class="module-table">
-                                    <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
-                                    <tbody id="financeiro-table-poupanca">${rowsPoupancaHtml}</tbody>
-                                </table>
+                            <div class="module-table-wrap finance-poupanca-table-wrap">
+                                <div class="finance-table-scroll">
+                                    <table class="module-table">
+                                        <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                                        <tbody id="financeiro-table-poupanca">${rowsPoupancaHtml}</tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                         <button type="button" class="finance-fab finance-fab-pulse" data-action="financeiro-open-modal" aria-label="Adicionar registro financeiro">+</button>
