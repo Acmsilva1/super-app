@@ -2171,6 +2171,39 @@
             color: #f87171;
             border-color: rgba(248, 113, 113, 0.32);
         }
+        .finance-status-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            background: transparent;
+            cursor: pointer;
+            transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.2s ease;
+            animation: financeStatusPulse 2.2s ease-in-out infinite;
+        }
+        .finance-status-toggle:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+        }
+        .finance-status-toggle.is-paid {
+            background: rgba(34, 197, 94, 0.14);
+            color: #22c55e;
+            border-color: rgba(74, 222, 128, 0.34);
+        }
+        .finance-status-toggle.is-pending {
+            background: rgba(239, 68, 68, 0.12);
+            color: #f87171;
+            border-color: rgba(248, 113, 113, 0.32);
+        }
+        @keyframes financeStatusPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(96, 165, 250, 0); }
+            50% { box-shadow: 0 0 0 6px rgba(96, 165, 250, 0.12); }
+        }
         .finance-fab {
             position: fixed;
             right: max(1.1rem, env(safe-area-inset-right));
@@ -4569,12 +4602,11 @@
                     const hora = fmtHoraBrasilia(r.created_at);
                     return `<tr>
                         <td><strong>${escapeHtml(r.descricao || '')}</strong></td>
-                        <td><span class="module-status-badge ${badgeClass}">${statusLabel}</span></td>
+                        <td><button type="button" class="finance-status-toggle ${badgeClass}" data-action="financeiro-toggle-status" data-id="${r.id}" data-status-atual="${statusRaw}" title="Clique para alternar status">${statusLabel}</button></td>
                         <td style="color:${statusRaw === 'pago' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
                         <td class="col-actions">
                             <div class="app-list-actions">
-                                <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="despesa_fixa">Editar</button>
                                 <button type="button" data-action="financeiro-delete" data-id="${r.id}" data-tipo-registro="despesa_fixa">Excluir</button>
                             </div>
                         </td>
@@ -4986,6 +5018,9 @@
                 el.querySelectorAll('[data-action="financeiro-delete"]').forEach((btn) => {
                     btn.onclick = () => this.submitFinanceiroDelete(btn.dataset.id, btn.dataset.tipoRegistro || 'gasto_variado', el);
                 });
+                el.querySelectorAll('[data-action="financeiro-toggle-status"]').forEach((btn) => {
+                    btn.onclick = () => this.submitFinanceiroToggleStatus(btn.dataset.id, btn.dataset.statusAtual || 'pendente', el);
+                });
                 const openMetaBtn = el.querySelector('[data-action="poupanca-open-meta-modal"]');
                 if (openMetaBtn) {
                     openMetaBtn.onclick = () => this.openPoupancaMetaModal(el);
@@ -5142,7 +5177,6 @@
                                 <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
                                 <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
                                 <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
-                                <div class="field" id="financeiro-status-wrap"><label>Status (fixa)</label><select id="financeiro-modal-status"><option value="pendente" ${(String(item?.status || 'pendente').toLowerCase() === 'pendente') ? 'selected' : ''}>Pendente</option><option value="pago" ${(String(item?.status || '').toLowerCase() === 'pago') ? 'selected' : ''}>Pago</option></select></div>
                                 <div class="field" id="financeiro-data-wrap"><label>Data do lançamento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" /></div>
                             </div>
                         </div>
@@ -5155,7 +5189,6 @@
                 const tipoEl = overlay.querySelector('#financeiro-modal-tipo');
                 const catEl = overlay.querySelector('#financeiro-modal-categoria');
                 const catWrap = overlay.querySelector('#financeiro-categoria-wrap');
-                const statusWrap = overlay.querySelector('#financeiro-status-wrap');
                 const dataWrap = overlay.querySelector('#financeiro-data-wrap');
                 const descricaoWrap = overlay.querySelector('#financeiro-descricao-wrap');
                 const descricaoEl = overlay.querySelector('#financeiro-modal-descricao');
@@ -5183,7 +5216,6 @@
                         catWrap.style.display = 'none';
                         dataWrap.style.display = 'none';
                         applyDateBoundsFromMes(mesForBounds());
-                        statusWrap.style.display = '';
                         catEl.innerHTML = '<option value="">--</option>';
                         const mr = mesForBounds();
                         if (contextoEl) contextoEl.innerHTML = `A despesa fixa vale para o mês em <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
@@ -5191,7 +5223,6 @@
                         if (descricaoWrap) descricaoWrap.style.display = 'none';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
                         if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'Poupança';
-                        statusWrap.style.display = 'none';
                         dataWrap.style.display = '';
                         if (dataEl) {
                             dataEl.removeAttribute('min');
@@ -5203,7 +5234,6 @@
                     } else {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
-                        statusWrap.style.display = 'none';
                         dataWrap.style.display = '';
                         if (dataEl) {
                             dataEl.removeAttribute('min');
@@ -5248,7 +5278,6 @@
                         descricao: overlay.querySelector('#financeiro-modal-descricao').value.trim(),
                         valor: Number(overlay.querySelector('#financeiro-modal-valor').value || 0),
                         categoria: catEl.value || null,
-                        status: overlay.querySelector('#financeiro-modal-status').value || 'pendente',
                         data_lancamento: (tipoVal === 'gasto_variado' || tipoVal === 'receita')
                             ? dataValRaw
                             : (dataValRaw || todayIso),
@@ -5266,7 +5295,6 @@
                 const descricao = String(payload?.descricao || '').trim();
                 const valor = Number(payload?.valor || 0);
                 const categoria = payload?.categoria || null;
-                const status = String(payload?.status || 'pendente').toLowerCase();
                 const dataLanc = String(payload?.data_lancamento || '');
                 const mesAno = payload?.mesAno || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro inválido'); return false; }
@@ -5285,7 +5313,7 @@
                     valor,
                     mes_ano: mesAno,
                 };
-                if (tipoRegistro === 'despesa_fixa') requestBody.status = status === 'pago' ? 'pago' : 'pendente';
+                if (tipoRegistro === 'despesa_fixa' && !editId) requestBody.status = 'pendente';
                 else if (tipoRegistro === 'poupanca') {
                     requestBody.data_lancamento = dataLanc;
                 } else {
@@ -5324,6 +5352,28 @@
                     }
                     await this.refreshAppContent('financeiro');
                 } catch (e) { alert(e.message); }
+            }
+
+            async submitFinanceiroToggleStatus(id, statusAtual, el) {
+                const nextStatus = String(statusAtual || '').toLowerCase() === 'pago' ? 'pendente' : 'pago';
+                try {
+                    const res = await fetch('/api/financeiro', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id,
+                            tipo_registro: 'despesa_fixa',
+                            status: nextStatus
+                        }),
+                    });
+                    if (!res.ok) {
+                        const d = await res.json();
+                        throw new Error(d.error || 'Erro ao atualizar status');
+                    }
+                    await this.refreshAppContent('financeiro');
+                } catch (e) {
+                    alert(e.message);
+                }
             }
 
             async renderFluxogramaContent(el) {
