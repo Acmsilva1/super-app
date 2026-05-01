@@ -3623,6 +3623,9 @@
                 this.roadmap = [];
                 this.statistics = { totalApps: 0, activeApps: 0, betaApps: 0, openApps: 0 };
                 this.openWindows = new Map();
+                this.UI_STATE_KEY = 'superapp_ui_state_v1';
+                this.uiState = this.loadUiState();
+                this._uiStateRestored = false;
                 this.vizLibrariesReady = false;
                 this.vizLibrariesLoading = null;
                 this.notificationItems = [];
@@ -3638,6 +3641,58 @@
                 this.loadData();
                 this.updateStatistics();
                 this.startNotificationCenter();
+            }
+
+            loadUiState() {
+                try {
+                    const raw = localStorage.getItem(this.UI_STATE_KEY);
+                    if (!raw) return { openApps: [], windowScrolls: {} };
+                    const parsed = JSON.parse(raw);
+                    return {
+                        openApps: Array.isArray(parsed?.openApps) ? parsed.openApps : [],
+                        windowScrolls: parsed?.windowScrolls && typeof parsed.windowScrolls === 'object' ? parsed.windowScrolls : {}
+                    };
+                } catch (_err) {
+                    return { openApps: [], windowScrolls: {} };
+                }
+            }
+
+            saveUiState() {
+                try {
+                    localStorage.setItem(this.UI_STATE_KEY, JSON.stringify(this.uiState));
+                } catch (_err) {}
+            }
+
+            rememberWindowScroll(appId, scrollTop) {
+                if (!appId) return;
+                if (!this.uiState.windowScrolls || typeof this.uiState.windowScrolls !== 'object') this.uiState.windowScrolls = {};
+                this.uiState.windowScrolls[appId] = Math.max(0, Number(scrollTop) || 0);
+                this.saveUiState();
+            }
+
+            restoreWindowScroll(appId, contentEl) {
+                if (!appId || !contentEl) return;
+                const y = Number(this.uiState.windowScrolls?.[appId] || 0);
+                if (!Number.isFinite(y)) return;
+                requestAnimationFrame(() => {
+                    contentEl.scrollTop = y;
+                });
+            }
+
+            persistOpenAppsState() {
+                this.uiState.openApps = Array.from(this.openWindows.keys());
+                this.saveUiState();
+            }
+
+            restoreUiStateAfterAppsLoaded() {
+                if (this._uiStateRestored) return;
+                this._uiStateRestored = true;
+                const openApps = Array.isArray(this.uiState.openApps) ? this.uiState.openApps : [];
+                openApps.forEach((appId) => {
+                    if (this.apps.find((app) => app.id === appId)) {
+                        this.launchApp(appId);
+                    }
+                });
             }
 
             loadExternalScript(src) {
@@ -3723,6 +3778,9 @@
                 document.getElementById('homeFinanceFab')?.addEventListener('click', (e) => {
                     this.quickAddFinanceiro(e);
                 });
+                window.addEventListener('beforeunload', () => {
+                    this.persistOpenAppsState();
+                });
             }
             // ============================================
             // CARREGAR DADOS DO BACKEND
@@ -3739,6 +3797,7 @@
                     const data = await response.json();
                     this.apps = Array.isArray(data) ? data : (data.apps || []);
                     this.renderApps();
+                    this.restoreUiStateAfterAppsLoaded();
                 } catch (error) {
                     console.error('Erro ao carregar aplica??es:', error);
                     this.apps = [];
@@ -4382,9 +4441,13 @@
 
                 document.getElementById('windowsContainer').appendChild(windowElement);
                 this.openWindows.set(appId, windowElement);
+                this.persistOpenAppsState();
                 this.updateStatistics();
                 const contentEl = windowElement.querySelector('.window-content');
                 contentEl.setAttribute('data-app-id', appId);
+                contentEl.addEventListener('scroll', () => {
+                    this.rememberWindowScroll(appId, contentEl.scrollTop);
+                }, { passive: true });
                 this.loadAppContent(appId, contentEl);
             }
 
@@ -4400,17 +4463,26 @@
                 if (prevRoot && prevRoot._fluxOnResize) {
                     window.removeEventListener('resize', prevRoot._fluxOnResize);
                 }
+                const previousScrollTop = contentEl.scrollTop || 0;
                 contentEl.classList.remove('fluxograma-window-content');
                 contentEl.innerHTML = '<div class="app-loading"><i class="fas fa-spinner spinner"></i> Carregando...</div>';
                 if (appId === 'fluxograma') {
                     contentEl.classList.add('fluxograma-window-content');
                     await this.renderFluxogramaContent(contentEl);
+                    const savedScroll = Number(this.uiState.windowScrolls?.[appId]);
+                    const scrollToRestore = Number.isFinite(savedScroll) ? savedScroll : previousScrollTop;
+                    this.rememberWindowScroll(appId, scrollToRestore);
+                    this.restoreWindowScroll(appId, contentEl);
                     return;
                 }
                 if (appId === 'missoes_treino') {
                     try {
                         const mod = await import('./features/missoes_treino/index.js');
                         mod.renderMissoesTreinoContent(contentEl);
+                        const savedScroll = Number(this.uiState.windowScrolls?.[appId]);
+                        const scrollToRestore = Number.isFinite(savedScroll) ? savedScroll : previousScrollTop;
+                        this.rememberWindowScroll(appId, scrollToRestore);
+                        this.restoreWindowScroll(appId, contentEl);
                     } catch (err) {
                         console.error(err);
                         contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Nao foi possivel carregar Missoes de Treino.</div>';
@@ -4431,6 +4503,10 @@
                     if (appId === 'financeiro') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinanceiroContent(contentEl, data); }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
                     else if (appId === 'saude') this.renderSaudeContent(contentEl, data);
+                    const savedScroll = Number(this.uiState.windowScrolls?.[appId]);
+                    const scrollToRestore = Number.isFinite(savedScroll) ? savedScroll : previousScrollTop;
+                    this.rememberWindowScroll(appId, scrollToRestore);
+                    this.restoreWindowScroll(appId, contentEl);
                 } catch (err) {
                     contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> ' + (err.message || 'Erro ao carregar') + '</div>';
                 }
@@ -6014,6 +6090,7 @@
                     element.remove();
                     const appId = windowId.replace('window-', '');
                     this.openWindows.delete(appId);
+                    this.persistOpenAppsState();
                     this.updateStatistics();
                 }
             }
