@@ -4526,6 +4526,8 @@
                 if (el._financeiroChartStatus) { el._financeiroChartStatus.destroy(); el._financeiroChartStatus = null; }
                 const tabRaw = (el.getAttribute('data-active-tab') || '').toLowerCase();
                 const activeTab = ['summary', 'data', 'poupanca'].includes(tabRaw) ? tabRaw : 'summary';
+                const dataFilterRaw = String(el.getAttribute('data-active-data-filter') || '').toLowerCase();
+                const activeDataFilter = ['despesas_fixas', 'gastos_variados', 'receitas'].includes(dataFilterRaw) ? dataFilterRaw : '';
                 el.setAttribute('data-active-tab', activeTab);
 
                 const graficos = data.graficos || {};
@@ -4906,19 +4908,21 @@
                 };
 
                 const applyFinanceDataFilter = (target) => {
+                    const normalizedTarget = ['despesas_fixas', 'gastos_variados', 'receitas'].includes(String(target || '')) ? String(target) : '';
+                    el.setAttribute('data-active-data-filter', normalizedTarget);
                     const emptyEl = el.querySelector('#financeiro-data-empty');
                     const hintBar = el.querySelector('#financeiro-data-toolbar-hint');
                     el.querySelectorAll('[data-action="financeiro-data-filter"]').forEach((b) => {
-                        const on = Boolean(target && b.dataset.target === target);
+                        const on = Boolean(normalizedTarget && b.dataset.target === normalizedTarget);
                         b.classList.toggle('is-active', on);
                         b.setAttribute('aria-selected', on ? 'true' : 'false');
                     });
                     el.querySelectorAll('[data-table-section]').forEach((section) => {
                         const key = section.getAttribute('data-table-section');
-                        section.classList.toggle('hidden-by-filter', !(target && key === target));
+                        section.classList.toggle('hidden-by-filter', !(normalizedTarget && key === normalizedTarget));
                     });
-                    if (emptyEl) emptyEl.style.display = target ? 'none' : '';
-                    if (hintBar) hintBar.style.display = target ? 'none' : '';
+                    if (emptyEl) emptyEl.style.display = normalizedTarget ? 'none' : '';
+                    if (hintBar) hintBar.style.display = normalizedTarget ? 'none' : '';
                 };
 
                 const setTab = (tab) => {
@@ -4943,11 +4947,11 @@
                     btn.onclick = () => {
                         const t = btn.dataset.tab || 'summary';
                         setTab(t);
-                        if (t === 'data') applyFinanceDataFilter(null);
+                        if (t === 'data') applyFinanceDataFilter(el.getAttribute('data-active-data-filter') || '');
                     };
                 });
                 setTab(activeTab);
-                if (activeTab === 'data') applyFinanceDataFilter(null);
+                if (activeTab === 'data') applyFinanceDataFilter(activeDataFilter);
 
                 el.querySelectorAll('[data-action="financeiro-data-filter"]').forEach((btn) => {
                     btn.onclick = () => {
