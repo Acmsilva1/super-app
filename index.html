@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -4607,6 +4607,7 @@
                         <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
                         <td class="col-actions">
                             <div class="app-list-actions">
+                                <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="despesa_fixa">Editar</button>
                                 <button type="button" data-action="financeiro-delete" data-id="${r.id}" data-tipo-registro="despesa_fixa">Excluir</button>
                             </div>
                         </td>
@@ -4825,12 +4826,30 @@
                         this.ensureVisualizationLibraries().then(() => this.refreshAppContent('financeiro')).catch(() => {});
                         return;
                     }
+                    const animateSummaryCards = () => {
+                        const helpers = this.getMotionHelpers();
+                        if (!helpers) return;
+                        const nodes = summaryPanel.querySelectorAll('.app-chart-wrap');
+                        if (!nodes.length) return;
+                        const delayPattern = helpers.stagger ? helpers.stagger(0.06) : 0.06;
+                        helpers.animate(
+                            nodes,
+                            { opacity: [0, 1], y: [14, 0], scale: [0.985, 1], filter: ['blur(2px)', 'blur(0px)'] },
+                            { duration: 0.52, delay: delayPattern, easing: 'cubic-bezier(.2,.8,.2,1)' }
+                        );
+                    };
                     const valueLabelsPlugin = this.buildInlineChartValuePlugin({ asMoney: true });
                     const ctxCategorias = el.querySelector('#financeiro-chart-categorias');
                     if (ctxCategorias && !el._financeiroChartCategoria) {
                         const labels = categoriasGastos.map((x) => x.categoria);
                         const valores = categoriasGastos.map((x) => x.valor);
                         if (labels.length > 0) {
+                            const grad = ctxCategorias.getContext('2d')?.createLinearGradient(0, 0, 420, 0);
+                            if (grad) {
+                                grad.addColorStop(0, 'rgba(56, 189, 248, 0.95)');
+                                grad.addColorStop(0.52, 'rgba(59, 130, 246, 0.9)');
+                                grad.addColorStop(1, 'rgba(37, 99, 235, 0.96)');
+                            }
                             el._financeiroChartCategoria = new Chart(ctxCategorias, {
                                 type: 'bar',
                                 data: {
@@ -4840,12 +4859,30 @@
                                         data: valores,
                                         borderRadius: 10,
                                         borderSkipped: false,
-                                        backgroundColor: '#2563eb',
+                                        backgroundColor: grad || '#2563eb',
+                                        borderColor: 'rgba(125, 211, 252, 0.95)',
+                                        borderWidth: 1.2,
+                                        hoverBackgroundColor: 'rgba(59, 130, 246, 1)',
+                                        hoverBorderColor: 'rgba(186, 230, 253, 1)',
+                                        hoverBorderWidth: 1.4,
                                     }],
                                 },
                                 options: this.mergeChartOptions(
                                     this.getModernChartBaseOptions({ indexAxis: 'y', legend: false }),
-                                    { indexAxis: 'y', scales: { x: { beginAtZero: true } } }
+                                    {
+                                        indexAxis: 'y',
+                                        animation: { duration: 850, easing: 'easeOutQuart', delay: (ctx) => (ctx.dataIndex || 0) * 60 },
+                                        scales: { x: { beginAtZero: true } },
+                                        plugins: {
+                                            tooltip: {
+                                                backgroundColor: 'rgba(8, 20, 38, 0.95)',
+                                                borderColor: 'rgba(125, 211, 252, 0.38)',
+                                                borderWidth: 1,
+                                                titleColor: '#f0f9ff',
+                                                bodyColor: '#dbeafe'
+                                            }
+                                        }
+                                    }
                                 ),
                                 plugins: [valueLabelsPlugin],
                             });
@@ -4863,17 +4900,35 @@
                                     datasets: [{
                                         data: [pago, pendente],
                                         backgroundColor: ['#22c55e', '#ef4444'],
+                                        hoverBackgroundColor: ['#4ade80', '#fb7185'],
                                         borderWidth: 2,
+                                        borderColor: ['rgba(134, 239, 172, 0.8)', 'rgba(252, 165, 165, 0.8)'],
+                                        hoverOffset: 8,
                                     }],
                                 },
                                 options: this.mergeChartOptions(
                                     this.getModernChartBaseOptions({ legend: true }),
-                                    { cutout: '58%', plugins: { legend: { position: 'bottom' } } }
+                                    {
+                                        cutout: '58%',
+                                        rotation: -110,
+                                        animation: { animateRotate: true, animateScale: true, duration: 900, easing: 'easeOutCubic' },
+                                        plugins: {
+                                            legend: { position: 'bottom' },
+                                            tooltip: {
+                                                backgroundColor: 'rgba(8, 20, 38, 0.95)',
+                                                borderColor: 'rgba(148, 163, 184, 0.34)',
+                                                borderWidth: 1,
+                                                titleColor: '#f0f9ff',
+                                                bodyColor: '#dbeafe'
+                                            }
+                                        }
+                                    }
                                 ),
                                 plugins: [valueLabelsPlugin],
                             });
                         }
                     }
+                    animateSummaryCards();
                 };
                 const ensurePoupancaMetaChart = () => {
                     const poupancaPanel = el.querySelector('[data-tab-panel="poupanca"]');
