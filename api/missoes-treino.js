@@ -195,6 +195,28 @@ function getWeekdayIndexFromText(value) {
   return 0;
 }
 
+function addDaysToIsoDate(isoDate, days) {
+  const base = new Date(`${isoDate}T12:00:00-03:00`);
+  base.setDate(base.getDate() + Number(days || 0));
+  const y = base.getFullYear();
+  const m = String(base.getMonth() + 1).padStart(2, '0');
+  const d = String(base.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getMondayOfWeek(isoDate) {
+  const wd = getWeekdayMonToSunFromIso(isoDate);
+  if (!wd) return isoDate;
+  return addDaysToIsoDate(isoDate, -(wd - 1));
+}
+
+function buildWeekDatesFromMonday(mondayIso) {
+  return [1, 2, 3, 4, 5, 6].map((idx) => ({
+    weekday: idx,
+    dateRef: addDaysToIsoDate(mondayIso, idx - 1),
+  }));
+}
+
 function normalizeNome(value) {
   return String(value ?? '').trim().slice(0, 120);
 }
@@ -411,6 +433,25 @@ async function fetchMissionsByDate(dateRef) {
 }
 
 async function fetchWeeklyMissionsSnapshot(dateRef, todayMissions = []) {
+  const weekMonday = getMondayOfWeek(dateRef);
+  const weekSaturday = addDaysToIsoDate(weekMonday, 5);
+
+  const { data: weekRows, error: wErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id, titulo, data_referencia, created_at')
+    .gte('data_referencia', weekMonday)
+    .lte('data_referencia', weekSaturday)
+    .order('created_at', { ascending: false })
+    .limit(800);
+  if (wErr) throw new Error(wErr.message);
+
+  const selectedWeek = new Map();
+  for (const mission of weekRows || []) {
+    const weekdayIdx = getWeekdayIndexFromText(mission?.titulo || '');
+    if (weekdayIdx < 1 || weekdayIdx > 6) continue;
+    if (!selectedWeek.has(weekdayIdx)) selectedWeek.set(weekdayIdx, mission);
+  }
+
   const { data: recentMissionRows, error: mErr } = await supabase
     .from(TABLE_MISSOES)
     .select('id, titulo, data_referencia, created_at')
@@ -420,6 +461,9 @@ async function fetchWeeklyMissionsSnapshot(dateRef, todayMissions = []) {
   if (mErr) throw new Error(mErr.message);
 
   const selectedByWeekday = new Map();
+  for (const [weekdayIdx, mission] of selectedWeek.entries()) {
+    selectedByWeekday.set(weekdayIdx, mission);
+  }
   for (const mission of recentMissionRows || []) {
     const weekdayIdx = getWeekdayIndexFromText(mission?.titulo || '');
     if (weekdayIdx < 1 || weekdayIdx > 6) continue;
@@ -455,6 +499,79 @@ async function fetchWeeklyMissionsSnapshot(dateRef, todayMissions = []) {
     return String(a?.created_at || '').localeCompare(String(b?.created_at || ''));
   });
   return attachFlamesToMissions(grouped);
+}
+
+async function seedNextWeekOnSunday(dateRef) {
+  const wd = getWeekdayMonToSunFromIso(dateRef);
+  if (wd !== 7) return;
+
+  const nextMonday = addDaysToIsoDate(dateRef, 1);
+  const nextSaturday = addDaysToIsoDate(nextMonday, 5);
+  const nextWeekDates = buildWeekDatesFromMonday(nextMonday);
+
+  const { data: existingNextWeek, error: eErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id,titulo,data_referencia')
+    .gte('data_referencia', nextMonday)
+    .lte('data_referencia', nextSaturday);
+  if (eErr) throw new Error(eErr.message);
+
+  const existingByWeekday = new Map();
+  for (const row of existingNextWeek || []) {
+    const idx = getWeekdayIndexFromText(row?.titulo || '');
+    if (idx >= 1 && idx <= 6 && !existingByWeekday.has(idx)) existingByWeekday.set(idx, row);
+  }
+
+  const { data: recentMissionRows, error: mErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id,titulo,data_referencia,created_at,origem')
+    .lt('data_referencia', nextMonday)
+    .order('created_at', { ascending: false })
+    .limit(1000);
+  if (mErr) throw new Error(mErr.message);
+
+  const templateByWeekday = new Map();
+  for (const mission of recentMissionRows || []) {
+    const idx = getWeekdayIndexFromText(mission?.titulo || '');
+    if (idx < 1 || idx > 6) continue;
+    if (!templateByWeekday.has(idx)) templateByWeekday.set(idx, mission);
+    if (templateByWeekday.size === 6) break;
+  }
+
+  for (const target of nextWeekDates) {
+    if (existingByWeekday.has(target.weekday)) continue;
+    const source = templateByWeekday.get(target.weekday);
+    if (!source?.id) continue;
+
+    const { data: sourceItems, error: sErr } = await supabase
+      .from(TABLE_ITENS)
+      .select('*')
+      .eq('missao_id', source.id)
+      .order('ordem', { ascending: true });
+    if (sErr) throw new Error(sErr.message);
+    if (!sourceItems || !sourceItems.length) continue;
+
+    const { data: newMission, error: nErr } = await supabase
+      .from(TABLE_MISSOES)
+      .insert({
+        data_referencia: target.dateRef,
+        titulo: source.titulo,
+        origem: source.origem || 'app',
+      })
+      .select('id')
+      .single();
+    if (nErr || !newMission?.id) continue;
+
+    const payloadItems = sourceItems.map((item) => ({
+      missao_id: newMission.id,
+      nome: item.nome,
+      reps: item.reps,
+      ordem: item.ordem,
+      concluida: false,
+    }));
+    const { error: insErr } = await supabase.from(TABLE_ITENS).insert(payloadItems);
+    if (insErr) throw new Error(insErr.message);
+  }
 }
 
 async function fetchMonthlyMissionGoals(history) {
@@ -688,6 +805,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const queryDate = req.query?.date;
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
+      await seedNextWeekOnSunday(dateRef);
       const weekday = getWeekdayMonToSunFromIso(dateRef);
       if (!isTrainingWeekday(weekday)) {
         const penalty = await getPenaltyState();

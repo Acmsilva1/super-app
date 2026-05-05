@@ -87,7 +87,7 @@ function missionCardHtml(mission, index, isTodayHighlight = false) {
   const shellClass = [
     'mt-mission-shell',
     allDone ? 'is-done' : '',
-    isTodayHighlight ? 'is-today-pulse' : '',
+    isTodayHighlight ? (allDone ? 'is-today-pulse-done' : 'is-today-pulse') : '',
   ].filter(Boolean).join(' ');
   const concludeClass = allDone ? 'mt-btn mt-btn-complete is-done' : 'mt-btn mt-btn-complete';
   return `
@@ -733,11 +733,12 @@ class MissoesTreinoApp {
         const tooltip = isSunday
           ? `Domingo (${dateRef}) - Descanso`
           : (plannedMissionTitle || 'Missao nao definida para este dia');
+        const sundayLabel = '<span class="mt-rest-emoji" aria-hidden="true">😴</span> SONECA';
 
         cells.push(`
           <div class="mt-cal-day ${stateClass}" title="${escapeHtml(tooltip)}">
             <span class="mt-cal-num">${day}</span>
-            <span class="mt-cal-meta">${isSunday ? 'DESCANSO' : plannedMissionTitle ? plannedMissionTitle : '--'}</span>
+            <span class="mt-cal-meta">${isSunday ? sundayLabel : plannedMissionTitle ? plannedMissionTitle : '--'}</span>
           </div>
         `);
       }
@@ -817,6 +818,7 @@ class MissoesTreinoApp {
           .mt-mission-shell:hover{transform:translateY(-4px) scale(1.005);box-shadow:inset 0 0 14px rgba(0,229,255,.06),0 12px 24px rgba(2,20,36,.36);border-color:rgba(0,229,255,.62)}
           .mt-mission-shell.is-done{border-color:rgba(0,208,132,.42)}
           .mt-mission-shell.is-today-pulse{position:relative;border-color:rgba(255,95,31,.9);box-shadow:0 0 0 1px rgba(255,95,31,.4),0 0 14px rgba(255,95,31,.35),inset 0 0 10px rgba(255,95,31,.16);animation:cardIn .55s cubic-bezier(.2,.8,.2,1) both,mt-today-pulse 1.6s ease-in-out infinite}
+          .mt-mission-shell.is-today-pulse-done{position:relative;border-color:rgba(0,208,132,.92);box-shadow:0 0 0 1px rgba(0,208,132,.4),0 0 14px rgba(0,208,132,.35),inset 0 0 10px rgba(0,208,132,.18);animation:cardIn .55s cubic-bezier(.2,.8,.2,1) both,mt-today-pulse-done 1.4s ease-in-out infinite}
           .mt-mission-shell-header{display:flex;justify-content:space-between;gap:6px;align-items:center;padding:8px 9px;border-bottom:1px solid rgba(95,122,153,.25);background:rgba(4,12,19,.5)}
           .mt-mission-shell-header h3{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.74rem;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%}
           .mt-today-badge{display:inline-flex;align-items:center;justify-content:center;margin-left:8px;padding:2px 6px;border-radius:999px;font-size:.55rem;letter-spacing:.06em;text-transform:uppercase;color:#fff7ed;background:linear-gradient(135deg,#f97316,#ea580c);border:1px solid rgba(255,237,213,.5);box-shadow:0 0 8px rgba(249,115,22,.55)}
@@ -900,6 +902,7 @@ class MissoesTreinoApp {
           .mt-cal-day.is-empty-goal{border-color:rgba(84,130,156,.28);background:rgba(8,16,25,.35)}
           .mt-cal-num{font-size:.72rem;color:#e7f8ff;font-weight:700}
           .mt-cal-meta{font-size:.52rem;color:#9fc0d8;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          .mt-rest-emoji{display:inline-block;animation:mt-rest-emoji-nap 1.7s ease-in-out infinite;transform-origin:center}
           .mt-radar-wrap{display:flex;justify-content:center;animation:radarFloat 3.4s ease-in-out infinite}
           .mt-radar-svg{width:100%;max-width:260px;height:auto}
           .mt-radar-grid polygon{fill:none;stroke:rgba(86,126,154,.28);stroke-width:1}
@@ -924,6 +927,8 @@ class MissoesTreinoApp {
           @keyframes mt-title-pulse{0%,100%{text-shadow:0 0 5px rgba(0,229,255,.35),0 0 10px rgba(0,229,255,.2)}50%{text-shadow:0 0 8px rgba(0,229,255,.6),0 0 18px rgba(0,229,255,.35)}}
           @keyframes mt-chroma{0%,78%,100%{opacity:.1;transform:translateX(0)}80%{opacity:.25;transform:translateX(1px)}82%{opacity:.18;transform:translateX(-1px)}}
           @keyframes mt-today-pulse{0%,100%{transform:translateY(0) scale(1);box-shadow:0 0 0 1px rgba(255,95,31,.38),0 0 12px rgba(255,95,31,.3),inset 0 0 8px rgba(255,95,31,.14)}50%{transform:translateY(-2px) scale(1.008);box-shadow:0 0 0 1px rgba(255,95,31,.55),0 0 20px rgba(255,95,31,.5),inset 0 0 12px rgba(255,95,31,.2)}}
+          @keyframes mt-today-pulse-done{0%,100%{transform:translateY(0) scale(1);box-shadow:0 0 0 1px rgba(0,208,132,.38),0 0 12px rgba(0,208,132,.28),inset 0 0 8px rgba(0,208,132,.14)}50%{transform:translateY(-2px) scale(1.008);box-shadow:0 0 0 1px rgba(0,208,132,.55),0 0 20px rgba(0,208,132,.48),inset 0 0 12px rgba(0,208,132,.2)}}
+          @keyframes mt-rest-emoji-nap{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-2px) rotate(-8deg)}}
         </style>
 
         <header class="mt-header">
