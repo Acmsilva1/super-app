@@ -647,6 +647,29 @@ class MissoesTreinoApp {
         byDate.get(dateRef).push(goal);
       }
 
+      const normalizeWeekdayKey = (text) => {
+        const normalized = String(text || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase();
+        if (normalized.includes('segunda')) return 'mon';
+        if (normalized.includes('terca')) return 'tue';
+        if (normalized.includes('quarta')) return 'wed';
+        if (normalized.includes('quinta')) return 'thu';
+        if (normalized.includes('sexta')) return 'fri';
+        if (normalized.includes('sabado')) return 'sat';
+        return '';
+      };
+
+      const weekdayMissionTemplate = { mon: '', tue: '', wed: '', thu: '', fri: '', sat: '' };
+      for (const goal of goals) {
+        const key = normalizeWeekdayKey(goal?.title || '');
+        if (!key) continue;
+        if (!weekdayMissionTemplate[key]) weekdayMissionTemplate[key] = String(goal?.title || '').trim();
+      }
+
+      const weekdayKeyByJs = { 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat' };
+
       const cells = [];
       for (let i = 0; i < firstDayMondayBased; i += 1) {
         cells.push('<div class="mt-cal-day is-empty"></div>');
@@ -656,6 +679,8 @@ class MissoesTreinoApp {
         const dateRef = `${yy}-${String(mm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const jsWeekday = new Date(yy, mm - 1, day).getDay();
         const isSunday = jsWeekday === 0;
+        const weekdayKey = weekdayKeyByJs[jsWeekday] || '';
+        const plannedMissionTitle = weekdayMissionTemplate[weekdayKey] || '';
         const dayGoals = byDate.get(dateRef) || [];
         const completedCount = dayGoals.filter((g) => Boolean(g.completed)).length;
         const totalCount = dayGoals.length;
@@ -670,14 +695,12 @@ class MissoesTreinoApp {
               : 'is-empty-goal';
         const tooltip = isSunday
           ? `Domingo (${dateRef}) - Descanso`
-          : totalCount
-            ? `${dateRef}\n${dayGoals.map((g) => `- ${String(g.title || 'Missao diaria')} (${Number(g.items_completed || 0)}/${Number(g.items_total || 0)})`).join('\n')}`
-            : `${dateRef}\nSem meta registrada para este dia.`;
+          : (plannedMissionTitle || 'Missao nao definida para este dia');
 
         cells.push(`
           <div class="mt-cal-day ${stateClass}" title="${escapeHtml(tooltip)}">
             <span class="mt-cal-num">${day}</span>
-            <span class="mt-cal-meta">${isSunday ? 'DESCANSO' : totalCount ? `${completedCount}/${totalCount}` : '--'}</span>
+            <span class="mt-cal-meta">${isSunday ? 'DESCANSO' : plannedMissionTitle ? plannedMissionTitle : '--'}</span>
           </div>
         `);
       }
@@ -852,7 +875,7 @@ class MissoesTreinoApp {
           .mt-cal-day.is-pending{border-color:rgba(255,166,0,.55);background:rgba(255,166,0,.14)}
           .mt-cal-day.is-empty-goal{border-color:rgba(84,130,156,.28);background:rgba(8,16,25,.35)}
           .mt-cal-num{font-size:.72rem;color:#e7f8ff;font-weight:700}
-          .mt-cal-meta{font-size:.56rem;color:#9fc0d8;letter-spacing:.04em}
+          .mt-cal-meta{font-size:.52rem;color:#9fc0d8;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
           .mt-radar-wrap{display:flex;justify-content:center;animation:radarFloat 3.4s ease-in-out infinite}
           .mt-radar-svg{width:100%;max-width:260px;height:auto}
           .mt-radar-grid polygon{fill:none;stroke:rgba(86,126,154,.28);stroke-width:1}
