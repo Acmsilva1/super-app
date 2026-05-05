@@ -16,6 +16,34 @@ function normalizeCompare(value) {
   return String(value ?? '').trim().toLowerCase();
 }
 
+function normalizeWeekdayText(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function getWeekdayTokensForToday() {
+  const jsDay = new Date().getDay(); // 0..6 (dom..sab)
+  const map = {
+    1: ['segunda', 'segunda-feira', 'seg'],
+    2: ['terca', 'terca-feira', 'ter', 'terça', 'terça-feira'],
+    3: ['quarta', 'quarta-feira', 'qua'],
+    4: ['quinta', 'quinta-feira', 'qui'],
+    5: ['sexta', 'sexta-feira', 'sex'],
+    6: ['sabado', 'sabado-feira', 'sab', 'sábado'],
+  };
+  return map[jsDay] || [];
+}
+
+function missionMatchesTodayByName(mission, weekdayTokens) {
+  if (!mission || !Array.isArray(weekdayTokens) || !weekdayTokens.length) return false;
+  const referenceText = normalizeWeekdayText(`${mission?.title || ''} ${mission?.data_referencia || ''}`);
+  if (!referenceText) return false;
+  return weekdayTokens.some((token) => referenceText.includes(normalizeWeekdayText(token)));
+}
+
 function parseExerciseMeta(item) {
   const rawName = String(item?.name || '');
   const explicitSeries = Number(item?.series || 0);
@@ -52,16 +80,20 @@ function tempItemHtml(item) {
   `;
 }
 
-function missionCardHtml(mission, index) {
+function missionCardHtml(mission, index, isTodayHighlight = false) {
   const total = mission.items?.length || 0;
   const done = (mission.items || []).filter((item) => item.completed).length;
   const allDone = total > 0 && done === total;
-  const shellClass = allDone ? 'mt-mission-shell is-done' : 'mt-mission-shell';
+  const shellClass = [
+    'mt-mission-shell',
+    allDone ? 'is-done' : '',
+    isTodayHighlight ? 'is-today-pulse' : '',
+  ].filter(Boolean).join(' ');
   const concludeClass = allDone ? 'mt-btn mt-btn-complete is-done' : 'mt-btn mt-btn-complete';
   return `
     <section class="${shellClass}" style="--card-i:${index};">
       <header class="mt-mission-shell-header">
-        <h3>${escapeHtml(mission.title || `MISSAO ${index + 1}`)}</h3>
+        <h3>${escapeHtml(mission.title || `MISSAO ${index + 1}`)} ${isTodayHighlight ? '<span class="mt-today-badge">TREINO DE HOJE</span>' : ''}</h3>
         <span>${done}/${total} itens concluidos</span>
       </header>
       <div class="mt-mission-list">
@@ -551,7 +583,12 @@ class MissoesTreinoApp {
       return;
     }
 
-    this.listEl.innerHTML = this.missions.map((mission, idx) => missionCardHtml(mission, idx)).join('');
+    const weekdayTokens = getWeekdayTokensForToday();
+    const highlightedMission = this.missions.find((mission) => missionMatchesTodayByName(mission, weekdayTokens));
+    const highlightedMissionId = highlightedMission?.id || null;
+    this.listEl.innerHTML = this.missions
+      .map((mission, idx) => missionCardHtml(mission, idx, Boolean(highlightedMissionId && mission.id === highlightedMissionId)))
+      .join('');
     this.renderPerformance();
     this.renderToasts();
   }
@@ -779,8 +816,10 @@ class MissoesTreinoApp {
           .mt-mission-shell{border:1px solid var(--mt-border);background:var(--mt-panel);border-radius:10px;box-shadow:inset 0 0 12px rgba(0,229,255,.04);overflow:hidden;animation:cardIn .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--card-i, 0) * .07s);transition:transform .24s ease,box-shadow .24s ease,border-color .24s ease}
           .mt-mission-shell:hover{transform:translateY(-4px) scale(1.005);box-shadow:inset 0 0 14px rgba(0,229,255,.06),0 12px 24px rgba(2,20,36,.36);border-color:rgba(0,229,255,.62)}
           .mt-mission-shell.is-done{border-color:rgba(0,208,132,.42)}
+          .mt-mission-shell.is-today-pulse{position:relative;border-color:rgba(255,95,31,.9);box-shadow:0 0 0 1px rgba(255,95,31,.4),0 0 14px rgba(255,95,31,.35),inset 0 0 10px rgba(255,95,31,.16);animation:cardIn .55s cubic-bezier(.2,.8,.2,1) both,mt-today-pulse 1.6s ease-in-out infinite}
           .mt-mission-shell-header{display:flex;justify-content:space-between;gap:6px;align-items:center;padding:8px 9px;border-bottom:1px solid rgba(95,122,153,.25);background:rgba(4,12,19,.5)}
           .mt-mission-shell-header h3{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.74rem;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%}
+          .mt-today-badge{display:inline-flex;align-items:center;justify-content:center;margin-left:8px;padding:2px 6px;border-radius:999px;font-size:.55rem;letter-spacing:.06em;text-transform:uppercase;color:#fff7ed;background:linear-gradient(135deg,#f97316,#ea580c);border:1px solid rgba(255,237,213,.5);box-shadow:0 0 8px rgba(249,115,22,.55)}
           .mt-mission-shell-header span{font-size:.6rem;color:#9fb0c0;text-transform:uppercase;letter-spacing:.06em}
           .mt-mission-list{display:grid;gap:0}
           .mt-mission-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-top:1px solid rgba(95,122,153,.16)}
@@ -884,6 +923,7 @@ class MissoesTreinoApp {
           @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}.mt-performance-wrap{grid-template-columns:1fr}.mt-list{grid-template-columns:1fr}.mt-fab-floating{right:12px;bottom:12px;width:52px;height:52px}}
           @keyframes mt-title-pulse{0%,100%{text-shadow:0 0 5px rgba(0,229,255,.35),0 0 10px rgba(0,229,255,.2)}50%{text-shadow:0 0 8px rgba(0,229,255,.6),0 0 18px rgba(0,229,255,.35)}}
           @keyframes mt-chroma{0%,78%,100%{opacity:.1;transform:translateX(0)}80%{opacity:.25;transform:translateX(1px)}82%{opacity:.18;transform:translateX(-1px)}}
+          @keyframes mt-today-pulse{0%,100%{transform:translateY(0) scale(1);box-shadow:0 0 0 1px rgba(255,95,31,.38),0 0 12px rgba(255,95,31,.3),inset 0 0 8px rgba(255,95,31,.14)}50%{transform:translateY(-2px) scale(1.008);box-shadow:0 0 0 1px rgba(255,95,31,.55),0 0 20px rgba(255,95,31,.5),inset 0 0 12px rgba(255,95,31,.2)}}
         </style>
 
         <header class="mt-header">

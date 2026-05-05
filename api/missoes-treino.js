@@ -21,14 +21,31 @@ function parseBody(req) {
   return req.body;
 }
 
-function getTodayBrazilIsoDate() {
-  const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
+function getTzDateParts(timeZone, dateObj = new Date()) {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   });
-  return fmt.format(new Date());
+  const parts = dtf.formatToParts(dateObj);
+  const map = {};
+  for (const part of parts) {
+    if (part?.type === 'year' || part?.type === 'month' || part?.type === 'day') {
+      map[part.type] = String(part.value || '').padStart(2, '0');
+    }
+  }
+  const year = String(map.year || '');
+  const month = String(map.month || '');
+  const day = String(map.day || '');
+  if (!/^\d{4}$/.test(year) || !/^\d{2}$/.test(month) || !/^\d{2}$/.test(day)) {
+    throw new Error('Falha ao obter data no fuso configurado');
+  }
+  return { year, month, day, isoDate: `${year}-${month}-${day}` };
+}
+
+function getTodayBrazilIsoDate() {
+  return getTzDateParts('America/Sao_Paulo').isoDate;
 }
 
 function getMonthRangeFromDateRef(dateRef) {
@@ -112,20 +129,9 @@ async function fetchMonthlyHistory(anchorMonthRef, cycleTotalDays = 30) {
 }
 
 function getBrazilDatePartsFrom(dateObj) {
-  const dateFmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  const monthFmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-  });
-  const isoDate = dateFmt.format(dateObj);
-  const monthRef = monthFmt.format(dateObj);
-  const day = Number(isoDate.split('-')[2] || 1);
+  const { year, month, day: dayStr, isoDate } = getTzDateParts('America/Sao_Paulo', dateObj);
+  const monthRef = `${year}-${month}`;
+  const day = Number(dayStr || 1);
   return { isoDate, monthRef, day };
 }
 
@@ -135,6 +141,17 @@ function getBrazilDateParts() {
 
 function isIsoDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
+}
+
+function getWeekdayMonToSunFromIso(isoDate) {
+  if (!isIsoDate(isoDate)) return null;
+  const d = new Date(`${isoDate}T12:00:00-03:00`);
+  const jsDay = d.getDay(); // 0..6 (Sun..Sat)
+  return jsDay === 0 ? 7 : jsDay; // 1..7 (Mon..Sun)
+}
+
+function isTrainingWeekday(weekdayMonToSun) {
+  return Number.isFinite(weekdayMonToSun) && weekdayMonToSun >= 1 && weekdayMonToSun <= 6;
 }
 
 function normalizeNome(value) {
@@ -258,17 +275,40 @@ function groupMissions(missionRows, itemRows) {
 }
 
 async function autoCarryOverLatestMission(dateRef) {
-  const { data: latestMissions, error: mErr } = await supabase
+  const targetWeekday = getWeekdayMonToSunFromIso(dateRef);
+  if (!isTrainingWeekday(targetWeekday)) return false;
+
+  let { data: latestMissions, error: mErr } = await supabase
     .from(TABLE_MISSOES)
-    .select('data_referencia')
+    .select('data_referencia,created_at')
     .lt('data_referencia', dateRef)
     .order('data_referencia', { ascending: false })
-    .limit(1);
+    .limit(180);
 
   if (mErr) throw new Error(mErr.message);
-  if (!latestMissions || latestMissions.length === 0) return false;
-  
-  const prevDate = latestMissions[0].data_referencia;
+
+  let prevDate = '';
+  for (const row of latestMissions || []) {
+    const rowDate = String(row?.data_referencia || '');
+    if (!isIsoDate(rowDate)) continue;
+    if (getWeekdayMonToSunFromIso(rowDate) === targetWeekday) {
+      prevDate = rowDate;
+      break;
+    }
+  }
+
+  // Fallback para base antiga (data inconsistente) pela missao mais recente criada.
+  if (!prevDate) {
+    const fallback = await supabase
+      .from(TABLE_MISSOES)
+      .select('data_referencia,created_at')
+      .neq('data_referencia', dateRef)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (fallback.error) throw new Error(fallback.error.message);
+    prevDate = String(fallback?.data?.[0]?.data_referencia || '');
+  }
+  if (!prevDate) return false;
 
   const { data: oldMissions, error: omErr } = await supabase
     .from(TABLE_MISSOES)
@@ -317,6 +357,19 @@ async function fetchMissionsByDate(dateRef) {
     .eq('data_referencia', dateRef)
     .order('created_at', { ascending: true });
   if (mErr) throw new Error(mErr.message);
+
+  if (!missionRows || missionRows.length === 0) {
+    const carriedOver = await autoCarryOverLatestMission(dateRef);
+    if (carriedOver) {
+      const retry = await supabase
+        .from(TABLE_MISSOES)
+        .select('id, titulo, data_referencia, created_at')
+        .eq('data_referencia', dateRef)
+        .order('created_at', { ascending: true });
+      if (retry.error) throw new Error(retry.error.message);
+      missionRows = retry.data || [];
+    }
+  }
 
   const missionIds = (missionRows || []).map((m) => m.id).filter(Boolean);
   if (!missionIds.length) return [];
@@ -564,6 +617,12 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const queryDate = req.query?.date;
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
+      const weekday = getWeekdayMonToSunFromIso(dateRef);
+      if (!isTrainingWeekday(weekday)) {
+        const penalty = await getPenaltyState();
+        const performance = await fetchMonthlyPerformance(dateRef);
+        return json(res, 200, { date: dateRef, missions: [], penalty, performance, rest_day: true });
+      }
       const missions = await fetchMissionsByDate(dateRef);
       const penalty = await getPenaltyState();
       const performance = await fetchMonthlyPerformance(dateRef);
@@ -573,6 +632,10 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const body = parseBody(req);
       const dateRef = isIsoDate(body.date) ? String(body.date) : getTodayBrazilIsoDate();
+      const weekday = getWeekdayMonToSunFromIso(dateRef);
+      if (!isTrainingWeekday(weekday)) {
+        return json(res, 409, { error: 'Domingo e dia de descanso: treinos sao de segunda a sabado.' });
+      }
       const title = normalizeNome(body.title || 'Missao diaria') || 'Missao diaria';
       const items = normalizeItems(body.items);
 
