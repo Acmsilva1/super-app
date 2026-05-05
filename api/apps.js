@@ -34,7 +34,7 @@ export const APPS = [
     status: 'active',
     title: 'Missoes de Treino',
     description: 'Controle diario de missoes com progresso local, sem dependencia de API backend.',
-    category: 'Saude',
+    category: 'Produtividade',
   },
 ];
 
