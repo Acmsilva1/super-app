@@ -716,20 +716,6 @@ class MissoesTreinoApp {
     };
     const radar = Array.isArray(p.radar) ? p.radar : [];
     const radarSvg = radar.length ? this.buildRadarSvg(radar) : '<div class="mt-perf-empty">Sem dados de desempenho</div>';
-    const goalsHtml = goals.length
-      ? goals.map((goal, idx) => {
-        const done = Boolean(goal.completed);
-        const stateClass = done ? 'is-open' : 'is-closed';
-        return `
-          <div class="mt-success-history-item ${stateClass}" style="--history-i:${idx};">
-            <div class="mt-success-line">
-              <strong>${done ? 'CONCLUIDA' : 'PENDENTE'}</strong>
-            </div>
-            <p>${escapeHtml(goal.title || 'Missao diaria')} - ${Number(goal.items_completed || 0)}/${Number(goal.items_total || 0)} itens (${escapeHtml(goal.date_ref || selectedMonth)})</p>
-          </div>
-        `;
-      }).join('')
-      : '<div class="mt-perf-empty">Sem metas neste mes.</div>';
     this.performanceHost.innerHTML = `
       <section class="mt-performance-wrap">
         <article class="mt-perf-card">
@@ -747,7 +733,6 @@ class MissoesTreinoApp {
           </div>
           <p>${Number(selectedEntry.completed_goals || 0)}/${Number(selectedEntry.total_goals || 0)} metas concluidas em ${escapeHtml(selectedMonth || '--')}</p>
           ${buildCalendarHtml()}
-          <div class="mt-success-history">${goalsHtml}</div>
         </article>
         <article class="mt-perf-card">
           <h4>RADAR DE TREINO POR TIPO</h4>
