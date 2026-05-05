@@ -333,6 +333,83 @@ async function fetchMissionsByDate(dateRef) {
   return attachFlamesToMissions(grouped);
 }
 
+async function fetchMonthlyMissionGoals(history) {
+  const monthRefs = (history || []).map((h) => String(h?.month_ref || '')).filter(Boolean);
+  if (!monthRefs.length) return [];
+
+  const firstMonth = monthRefs[monthRefs.length - 1];
+  const lastMonth = monthRefs[0];
+  const rangeStart = `${firstMonth}-01`;
+  const rangeEnd = `${lastMonth}-31`;
+
+  const { data: missions, error: mErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id,titulo,data_referencia,created_at')
+    .gte('data_referencia', rangeStart)
+    .lte('data_referencia', rangeEnd)
+    .order('data_referencia', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (mErr) throw new Error(mErr.message);
+
+  const missionIds = (missions || []).map((m) => m.id).filter(Boolean);
+  if (!missionIds.length) {
+    return monthRefs.map((monthRef) => ({
+      month_ref: monthRef,
+      total_goals: 0,
+      completed_goals: 0,
+      success_rate_percent: 0,
+      goals: [],
+    }));
+  }
+
+  const { data: itemRows, error: iErr } = await supabase
+    .from(TABLE_ITENS)
+    .select('missao_id,concluida')
+    .in('missao_id', missionIds);
+  if (iErr) throw new Error(iErr.message);
+
+  const itemMap = new Map();
+  for (const id of missionIds) itemMap.set(id, []);
+  for (const row of itemRows || []) {
+    if (!itemMap.has(row.missao_id)) itemMap.set(row.missao_id, []);
+    itemMap.get(row.missao_id).push(Boolean(row.concluida));
+  }
+
+  const byMonth = new Map();
+  for (const monthRef of monthRefs) byMonth.set(monthRef, []);
+
+  for (const mission of missions || []) {
+    const monthRef = String(mission?.data_referencia || '').slice(0, 7);
+    if (!byMonth.has(monthRef)) continue;
+    const states = itemMap.get(mission.id) || [];
+    const totalItems = states.length;
+    const doneItems = states.filter(Boolean).length;
+    const completed = totalItems > 0 && doneItems === totalItems;
+    byMonth.get(monthRef).push({
+      mission_id: mission.id,
+      title: mission.titulo || 'Missao diaria',
+      date_ref: mission.data_referencia,
+      items_total: totalItems,
+      items_completed: doneItems,
+      completed,
+    });
+  }
+
+  return monthRefs.map((monthRef) => {
+    const goals = byMonth.get(monthRef) || [];
+    const totalGoals = goals.length;
+    const completedGoals = goals.filter((g) => g.completed).length;
+    const successRate = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+    return {
+      month_ref: monthRef,
+      total_goals: totalGoals,
+      completed_goals: completedGoals,
+      success_rate_percent: successRate,
+      goals,
+    };
+  });
+}
+
 async function fetchMonthlyPerformance(dateRef) {
   const { start, end, monthRef } = getMonthRangeFromDateRef(dateRef);
   const cycleTotalDays = 30;
@@ -348,12 +425,14 @@ async function fetchMonthlyPerformance(dateRef) {
 
   const missionIds = (missionRows || []).map((m) => m.id).filter(Boolean);
   if (!missionIds.length) {
+    const missionGoalsByMonth = await fetchMonthlyMissionGoals(history);
     return {
       month_ref: monthRef,
       created_missions: cycleTotalDays,
       completed_missions: completedCycleDays,
       success_rate_percent: Math.round((completedCycleDays / cycleTotalDays) * 100),
       history,
+      mission_goals_by_month: missionGoalsByMonth,
       radar: [
         { key: 'forca', label: 'Forca', value: 0, score: 0 },
         { key: 'cardio', label: 'Cardio', value: 0, score: 0 },
@@ -409,6 +488,7 @@ async function fetchMonthlyPerformance(dateRef) {
   ];
 
   const successRatePercent = Math.round((completedCycleDays / cycleTotalDays) * 100);
+  const missionGoalsByMonth = await fetchMonthlyMissionGoals(history);
 
   return {
     month_ref: monthRef,
@@ -416,6 +496,7 @@ async function fetchMonthlyPerformance(dateRef) {
     completed_missions: completedCycleDays,
     success_rate_percent: successRatePercent,
     history,
+    mission_goals_by_month: missionGoalsByMonth,
     radar,
   };
 }

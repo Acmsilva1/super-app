@@ -64,7 +64,7 @@ function missionCardHtml(mission, index) {
   return `
     <section class="${shellClass}" style="--card-i:${index};">
       <header class="mt-mission-shell-header">
-        <h3>MISSAO ${index + 1}</h3>
+        <h3>${escapeHtml(mission.title || `MISSAO ${index + 1}`)}</h3>
         <span>${done}/${total} itens concluidos</span>
       </header>
       <div class="mt-mission-list">
@@ -107,6 +107,7 @@ class MissoesTreinoApp {
     this.toasts = [];
     this.editingMissionId = null;
     this.editingTempItemId = null;
+    this.selectedGoalsMonth = null;
     this.isLoading = false;
     this.errorMessage = '';
     this.onClick = this.onClick.bind(this);
@@ -139,6 +140,7 @@ class MissoesTreinoApp {
     this.modalTitleEl = this.container.querySelector('[data-role="modal-title"]');
     this.modalDescEl = this.container.querySelector('[data-role="modal-desc"]');
     this.modalSubmitEl = this.container.querySelector('[data-role="modal-submit"]');
+    this.tempTitleInput = this.container.querySelector('[data-role="temp-title"]');
     this.tempNameInput = this.container.querySelector('[data-role="temp-name"]');
     this.tempSeriesInput = this.container.querySelector('[data-role="temp-series"]');
     this.tempRepsInput = this.container.querySelector('[data-role="temp-reps"]');
@@ -303,11 +305,13 @@ class MissoesTreinoApp {
       this.modalTitleEl.textContent = 'EDITAR MISSAO';
       this.modalDescEl.textContent = 'Edite os itens desta missao.';
       this.modalSubmitEl.textContent = 'ATUALIZAR MISSAO';
+      if (this.tempTitleInput) this.tempTitleInput.value = String(mission?.title || '').trim();
     } else {
       this.tempMissions = [];
       this.modalTitleEl.textContent = 'NOVA MISSAO';
       this.modalDescEl.textContent = 'Adicione os itens desta nova missao diaria.';
       this.modalSubmitEl.textContent = 'CRIAR MISSAO';
+      if (this.tempTitleInput) this.tempTitleInput.value = '';
     }
     this.editingTempItemId = null;
     this.resetTempInputs();
@@ -406,12 +410,19 @@ class MissoesTreinoApp {
       if (this.editingMissionId) {
         await this.api('', {
           method: 'PATCH',
-          body: JSON.stringify({ mission_id: this.editingMissionId, replace_items: payloadItems }),
+          body: JSON.stringify({
+            mission_id: this.editingMissionId,
+            title: String(this.tempTitleInput?.value || '').trim() || 'Missao diaria',
+            replace_items: payloadItems,
+          }),
         });
       } else {
         await this.api('', {
           method: 'POST',
-          body: JSON.stringify({ items: payloadItems }),
+          body: JSON.stringify({
+            title: String(this.tempTitleInput?.value || '').trim() || 'Missao diaria',
+            items: payloadItems,
+          }),
         });
       }
 
@@ -593,45 +604,55 @@ class MissoesTreinoApp {
   renderPerformance() {
     if (!this.performanceHost) return;
     const p = this.performance || {};
-    const rate = Math.max(0, Math.min(100, Number(p.success_rate_percent || 0)));
-    const created = Number(p.created_missions || 0);
-    const completed = Number(p.completed_missions || 0);
-    const history = Array.isArray(p.history) && p.history.length
-      ? p.history
-      : [{
-        month_ref: p.month_ref || '',
-        completed_days: completed,
-        cycle_total_days: created || 30,
-        success_rate_percent: rate,
-        closed: false,
-      }];
+    const history = Array.isArray(p.history) ? p.history : [];
+    const goalsByMonth = Array.isArray(p.mission_goals_by_month) ? p.mission_goals_by_month : [];
+    const monthOptions = goalsByMonth.length
+      ? goalsByMonth.map((entry) => String(entry.month_ref || '')).filter(Boolean)
+      : history.map((entry) => String(entry.month_ref || '')).filter(Boolean);
+    const selectedMonth = (this.selectedGoalsMonth && monthOptions.includes(this.selectedGoalsMonth))
+      ? this.selectedGoalsMonth
+      : (monthOptions[0] || String(p.month_ref || ''));
+    const selectedEntry = goalsByMonth.find((entry) => String(entry.month_ref || '') === selectedMonth) || {
+      month_ref: selectedMonth,
+      total_goals: 0,
+      completed_goals: 0,
+      success_rate_percent: 0,
+      goals: [],
+    };
+    const goals = Array.isArray(selectedEntry.goals) ? selectedEntry.goals : [];
     const radar = Array.isArray(p.radar) ? p.radar : [];
     const radarSvg = radar.length ? this.buildRadarSvg(radar) : '<div class="mt-perf-empty">Sem dados de desempenho</div>';
-    const historyHtml = history.map((entry, idx) => {
-      const entryRate = Math.max(0, Math.min(100, Number(entry?.success_rate_percent || 0)));
-      const entryCompleted = Number(entry?.completed_days || 0);
-      const entryTotal = Number(entry?.cycle_total_days || 30);
-      const entryMonth = String(entry?.month_ref || '');
-      const isClosed = Boolean(entry?.closed);
-      const stateClass = isClosed ? 'is-closed' : 'is-open';
-      const statusLabel = isClosed ? 'CICLO FECHADO' : 'CICLO ATUAL';
-      return `
-        <div class="mt-success-history-item ${stateClass}" style="--history-i:${idx};">
-          <div class="mt-success-line">
-            <div class="mt-success-track">
-              <div class="mt-success-fill ${stateClass}" style="width:${entryRate}%"></div>
+    const goalsHtml = goals.length
+      ? goals.map((goal, idx) => {
+        const done = Boolean(goal.completed);
+        const stateClass = done ? 'is-open' : 'is-closed';
+        return `
+          <div class="mt-success-history-item ${stateClass}" style="--history-i:${idx};">
+            <div class="mt-success-line">
+              <strong>${done ? 'CONCLUIDA' : 'PENDENTE'}</strong>
             </div>
-            <strong>${entryRate}%</strong>
+            <p>${escapeHtml(goal.title || 'Missao diaria')} - ${Number(goal.items_completed || 0)}/${Number(goal.items_total || 0)} itens (${escapeHtml(goal.date_ref || selectedMonth)})</p>
           </div>
-          <p>${entryCompleted}/${entryTotal} dias concluidos no ciclo de 30 dias (${escapeHtml(entryMonth)}) - ${statusLabel}</p>
-        </div>
-      `;
-    }).join('');
+        `;
+      }).join('')
+      : '<div class="mt-perf-empty">Sem metas neste mes.</div>';
     this.performanceHost.innerHTML = `
       <section class="mt-performance-wrap">
         <article class="mt-perf-card">
-          <h4>TAXA DE SUCESSO MENSAL</h4>
-          <div class="mt-success-history">${historyHtml}</div>
+          <div class="mt-goals-head">
+            <h4>METAS DO MES (POR MISSAO)</h4>
+            <select class="mt-month-select" data-role="month-select">
+              ${monthOptions.map((month) => `<option value="${escapeHtml(month)}" ${month === selectedMonth ? 'selected' : ''}>${escapeHtml(month)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="mt-success-line">
+            <div class="mt-success-track">
+              <div class="mt-success-fill is-open" style="width:${Math.max(0, Math.min(100, Number(selectedEntry.success_rate_percent || 0)))}%"></div>
+            </div>
+            <strong>${Math.max(0, Math.min(100, Number(selectedEntry.success_rate_percent || 0)))}%</strong>
+          </div>
+          <p>${Number(selectedEntry.completed_goals || 0)}/${Number(selectedEntry.total_goals || 0)} metas concluidas em ${escapeHtml(selectedMonth || '--')}</p>
+          <div class="mt-success-history">${goalsHtml}</div>
         </article>
         <article class="mt-perf-card">
           <h4>RADAR DE TREINO POR TIPO</h4>
@@ -639,6 +660,14 @@ class MissoesTreinoApp {
         </article>
       </section>
     `;
+    const monthSelect = this.performanceHost.querySelector('[data-role="month-select"]');
+    if (monthSelect) {
+      monthSelect.addEventListener('change', () => {
+        const month = String(monthSelect.value || '');
+        this.selectedGoalsMonth = month;
+        this.renderPerformance();
+      });
+    }
   }
 
   template() {
@@ -663,35 +692,35 @@ class MissoesTreinoApp {
           .mt-progress-wrap{height:8px;background:#0d141f;border:1px solid rgba(96,102,122,.28);margin:14px 0;border-radius:999px;overflow:hidden;position:relative;z-index:1}
           .mt-progress{height:100%;width:0%;background:linear-gradient(90deg,#00e5ff,#00c6ff);transition:width .35s ease}
           .mt-progress.is-full{background:linear-gradient(90deg,#00d084,#3ce29f)}
-          .mt-list{display:grid;gap:10px;position:relative;z-index:1}
+          .mt-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;position:relative;z-index:1}
           .mt-empty-card{border:1px dashed var(--mt-border);background:rgba(255,255,255,.03);padding:24px 14px;text-align:center;border-radius:10px}
           .mt-empty-title{margin:0;color:var(--mt-accent);font-weight:800;letter-spacing:.12em;font-size:.78rem}
           .mt-empty-text{margin:6px 0 0;color:#8f9aa6;font-size:.72rem}
           .mt-mission-shell{border:1px solid var(--mt-border);background:var(--mt-panel);border-radius:10px;box-shadow:inset 0 0 12px rgba(0,229,255,.04);overflow:hidden;animation:cardIn .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--card-i, 0) * .07s);transition:transform .24s ease,box-shadow .24s ease,border-color .24s ease}
           .mt-mission-shell:hover{transform:translateY(-4px) scale(1.005);box-shadow:inset 0 0 14px rgba(0,229,255,.06),0 12px 24px rgba(2,20,36,.36);border-color:rgba(0,229,255,.62)}
           .mt-mission-shell.is-done{border-color:rgba(0,208,132,.42)}
-          .mt-mission-shell-header{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 11px;border-bottom:1px solid rgba(95,122,153,.25);background:rgba(4,12,19,.5)}
-          .mt-mission-shell-header h3{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.86rem;letter-spacing:.08em}
-          .mt-mission-shell-header span{font-size:.68rem;color:#9fb0c0;text-transform:uppercase;letter-spacing:.08em}
+          .mt-mission-shell-header{display:flex;justify-content:space-between;gap:6px;align-items:center;padding:8px 9px;border-bottom:1px solid rgba(95,122,153,.25);background:rgba(4,12,19,.5)}
+          .mt-mission-shell-header h3{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.74rem;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%}
+          .mt-mission-shell-header span{font-size:.6rem;color:#9fb0c0;text-transform:uppercase;letter-spacing:.06em}
           .mt-mission-list{display:grid;gap:0}
-          .mt-mission-row{display:flex;justify-content:space-between;gap:10px;padding:11px;border-top:1px solid rgba(95,122,153,.16)}
+          .mt-mission-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-top:1px solid rgba(95,122,153,.16)}
           .mt-mission-row:first-child{border-top:none}
           .mt-mission-row.is-done{background:rgba(0,208,132,.07)}
           .mt-mission-main{min-width:0}
-          .mt-mission-title{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:1rem}
+          .mt-mission-title{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.82rem}
           .mt-mission-title.is-done{color:var(--mt-ok);text-decoration:line-through;opacity:.72}
-          .mt-mission-meta{margin:5px 0 0;font-size:.68rem;letter-spacing:.11em;color:#94a3b8;text-transform:uppercase}
+          .mt-mission-meta{margin:3px 0 0;font-size:.56rem;letter-spacing:.08em;color:#94a3b8;text-transform:uppercase}
           .mt-mission-meta strong{color:#e8f6ff}
-          .mt-card-flames{display:grid;grid-template-columns:repeat(30,minmax(0,1fr));gap:4px;padding:9px 11px;border-top:1px solid rgba(95,122,153,.18);border-bottom:1px solid rgba(95,122,153,.18)}
+          .mt-card-flames{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:3px;padding:7px 8px;border-top:1px solid rgba(95,122,153,.18);border-bottom:1px solid rgba(95,122,153,.18)}
           .mt-flame{display:flex;justify-content:center;align-items:center}
-          .mt-flame i{display:block;width:9px;height:13px;background:radial-gradient(circle at 50% 80%,rgba(132,241,255,.35),rgba(0,229,255,.95) 56%,rgba(0,150,180,.88) 100%);clip-path:polygon(50% 0%,72% 26%,86% 50%,80% 76%,50% 100%,20% 76%,14% 50%,28% 26%);filter:drop-shadow(0 0 5px rgba(0,229,255,.9));animation:flameBlue 1.15s ease-in-out infinite}
+          .mt-flame i{display:block;width:7px;height:10px;background:radial-gradient(circle at 50% 80%,rgba(132,241,255,.35),rgba(0,229,255,.95) 56%,rgba(0,150,180,.88) 100%);clip-path:polygon(50% 0%,72% 26%,86% 50%,80% 76%,50% 100%,20% 76%,14% 50%,28% 26%);filter:drop-shadow(0 0 5px rgba(0,229,255,.9));animation:flameBlue 1.15s ease-in-out infinite}
           .mt-flame.is-orange i{background:radial-gradient(circle at 50% 80%,rgba(255,210,120,.35),rgba(255,166,0,.98) 55%,rgba(203,95,0,.9) 100%);filter:drop-shadow(0 0 6px rgba(255,145,0,.9));animation:flameOrange 1.05s ease-in-out infinite}
           .mt-flame.is-off i{background:radial-gradient(circle,rgba(117,128,145,.3),rgba(71,85,105,.72));filter:none;animation:none;opacity:.34}
-          .mt-card-actions{display:flex;gap:8px;align-items:center;padding:10px 11px}
-          .mt-btn{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent);padding:8px 10px;font-size:.62rem;font-weight:800;letter-spacing:.05em;cursor:pointer;white-space:nowrap}
+          .mt-card-actions{display:flex;gap:6px;align-items:center;padding:8px}
+          .mt-btn{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent);padding:6px 8px;font-size:.55rem;font-weight:800;letter-spacing:.04em;cursor:pointer;white-space:nowrap}
           .mt-btn:disabled,.mt-btn-icon:disabled{opacity:.6;cursor:not-allowed}
           .mt-btn-complete.is-done{border-color:var(--mt-ok);background:rgba(0,208,132,.14);color:var(--mt-ok)}
-          .mt-btn-icon{border:1px solid #3a4656;background:rgba(0,0,0,.2);color:#b3c1cf;padding:5px 8px;font-size:.66rem;cursor:pointer}
+          .mt-btn-icon{border:1px solid #3a4656;background:rgba(0,0,0,.2);color:#b3c1cf;padding:4px 6px;font-size:.58rem;cursor:pointer}
           .mt-btn-icon.is-danger{color:#ff7d97;border-color:rgba(255,0,60,.42)}
           .mt-fab-wrap{display:flex;gap:8px;margin-top:12px;position:relative;z-index:2}
           .mt-fab{display:inline-block;border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent);padding:10px 13px;font-family:"Orbitron","Segoe UI",sans-serif;font-weight:800;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:8px}
@@ -726,6 +755,8 @@ class MissoesTreinoApp {
           .mt-perf-card{border:1px solid rgba(64,128,166,.34);border-radius:11px;padding:10px;background:linear-gradient(160deg,rgba(2,12,20,.52),rgba(3,16,28,.36));animation:cardIn .62s cubic-bezier(.2,.8,.2,1) both;transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease}
           .mt-perf-card:hover{transform:translateY(-4px) scale(1.006);border-color:rgba(0,229,255,.52);box-shadow:0 12px 20px rgba(2,20,36,.3)}
           .mt-perf-card h4{margin:0 0 8px;color:#8cf2ff;font-size:.72rem;letter-spacing:.08em;font-family:"Orbitron","Segoe UI",sans-serif}
+          .mt-goals-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+          .mt-month-select{background:#090f17;border:1px solid #2e3b4f;color:#e5f4ff;padding:5px 8px;font-size:.7rem}
           .mt-success-history{display:grid;gap:9px;max-height:260px;overflow-y:auto;padding-right:4px}
           .mt-success-history::-webkit-scrollbar{width:8px}
           .mt-success-history::-webkit-scrollbar-thumb{background:rgba(84,130,156,.45);border-radius:999px}
@@ -770,8 +801,8 @@ class MissoesTreinoApp {
             73%{transform:scale(1.06,.96) translateY(-1px);opacity:1}
             100%{transform:scale(1) translateY(0);opacity:.93}
           }
-          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}.mt-performance-wrap{grid-template-columns:1fr}}
-          @media (max-width:720px){.mt-card-flames{grid-template-columns:repeat(15,minmax(0,1fr));gap:5px}}
+          @media (max-width:1024px){.mt-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}.mt-performance-wrap{grid-template-columns:1fr}.mt-list{grid-template-columns:1fr}}
           @keyframes mt-title-pulse{0%,100%{text-shadow:0 0 5px rgba(0,229,255,.35),0 0 10px rgba(0,229,255,.2)}50%{text-shadow:0 0 8px rgba(0,229,255,.6),0 0 18px rgba(0,229,255,.35)}}
           @keyframes mt-chroma{0%,78%,100%{opacity:.1;transform:translateX(0)}80%{opacity:.25;transform:translateX(1px)}82%{opacity:.18;transform:translateX(-1px)}}
         </style>
@@ -809,6 +840,10 @@ class MissoesTreinoApp {
               <button class="mt-close" data-action="close-modal">X</button>
             </div>
             <div class="mt-form">
+              <div class="mt-field">
+                <label>Nome da Missao</label>
+                <input type="text" data-role="temp-title" placeholder="Ex: Treino de Peito" />
+              </div>
               <div class="mt-row">
                 <div class="mt-field">
                   <label>Exercicio / Item</label>
