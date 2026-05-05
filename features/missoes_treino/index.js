@@ -58,9 +58,6 @@ function missionCardHtml(mission, index) {
   const allDone = total > 0 && done === total;
   const shellClass = allDone ? 'mt-mission-shell is-done' : 'mt-mission-shell';
   const concludeClass = allDone ? 'mt-btn mt-btn-complete is-done' : 'mt-btn mt-btn-complete';
-  const flames = Array.isArray(mission.flames) && mission.flames.length === 30
-    ? mission.flames
-    : Array.from({ length: 30 }, () => ({ status: 'blue' }));
   return `
     <section class="${shellClass}" style="--card-i:${index};">
       <header class="mt-mission-shell-header">
@@ -79,13 +76,6 @@ function missionCardHtml(mission, index) {
           </article>
         `;
         }).join('')}
-      </div>
-      <div class="mt-card-flames" title="Progresso de 30 dias desta missao">
-        ${flames.map((flame) => `
-          <span class="mt-flame ${flame.status === 'off' ? 'is-off' : ''} ${flame.status === 'orange' ? 'is-orange' : ''}">
-            <i></i>
-          </span>
-        `).join('')}
       </div>
       <footer class="mt-card-actions">
         <button class="${concludeClass}" data-action="toggle-mission" data-mission-id="${escapeHtml(mission.id)}" ${(mission._busy || allDone) ? 'disabled' : ''}>
@@ -623,9 +613,11 @@ class MissoesTreinoApp {
     const p = this.performance || {};
     const history = Array.isArray(p.history) ? p.history : [];
     const goalsByMonth = Array.isArray(p.mission_goals_by_month) ? p.mission_goals_by_month : [];
-    const monthOptions = goalsByMonth.length
+    const minMonthRef = '2026-05';
+    const monthOptionsRaw = goalsByMonth.length
       ? goalsByMonth.map((entry) => String(entry.month_ref || '')).filter(Boolean)
       : history.map((entry) => String(entry.month_ref || '')).filter(Boolean);
+    const monthOptions = monthOptionsRaw.filter((monthRef) => monthRef >= minMonthRef);
     const selectedMonth = (this.selectedGoalsMonth && monthOptions.includes(this.selectedGoalsMonth))
       ? this.selectedGoalsMonth
       : (monthOptions[0] || String(p.month_ref || ''));
@@ -637,6 +629,68 @@ class MissoesTreinoApp {
       goals: [],
     };
     const goals = Array.isArray(selectedEntry.goals) ? selectedEntry.goals : [];
+    const buildCalendarHtml = () => {
+      const [yy, mm] = String(selectedMonth || '').split('-').map(Number);
+      if (!Number.isFinite(yy) || !Number.isFinite(mm) || mm < 1 || mm > 12) {
+        return '<div class="mt-perf-empty">Selecione um mes valido para visualizar o calendario.</div>';
+      }
+
+      const daysInMonth = new Date(yy, mm, 0).getDate();
+      const firstDayJs = new Date(yy, mm - 1, 1).getDay();
+      const firstDayMondayBased = (firstDayJs + 6) % 7;
+
+      const byDate = new Map();
+      for (const goal of goals) {
+        const dateRef = String(goal?.date_ref || '');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRef)) continue;
+        if (!byDate.has(dateRef)) byDate.set(dateRef, []);
+        byDate.get(dateRef).push(goal);
+      }
+
+      const cells = [];
+      for (let i = 0; i < firstDayMondayBased; i += 1) {
+        cells.push('<div class="mt-cal-day is-empty"></div>');
+      }
+
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const dateRef = `${yy}-${String(mm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const jsWeekday = new Date(yy, mm - 1, day).getDay();
+        const isSunday = jsWeekday === 0;
+        const dayGoals = byDate.get(dateRef) || [];
+        const completedCount = dayGoals.filter((g) => Boolean(g.completed)).length;
+        const totalCount = dayGoals.length;
+        const allDone = totalCount > 0 && completedCount === totalCount;
+        const hasPending = totalCount > 0 && completedCount < totalCount;
+        const stateClass = isSunday
+          ? 'is-rest'
+          : allDone
+            ? 'is-done'
+            : hasPending
+              ? 'is-pending'
+              : 'is-empty-goal';
+        const tooltip = isSunday
+          ? `Domingo (${dateRef}) - Descanso`
+          : totalCount
+            ? `${dateRef}\n${dayGoals.map((g) => `- ${String(g.title || 'Missao diaria')} (${Number(g.items_completed || 0)}/${Number(g.items_total || 0)})`).join('\n')}`
+            : `${dateRef}\nSem meta registrada para este dia.`;
+
+        cells.push(`
+          <div class="mt-cal-day ${stateClass}" title="${escapeHtml(tooltip)}">
+            <span class="mt-cal-num">${day}</span>
+            <span class="mt-cal-meta">${isSunday ? 'DESCANSO' : totalCount ? `${completedCount}/${totalCount}` : '--'}</span>
+          </div>
+        `);
+      }
+
+      return `
+        <div class="mt-calendar-wrap">
+          <div class="mt-cal-head">
+            <span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SAB</span><span>DOM</span>
+          </div>
+          <div class="mt-cal-grid">${cells.join('')}</div>
+        </div>
+      `;
+    };
     const radar = Array.isArray(p.radar) ? p.radar : [];
     const radarSvg = radar.length ? this.buildRadarSvg(radar) : '<div class="mt-perf-empty">Sem dados de desempenho</div>';
     const goalsHtml = goals.length
@@ -669,6 +723,7 @@ class MissoesTreinoApp {
             <strong>${Math.max(0, Math.min(100, Number(selectedEntry.success_rate_percent || 0)))}%</strong>
           </div>
           <p>${Number(selectedEntry.completed_goals || 0)}/${Number(selectedEntry.total_goals || 0)} metas concluidas em ${escapeHtml(selectedMonth || '--')}</p>
+          ${buildCalendarHtml()}
           <div class="mt-success-history">${goalsHtml}</div>
         </article>
         <article class="mt-perf-card">
@@ -728,11 +783,6 @@ class MissoesTreinoApp {
           .mt-mission-title.is-done{color:var(--mt-ok);text-decoration:line-through;opacity:.72}
           .mt-mission-meta{margin:3px 0 0;font-size:.56rem;letter-spacing:.08em;color:#94a3b8;text-transform:uppercase}
           .mt-mission-meta strong{color:#e8f6ff}
-          .mt-card-flames{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:3px;padding:7px 8px;border-top:1px solid rgba(95,122,153,.18);border-bottom:1px solid rgba(95,122,153,.18)}
-          .mt-flame{display:flex;justify-content:center;align-items:center}
-          .mt-flame i{display:block;width:7px;height:10px;background:radial-gradient(circle at 50% 80%,rgba(132,241,255,.35),rgba(0,229,255,.95) 56%,rgba(0,150,180,.88) 100%);clip-path:polygon(50% 0%,72% 26%,86% 50%,80% 76%,50% 100%,20% 76%,14% 50%,28% 26%);filter:drop-shadow(0 0 5px rgba(0,229,255,.9));animation:flameBlue 1.15s ease-in-out infinite}
-          .mt-flame.is-orange i{background:radial-gradient(circle at 50% 80%,rgba(255,210,120,.35),rgba(255,166,0,.98) 55%,rgba(203,95,0,.9) 100%);filter:drop-shadow(0 0 6px rgba(255,145,0,.9));animation:flameOrange 1.05s ease-in-out infinite}
-          .mt-flame.is-off i{background:radial-gradient(circle,rgba(117,128,145,.3),rgba(71,85,105,.72));filter:none;animation:none;opacity:.34}
           .mt-card-actions{display:flex;gap:6px;align-items:center;padding:8px}
           .mt-btn{border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent);padding:6px 8px;font-size:.55rem;font-weight:800;letter-spacing:.04em;cursor:pointer;white-space:nowrap}
           .mt-btn:disabled,.mt-btn-icon:disabled{opacity:.6;cursor:not-allowed}
@@ -791,6 +841,18 @@ class MissoesTreinoApp {
           .mt-success-line strong{color:#c6f7ff;font-size:.86rem}
           .mt-success-history-item.is-closed .mt-success-line strong{color:#ffd39b}
           .mt-perf-card p{margin:8px 0 0;color:#9ab0c6;font-size:.68rem}
+          .mt-calendar-wrap{margin-top:8px;border:1px solid rgba(84,130,156,.26);border-radius:10px;padding:8px;background:rgba(4,11,18,.45)}
+          .mt-cal-head{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:5px}
+          .mt-cal-head span{font-size:.58rem;color:#87a7bf;letter-spacing:.05em;text-align:center}
+          .mt-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+          .mt-cal-day{min-height:52px;border:1px solid rgba(73,112,138,.3);border-radius:8px;padding:4px 5px;display:flex;flex-direction:column;justify-content:space-between;background:rgba(8,16,25,.42)}
+          .mt-cal-day.is-empty{opacity:0;border:none;background:transparent}
+          .mt-cal-day.is-rest{border-color:rgba(151,163,177,.32);background:rgba(57,67,79,.28)}
+          .mt-cal-day.is-done{border-color:rgba(0,208,132,.55);background:rgba(0,208,132,.15)}
+          .mt-cal-day.is-pending{border-color:rgba(255,166,0,.55);background:rgba(255,166,0,.14)}
+          .mt-cal-day.is-empty-goal{border-color:rgba(84,130,156,.28);background:rgba(8,16,25,.35)}
+          .mt-cal-num{font-size:.72rem;color:#e7f8ff;font-weight:700}
+          .mt-cal-meta{font-size:.56rem;color:#9fc0d8;letter-spacing:.04em}
           .mt-radar-wrap{display:flex;justify-content:center;animation:radarFloat 3.4s ease-in-out infinite}
           .mt-radar-svg{width:100%;max-width:260px;height:auto}
           .mt-radar-grid polygon{fill:none;stroke:rgba(86,126,154,.28);stroke-width:1}
@@ -810,20 +872,6 @@ class MissoesTreinoApp {
           @keyframes radarPulse{0%,100%{opacity:.88;transform:scale(.965)}50%{opacity:1;transform:scale(1.035)}}
           @keyframes radarFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
           @keyframes trackShine{0%{transform:translateX(0)}100%{transform:translateX(420px)}}
-          @keyframes flameBlue{
-            0%{transform:scale(1) translateY(0);opacity:.96}
-            25%{transform:scale(1.06,.94) translateY(-1px);opacity:1}
-            50%{transform:scale(.94,1.08) translateY(1px);opacity:.84}
-            75%{transform:scale(1.08,.96) translateY(-1px);opacity:1}
-            100%{transform:scale(1) translateY(0);opacity:.95}
-          }
-          @keyframes flameOrange{
-            0%{transform:scale(1) translateY(0);opacity:.94}
-            22%{transform:scale(1.12,.92) translateY(-1px);opacity:1}
-            47%{transform:scale(.92,1.1) translateY(1px);opacity:.8}
-            73%{transform:scale(1.06,.96) translateY(-1px);opacity:1}
-            100%{transform:scale(1) translateY(0);opacity:.93}
-          }
           @media (max-width:1024px){.mt-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
           @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}.mt-performance-wrap{grid-template-columns:1fr}.mt-list{grid-template-columns:1fr}.mt-fab-floating{right:12px;bottom:12px;width:52px;height:52px}}
           @keyframes mt-title-pulse{0%,100%{text-shadow:0 0 5px rgba(0,229,255,.35),0 0 10px rgba(0,229,255,.2)}50%{text-shadow:0 0 8px rgba(0,229,255,.6),0 0 18px rgba(0,229,255,.35)}}
