@@ -433,7 +433,11 @@ class MissoesTreinoApp {
         this.showToast('MISSAO ATUALIZADA COM SUCESSO');
       } else {
         this.setNotice('Missao incluida com sucesso.');
-        this.showToast('MISSAO INCLUIDA COM SUCESSO');
+        this.showToast({
+          type: 'confirm',
+          title: 'Missao Inserida',
+          message: 'Sua nova missao foi salva com sucesso no sistema.',
+        });
       }
     } catch (err) {
       this.setNotice(err.message || 'Falha ao salvar missao.', true);
@@ -486,7 +490,11 @@ class MissoesTreinoApp {
       });
       this.missions = this.missions.filter((m) => m.id !== missionId);
       this.setNotice('Missao removida do banco.');
-      this.showToast('MISSAO EXCLUIDA');
+      this.showToast({
+        type: 'confirm-delete',
+        title: 'Missao Excluida',
+        message: 'A missao foi removida com sucesso do banco.',
+      });
     } catch (err) {
       this.setNotice(err.message || 'Falha ao excluir missao.', true);
       mission._busy = false;
@@ -494,9 +502,17 @@ class MissoesTreinoApp {
     this.render();
   }
 
-  showToast(message, type = 'success') {
+  showToast(messageOrConfig, type = 'success') {
+    const config = typeof messageOrConfig === 'string'
+      ? { message: messageOrConfig, type }
+      : (messageOrConfig || {});
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    this.toasts.push({ id, message, type });
+    this.toasts.push({
+      id,
+      type: config.type || 'success',
+      title: config.title || '',
+      message: config.message || '',
+    });
     this.renderToasts();
     window.setTimeout(() => {
       this.toasts = this.toasts.filter((t) => t.id !== id);
@@ -507,8 +523,9 @@ class MissoesTreinoApp {
   renderToasts() {
     if (!this.toastHost) return;
     this.toastHost.innerHTML = this.toasts.map((toast) => `
-      <div class="mt-toast ${toast.type === 'error' ? 'is-error' : ''}">
-        ${escapeHtml(toast.message)}
+      <div class="mt-toast ${toast.type === 'error' ? 'is-error' : ''} ${toast.type === 'confirm' ? 'is-confirm' : ''} ${toast.type === 'confirm-delete' ? 'is-confirm-delete' : ''}">
+        ${toast.title ? `<p class="mt-toast-title">${escapeHtml(toast.title)}</p>` : ''}
+        <p class="mt-toast-text">${escapeHtml(toast.message)}</p>
       </div>
     `).join('');
   }
@@ -725,6 +742,8 @@ class MissoesTreinoApp {
           .mt-fab-wrap{display:flex;gap:8px;margin-top:12px;position:relative;z-index:2}
           .mt-fab{display:inline-block;border:1px solid var(--mt-accent);background:rgba(0,229,255,.1);color:var(--mt-accent);padding:10px 13px;font-family:"Orbitron","Segoe UI",sans-serif;font-weight:800;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:8px}
           .mt-fab.sec{border-color:#3a4656;color:#c1d3e2;background:rgba(0,0,0,.22)}
+          .mt-fab-floating{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border-radius:50%;border:1px solid var(--mt-accent);background:radial-gradient(circle at 30% 30%,rgba(0,229,255,.35),rgba(0,105,132,.85));color:#dff9ff;font-size:2rem;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:4200;box-shadow:0 12px 24px rgba(0,0,0,.45),0 0 14px rgba(0,229,255,.35);transition:transform .18s ease,box-shadow .18s ease}
+          .mt-fab-floating:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 16px 28px rgba(0,0,0,.5),0 0 18px rgba(0,229,255,.5)}
           .mt-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:14px;opacity:0;pointer-events:none;transition:opacity .18s ease;z-index:3000}
           .mt-modal.is-open{opacity:1;pointer-events:auto}
           .mt-modal.is-hidden{display:none}
@@ -779,8 +798,12 @@ class MissoesTreinoApp {
           .mt-radar-value{fill:rgba(0,229,255,.24);stroke:#00e5ff;stroke-width:2;filter:drop-shadow(0 0 8px rgba(0,229,255,.45));transform-origin:center;animation:radarPulse 2.1s ease-in-out infinite}
           .mt-radar-labels text{fill:#9dc4dd;font-size:9px;font-family:"Space Mono","Consolas","Courier New",monospace;text-anchor:middle;dominant-baseline:middle}
           .mt-perf-empty{color:#7f95aa;font-size:.72rem}
-          .mt-toast-wrap{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:5000}
-          .mt-toast{padding:10px 12px;background:rgba(0,229,255,.16);border:1px solid rgba(0,229,255,.55);color:#b9f5ff;font-size:.72rem;letter-spacing:.04em;border-radius:9px;backdrop-filter:blur(5px);animation:toastIn .24s ease}
+          .mt-toast-wrap{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);display:grid;gap:8px;z-index:5000;width:min(460px,calc(100vw - 24px))}
+          .mt-toast{padding:12px 14px;background:rgba(0,229,255,.12);border:1px solid rgba(0,229,255,.55);color:#b9f5ff;font-size:.74rem;letter-spacing:.03em;border-radius:10px;backdrop-filter:blur(5px);animation:toastIn .24s ease;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+          .mt-toast-title{margin:0 0 4px;color:#e8fbff;font-family:"Orbitron","Segoe UI",sans-serif;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase}
+          .mt-toast-text{margin:0;color:inherit}
+          .mt-toast.is-confirm{background:linear-gradient(160deg,rgba(0,208,132,.18),rgba(0,120,96,.16));border-color:rgba(0,208,132,.7);color:#dbffef}
+          .mt-toast.is-confirm-delete{background:linear-gradient(160deg,rgba(255,166,0,.2),rgba(190,90,0,.2));border-color:rgba(255,166,0,.7);color:#ffe7c4}
           .mt-toast.is-error{background:rgba(255,0,60,.14);border-color:rgba(255,0,60,.62);color:#ffd3dd}
           @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
           @keyframes cardIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -802,7 +825,7 @@ class MissoesTreinoApp {
             100%{transform:scale(1) translateY(0);opacity:.93}
           }
           @media (max-width:1024px){.mt-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
-          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}.mt-performance-wrap{grid-template-columns:1fr}.mt-list{grid-template-columns:1fr}}
+          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}.mt-performance-wrap{grid-template-columns:1fr}.mt-list{grid-template-columns:1fr}.mt-fab-floating{right:12px;bottom:12px;width:52px;height:52px}}
           @keyframes mt-title-pulse{0%,100%{text-shadow:0 0 5px rgba(0,229,255,.35),0 0 10px rgba(0,229,255,.2)}50%{text-shadow:0 0 8px rgba(0,229,255,.6),0 0 18px rgba(0,229,255,.35)}}
           @keyframes mt-chroma{0%,78%,100%{opacity:.1;transform:translateX(0)}80%{opacity:.25;transform:translateX(1px)}82%{opacity:.18;transform:translateX(-1px)}}
         </style>
@@ -825,9 +848,9 @@ class MissoesTreinoApp {
         <section class="mt-list" data-role="list"></section>
         <section data-role="performance"></section>
         <div class="mt-fab-wrap">
-          <button class="mt-fab" data-action="open-modal">[+] Nova Missao</button>
           <button class="mt-fab sec" data-action="refresh">Sincronizar</button>
         </div>
+        <button class="mt-fab-floating" data-action="open-modal" aria-label="Nova Missao" title="Nova Missao">+</button>
         <div class="mt-toast-wrap" data-role="toasts"></div>
 
         <div class="mt-modal is-hidden" data-role="modal">
