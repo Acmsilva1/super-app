@@ -154,6 +154,35 @@ function isTrainingWeekday(weekdayMonToSun) {
   return Number.isFinite(weekdayMonToSun) && weekdayMonToSun >= 1 && weekdayMonToSun <= 6;
 }
 
+function normalizeWeekdayText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function getWeekdayTokensFromIsoDate(isoDate) {
+  const wd = getWeekdayMonToSunFromIso(isoDate);
+  const map = {
+    1: ['segunda', 'segunda-feira', 'seg'],
+    2: ['terca', 'terca-feira', 'ter', 'terça', 'terça-feira'],
+    3: ['quarta', 'quarta-feira', 'qua'],
+    4: ['quinta', 'quinta-feira', 'qui'],
+    5: ['sexta', 'sexta-feira', 'sex'],
+    6: ['sabado', 'sabado-feira', 'sab', 'sábado'],
+  };
+  return map[wd] || [];
+}
+
+function missionMatchesWeekdayByTitle(mission, dateRef) {
+  const tokens = getWeekdayTokensFromIsoDate(dateRef);
+  if (!tokens.length) return false;
+  const ref = normalizeWeekdayText(`${mission?.titulo || ''} ${mission?.title || ''} ${mission?.data_referencia || ''}`);
+  if (!ref) return false;
+  return tokens.some((t) => ref.includes(normalizeWeekdayText(t)));
+}
+
 function normalizeNome(value) {
   return String(value ?? '').trim().slice(0, 120);
 }
@@ -278,46 +307,29 @@ async function autoCarryOverLatestMission(dateRef) {
   const targetWeekday = getWeekdayMonToSunFromIso(dateRef);
   if (!isTrainingWeekday(targetWeekday)) return false;
 
-  let { data: latestMissions, error: mErr } = await supabase
+  const { data: previousMissions, error: mErr } = await supabase
     .from(TABLE_MISSOES)
-    .select('data_referencia,created_at')
+    .select('id,titulo,data_referencia,created_at,origem')
     .lt('data_referencia', dateRef)
-    .order('data_referencia', { ascending: false })
-    .limit(180);
+    .order('created_at', { ascending: false })
+    .limit(500);
 
   if (mErr) throw new Error(mErr.message);
 
-  let prevDate = '';
-  for (const row of latestMissions || []) {
-    const rowDate = String(row?.data_referencia || '');
-    if (!isIsoDate(rowDate)) continue;
-    if (getWeekdayMonToSunFromIso(rowDate) === targetWeekday) {
-      prevDate = rowDate;
-      break;
-    }
-  }
+  let oldMissions = (previousMissions || []).filter((m) => missionMatchesWeekdayByTitle(m, dateRef));
+  if (!oldMissions.length) return false;
 
-  // Fallback para base antiga (data inconsistente) pela missao mais recente criada.
-  if (!prevDate) {
-    const fallback = await supabase
-      .from(TABLE_MISSOES)
-      .select('data_referencia,created_at')
-      .neq('data_referencia', dateRef)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    if (fallback.error) throw new Error(fallback.error.message);
-    prevDate = String(fallback?.data?.[0]?.data_referencia || '');
-  }
-  if (!prevDate) return false;
-
-  const { data: oldMissions, error: omErr } = await supabase
+  // Evita duplicar modelos iguais no mesmo dia.
+  const { data: todayMissions, error: tErr } = await supabase
     .from(TABLE_MISSOES)
-    .select('*')
-    .eq('data_referencia', prevDate);
-  
-  if (omErr || !oldMissions || oldMissions.length === 0) return false;
-  
-  const oldMissionIds = oldMissions.map(m => m.id);
+    .select('id,titulo')
+    .eq('data_referencia', dateRef);
+  if (tErr) throw new Error(tErr.message);
+  const todayTitles = new Set((todayMissions || []).map((m) => normalizeWeekdayText(m?.titulo || '')));
+  oldMissions = oldMissions.filter((m) => !todayTitles.has(normalizeWeekdayText(m?.titulo || '')));
+  if (!oldMissions.length) return false;
+
+  const oldMissionIds = oldMissions.map((m) => m.id);
 
   const { data: oldItems, error: oiErr } = await supabase
     .from(TABLE_ITENS)
