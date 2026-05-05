@@ -384,6 +384,11 @@ class MissoesTreinoApp {
 
   async commitMissions() {
     if (!this.tempMissions.length) return;
+    const isEditingMission = Boolean(this.editingMissionId);
+    if (!isEditingMission) {
+      const confirmCreate = window.confirm('Confirmar inclusao desta nova missao de treino?');
+      if (!confirmCreate) return;
+    }
     this.modalSubmitEl.disabled = true;
     this.setNotice('Salvando missao no banco...');
     try {
@@ -412,8 +417,13 @@ class MissoesTreinoApp {
 
       this.closeModal();
       await this.loadFromApi();
-      this.setNotice('Missao salva com sucesso.');
-      this.showToast('MISSAO SALVA COM SUCESSO');
+      if (isEditingMission) {
+        this.setNotice('Missao atualizada com sucesso.');
+        this.showToast('MISSAO ATUALIZADA COM SUCESSO');
+      } else {
+        this.setNotice('Missao incluida com sucesso.');
+        this.showToast('MISSAO INCLUIDA COM SUCESSO');
+      }
     } catch (err) {
       this.setNotice(err.message || 'Falha ao salvar missao.', true);
       this.showToast('ERRO AO SALVAR MISSAO', 'error');
@@ -454,6 +464,8 @@ class MissoesTreinoApp {
   async deleteMission(missionId) {
     const mission = this.missions.find((m) => m.id === missionId);
     if (!mission) return;
+    const confirmed = window.confirm('Tem certeza que deseja excluir esta missao? Esta acao nao pode ser desfeita.');
+    if (!confirmed) return;
     mission._busy = true;
     this.render();
     try {

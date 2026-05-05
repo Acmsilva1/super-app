@@ -318,23 +318,6 @@ async function fetchMissionsByDate(dateRef) {
     .order('created_at', { ascending: true });
   if (mErr) throw new Error(mErr.message);
 
-  if (!missionRows || missionRows.length === 0) {
-    const todayStr = getTodayBrazilIsoDate();
-    if (dateRef === todayStr) {
-      const carried = await autoCarryOverLatestMission(dateRef);
-      if (carried) {
-        const { data: newRows, error: newErr } = await supabase
-          .from(TABLE_MISSOES)
-          .select('id, titulo, data_referencia, created_at')
-          .eq('data_referencia', dateRef)
-          .order('created_at', { ascending: true });
-        if (!newErr && newRows) {
-          missionRows = newRows;
-        }
-      }
-    }
-  }
-
   const missionIds = (missionRows || []).map((m) => m.id).filter(Boolean);
   if (!missionIds.length) return [];
 
@@ -621,9 +604,17 @@ export default async function handler(req, res) {
       const body = parseBody(req);
       const missionId = String(body.mission_id ?? req.query?.mission_id ?? '').trim();
       if (missionId) {
-        const { error } = await supabase.from(TABLE_MISSOES).delete().eq('id', missionId);
-        if (error) return json(res, 500, { error: error.message });
-        return json(res, 200, { ok: true });
+        const { error: delItemsErr } = await supabase.from(TABLE_ITENS).delete().eq('missao_id', missionId);
+        if (delItemsErr) return json(res, 500, { error: delItemsErr.message });
+
+        const { error: delFlamesErr } = await supabase.from(TABLE_CHAMAS).delete().eq('mission_id', missionId);
+        if (delFlamesErr && !isMissingChamasTableError(delFlamesErr.message)) {
+          return json(res, 500, { error: delFlamesErr.message });
+        }
+
+        const { error: delMissionErr } = await supabase.from(TABLE_MISSOES).delete().eq('id', missionId);
+        if (delMissionErr) return json(res, 500, { error: delMissionErr.message });
+        return json(res, 200, { ok: true, mission_id: missionId });
       }
 
       const id = String(body.id ?? req.query?.id ?? '').trim();
