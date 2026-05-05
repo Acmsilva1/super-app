@@ -183,6 +183,18 @@ function missionMatchesWeekdayByTitle(mission, dateRef) {
   return tokens.some((t) => ref.includes(normalizeWeekdayText(t)));
 }
 
+function getWeekdayIndexFromText(value) {
+  const txt = normalizeWeekdayText(value);
+  if (!txt) return 0;
+  if (txt.includes('segunda') || txt.includes('seg')) return 1;
+  if (txt.includes('terca') || txt.includes('terça') || txt.includes('ter')) return 2;
+  if (txt.includes('quarta') || txt.includes('qua')) return 3;
+  if (txt.includes('quinta') || txt.includes('qui')) return 4;
+  if (txt.includes('sexta') || txt.includes('sex')) return 5;
+  if (txt.includes('sabado') || txt.includes('sábado') || txt.includes('sab')) return 6;
+  return 0;
+}
+
 function normalizeNome(value) {
   return String(value ?? '').trim().slice(0, 120);
 }
@@ -395,6 +407,53 @@ async function fetchMissionsByDate(dateRef) {
   if (iErr) throw new Error(iErr.message);
 
   const grouped = groupMissions(missionRows, itemRows);
+  return attachFlamesToMissions(grouped);
+}
+
+async function fetchWeeklyMissionsSnapshot(dateRef, todayMissions = []) {
+  const { data: recentMissionRows, error: mErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id, titulo, data_referencia, created_at')
+    .lte('data_referencia', dateRef)
+    .order('created_at', { ascending: false })
+    .limit(800);
+  if (mErr) throw new Error(mErr.message);
+
+  const selectedByWeekday = new Map();
+  for (const mission of recentMissionRows || []) {
+    const weekdayIdx = getWeekdayIndexFromText(mission?.titulo || '');
+    if (weekdayIdx < 1 || weekdayIdx > 6) continue;
+    if (!selectedByWeekday.has(weekdayIdx)) selectedByWeekday.set(weekdayIdx, mission);
+    if (selectedByWeekday.size === 6) break;
+  }
+
+  const merged = new Map();
+  for (const mission of todayMissions || []) {
+    if (mission?.id) merged.set(mission.id, mission);
+  }
+  for (const mission of selectedByWeekday.values()) {
+    if (mission?.id) merged.set(mission.id, mission);
+  }
+
+  const missionRows = Array.from(merged.values());
+  const missionIds = missionRows.map((m) => m.id).filter(Boolean);
+  if (!missionIds.length) return [];
+
+  const { data: itemRows, error: iErr } = await supabase
+    .from(TABLE_ITENS)
+    .select('*')
+    .in('missao_id', missionIds)
+    .order('ordem', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (iErr) throw new Error(iErr.message);
+
+  const grouped = groupMissions(missionRows, itemRows);
+  grouped.sort((a, b) => {
+    const wa = getWeekdayIndexFromText(a?.title || '');
+    const wb = getWeekdayIndexFromText(b?.title || '');
+    if (wa !== wb) return wa - wb;
+    return String(a?.created_at || '').localeCompare(String(b?.created_at || ''));
+  });
   return attachFlamesToMissions(grouped);
 }
 
@@ -635,7 +694,8 @@ export default async function handler(req, res) {
         const performance = await fetchMonthlyPerformance(dateRef);
         return json(res, 200, { date: dateRef, missions: [], penalty, performance, rest_day: true });
       }
-      const missions = await fetchMissionsByDate(dateRef);
+      const todayMissions = await fetchMissionsByDate(dateRef);
+      const missions = await fetchWeeklyMissionsSnapshot(dateRef, todayMissions);
       const penalty = await getPenaltyState();
       const performance = await fetchMonthlyPerformance(dateRef);
       return json(res, 200, { date: dateRef, missions, penalty, performance });
