@@ -16,11 +16,38 @@ function normalizeCompare(value) {
   return String(value ?? '').trim().toLowerCase();
 }
 
+function parseExerciseMeta(item) {
+  const rawName = String(item?.name || '');
+  const explicitSeries = Number(item?.series || 0);
+  const explicitRepeticoes = Number(item?.repeticoes || item?.reps || 0);
+  const match = rawName.match(/^(.*)\s\[(\d+)x(\d+)\]$/i);
+  if (match) {
+    return {
+      name: match[1].trim(),
+      series: Number(match[2] || 1),
+      repeticoes: Number(match[3] || 1),
+    };
+  }
+  return {
+    name: rawName,
+    series: explicitSeries > 0 ? explicitSeries : 1,
+    repeticoes: explicitRepeticoes > 0 ? explicitRepeticoes : 1,
+  };
+}
+
+function composeExerciseName(name, series, repeticoes) {
+  const cleanName = String(name || '').trim();
+  return `${cleanName} [${series}x${repeticoes}]`;
+}
+
 function tempItemHtml(item) {
   return `
     <div class="mt-temp-item">
-      <div class="mt-temp-text"><strong>${Number(item.reps || 0)}x</strong> ${escapeHtml(item.name)}</div>
-      <button class="mt-btn-link is-danger" data-action="remove-temp" data-id="${escapeHtml(item.id)}">Remover</button>
+      <div class="mt-temp-text"><strong>${Number(item.series || 1)}x${Number(item.repeticoes || 0)}</strong> ${escapeHtml(item.name)}</div>
+      <div class="mt-temp-actions">
+        <button class="mt-btn-link" data-action="edit-temp" data-id="${escapeHtml(item.id)}">Editar</button>
+        <button class="mt-btn-link is-danger" data-action="remove-temp" data-id="${escapeHtml(item.id)}">Remover</button>
+      </div>
     </div>
   `;
 }
@@ -41,14 +68,17 @@ function missionCardHtml(mission, index) {
         <span>${done}/${total} itens concluidos</span>
       </header>
       <div class="mt-mission-list">
-        ${(mission.items || []).map((item) => `
+        ${(mission.items || []).map((item) => {
+          const meta = parseExerciseMeta(item);
+          return `
           <article class="mt-mission-row ${item.completed ? 'is-done' : ''}">
             <div class="mt-mission-main">
-              <h4 class="mt-mission-title ${item.completed ? 'is-done' : ''}">${escapeHtml(item.name)}</h4>
-              <p class="mt-mission-meta">QUANTIDADE: <strong>${Number(item.reps || 0)} REPETICOES</strong></p>
+              <h4 class="mt-mission-title ${item.completed ? 'is-done' : ''}">${escapeHtml(meta.name)}</h4>
+              <p class="mt-mission-meta">SERIES/REPS: <strong>${Number(item.series || meta.series || 1)}x${Number(item.repeticoes || meta.repeticoes || item.reps || 0)}</strong> (TOTAL ${Number(item.reps || 0)})</p>
             </div>
           </article>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
       <div class="mt-card-flames" title="Progresso de 30 dias desta missao">
         ${flames.map((flame) => `
@@ -76,6 +106,7 @@ class MissoesTreinoApp {
     this.performance = null;
     this.toasts = [];
     this.editingMissionId = null;
+    this.editingTempItemId = null;
     this.isLoading = false;
     this.errorMessage = '';
     this.onClick = this.onClick.bind(this);
@@ -109,6 +140,7 @@ class MissoesTreinoApp {
     this.modalDescEl = this.container.querySelector('[data-role="modal-desc"]');
     this.modalSubmitEl = this.container.querySelector('[data-role="modal-submit"]');
     this.tempNameInput = this.container.querySelector('[data-role="temp-name"]');
+    this.tempSeriesInput = this.container.querySelector('[data-role="temp-series"]');
     this.tempRepsInput = this.container.querySelector('[data-role="temp-reps"]');
     this.tempListEl = this.container.querySelector('[data-role="temp-list"]');
     this.performanceHost = this.container.querySelector('[data-role="performance"]');
@@ -239,6 +271,7 @@ class MissoesTreinoApp {
     }
     if (action === 'add-temp') this.addTempItem();
     if (action === 'submit-modal') this.commitMissions();
+    if (action === 'edit-temp' && id) this.startEditTempItem(id);
     if (action === 'remove-temp' && id) this.removeTempItem(id);
     if (action === 'toggle-mission' && missionId) this.toggleMissionComplete(missionId);
     if (action === 'delete-mission' && missionId) this.deleteMission(missionId);
@@ -254,12 +287,19 @@ class MissoesTreinoApp {
     this.editingMissionId = missionId;
     if (missionId) {
       const mission = this.missions.find((m) => m.id === missionId);
-      this.tempMissions = (mission?.items || []).map((item) => ({
-        id: item.id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        name: item.name,
-        reps: item.reps,
-        completed: Boolean(item.completed),
-      }));
+      this.tempMissions = (mission?.items || []).map((item) => {
+        const meta = parseExerciseMeta(item);
+        const series = Number(item.series || meta.series || 1);
+        const repeticoes = Number(item.repeticoes || meta.repeticoes || item.reps || 1);
+        return {
+          id: item.id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          name: meta.name,
+          series,
+          repeticoes,
+          reps: series * repeticoes,
+          completed: Boolean(item.completed),
+        };
+      });
       this.modalTitleEl.textContent = 'EDITAR MISSAO';
       this.modalDescEl.textContent = 'Edite os itens desta missao.';
       this.modalSubmitEl.textContent = 'ATUALIZAR MISSAO';
@@ -269,6 +309,8 @@ class MissoesTreinoApp {
       this.modalDescEl.textContent = 'Adicione os itens desta nova missao diaria.';
       this.modalSubmitEl.textContent = 'CRIAR MISSAO';
     }
+    this.editingTempItemId = null;
+    this.resetTempInputs();
     this.renderTempList();
     this.modalEl.classList.remove('is-hidden');
     window.setTimeout(() => this.modalEl.classList.add('is-open'), 10);
@@ -279,25 +321,56 @@ class MissoesTreinoApp {
     this.modalEl.classList.remove('is-open');
     window.setTimeout(() => this.modalEl.classList.add('is-hidden'), 180);
     this.editingMissionId = null;
+    this.editingTempItemId = null;
+  }
+
+  resetTempInputs() {
+    this.tempNameInput.value = '';
+    if (this.tempSeriesInput) this.tempSeriesInput.value = '3';
+    if (this.tempRepsInput) this.tempRepsInput.value = '12';
+    this.editingTempItemId = null;
+    const addBtn = this.container.querySelector('[data-action="add-temp"]');
+    if (addBtn) addBtn.textContent = 'ADICIONAR';
   }
 
   addTempItem() {
     const name = this.tempNameInput.value.trim();
-    const reps = Number.parseInt(this.tempRepsInput.value, 10);
-    if (!name || !Number.isFinite(reps) || reps <= 0) return;
-    this.tempMissions.push({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    const series = Number.parseInt(this.tempSeriesInput?.value, 10);
+    const repeticoes = Number.parseInt(this.tempRepsInput.value, 10);
+    if (!name || !Number.isFinite(series) || series <= 0 || !Number.isFinite(repeticoes) || repeticoes <= 0) return;
+    const payload = {
+      id: this.editingTempItemId || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name,
-      reps,
+      series,
+      repeticoes,
+      reps: series * repeticoes,
       completed: false,
-    });
-    this.tempNameInput.value = '';
+    };
+    if (this.editingTempItemId) {
+      this.tempMissions = this.tempMissions.map((item) => (item.id === this.editingTempItemId ? { ...item, ...payload } : item));
+    } else {
+      this.tempMissions.push(payload);
+    }
+    this.resetTempInputs();
     this.tempNameInput.focus();
     this.renderTempList();
   }
 
+  startEditTempItem(id) {
+    const item = this.tempMissions.find((row) => row.id === id);
+    if (!item) return;
+    this.editingTempItemId = item.id;
+    this.tempNameInput.value = item.name || '';
+    if (this.tempSeriesInput) this.tempSeriesInput.value = String(Number(item.series || 1));
+    this.tempRepsInput.value = String(Number(item.repeticoes || item.reps || 1));
+    const addBtn = this.container.querySelector('[data-action="add-temp"]');
+    if (addBtn) addBtn.textContent = 'ATUALIZAR';
+    this.tempNameInput.focus();
+  }
+
   removeTempItem(id) {
     this.tempMissions = this.tempMissions.filter((item) => item.id !== id);
+    if (this.editingTempItemId === id) this.resetTempInputs();
     this.renderTempList();
   }
 
@@ -315,11 +388,13 @@ class MissoesTreinoApp {
     this.setNotice('Salvando missao no banco...');
     try {
       const payloadItems = this.tempMissions.map((item, idx) => ({
-        name: String(item.name || '').trim(),
-        reps: Number(item.reps || 0),
+        name: composeExerciseName(String(item.name || '').trim(), Number(item.series || 0), Number(item.repeticoes || 0)),
+        reps: Number(item.series || 0) * Number(item.repeticoes || 0),
+        series: Number(item.series || 0),
+        repeticoes: Number(item.repeticoes || 0),
         ordem: idx + 1,
         completed: Boolean(item.completed),
-      })).filter((item) => item.name && item.reps > 0);
+      })).filter((item) => item.name && item.reps > 0 && item.series > 0 && item.repeticoes > 0);
 
       if (!payloadItems.length) throw new Error('Adicione ao menos 1 exercicio valido.');
 
@@ -619,7 +694,7 @@ class MissoesTreinoApp {
           .mt-modal-top p{margin:5px 0 0;font-size:.74rem;color:#93a1b0}
           .mt-close{border:1px solid #4b5666;background:transparent;color:#9fb0c0;cursor:pointer;padding:4px 9px}
           .mt-form{display:grid;gap:10px}
-          .mt-row{display:grid;grid-template-columns:1fr 92px auto;gap:8px}
+          .mt-row{display:grid;grid-template-columns:1fr 92px 110px auto;gap:8px}
           .mt-field label{display:block;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:#8da0b3;margin-bottom:4px}
           .mt-field input{width:100%;background:#090f17;border:1px solid #2e3b4f;color:#e5f4ff;padding:8px 9px}
           .mt-btn-soft{border:1px solid var(--mt-accent);background:rgba(0,229,255,.14);color:var(--mt-accent);padding:8px 10px;cursor:pointer;font-weight:700}
@@ -628,6 +703,7 @@ class MissoesTreinoApp {
           .mt-temp-item{display:flex;justify-content:space-between;align-items:center;gap:7px;border-left:3px solid var(--mt-accent);padding:7px 8px;background:rgba(255,255,255,.03)}
           .mt-temp-text{font-size:.83rem;color:#d9eaff}
           .mt-temp-text strong{color:var(--mt-accent)}
+          .mt-temp-actions{display:flex;gap:6px;align-items:center}
           .mt-btn-link{border:1px solid #3a4656;background:rgba(0,0,0,.24);color:#a6b8ca;padding:5px 8px;font-size:.7rem;cursor:pointer}
           .mt-btn-link.is-danger{color:#ff7d97;border-color:rgba(255,0,60,.4)}
           .mt-actions{display:flex;gap:8px;margin-top:10px}
@@ -727,8 +803,12 @@ class MissoesTreinoApp {
                   <input type="text" data-role="temp-name" placeholder="Ex: Flexoes" />
                 </div>
                 <div class="mt-field">
-                  <label>Reps</label>
-                  <input type="number" data-role="temp-reps" value="10" />
+                  <label>Series</label>
+                  <input type="number" data-role="temp-series" value="3" min="1" />
+                </div>
+                <div class="mt-field">
+                  <label>Repeticoes</label>
+                  <input type="number" data-role="temp-reps" value="12" min="1" />
                 </div>
                 <div style="display:flex;align-items:end;">
                   <button class="mt-btn-soft" data-action="add-temp">ADICIONAR</button>
