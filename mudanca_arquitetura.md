@@ -9,7 +9,7 @@ super-app-1/
   features/<dominio>/     # na raiz — model/, service/, index.js (domínio de negócio)
   index.html                # shell estático + import dinâmico de ./features/...
   api/                        # serverless / handlers Node
-    *.js                      # entradas (ex.: lista-compras.js, financeiro.js)
+    *.js                      # entradas (ex.: lista-compras.js, saude.js)
     _financeiroShared.js      # utilitários partilhados entre handlers
 ```
 

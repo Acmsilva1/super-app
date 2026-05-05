@@ -1,4 +1,4 @@
-# Documentacao do Projeto - Super App
+﻿# Documentacao do Projeto - Super App
 
 ## 1. Visao geral
 O Super App e uma aplicacao web em formato PWA com frontend principal em um unico arquivo HTML e backend em funcoes serverless Node.js.
@@ -57,7 +57,7 @@ Pastas encontradas em `features/`:
 - `financas`
 - `despesas_fixas`
 - `lista_compras`
-
+- `saude`
 - `fluxograma`
 - `missoes_treino`
 - `neonkeep` (placeholder)
@@ -72,7 +72,7 @@ Arquivos existentes em `api/`:
 - `lista-compras.js`
 - `missoes-treino.js`
 - `roadmap.js`
-
+- `saude.js`
 - `statistics.js`
 - `_financeiroShared.js` (shared interno)
 
@@ -108,7 +108,13 @@ Recursos relevantes:
 - Reset global de checks (`PATCH` com `reset_checks`)
 - Exclusao individual ou em massa (`DELETE` com `id` ou `delete_all`)
 
+### 6.4 Saude
+#### `/api/saude`
+Metodos suportados: `GET`, `POST`, `PATCH`, `DELETE`
 
+Recursos relevantes:
+- Resumo por membro em `GET` com query `membro`
+- CRUD completo de registros de saude familiar
 
 ### 6.5 Fluxograma
 #### `/api/fluxograma`
@@ -137,7 +143,7 @@ Tabelas identificadas no codigo:
 - `tb_poupanca`
 - `tb_poupanca_metas`
 - `tb_lista_compras`
-
+- `tb_saude_familiar`
 - `tb_fluxograma_projetos`
 - `tb_missoes_treino`
 - `tb_missoes_treino_itens`

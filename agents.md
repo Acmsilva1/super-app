@@ -19,4 +19,4 @@ Aplicação **estática** centrada em `index.html` + catálogo de mini-apps. Dom
 - [ ] Após alterar um domínio, `grep` por imports antigos (`modulos/`) — deve retornar zero resultados em ficheiros do projeto (excluir `node_modules`).
 - [ ] `index.html` e `api/*` resolvem `./features/<dominio>/...` corretamente.
 - [ ] `README` / `doc/documentacao.md` mencionam `features/` e não `modulos/`.
-- [ ] Smoke manual dos fluxos que importam `features/financeiro`, `lista_compras`, etc.
+- [ ] Smoke manual dos fluxos que importam `features/financeiro`, `lista_compras`, `saude`, etc.
