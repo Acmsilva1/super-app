@@ -4522,20 +4522,19 @@
                     }
                     return;
                 }
-                const apiMap = { financeiro: 'financeiro', lista_compras: 'lista-compras', saude: 'saude' };
+                const apiMap = { financeiro: 'financeiro', lista_compras: 'lista-compras' };
                 const path = apiMap[appId];
                 if (!path) return;
                 let mesAno = contentEl.getAttribute('data-mes-ano');
                 if (appId === 'financeiro' && !mesAno) mesAno = this.getMesAnoAtual();
                 try {
-                    let url = path === 'saude' ? '/api/saude' : '/api/' + path;
+                    let url = '/api/' + path;
                     if (appId === 'financeiro') url = '/api/financeiro?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     const res = await fetch(url);
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
                     if (appId === 'financeiro') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinanceiroContent(contentEl, data); }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
-                    else if (appId === 'saude') this.renderSaudeContent(contentEl, data);
                     const savedScroll = Number(this.uiState.windowScrolls?.[appId]);
                     const scrollToRestore = Number.isFinite(savedScroll) ? savedScroll : previousScrollTop;
                     this.rememberWindowScroll(appId, scrollToRestore);
@@ -6093,28 +6092,13 @@
                     if (document.visibilityState === 'visible') this.refreshEventNotifications();
                 });
             }
-            async buildSaudeNotificationItems(targetDate) {
-                const res = await fetch('/api/saude');
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Falha ao carregar saúde familiar');
-                const rows = data.rows || data.registros || [];
-                const due = rows.filter((r) => this.normalizeIsoDate(r.data_evento) === targetDate);
-                return due.map((r) => ({
-                    source: 'saude',
-                    date: targetDate,
-                    time: (r.hora_evento || '').slice(0, 5),
-                    title: (r.tipo_registro || 'Registro') + ' - ' + (r.membro_familia || 'Familiar'),
-                    details: r.detalhes || ''
-                }));
-            }
             async refreshEventNotifications() {
                 const today = this.getBrazilDateIsoFrom(new Date());
                 const tomorrow = this.addDaysToIso(today, 1);
                 this.loadDismissedNotifications(tomorrow);
                 try {
-                    const saudeItems = await this.buildSaudeNotificationItems(tomorrow);
                     const dismissed = new Set(this.notificationDismissed.keys || []);
-                    this.notificationItems = [...saudeItems]
+                    this.notificationItems = []
                         .filter((item) => !dismissed.has(this.notificationItemKey(item)))
                         .sort((a, b) => {
                         const ta = (a.time || '23:59');
@@ -6158,7 +6142,7 @@
                 const content = items.length
                     ? `<ul class="app-list" style="max-height:50vh;overflow:auto;border:1px solid var(--border-color);border-radius:8px;">
                         ${items.map((item, idx) => {
-                            const modulo = item.source === 'saude' ? 'Saúde familiar' : 'Sistema';
+                            const modulo = 'Sistema';
                             const quando = [this.formatDateBr(item.date), item.time].filter(Boolean).join(' - ');
                             const detalhes = [modulo, quando, item.details].filter(Boolean).join(' | ');
                             return `<li><div><strong>${idx + 1}. ${escapeHtml(item.title || '')}</strong><br/><span style="font-size:0.8rem;color:#9ca3af;">${escapeHtml(detalhes)}</span></div></li>`;

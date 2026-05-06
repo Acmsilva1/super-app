@@ -34,7 +34,6 @@ super-app-1/
 |---|---|---|
 | `financeiro` | `tb_financas` + `tb_despesas_fixas` | Dashboard financeiro unificado com receitas, gastos variados e despesas fixas |
 | `lista_compras` | `tb_lista_compras` | Itens, categorias e marcacao de compra |
-| `saude` | `tb_saude_familiar` | Registros de saude por membro da familia |
 | `calendario` | `tb_calendario` | Agenda, visualizacao mensal e status de confirmacao |
 | `fluxograma` | `tb_fluxograma_projetos` | Projetos de fluxograma com rascunho local e nuvem |
 | `missoes_treino` | `tb_missoes_treino` | Agenda de treinos com penalidades e progressao termica (chamas) |
@@ -101,10 +100,9 @@ flowchart TD
 |---|---|---|---|
 | `/api/financeiro` | `GET, POST, PATCH, DELETE` | `tb_financas`, `tb_despesas_fixas` | endpoint financeiro unico com dashboard, graficos e tabelas por tipo |
 | `/api/lista-compras` | `GET, POST, PATCH, DELETE` | `tb_lista_compras` | suporta toggle e reset global |
-| `/api/saude` | `GET, POST, PATCH, DELETE` | `tb_saude_familiar` | opcionalmente monta resumo por membro |
 | `/api/calendario` | `GET, POST, PATCH, DELETE` | `tb_calendario` | GET aceita `action=config`, `action=view` e `action=sync_status` |
 | `/api/fluxograma` | `GET, POST, PATCH, DELETE` | `tb_fluxograma_projetos` | persistencia de projetos |
-| `/api/notificar` | `POST` | `tb_calendario`, `tb_saude_familiar` | envia lembretes Telegram |
+| `/api/notificar` | `POST` | `tb_calendario` | envia lembretes Telegram |
 
 ### Excecoes recorrentes
 
@@ -169,7 +167,6 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - `GET /api/roadmap`
 - `GET /api/financeiro?bi=1&mes_ano=YYYY-MM`
 - `GET /api/lista-compras`
-- `GET /api/saude`
 - `GET /api/calendario?action=config`
 - `GET /api/fluxograma`
 - `GET /api/system-analysis-dashboard`
@@ -196,7 +193,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - A funcao compartilhada [`lib/supabase.js`](/c:/super%20app/super-app-1/lib/supabase.js) falha rapidamente se secrets obrigatorios nao existirem.
 - `api/notificar` usa variaveis segregadas para Telegram.
 - O repositorio nao contem integracao com Instagram; o canal implementado para alertas e Telegram.
-- Dados sensiveis existem principalmente no modulo de saude, portanto logs e dumps devem evitar exposicao de payloads completos.
+- Dados sensiveis existem principalmente nos modulos de dados pessoais e financeiros, portanto logs e dumps devem evitar exposicao de payloads completos.
 - O envio de notificacoes usa flags (`telegram_sent`, `telegram_sent_at`) para evitar repeticao indevida.
 
 ## Riscos e Gaps Identificados

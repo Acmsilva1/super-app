@@ -20,14 +20,6 @@ export const APPS = [
     category: 'Produtividade',
   },
   {
-    id: 'saude',
-    icon: 'fa-heart-pulse',
-    status: 'active',
-    title: 'Saude Familiar',
-    description: 'Vacinas, consultas, exames e medicamentos por membro da familia.',
-    category: 'Saude',
-  },
-  {
     id: 'fluxograma',
     icon: 'fa-diagram-project',
     status: 'active',
