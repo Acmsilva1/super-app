@@ -4878,7 +4878,7 @@
                 // Eventos
                 formEl.querySelector('#v_btn_create_recipe').onclick = async () => {
                     const nome = formEl.querySelector('#v_new_recipe_name').value;
-                    if (!nome) return alert('Digite o nome da receita');
+                    if (!nome) return;
                     const res = await fetch('/api/vendas?type=receitas', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -4888,7 +4888,7 @@
                         this.refreshAppContent('vendas');
                     } else {
                         const err = await res.json();
-                        alert('Erro: ' + (err.error || 'Verifique se as tabelas foram criadas no Supabase'));
+                        console.error('Erro:', err.error);
                     }
                 };
 
@@ -4910,7 +4910,7 @@
                         const rec = parseFloat(formEl.querySelector('#v_ing_rec').value);
                         const price = parseFloat(formEl.querySelector('#v_ing_price').value);
 
-                        if (!name || isNaN(vol) || isNaN(rec) || isNaN(price)) return alert('Preencha todos os campos');
+                        if (!name || isNaN(vol) || isNaN(rec) || isNaN(price)) return;
 
                         const newIng = { name, material: typeMap[type].unit, volume: vol, recipe: rec, unitPrice: price };
                         const updatedIngs = [...(selectedRecipe.ingredientes || []), newIng];
@@ -4925,7 +4925,7 @@
                             this.refreshAppContent('vendas');
                         } else {
                             const err = await res.json();
-                            alert('Erro ao atualizar: ' + (err.error || 'Verifique a conexão'));
+                            console.error('Erro ao atualizar:', err.error);
                         }
                     };
                 }
@@ -5089,7 +5089,7 @@
                     const sabor = formEl.querySelector('#vs_sabor').value;
                     const valor = parseFloat(formEl.querySelector('#vs_valor').value);
 
-                    if (!cliente || !sabor || isNaN(valor)) return alert('Preencha todos os campos');
+                    if (!cliente || !sabor || isNaN(valor)) return;
 
                     const res = await fetch('/api/vendas?type=historico', {
                         method: 'POST',
