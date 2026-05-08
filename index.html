@@ -3555,6 +3555,130 @@
                 max-width: 100%;
             }
         }
+
+        /* VENDAS MODULE STYLES */
+        .vendas-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            padding: 1rem;
+        }
+        @media (min-width: 1024px) {
+            .vendas-container { grid-template-columns: 350px 1fr; }
+        }
+        .vendas-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            background: rgba(15, 23, 42, 0.2);
+            padding: 0.25rem;
+            border-radius: 0.5rem;
+        }
+        .vendas-tab-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 0.4rem;
+            transition: all 0.2s;
+        }
+        .vendas-tab-btn.active {
+            background: var(--bg-white);
+            color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+        .vendas-card {
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .vendas-card h3 { margin-bottom: 1rem; font-size: 1.1rem; }
+        .vendas-form-group { margin-bottom: 1rem; }
+        .vendas-form-group label { display: block; font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-light); }
+        .vendas-form-group input, .vendas-form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(15, 23, 42, 0.1);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-dark);
+        }
+        .vendas-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        .vendas-btn-add {
+            width: 100%;
+            padding: 0.65rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+        .vendas-btn-save {
+            width: 100%;
+            padding: 0.65rem;
+            background: #ec4899;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        .vendas-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .vendas-summary-item {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+        .vendas-summary-item.cost { background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); }
+        .vendas-summary-item.profit { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
+        .vendas-summary-item.final { background: rgba(236, 72, 153, 0.1); border-color: rgba(236, 72, 153, 0.3); }
+        .vendas-summary-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); }
+        .vendas-summary-value { font-size: 1.25rem; font-weight: 800; margin-top: 0.25rem; }
+        .vendas-list { list-style: none; }
+        .vendas-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .vendas-list-item:last-child { border-bottom: none; }
+        .vendas-item-info p { font-size: 0.85rem; font-weight: 600; }
+        .vendas-item-info span { font-size: 0.75rem; color: var(--text-light); }
+        .vendas-btn-del {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: none;
+            padding: 0.4rem;
+            border-radius: 0.4rem;
+            cursor: pointer;
+        }
+        .vendas-table-wrap { overflow-x: auto; }
+        .vendas-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .vendas-table th { text-align: left; padding: 0.75rem; border-bottom: 2px solid var(--border-color); color: var(--text-light); }
+        .vendas-table td { padding: 0.75rem; border-bottom: 1px solid var(--border-color); }
+        .vendas-badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+
     </style>
 </head>
 <body class="view-apps">
@@ -4522,19 +4646,29 @@
                     }
                     return;
                 }
-                const apiMap = { financeiro: 'financeiro', lista_compras: 'lista-compras' };
+                const apiMap = { financeiro: 'financeiro', lista_compras: 'lista-compras', vendas: 'vendas' };
                 const path = apiMap[appId];
                 if (!path) return;
                 let mesAno = contentEl.getAttribute('data-mes-ano');
                 if (appId === 'financeiro' && !mesAno) mesAno = this.getMesAnoAtual();
                 try {
-                    let url = '/api/' + path;
+                    if (appId === 'vendas') {
+                        const [recipesRes, historyRes] = await Promise.all([
+                            fetch('/api/vendas?type=receitas'),
+                            fetch('/api/vendas?type=historico')
+                        ]);
+                        const recipes = await recipesRes.json();
+                        const history = await historyRes.json();
+                        this.renderVendasContent(contentEl, { recipes, history });
+                    } else {
+                        let url = '/api/' + path;
                     if (appId === 'financeiro') url = '/api/financeiro?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     const res = await fetch(url);
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
                     if (appId === 'financeiro') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinanceiroContent(contentEl, data); }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
+                    }
                     const savedScroll = Number(this.uiState.windowScrolls?.[appId]);
                     const scrollToRestore = Number.isFinite(savedScroll) ? savedScroll : previousScrollTop;
                     this.rememberWindowScroll(appId, scrollToRestore);
@@ -4550,6 +4684,305 @@
                     const contentEl = win.querySelector('.window-content');
                     if (contentEl) await this.loadAppContent(appId, contentEl);
                 }
+            }
+
+
+            renderVendasContent(el, data) {
+                const recipes = data.recipes || [];
+                const history = data.history || [];
+                const activeTab = el.getAttribute('data-vendas-tab') || 'pricing';
+                
+                el.innerHTML = `
+                    <div class="vendas-container">
+                        <div class="vendas-sidebar">
+                            <div class="vendas-tabs">
+                                <button class="vendas-tab-btn ${activeTab === 'pricing' ? 'active' : ''}" data-tab="pricing">Precificação</button>
+                                <button class="vendas-tab-btn ${activeTab === 'sales' ? 'active' : ''}" data-tab="sales">Vendas</button>
+                            </div>
+                            <div id="vendas-form-container"></div>
+                        </div>
+                        <div id="vendas-main-container"></div>
+                    </div>
+                `;
+
+                const formContainer = el.querySelector('#vendas-form-container');
+                const mainContainer = el.querySelector('#vendas-main-container');
+
+                el.querySelectorAll('.vendas-tab-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        el.setAttribute('data-vendas-tab', btn.dataset.tab);
+                        this.renderVendasContent(el, data);
+                    };
+                });
+
+                if (activeTab === 'pricing') {
+                    this.renderVendasPricing(formContainer, mainContainer, recipes, el);
+                } else {
+                    this.renderVendasSales(formContainer, mainContainer, history, recipes, el);
+                }
+            }
+
+            renderVendasPricing(formEl, mainEl, recipes, rootEl) {
+                let ingredients = rootEl._vendasTempIngredients || [];
+                let profitMargin = rootEl._vendasTempMargin || 50;
+
+                const calculateTotal = () => ingredients.reduce((sum, ing) => sum + ((ing.volume / ing.recipe) * ing.unitPrice), 0);
+                const totalCost = calculateTotal();
+                const finalPrice = totalCost * (1 + profitMargin / 100);
+
+                formEl.innerHTML = `
+                    <div class="vendas-card">
+                        <h3>Novo Bolo</h3>
+                        <div class="vendas-form-group">
+                            <label>Nome do Bolo</label>
+                            <input type="text" id="v_cake_name" placeholder="Ex: Bolo de Chocolate">
+                        </div>
+                        <div style="margin-top:1.5rem">
+                            <h4 style="font-size:0.8rem;margin-bottom:0.5rem">Adicionar Ingrediente</h4>
+                            <div class="vendas-form-group">
+                                <input type="text" id="v_ing_name" placeholder="Nome (Ex: Farinha)">
+                            </div>
+                            <div class="vendas-grid-2">
+                                <div class="vendas-form-group">
+                                    <input type="text" id="v_ing_mat" placeholder="Unid (kg, L)">
+                                </div>
+                                <div class="vendas-form-group">
+                                    <input type="number" id="v_ing_vol" placeholder="Vol Usado">
+                                </div>
+                            </div>
+                            <div class="vendas-grid-2">
+                                <div class="vendas-form-group">
+                                    <input type="number" id="v_ing_rec" placeholder="Vol Receita">
+                                </div>
+                                <div class="vendas-form-group">
+                                    <input type="number" id="v_ing_price" placeholder="Preço Unid">
+                                </div>
+                            </div>
+                            <button class="vendas-btn-add" id="v_btn_add_ing"><i class="fas fa-plus"></i> Adicionar</button>
+                        </div>
+                        <div style="margin-top:1.5rem">
+                            <label>Margem de Lucro: <span id="v_margin_val">${profitMargin}</span>%</label>
+                            <input type="range" id="v_range_margin" min="0" max="200" value="${profitMargin}">
+                        </div>
+                        <button class="vendas-btn-save" id="v_btn_save_cake"><i class="fas fa-save"></i> Salvar Receita</button>
+                    </div>
+                `;
+
+                mainEl.innerHTML = `
+                    <div class="vendas-summary-grid">
+                        <div class="vendas-summary-item cost">
+                            <div class="vendas-summary-label">Custo Total</div>
+                            <div class="vendas-summary-value">R$ ${totalCost.toFixed(2)}</div>
+                        </div>
+                        <div class="vendas-summary-item profit">
+                            <div class="vendas-summary-label">Margem</div>
+                            <div class="vendas-summary-value">${profitMargin}%</div>
+                        </div>
+                        <div class="vendas-summary-item final">
+                            <div class="vendas-summary-label">Preço Final</div>
+                            <div class="vendas-summary-value">R$ ${finalPrice.toFixed(2)}</div>
+                        </div>
+                    </div>
+                    <div class="vendas-card" style="margin-bottom:1rem">
+                        <h3>Ingredientes da Receita</h3>
+                        <ul class="vendas-list">
+                            ${ingredients.length ? ingredients.map((ing, idx) => `
+                                <li class="vendas-list-item">
+                                    <div class="vendas-item-info">
+                                        <p>${ing.name}</p>
+                                        <span>${ing.volume}${ing.material} de ${ing.recipe}${ing.material} (R$ ${ing.unitPrice.toFixed(2)})</span>
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:1rem">
+                                        <b style="color:var(--primary)">R$ ${((ing.volume / ing.recipe) * ing.unitPrice).toFixed(2)}</b>
+                                        <button class="vendas-btn-del" data-idx="${idx}"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </li>
+                            `).join('') : '<li style="text-align:center;padding:1rem;color:var(--text-light)">Nenhum ingrediente adicionado</li>'}
+                        </ul>
+                    </div>
+                    <div class="vendas-card">
+                        <h3>Receitas Salvas</h3>
+                        <div class="vendas-table-wrap">
+                            <table class="vendas-table">
+                                <thead>
+                                    <tr>
+                                        <th>Bolo</th>
+                                        <th>Custo</th>
+                                        <th>Preço</th>
+                                        <th>Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${recipes.length ? recipes.map(r => `
+                                        <tr>
+                                            <td><b>${r.nome}</b></td>
+                                            <td>R$ ${Number(r.custo_total).toFixed(2)}</td>
+                                            <td><span class="vendas-badge">R$ ${Number(r.preco_final).toFixed(2)}</span></td>
+                                            <td><button class="vendas-btn-del" data-id="${r.id}" data-type="recipe"><i class="fas fa-trash"></i></button></td>
+                                        </tr>
+                                    `).join('') : '<tr><td colspan="4" style="text-align:center;padding:1rem">Nenhuma receita salva</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                // Eventos
+                formEl.querySelector('#v_range_margin').oninput = (e) => {
+                    profitMargin = parseInt(e.target.value);
+                    rootEl._vendasTempMargin = profitMargin;
+                    this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
+                };
+
+                formEl.querySelector('#v_btn_add_ing').onclick = () => {
+                    const name = formEl.querySelector('#v_ing_name').value;
+                    const mat = formEl.querySelector('#v_ing_mat').value;
+                    const vol = parseFloat(formEl.querySelector('#v_ing_vol').value);
+                    const rec = parseFloat(formEl.querySelector('#v_ing_rec').value);
+                    const price = parseFloat(formEl.querySelector('#v_ing_price').value);
+
+                    if (!name || !mat || isNaN(vol) || isNaN(rec) || isNaN(price)) return alert('Preencha todos os campos do ingrediente');
+                    
+                    ingredients.push({ name, material: mat, volume: vol, recipe: rec, unitPrice: price });
+                    rootEl._vendasTempIngredients = ingredients;
+                    this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
+                };
+
+                formEl.querySelector('#v_btn_save_cake').onclick = async () => {
+                    const nome = formEl.querySelector('#v_cake_name').value;
+                    if (!nome || !ingredients.length) return alert('Nome e ingredientes são necessários');
+                    
+                    const res = await fetch('/api/vendas?type=receitas', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            nome, ingredientes, custo_total: totalCost, margem_lucro: profitMargin, preco_final: finalPrice
+                        })
+                    });
+                    if (res.ok) {
+                        rootEl._vendasTempIngredients = [];
+                        this.refreshAppContent('vendas');
+                    }
+                };
+
+                mainEl.querySelectorAll('.vendas-btn-del').forEach(btn => {
+                    btn.onclick = async () => {
+                        if (btn.dataset.idx !== undefined) {
+                            ingredients.splice(btn.dataset.idx, 1);
+                            rootEl._vendasTempIngredients = ingredients;
+                            this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
+                        } else {
+                            if (!confirm('Excluir esta receita?')) return;
+                            const res = await fetch('/api/vendas?type=receitas', {
+                                method: 'DELETE',
+                                body: JSON.stringify({ id: btn.dataset.id })
+                            });
+                            if (res.ok) this.refreshAppContent('vendas');
+                        }
+                    };
+                });
+            }
+
+            renderVendasSales(formEl, mainEl, history, recipes, rootEl) {
+                const totalSales = history.length;
+                const revenue = history.reduce((sum, s) => sum + Number(s.valor), 0);
+                const avg = totalSales ? revenue / totalSales : 0;
+
+                formEl.innerHTML = `
+                    <div class="vendas-card">
+                        <h3>Registrar Venda</h3>
+                        <div class="vendas-form-group">
+                            <label>Cliente</label>
+                            <input type="text" id="vs_cliente" placeholder="Nome do Cliente">
+                        </div>
+                        <div class="vendas-form-group">
+                            <label>Sabor / Bolo</label>
+                            <select id="vs_sabor">
+                                <option value="">Selecione um bolo...</option>
+                                ${recipes.map(r => `<option value="${r.nome}" data-price="${r.preco_final}">${r.nome} (R$ ${Number(r.preco_final).toFixed(2)})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="vendas-form-group">
+                            <label>Valor da Venda (R$)</label>
+                            <input type="number" id="vs_valor" step="0.01">
+                        </div>
+                        <button class="vendas-btn-add" id="vs_btn_reg" style="background:#10b981"><i class="fas fa-check"></i> Registrar Venda</button>
+                    </div>
+                `;
+
+                mainEl.innerHTML = `
+                    <div class="vendas-summary-grid">
+                        <div class="vendas-summary-item" style="background:rgba(16,185,129,0.1)">
+                            <div class="vendas-summary-label">Vendas Hoje</div>
+                            <div class="vendas-summary-value">${totalSales}</div>
+                        </div>
+                        <div class="vendas-summary-item" style="background:rgba(249,115,22,0.1)">
+                            <div class="vendas-summary-label">Faturamento</div>
+                            <div class="vendas-summary-value">R$ ${revenue.toFixed(2)}</div>
+                        </div>
+                        <div class="vendas-summary-item" style="background:rgba(59,130,246,0.1)">
+                            <div class="vendas-summary-label">Ticket Médio</div>
+                            <div class="vendas-summary-value">R$ ${avg.toFixed(2)}</div>
+                        </div>
+                    </div>
+                    <div class="vendas-card">
+                        <h3>Histórico de Vendas</h3>
+                        <div class="vendas-table-wrap">
+                            <table class="vendas-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cliente</th>
+                                        <th>Sabor</th>
+                                        <th>Valor</th>
+                                        <th>Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${history.length ? history.map(s => `
+                                        <tr>
+                                            <td>${s.cliente}</td>
+                                            <td>${s.sabor}</td>
+                                            <td><b>R$ ${Number(s.valor).toFixed(2)}</b></td>
+                                            <td><button class="vendas-btn-del" data-id="${s.id}"><i class="fas fa-trash"></i></button></td>
+                                        </tr>
+                                    `).join('') : '<tr><td colspan="4" style="text-align:center;padding:1rem">Nenhuma venda registrada</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                formEl.querySelector('#vs_sabor').onchange = (e) => {
+                    const opt = e.target.options[e.target.selectedIndex];
+                    const price = opt.dataset.price;
+                    if (price) formEl.querySelector('#vs_valor').value = Number(price).toFixed(2);
+                };
+
+                formEl.querySelector('#vs_btn_reg').onclick = async () => {
+                    const cliente = formEl.querySelector('#vs_cliente').value;
+                    const sabor = formEl.querySelector('#vs_sabor').value;
+                    const valor = parseFloat(formEl.querySelector('#vs_valor').value);
+
+                    if (!cliente || !sabor || isNaN(valor)) return alert('Preencha todos os campos');
+
+                    const res = await fetch('/api/vendas?type=historico', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cliente, sabor, valor })
+                    });
+                    if (res.ok) this.refreshAppContent('vendas');
+                };
+
+                mainEl.querySelectorAll('.vendas-btn-del').forEach(btn => {
+                    btn.onclick = async () => {
+                        if (!confirm('Excluir esta venda do histórico?')) return;
+                        const res = await fetch('/api/vendas?type=historico', {
+                            method: 'DELETE',
+                            body: JSON.stringify({ id: btn.dataset.id })
+                        });
+                        if (res.ok) this.refreshAppContent('vendas');
+                    };
+                });
             }
 
             renderFinanceiroContent(el, data) {

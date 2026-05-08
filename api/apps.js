@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Lista de aplicacoes do Super App (usada pelo index.html no Vercel).
  * Cada app costuma ter uma API, exceto fluxograma (so front + localStorage).
  */
@@ -34,6 +34,14 @@ export const APPS = [
     title: 'Missoes de Treino',
     description: 'Controle diario de missoes com progresso local, sem dependencia de API backend.',
     category: 'Saude',
+  },
+  {
+    id: 'vendas',
+    icon: 'fa-chart-line',
+    status: 'active',
+    title: 'Vendas e Precificação',
+    description: 'Gerencie a precificação de seus bolos e acompanhe o histórico de vendas diário.',
+    category: 'Negócios',
   },
 ];
 
