@@ -3603,10 +3603,24 @@
         .vendas-form-group input, .vendas-form-group select {
             width: 100%;
             padding: 0.5rem;
-            background: rgba(15, 23, 42, 0.1);
+            background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 0.5rem;
-            color: var(--text-dark);
+            color: #1f2937;
+        }
+        .vendas-form-group select option {
+            background: #ffffff;
+            color: #1f2937;
+        }
+        [data-theme="dark"] .vendas-form-group input, 
+        [data-theme="dark"] .vendas-form-group select {
+            background: #1e293b;
+            color: #f3f4f6;
+            border-color: #334155;
+        }
+        [data-theme="dark"] .vendas-form-group select option {
+            background: #1e293b;
+            color: #f3f4f6;
         }
         .vendas-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
         .vendas-btn-add {
