@@ -4803,7 +4803,16 @@
 
                         ${selectedRecipe ? `
                             <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border-color)">
-                                <h4 style="font-size:0.8rem;margin-bottom:0.8rem">Adicionar a: <b>${selectedRecipe.nome}</b></h4>
+                                <h4 style="font-size:0.8rem;margin-bottom:0.8rem;color:var(--primary)">Ajustar Preço de Venda</h4>
+                                <div class="vendas-form-group">
+                                    <label>Preço Sugerido (Venda)</label>
+                                    <div style="display:flex;gap:0.5rem">
+                                        <input type="number" id="v_recipe_sale_price" value="${Number(selectedRecipe.preco_final).toFixed(2)}" step="0.01">
+                                        <button class="vendas-btn-add" id="v_btn_update_price" style="width:auto;margin:0;background:var(--success)"><i class="fas fa-save"></i></button>
+                                    </div>
+                                </div>
+
+                                <h4 style="font-size:0.8rem;margin-bottom:0.8rem;margin-top:1.5rem">Adicionar Ingrediente</h4>
                                 <div class="vendas-form-group">
                                     <input type="text" id="v_ing_name" placeholder="Nome do Ingrediente">
                                 </div>
@@ -4829,7 +4838,7 @@
                                         <input type="number" id="v_ing_price" placeholder="R$ Pacote">
                                     </div>
                                 </div>
-                                <button class="vendas-btn-add" id="v_btn_add_to_recipe" style="background:#8b5cf6"><i class="fas fa-save"></i> Inserir Item</button>
+                                <button class="vendas-btn-add" id="v_btn_add_to_recipe" style="background:#8b5cf6"><i class="fas fa-plus"></i> Inserir Item</button>
                             </div>
                         ` : '<p style="font-size:0.8rem;color:var(--text-light);text-align:center">Selecione uma receita para editar itens</p>'}
                     </div>
@@ -4898,6 +4907,17 @@
                 };
 
                 if (selectedRecipe) {
+                    formEl.querySelector('#v_btn_update_price').onclick = async () => {
+                        const newPrice = parseFloat(formEl.querySelector('#v_recipe_sale_price').value);
+                        if (isNaN(newPrice)) return;
+                        const res = await fetch('/api/vendas?type=receitas', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: selectedId, preco_final: newPrice })
+                        });
+                        if (res.ok) this.refreshAppContent('vendas');
+                    };
+
                     formEl.querySelector('#v_ing_type').onchange = (e) => {
                         rootEl._vendasTempType = e.target.value;
                         this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
@@ -5028,9 +5048,15 @@
                                 ${recipes.map(r => `<option value="${r.nome}" data-price="${r.preco_final}">${r.nome} (R$ ${Number(r.preco_final).toFixed(2)})</option>`).join('')}
                             </select>
                         </div>
-                        <div class="vendas-form-group">
-                            <label>Valor da Venda (R$)</label>
-                            <input type="number" id="vs_valor" step="0.01">
+                        <div class="vendas-grid-2">
+                            <div class="vendas-form-group">
+                                <label>Quantidade</label>
+                                <input type="number" id="vs_qty" value="1" min="1">
+                            </div>
+                            <div class="vendas-form-group">
+                                <label>Total Venda (R$)</label>
+                                <input type="number" id="vs_valor" step="0.01">
+                            </div>
                         </div>
                         <button class="vendas-btn-add" id="vs_btn_reg" style="background:#10b981"><i class="fas fa-check"></i> Registrar Venda</button>
                     </div>
@@ -5058,7 +5084,7 @@
                                 <thead>
                                     <tr>
                                         <th>Cliente</th>
-                                        <th>Sabor</th>
+                                        <th>Item (Qtd)</th>
                                         <th>Valor</th>
                                         <th>Ação</th>
                                     </tr>
@@ -5067,7 +5093,7 @@
                                     ${history.length ? history.map(s => `
                                         <tr>
                                             <td>${s.cliente}</td>
-                                            <td>${s.sabor}</td>
+                                            <td>${s.sabor} <small>(x${s.quantidade || 1})</small></td>
                                             <td><b>R$ ${Number(s.valor).toFixed(2)}</b></td>
                                             <td><button class="vendas-btn-del" data-id="${s.id}"><i class="fas fa-trash"></i></button></td>
                                         </tr>
@@ -5078,23 +5104,28 @@
                     </div>
                 `;
 
-                formEl.querySelector('#vs_sabor').onchange = (e) => {
-                    const opt = e.target.options[e.target.selectedIndex];
-                    const price = opt.dataset.price;
-                    if (price) formEl.querySelector('#vs_valor').value = Number(price).toFixed(2);
+                const updateSalesTotal = () => {
+                    const opt = formEl.querySelector('#vs_sabor').options[formEl.querySelector('#vs_sabor').selectedIndex];
+                    const unitPrice = parseFloat(opt.dataset.price) || 0;
+                    const qty = parseInt(formEl.querySelector('#vs_qty').value) || 1;
+                    formEl.querySelector('#vs_valor').value = (unitPrice * qty).toFixed(2);
                 };
+
+                formEl.querySelector('#vs_sabor').onchange = updateSalesTotal;
+                formEl.querySelector('#vs_qty').oninput = updateSalesTotal;
 
                 formEl.querySelector('#vs_btn_reg').onclick = async () => {
                     const cliente = formEl.querySelector('#vs_cliente').value;
                     const sabor = formEl.querySelector('#vs_sabor').value;
                     const valor = parseFloat(formEl.querySelector('#vs_valor').value);
+                    const quantidade = parseInt(formEl.querySelector('#vs_qty').value) || 1;
 
                     if (!cliente || !sabor || isNaN(valor)) return;
 
                     const res = await fetch('/api/vendas?type=historico', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cliente, sabor, valor })
+                        body: JSON.stringify({ cliente, sabor, valor, quantidade })
                     });
                     if (res.ok) this.refreshAppContent('vendas');
                 };

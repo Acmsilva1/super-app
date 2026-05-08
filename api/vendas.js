@@ -39,11 +39,11 @@ export default async function handler(req, res) {
       if (error) return json(res, 500, { error: error.message });
       return json(res, 201, data);
     } else {
-      const { cliente, sabor, valor } = body;
+      const { cliente, sabor, valor, quantidade } = body;
       if (!cliente || !sabor) return json(res, 400, { error: 'cliente e sabor são obrigatórios' });
       
       const { data, error } = await supabase.from(tableName).insert({
-        cliente, sabor, valor
+        cliente, sabor, valor, quantidade: quantidade || 1
       }).select().single();
       
       if (error) return json(res, 500, { error: error.message });
