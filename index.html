@@ -3662,6 +3662,39 @@
         .vendas-summary-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); }
         .vendas-summary-value { font-size: 1.25rem; font-weight: 800; margin-top: 0.25rem; }
         .vendas-list { list-style: none; }
+
+        /* MODAL VENDAS */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-content {
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            animation: modalScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes modalScale {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .modal-header h2 { font-size: 1.2rem; color: var(--primary); }
+        .close-modal { font-size: 2rem; cursor: pointer; color: var(--text-light); line-height: 1; }
+        .close-modal:hover { color: #ef4444; }
+        .modal-body { max-height: 70vh; overflow-y: auto; }
+        .vendas-modal-del { background:none; border:none; color:rgba(239, 68, 68, 0.6); cursor:pointer; padding:5px; border-radius:5px; transition:all 0.2s; }
+        .vendas-modal-del:hover { color:#ef4444; background:rgba(239, 68, 68, 0.1); }
         .vendas-list-item {
             display: flex;
             justify-content: space-between;
@@ -4737,7 +4770,8 @@
             }
 
             renderVendasPricing(formEl, mainEl, recipes, rootEl) {
-                let ingredients = rootEl._vendasTempIngredients || [];
+                const selectedId = rootEl._vendasSelectedRecipeId;
+                const selectedRecipe = recipes.find(r => r.id == selectedId);
                 let currentType = rootEl._vendasTempType || 'gramas';
 
                 const typeMap = {
@@ -4748,160 +4782,218 @@
                     unidade: { unit: 'un', label: 'Unidade (un)', vol: 'Qtd Usada', rec: 'Qtd Pacote' }
                 };
 
-                const calculateTotal = () => ingredients.reduce((sum, ing) => sum + ((ing.volume / ing.recipe) * ing.unitPrice), 0);
-                const totalCost = calculateTotal();
-                const finalPrice = totalCost;
-
                 formEl.innerHTML = `
-                    <div class="vendas-card">
-                        <h3>Novo Bolo</h3>
+                    <div class="vendas-card" style="margin-bottom:1rem">
+                        <h3>Criar Receita</h3>
                         <div class="vendas-form-group">
-                            <label>Nome do Bolo</label>
-                            <input type="text" id="v_cake_name" placeholder="Ex: Bolo de Chocolate">
+                            <input type="text" id="v_new_recipe_name" placeholder="Ex: Bolo de Milho">
                         </div>
-                        <div style="margin-top:1.5rem">
-                            <h4 style="font-size:0.8rem;margin-bottom:0.5rem">Adicionar Ingrediente</h4>
-                            <div class="vendas-form-group">
-                                <input type="text" id="v_ing_name" placeholder="Nome (Ex: Farinha)">
-                            </div>
-                            <div class="vendas-grid-2">
-                                <div class="vendas-form-group">
-                                    <label>Tipo de Medida</label>
-                                    <select id="v_ing_type">
-                                        <option value="gramas" ${currentType === 'gramas' ? 'selected' : ''}>Gramas (g)</option>
-                                        <option value="quilo" ${currentType === 'quilo' ? 'selected' : ''}>Quilo (kg)</option>
-                                        <option value="ml" ${currentType === 'ml' ? 'selected' : ''}>Mililitros (ml)</option>
-                                        <option value="litro" ${currentType === 'litro' ? 'selected' : ''}>Litro (L)</option>
-                                        <option value="unidade" ${currentType === 'unidade' ? 'selected' : ''}>Unidade (un)</option>
-                                    </select>
-                                </div>
-                                <div class="vendas-form-group">
-                                    <label id="v_label_vol">${typeMap[currentType].vol}</label>
-                                    <input type="number" id="v_ing_vol" placeholder="Ex: 200">
-                                </div>
-                            </div>
-                            <div class="vendas-grid-2">
-                                <div class="vendas-form-group">
-                                    <label id="v_label_rec">${typeMap[currentType].rec}</label>
-                                    <input type="number" id="v_ing_rec" placeholder="Ex: 1000">
-                                </div>
-                                <div class="vendas-form-group">
-                                    <label>Preço do Pacote</label>
-                                    <input type="number" id="v_ing_price" placeholder="R$ 0.00">
-                                </div>
-                            </div>
-                            <button class="vendas-btn-add" id="v_btn_add_ing"><i class="fas fa-plus"></i> Adicionar</button>
+                        <button class="vendas-btn-add" id="v_btn_create_recipe"><i class="fas fa-plus"></i> Criar Receita</button>
+                    </div>
+
+                    <div class="vendas-card">
+                        <h3>Gerenciar Ingredientes</h3>
+                        <div class="vendas-form-group">
+                            <label>Escolha uma Receita</label>
+                            <select id="v_recipe_select">
+                                <option value="">Selecione...</option>
+                                ${recipes.map(r => `<option value="${r.id}" ${selectedId == r.id ? 'selected' : ''}>${r.nome}</option>`).join('')}
+                            </select>
                         </div>
-                        <button class="vendas-btn-save" id="v_btn_save_cake" style="margin-top:1.5rem"><i class="fas fa-save"></i> Salvar Receita</button>
+
+                        ${selectedRecipe ? `
+                            <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border-color)">
+                                <h4 style="font-size:0.8rem;margin-bottom:0.8rem">Adicionar a: <b>${selectedRecipe.nome}</b></h4>
+                                <div class="vendas-form-group">
+                                    <input type="text" id="v_ing_name" placeholder="Nome do Ingrediente">
+                                </div>
+                                <div class="vendas-grid-2">
+                                    <div class="vendas-form-group">
+                                        <select id="v_ing_type">
+                                            <option value="gramas" ${currentType === 'gramas' ? 'selected' : ''}>G</option>
+                                            <option value="quilo" ${currentType === 'quilo' ? 'selected' : ''}>KG</option>
+                                            <option value="ml" ${currentType === 'ml' ? 'selected' : ''}>ML</option>
+                                            <option value="litro" ${currentType === 'litro' ? 'selected' : ''}>L</option>
+                                            <option value="unidade" ${currentType === 'unidade' ? 'selected' : ''}>UN</option>
+                                        </select>
+                                    </div>
+                                    <div class="vendas-form-group">
+                                        <input type="number" id="v_ing_vol" placeholder="${typeMap[currentType].unit} Usado">
+                                    </div>
+                                </div>
+                                <div class="vendas-grid-2">
+                                    <div class="vendas-form-group">
+                                        <input type="number" id="v_ing_rec" placeholder="${typeMap[currentType].unit} Pacote">
+                                    </div>
+                                    <div class="vendas-form-group">
+                                        <input type="number" id="v_ing_price" placeholder="R$ Pacote">
+                                    </div>
+                                </div>
+                                <button class="vendas-btn-add" id="v_btn_add_to_recipe" style="background:#8b5cf6"><i class="fas fa-save"></i> Inserir Item</button>
+                            </div>
+                        ` : '<p style="font-size:0.8rem;color:var(--text-light);text-align:center">Selecione uma receita para editar itens</p>'}
                     </div>
                 `;
 
                 mainEl.innerHTML = `
-                    <div class="vendas-summary-grid">
-                        <div class="vendas-summary-item cost">
-                            <div class="vendas-summary-label">Gasto Total</div>
-                            <div class="vendas-summary-value">R$ ${totalCost.toFixed(2)}</div>
-                        </div>
-                        <div class="vendas-summary-item final">
-                            <div class="vendas-summary-label">Preço Final</div>
-                            <div class="vendas-summary-value">R$ ${finalPrice.toFixed(2)}</div>
-                        </div>
-                    </div>
-                    <div class="vendas-card" style="margin-bottom:1rem">
-                        <h3>Ingredientes da Receita</h3>
-                        <ul class="vendas-list">
-                            ${ingredients.length ? ingredients.map((ing, idx) => `
-                                <li class="vendas-list-item">
-                                    <div class="vendas-item-info">
-                                        <p>${ing.name}</p>
-                                        <span>${ing.volume}${ing.material} de ${ing.recipe}${ing.material} (R$ ${ing.unitPrice.toFixed(2)})</span>
-                                    </div>
-                                    <div style="display:flex;align-items:center;gap:1rem">
-                                        <b style="color:var(--primary)">R$ ${((ing.volume / ing.recipe) * ing.unitPrice).toFixed(2)}</b>
-                                        <button class="vendas-btn-del" data-idx="${idx}"><i class="fas fa-trash"></i></button>
-                                    </div>
-                                </li>
-                            `).join('') : '<li style="text-align:center;padding:1rem;color:var(--text-light)">Nenhum ingrediente adicionado</li>'}
-                        </ul>
-                    </div>
                     <div class="vendas-card">
-                        <h3>Receitas Salvas</h3>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+                            <h3>Receitas Salvas</h3>
+                            <span style="font-size:0.7rem;color:var(--text-light)">Clique no nome para ver itens</span>
+                        </div>
                         <div class="vendas-table-wrap">
                             <table class="vendas-table">
                                 <thead>
                                     <tr>
-                                        <th>Bolo</th>
-                                        <th>Gasto</th>
-                                        <th>Preço Final</th>
+                                        <th>Receita</th>
+                                        <th>Custo</th>
                                         <th>Ação</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${recipes.length ? recipes.map(r => `
                                         <tr>
-                                            <td><b>${r.nome}</b></td>
+                                            <td><button class="vendas-link-btn" data-id="${r.id}">${r.nome}</button></td>
                                             <td>R$ ${Number(r.custo_total).toFixed(2)}</td>
-                                            <td><span class="vendas-badge" style="background:rgba(236,72,153,0.1);color:#ec4899">R$ ${Number(r.preco_final).toFixed(2)}</span></td>
                                             <td><button class="vendas-btn-del" data-id="${r.id}" data-type="recipe"><i class="fas fa-trash"></i></button></td>
                                         </tr>
-                                    `).join('') : '<tr><td colspan="4" style="text-align:center;padding:1rem">Nenhuma receita salva</td></tr>'}
+                                    `).join('') : '<tr><td colspan="3" style="text-align:center;padding:1rem">Nenhuma receita</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 `;
 
+                // Estilo para o link da receita
+                if (!document.getElementById('vendas-link-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'vendas-link-style';
+                    style.innerHTML = `
+                        .vendas-link-btn { background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer; padding:0; text-align:left; }
+                        .vendas-link-btn:hover { text-decoration:underline; }
+                    `;
+                    document.head.appendChild(style);
+                }
+
                 // Eventos
-                formEl.querySelector('#v_ing_type').onchange = (e) => {
-                    rootEl._vendasTempType = e.target.value;
-                    this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
-                };
-
-                formEl.querySelector('#v_btn_add_ing').onclick = () => {
-                    const name = formEl.querySelector('#v_ing_name').value;
-                    const type = formEl.querySelector('#v_ing_type').value;
-                    const mat = typeMap[type].unit;
-                    const vol = parseFloat(formEl.querySelector('#v_ing_vol').value);
-                    const rec = parseFloat(formEl.querySelector('#v_ing_rec').value);
-                    const price = parseFloat(formEl.querySelector('#v_ing_price').value);
-
-                    if (!name || isNaN(vol) || isNaN(rec) || isNaN(price)) return alert('Preencha todos os campos do ingrediente');
-                    
-                    ingredients.push({ name, material: mat, volume: vol, recipe: rec, unitPrice: price });
-                    rootEl._vendasTempIngredients = ingredients;
-                    this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
-                };
-
-                formEl.querySelector('#v_btn_save_cake').onclick = async () => {
-                    const nome = formEl.querySelector('#v_cake_name').value;
-                    if (!nome || !ingredients.length) return alert('Nome e ingredientes são necessários');
-                    
+                formEl.querySelector('#v_btn_create_recipe').onclick = async () => {
+                    const nome = formEl.querySelector('#v_new_recipe_name').value;
+                    if (!nome) return alert('Digite o nome da receita');
                     const res = await fetch('/api/vendas?type=receitas', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            nome, ingredientes, custo_total: totalCost, margem_lucro: 0, preco_final: totalCost
-                        })
+                        body: JSON.stringify({ nome, ingredientes: [], custo_total: 0, preco_final: 0 })
                     });
-                    if (res.ok) {
-                        rootEl._vendasTempIngredients = [];
-                        this.refreshAppContent('vendas');
-                    }
+                    if (res.ok) this.refreshAppContent('vendas');
                 };
+
+                formEl.querySelector('#v_recipe_select').onchange = (e) => {
+                    rootEl._vendasSelectedRecipeId = e.target.value;
+                    this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
+                };
+
+                if (selectedRecipe) {
+                    formEl.querySelector('#v_ing_type').onchange = (e) => {
+                        rootEl._vendasTempType = e.target.value;
+                        this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
+                    };
+
+                    formEl.querySelector('#v_btn_add_to_recipe').onclick = async () => {
+                        const name = formEl.querySelector('#v_ing_name').value;
+                        const type = formEl.querySelector('#v_ing_type').value;
+                        const vol = parseFloat(formEl.querySelector('#v_ing_vol').value);
+                        const rec = parseFloat(formEl.querySelector('#v_ing_rec').value);
+                        const price = parseFloat(formEl.querySelector('#v_ing_price').value);
+
+                        if (!name || isNaN(vol) || isNaN(rec) || isNaN(price)) return alert('Preencha todos os campos');
+
+                        const newIng = { name, material: typeMap[type].unit, volume: vol, recipe: rec, unitPrice: price };
+                        const updatedIngs = [...(selectedRecipe.ingredientes || []), newIng];
+                        const newTotal = updatedIngs.reduce((sum, ing) => sum + ((ing.volume / ing.recipe) * ing.unitPrice), 0);
+
+                        const res = await fetch('/api/vendas?type=receitas', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: selectedId, ingredientes: updatedIngs, custo_total: newTotal, preco_final: newTotal })
+                        });
+                        if (res.ok) this.refreshAppContent('vendas');
+                    };
+                }
+
+                mainEl.querySelectorAll('.vendas-link-btn').forEach(btn => {
+                    btn.onclick = () => this.openVendasRecipeModal(btn.dataset.id, recipes);
+                });
 
                 mainEl.querySelectorAll('.vendas-btn-del').forEach(btn => {
                     btn.onclick = async () => {
-                        if (btn.dataset.idx !== undefined) {
-                            ingredients.splice(btn.dataset.idx, 1);
-                            rootEl._vendasTempIngredients = ingredients;
-                            this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
-                        } else {
-                            if (!confirm('Excluir esta receita?')) return;
-                            const res = await fetch('/api/vendas?type=receitas', {
-                                method: 'DELETE',
-                                body: JSON.stringify({ id: btn.dataset.id })
-                            });
-                            if (res.ok) this.refreshAppContent('vendas');
+                        if (!confirm('Excluir esta receita permanentemente?')) return;
+                        const res = await fetch('/api/vendas?type=receitas', {
+                            method: 'DELETE',
+                            body: JSON.stringify({ id: btn.dataset.id })
+                        });
+                        if (res.ok) this.refreshAppContent('vendas');
+                    };
+                });
+            }
+
+            openVendasRecipeModal(recipeId, recipes) {
+                const recipe = recipes.find(r => r.id == recipeId);
+                if (!recipe) return;
+
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.style.display = 'flex';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width:600px; width:90%">
+                        <div class="modal-header">
+                            <h2>${recipe.nome}</h2>
+                            <span class="close-modal">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            <div class="vendas-summary-grid" style="margin-bottom:1.5rem">
+                                <div class="vendas-summary-item final" style="padding:0.75rem">
+                                    <div class="vendas-summary-label">Custo Total</div>
+                                    <div class="vendas-summary-value" style="font-size:1.1rem">R$ ${Number(recipe.custo_total).toFixed(2)}</div>
+                                </div>
+                            </div>
+                            <h3>Itens da Receita</h3>
+                            <ul class="vendas-list">
+                                ${(recipe.ingredientes || []).map((ing, idx) => `
+                                    <li class="vendas-list-item" style="padding:0.75rem 0; border-bottom:1px solid var(--border-color)">
+                                        <div class="vendas-item-info">
+                                            <p style="font-weight:700">${ing.name}</p>
+                                            <span style="font-size:0.75rem">${ing.volume}${ing.material} de ${ing.recipe}${ing.material} (R$ ${ing.unitPrice.toFixed(2)})</span>
+                                        </div>
+                                        <div style="display:flex;align-items:center;gap:1rem">
+                                            <b style="color:var(--primary)">R$ ${((ing.volume / ing.recipe) * ing.unitPrice).toFixed(2)}</b>
+                                            <button class="vendas-modal-del" data-idx="${idx}"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </li>
+                                `).join('')}
+                                ${!(recipe.ingredientes || []).length ? '<li style="text-align:center;padding:1rem;color:var(--text-light)">Nenhum item cadastrado</li>' : ''}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                modal.querySelector('.close-modal').onclick = () => modal.remove();
+                
+                modal.querySelectorAll('.vendas-modal-del').forEach(btn => {
+                    btn.onclick = async () => {
+                        if (!confirm('Remover este item da receita?')) return;
+                        const idx = parseInt(btn.dataset.idx);
+                        const updatedIngs = recipe.ingredientes.filter((_, i) => i !== idx);
+                        const newTotal = updatedIngs.reduce((sum, ing) => sum + ((ing.volume / ing.recipe) * ing.unitPrice), 0);
+
+                        const res = await fetch('/api/vendas?type=receitas', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: recipe.id, ingredientes: updatedIngs, custo_total: newTotal, preco_final: newTotal })
+                        });
+                        if (res.ok) {
+                            modal.remove();
+                            this.refreshAppContent('vendas');
                         }
                     };
                 });

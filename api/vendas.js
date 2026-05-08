@@ -62,6 +62,16 @@ export default async function handler(req, res) {
     return json(res, 200, { ok: true });
   }
 
-  res.setHeader('Allow', 'GET, POST, DELETE');
+  if (req.method === 'PATCH') {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+    const { id, ...updates } = body;
+    if (!id) return json(res, 400, { error: 'id é obrigatório para atualização' });
+
+    const { data, error } = await supabase.from(tableName).update(updates).eq('id', id).select().single();
+    if (error) return json(res, 500, { error: error.message });
+    return json(res, 200, data);
+  }
+
+  res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
   return json(res, 405, { error: 'Method Not Allowed' });
 }
