@@ -4940,15 +4940,6 @@
 
                         ${selectedRecipe ? `
                             <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border-color)">
-                                <h4 style="font-size:0.8rem;margin-bottom:0.8rem;color:var(--primary)">Ajustar Preço de Venda</h4>
-                                <div class="vendas-form-group">
-                                    <label>Preço Sugerido (Venda)</label>
-                                    <div style="display:flex;gap:0.5rem">
-                                        <input type="number" id="v_recipe_sale_price" value="${Number(selectedRecipe.preco_final).toFixed(2)}" step="0.01">
-                                        <button class="vendas-btn-add" id="v_btn_update_price" style="width:auto;margin:0;background:var(--success)"><i class="fas fa-save"></i></button>
-                                    </div>
-                                </div>
-
                                 <h4 style="font-size:0.8rem;margin-bottom:0.8rem;margin-top:1.5rem">Adicionar Ingrediente</h4>
                                 <div class="vendas-form-group">
                                     <input type="text" id="v_ing_name" placeholder="Nome do Ingrediente">
@@ -5045,16 +5036,6 @@
                 };
 
                 if (selectedRecipe) {
-                    formEl.querySelector('#v_btn_update_price').onclick = async () => {
-                        const newPrice = parseFloat(formEl.querySelector('#v_recipe_sale_price').value);
-                        if (isNaN(newPrice)) return;
-                        const res = await fetch('/api/vendas?type=receitas', {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: selectedId, preco_final: newPrice })
-                        });
-                        if (res.ok) this.refreshAppContent('vendas');
-                    };
 
                     formEl.querySelector('#v_ing_type').onchange = (e) => {
                         rootEl._vendasTempType = e.target.value;
