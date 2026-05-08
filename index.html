@@ -4724,12 +4724,14 @@
 
             renderVendasPricing(formEl, mainEl, recipes, rootEl) {
                 let ingredients = rootEl._vendasTempIngredients || [];
-                let currentType = rootEl._vendasTempType || 'peso';
+                let currentType = rootEl._vendasTempType || 'gramas';
 
                 const typeMap = {
-                    peso: { unit: 'g', label: 'Peso (kg)', vol: 'Peso Usado (g)', rec: 'Peso Total (g)' },
-                    volume: { unit: 'ml', label: 'Volume (L)', vol: 'Vol Usado (ml)', rec: 'Vol Total (ml)' },
-                    unidade: { unit: 'un', label: 'Unidade (un)', vol: 'Qtd Usada', rec: 'Qtd Total' }
+                    gramas: { unit: 'g', label: 'Gramas (g)', vol: 'Qtd Usada (g)', rec: 'Total Pacote (g)' },
+                    quilo: { unit: 'kg', label: 'Quilo (kg)', vol: 'Qtd Usada (kg)', rec: 'Total Pacote (kg)' },
+                    ml: { unit: 'ml', label: 'Mililitros (ml)', vol: 'Qtd Usada (ml)', rec: 'Total Pacote (ml)' },
+                    litro: { unit: 'L', label: 'Litro (L)', vol: 'Qtd Usada (L)', rec: 'Total Pacote (L)' },
+                    unidade: { unit: 'un', label: 'Unidade (un)', vol: 'Qtd Usada', rec: 'Qtd Pacote' }
                 };
 
                 const calculateTotal = () => ingredients.reduce((sum, ing) => sum + ((ing.volume / ing.recipe) * ing.unitPrice), 0);
@@ -4752,8 +4754,10 @@
                                 <div class="vendas-form-group">
                                     <label>Tipo de Medida</label>
                                     <select id="v_ing_type">
-                                        <option value="peso" ${currentType === 'peso' ? 'selected' : ''}>Quilo (kg)</option>
-                                        <option value="volume" ${currentType === 'volume' ? 'selected' : ''}>Litro (L)</option>
+                                        <option value="gramas" ${currentType === 'gramas' ? 'selected' : ''}>Gramas (g)</option>
+                                        <option value="quilo" ${currentType === 'quilo' ? 'selected' : ''}>Quilo (kg)</option>
+                                        <option value="ml" ${currentType === 'ml' ? 'selected' : ''}>Mililitros (ml)</option>
+                                        <option value="litro" ${currentType === 'litro' ? 'selected' : ''}>Litro (L)</option>
                                         <option value="unidade" ${currentType === 'unidade' ? 'selected' : ''}>Unidade (un)</option>
                                     </select>
                                 </div>
