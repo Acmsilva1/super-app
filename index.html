@@ -4990,7 +4990,7 @@
                                 <tbody>
                                     ${recipes.length ? recipes.map(r => `
                                         <tr>
-                                            <td><button class="vendas-link-btn" data-id="${r.id}">${r.nome}</button></td>
+                                            <td><button class="vendas-link-btn" data-id="${r.id}"><i class="fas fa-scroll fa-beat" style="margin-right:8px; color:var(--primary); --fa-animation-duration: 2s;"></i> ${r.nome}</button></td>
                                             <td>R$ ${Number(r.custo_total).toFixed(2)}</td>
                                             <td><button class="vendas-btn-del" data-id="${r.id}" data-type="recipe"><i class="fas fa-trash"></i></button></td>
                                         </tr>
@@ -5310,7 +5310,7 @@
                                         <th><i class="fas fa-user"></i> Cliente</th>
                                         <th><i class="fas fa-cookie"></i> Item (Qtd)</th>
                                         <th><i class="fas fa-money-bill-wave"></i> Valor</th>
-                                        <th><i class="fas fa-cog"></i></th>
+                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -5414,7 +5414,6 @@
                         rootEl._vendasTempCliente = '';
                         
                         this.refreshAppContent('vendas');
-                        alert('Venda registrada com sucesso! 🎉');
                     } catch (err) {
                         console.error(err);
                         alert('Erro ao registrar venda ❌');
