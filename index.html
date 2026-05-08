@@ -4724,11 +4724,10 @@
 
             renderVendasPricing(formEl, mainEl, recipes, rootEl) {
                 let ingredients = rootEl._vendasTempIngredients || [];
-                let profitMargin = rootEl._vendasTempMargin || 50;
 
                 const calculateTotal = () => ingredients.reduce((sum, ing) => sum + ((ing.volume / ing.recipe) * ing.unitPrice), 0);
                 const totalCost = calculateTotal();
-                const finalPrice = totalCost * (1 + profitMargin / 100);
+                const finalPrice = totalCost;
 
                 formEl.innerHTML = `
                     <div class="vendas-card">
@@ -4760,23 +4759,15 @@
                             </div>
                             <button class="vendas-btn-add" id="v_btn_add_ing"><i class="fas fa-plus"></i> Adicionar</button>
                         </div>
-                        <div style="margin-top:1.5rem">
-                            <label>Margem de Lucro: <span id="v_margin_val">${profitMargin}</span>%</label>
-                            <input type="range" id="v_range_margin" min="0" max="200" value="${profitMargin}">
-                        </div>
-                        <button class="vendas-btn-save" id="v_btn_save_cake"><i class="fas fa-save"></i> Salvar Receita</button>
+                        <button class="vendas-btn-save" id="v_btn_save_cake" style="margin-top:1.5rem"><i class="fas fa-save"></i> Salvar Receita</button>
                     </div>
                 `;
 
                 mainEl.innerHTML = `
                     <div class="vendas-summary-grid">
                         <div class="vendas-summary-item cost">
-                            <div class="vendas-summary-label">Custo Total</div>
+                            <div class="vendas-summary-label">Gasto Total</div>
                             <div class="vendas-summary-value">R$ ${totalCost.toFixed(2)}</div>
-                        </div>
-                        <div class="vendas-summary-item profit">
-                            <div class="vendas-summary-label">Margem</div>
-                            <div class="vendas-summary-value">${profitMargin}%</div>
                         </div>
                         <div class="vendas-summary-item final">
                             <div class="vendas-summary-label">Preço Final</div>
@@ -4807,8 +4798,8 @@
                                 <thead>
                                     <tr>
                                         <th>Bolo</th>
-                                        <th>Custo</th>
-                                        <th>Preço</th>
+                                        <th>Gasto</th>
+                                        <th>Preço Final</th>
                                         <th>Ação</th>
                                     </tr>
                                 </thead>
@@ -4817,7 +4808,7 @@
                                         <tr>
                                             <td><b>${r.nome}</b></td>
                                             <td>R$ ${Number(r.custo_total).toFixed(2)}</td>
-                                            <td><span class="vendas-badge">R$ ${Number(r.preco_final).toFixed(2)}</span></td>
+                                            <td><span class="vendas-badge" style="background:rgba(236,72,153,0.1);color:#ec4899">R$ ${Number(r.preco_final).toFixed(2)}</span></td>
                                             <td><button class="vendas-btn-del" data-id="${r.id}" data-type="recipe"><i class="fas fa-trash"></i></button></td>
                                         </tr>
                                     `).join('') : '<tr><td colspan="4" style="text-align:center;padding:1rem">Nenhuma receita salva</td></tr>'}
@@ -4828,12 +4819,6 @@
                 `;
 
                 // Eventos
-                formEl.querySelector('#v_range_margin').oninput = (e) => {
-                    profitMargin = parseInt(e.target.value);
-                    rootEl._vendasTempMargin = profitMargin;
-                    this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
-                };
-
                 formEl.querySelector('#v_btn_add_ing').onclick = () => {
                     const name = formEl.querySelector('#v_ing_name').value;
                     const mat = formEl.querySelector('#v_ing_mat').value;
@@ -4856,7 +4841,7 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            nome, ingredientes, custo_total: totalCost, margem_lucro: profitMargin, preco_final: finalPrice
+                            nome, ingredientes, custo_total: totalCost, margem_lucro: 0, preco_final: totalCost
                         })
                     });
                     if (res.ok) {
