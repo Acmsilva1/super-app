@@ -5218,11 +5218,6 @@
                 const totalSales = history.length;
                 const revenue = history.reduce((sum, s) => sum + Number(s.valor), 0);
                 const avg = totalSales ? revenue / totalSales : 0;
-
-            renderVendasSales(formEl, mainEl, history, recipes, rootEl) {
-                const totalSales = history.length;
-                const revenue = history.reduce((sum, s) => sum + Number(s.valor), 0);
-                const avg = totalSales ? revenue / totalSales : 0;
                 
                 // Inicializa o carrinho e cliente temporario se não existirem
                 rootEl._vendasBasket = rootEl._vendasBasket || [];
@@ -5432,30 +5427,6 @@
                         btn.disabled = false;
                         btn.innerHTML = '<i class="fas fa-check-circle"></i> Finalizar e Registrar Venda';
                     }
-                };
-
-                mainEl.querySelectorAll('.vendas-btn-del').forEach(btn => {
-                    btn.onclick = async () => {
-                        if (!confirm('Excluir esta venda do histórico?')) return;
-                        const res = await fetch('/api/vendas?type=historico', {
-                            method: 'DELETE',
-                            body: JSON.stringify({ id: btn.dataset.id })
-                        });
-                        if (res.ok) this.refreshAppContent('vendas');
-                    };
-                });
-            }
-                        return fetch('/api/vendas?type=historico', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ cliente, ...item })
-                        });
-                    });
-
-                    await Promise.all(promises);
-                    rootEl._vendasBasket = [];
-                    rootEl._vendasTempCliente = '';
-                    this.refreshAppContent('vendas');
                 };
 
                 mainEl.querySelectorAll('.vendas-btn-del').forEach(btn => {
