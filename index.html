@@ -3564,7 +3564,7 @@
             padding: 1rem;
         }
         @media (min-width: 1024px) {
-            .vendas-container { grid-template-columns: 350px 1fr; }
+            .vendas-container { grid-template-columns: 380px 1fr; }
         }
         .vendas-tabs {
             display: flex;
@@ -3591,77 +3591,162 @@
             box-shadow: var(--shadow-sm);
         }
         .vendas-card {
-            background: var(--bg-white);
-            border: 1px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 1.25rem;
-            box-shadow: var(--shadow-sm);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
         }
-        .vendas-card h3 { margin-bottom: 1rem; font-size: 1.1rem; }
-        .vendas-form-group { margin-bottom: 1rem; }
-        .vendas-form-group label { display: block; font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-light); }
+        [data-theme="light"] .vendas-card {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+        .vendas-card h3 { 
+            margin-bottom: 1.2rem; 
+            font-size: 1.25rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.5rem;
+            color: var(--primary);
+        }
+        .vendas-form-group { margin-bottom: 1.25rem; }
+        .vendas-form-group label { 
+            display: block; 
+            font-size: 0.7rem; 
+            margin-bottom: 0.4rem; 
+            color: var(--text-light); 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
         .vendas-form-group input, .vendas-form-group select {
             width: 100%;
-            padding: 0.5rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            color: var(--text-dark);
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        [data-theme="light"] .vendas-form-group input, 
+        [data-theme="light"] .vendas-form-group select {
             background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            color: #1f2937;
+            border-color: rgba(0, 0, 0, 0.1);
+            color: #1e293b;
         }
-        .vendas-form-group select option {
-            background: #ffffff;
-            color: #1f2937;
+        .vendas-form-group input:focus, .vendas-form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+            background: rgba(255, 255, 255, 0.08);
         }
-        [data-theme="dark"] .vendas-form-group input, 
-        [data-theme="dark"] .vendas-form-group select {
-            background: #1e293b;
-            color: #f3f4f6;
-            border-color: #334155;
-        }
-        [data-theme="dark"] .vendas-form-group select option {
-            background: #1e293b;
-            color: #f3f4f6;
-        }
-        .vendas-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        .vendas-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        
         .vendas-btn-add {
             width: 100%;
-            padding: 0.65rem;
-            background: var(--primary);
+            padding: 0.8rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             font-weight: 700;
             cursor: pointer;
-            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
         }
-        .vendas-btn-save {
+        .vendas-btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+            filter: brightness(1.1);
+        }
+        .vendas-btn-add:active { transform: translateY(0); }
+        
+        .vendas-btn-reg {
             width: 100%;
-            padding: 0.65rem;
-            background: #ec4899;
+            padding: 1rem;
+            background: linear-gradient(135deg, #10b981, #059669);
             color: white;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             font-weight: 700;
+            font-size: 1rem;
             cursor: pointer;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .vendas-btn-reg:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        }
+        .vendas-btn-reg:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #6b7280;
+            box-shadow: none;
+        }
+
+        .vendas-basket-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            animation: slideRight 0.3s ease-out;
+        }
+        @keyframes slideRight {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .vs-remove-item {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .vs-remove-item:hover {
+            background: #ef4444;
+            color: white;
+            transform: scale(1.1);
         }
         .vendas-summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
         .vendas-summary-item {
-            padding: 1rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
+            padding: 1.25rem;
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s;
         }
-        .vendas-summary-item.cost { background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); }
-        .vendas-summary-item.profit { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
-        .vendas-summary-item.final { background: rgba(236, 72, 153, 0.1); border-color: rgba(236, 72, 153, 0.3); }
-        .vendas-summary-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); }
-        .vendas-summary-value { font-size: 1.25rem; font-weight: 800; margin-top: 0.25rem; }
-        .vendas-list { list-style: none; }
+        .vendas-summary-item:hover { transform: translateY(-3px); }
+        .vendas-summary-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); letter-spacing: 0.05em; }
+        .vendas-summary-value { font-size: 1.4rem; font-weight: 800; margin-top: 0.4rem; font-family: 'Orbitron', sans-serif; }
 
         /* MODAL VENDAS */
         .modal {
@@ -3713,10 +3798,41 @@
             border-radius: 0.4rem;
             cursor: pointer;
         }
-        .vendas-table-wrap { overflow-x: auto; }
-        .vendas-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        .vendas-table th { text-align: left; padding: 0.75rem; border-bottom: 2px solid var(--border-color); color: var(--text-light); }
-        .vendas-table td { padding: 0.75rem; border-bottom: 1px solid var(--border-color); }
+        .vendas-table-wrap {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 1rem;
+            overflow-y: auto;
+            max-height: 480px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .vendas-table { width: 100%; border-collapse: collapse; }
+        .vendas-table th { 
+            text-align: left; 
+            padding: 1rem; 
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(4px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            color: var(--text-light); 
+        }
+        [data-theme="light"] .vendas-table th {
+            background: rgba(241, 245, 249, 0.9);
+        }
+        .vendas-table td { padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.9rem; }
+        .vendas-table tr:hover { background: rgba(255, 255, 255, 0.03); }
+        .vendas-btn-del {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .vendas-btn-del:hover { background: #ef4444; color: white; }
         .vendas-badge {
             padding: 0.2rem 0.5rem;
             border-radius: 999px;
@@ -3724,6 +3840,11 @@
             font-weight: 700;
             background: rgba(59, 130, 246, 0.1);
             color: #3b82f6;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
     </style>
@@ -4788,6 +4909,9 @@
                         <div class="vendas-form-group">
                             <input type="text" id="v_new_recipe_name" placeholder="Ex: Bolo de Milho">
                         </div>
+                        <div class="vendas-form-group">
+                            <input type="number" id="v_new_recipe_price" placeholder="Preço de Venda (R$)" step="0.01">
+                        </div>
                         <button class="vendas-btn-add" id="v_btn_create_recipe"><i class="fas fa-plus"></i> Criar Receita</button>
                     </div>
 
@@ -4887,11 +5011,12 @@
                 // Eventos
                 formEl.querySelector('#v_btn_create_recipe').onclick = async () => {
                     const nome = formEl.querySelector('#v_new_recipe_name').value;
+                    const preco_final = parseFloat(formEl.querySelector('#v_new_recipe_price').value) || 0;
                     if (!nome) return;
                     const res = await fetch('/api/vendas?type=receitas', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nome, ingredientes: [], custo_total: 0, margem_lucro: 0, preco_final: 0 })
+                        body: JSON.stringify({ nome, ingredientes: [], custo_total: 0, margem_lucro: 0, preco_final })
                     });
                     if (res.ok) {
                         this.refreshAppContent('vendas');
@@ -5094,70 +5219,120 @@
                 const revenue = history.reduce((sum, s) => sum + Number(s.valor), 0);
                 const avg = totalSales ? revenue / totalSales : 0;
 
+            renderVendasSales(formEl, mainEl, history, recipes, rootEl) {
+                const totalSales = history.length;
+                const revenue = history.reduce((sum, s) => sum + Number(s.valor), 0);
+                const avg = totalSales ? revenue / totalSales : 0;
+                
+                // Inicializa o carrinho e cliente temporario se não existirem
+                rootEl._vendasBasket = rootEl._vendasBasket || [];
+
                 formEl.innerHTML = `
                     <div class="vendas-card">
-                        <h3>Registrar Venda</h3>
+                        <h3><i class="fas fa-shopping-bag"></i> Registrar Venda</h3>
                         <div class="vendas-form-group">
-                            <label>Cliente</label>
-                            <input type="text" id="vs_cliente" placeholder="Nome do Cliente">
+                            <label><i class="fas fa-user-tag"></i> Cliente</label>
+                            <input type="text" id="vs_cliente" placeholder="Nome do Cliente" value="${escapeHtml(rootEl._vendasTempCliente || '')}">
                         </div>
-                        <div class="vendas-form-group">
-                            <label>Sabor / Bolo</label>
-                            <select id="vs_sabor">
-                                <option value="">Selecione um bolo...</option>
-                                ${recipes.map(r => `<option value="${r.nome}" data-price="${r.preco_final}">${r.nome} (R$ ${Number(r.preco_final).toFixed(2)})</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="vendas-grid-2">
+                        
+                        <div style="background:rgba(255,255,255,0.03); border:1px dashed var(--border-color); border-radius:12px; padding:1rem; margin-bottom:1.5rem">
                             <div class="vendas-form-group">
-                                <label>Quantidade</label>
-                                <input type="number" id="vs_qty" value="1" min="1">
+                                <label style="font-size:0.7rem"><i class="fas fa-birthday-cake"></i> Sabor / Bolo</label>
+                                <select id="vs_sabor">
+                                    <option value="">Selecione o sabor...</option>
+                                    ${recipes.map(r => `<option value="${r.nome}" data-price="${r.preco_final}">${r.nome} (R$ ${Number(r.preco_final).toFixed(2)})</option>`).join('')}
+                                </select>
                             </div>
-                            <div class="vendas-form-group">
-                                <label>Total Venda (R$)</label>
-                                <input type="number" id="vs_valor" step="0.01">
+                            <div class="vendas-grid-2">
+                                <div class="vendas-form-group">
+                                    <label style="font-size:0.7rem"><i class="fas fa-layer-group"></i> Qtd</label>
+                                    <input type="number" id="vs_qty" value="1" min="1">
+                                </div>
+                                <div class="vendas-form-group">
+                                    <label style="font-size:0.7rem"><i class="fas fa-tag"></i> Subtotal</label>
+                                    <input type="number" id="vs_valor" step="0.01" readonly style="background:rgba(255,255,255,0.05); cursor:not-allowed">
+                                </div>
                             </div>
+                            <button class="vendas-btn-add" id="vs_btn_add_basket">
+                                <i class="fas fa-cart-plus"></i> Adicionar ao Carrinho
+                            </button>
                         </div>
-                        <button class="vendas-btn-add" id="vs_btn_reg" style="background:#10b981"><i class="fas fa-check"></i> Registrar Venda</button>
+
+                        ${rootEl._vendasBasket.length ? `
+                            <div id="vs_basket_display" style="margin-bottom:1.5rem; animation: slideIn 0.3s ease;">
+                                <h4 style="font-size:0.65rem; color:var(--text-light); text-transform:uppercase; margin-bottom:0.75rem; display:flex; align-items:center; gap:5px">
+                                    <i class="fas fa-shopping-cart"></i> Itens no Carrinho (${rootEl._vendasBasket.length})
+                                </h4>
+                                <div style="max-height: 200px; overflow-y: auto; padding-right: 5px;">
+                                    ${rootEl._vendasBasket.map((item, idx) => `
+                                        <div class="vendas-basket-item">
+                                            <div style="display:flex; flex-direction:column">
+                                                <span style="font-weight:700; font-size:0.85rem">${item.sabor}</span>
+                                                <span style="font-size:0.7rem; opacity:0.7">${item.quantidade}x R$ ${(item.valor / item.quantidade).toFixed(2)}</span>
+                                            </div>
+                                            <div style="display:flex; align-items:center; gap:12px">
+                                                <b style="color:var(--success)">R$ ${item.valor.toFixed(2)}</b>
+                                                <button class="vs-remove-item" data-idx="${idx}" title="Remover"><i class="fas fa-times"></i></button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div style="text-align:right; margin-top:1rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:0.75rem">
+                                    <span style="font-size:0.75rem; color:var(--text-light)">Total Geral:</span>
+                                    <b style="font-size:1.4rem; color:var(--success); margin-left:8px; font-family:'Orbitron', sans-serif">R$ ${rootEl._vendasBasket.reduce((sum, i) => sum + i.valor, 0).toFixed(2)}</b>
+                                </div>
+                            </div>
+                        ` : `
+                            <div style="text-align:center; padding:1.5rem; opacity:0.4; border:1px dashed rgba(255,255,255,0.1); border-radius:12px; margin-bottom:1.5rem">
+                                <i class="fas fa-shopping-basket" style="font-size:2rem; margin-bottom:0.5rem"></i>
+                                <p style="font-size:0.8rem">Carrinho vazio</p>
+                            </div>
+                        `}
+
+                        <button class="vendas-btn-reg" id="vs_btn_reg" ${!rootEl._vendasBasket.length ? 'disabled' : ''}>
+                            <i class="fas fa-check-circle"></i> Finalizar e Registrar Venda
+                        </button>
                     </div>
                 `;
 
                 mainEl.innerHTML = `
                     <div class="vendas-summary-grid">
-                        <div class="vendas-summary-item" style="background:rgba(16,185,129,0.1)">
-                            <div class="vendas-summary-label">Vendas Hoje</div>
+                        <div class="vendas-summary-item" style="background:rgba(16,185,129,0.08); border-left:4px solid #10b981">
+                            <div class="vendas-summary-label">🚀 Vendas Hoje</div>
                             <div class="vendas-summary-value">${totalSales}</div>
                         </div>
-                        <div class="vendas-summary-item" style="background:rgba(249,115,22,0.1)">
-                            <div class="vendas-summary-label">Faturamento</div>
+                        <div class="vendas-summary-item" style="background:rgba(249,115,22,0.08); border-left:4px solid #f97316">
+                            <div class="vendas-summary-label">💰 Faturamento</div>
                             <div class="vendas-summary-value">R$ ${revenue.toFixed(2)}</div>
                         </div>
-                        <div class="vendas-summary-item" style="background:rgba(59,130,246,0.1)">
-                            <div class="vendas-summary-label">Ticket Médio</div>
+                        <div class="vendas-summary-item" style="background:rgba(59,130,246,0.08); border-left:4px solid #3b82f6">
+                            <div class="vendas-summary-label">📊 Ticket Médio</div>
                             <div class="vendas-summary-value">R$ ${avg.toFixed(2)}</div>
                         </div>
                     </div>
-                    <div class="vendas-card">
-                        <h3>Histórico de Vendas</h3>
+                    <div class="vendas-card" style="padding:0">
+                        <div style="padding:1.5rem; border-bottom:1px solid rgba(255,255,255,0.05)">
+                            <h3 style="margin:0"><i class="fas fa-history"></i> Histórico de Vendas</h3>
+                        </div>
                         <div class="vendas-table-wrap">
                             <table class="vendas-table">
                                 <thead>
                                     <tr>
-                                        <th>Cliente</th>
-                                        <th>Item (Qtd)</th>
-                                        <th>Valor</th>
-                                        <th>Ação</th>
+                                        <th><i class="fas fa-user"></i> Cliente</th>
+                                        <th><i class="fas fa-cookie"></i> Item (Qtd)</th>
+                                        <th><i class="fas fa-money-bill-wave"></i> Valor</th>
+                                        <th><i class="fas fa-cog"></i></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${history.length ? history.map(s => `
                                         <tr>
-                                            <td>${s.cliente}</td>
-                                            <td>${s.sabor} <small>(x${s.quantidade || 1})</small></td>
-                                            <td><b>R$ ${Number(s.valor).toFixed(2)}</b></td>
-                                            <td><button class="vendas-btn-del" data-id="${s.id}"><i class="fas fa-trash"></i></button></td>
+                                            <td><span style="font-weight:600">${escapeHtml(s.cliente)}</span></td>
+                                            <td>${escapeHtml(s.sabor)} <span class="vendas-badge">${s.quantidade || 1}x</span></td>
+                                            <td><b style="color:var(--success)">R$ ${Number(s.valor).toFixed(2)}</b></td>
+                                            <td style="text-align:right"><button class="vendas-btn-del" data-id="${s.id}"><i class="fas fa-trash-alt"></i></button></td>
                                         </tr>
-                                    `).join('') : '<tr><td colspan="4" style="text-align:center;padding:1rem">Nenhuma venda registrada</td></tr>'}
+                                    `).join('') : '<tr><td colspan="4" style="text-align:center;padding:2rem;opacity:0.5">Nenhuma venda registrada hoje 🍰</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
@@ -5165,29 +5340,122 @@
                 `;
 
                 const updateSalesTotal = () => {
-                    const opt = formEl.querySelector('#vs_sabor').options[formEl.querySelector('#vs_sabor').selectedIndex];
-                    const unitPrice = parseFloat(opt.dataset.price) || 0;
+                    const sel = formEl.querySelector('#vs_sabor');
+                    const opt = sel.options[sel.selectedIndex];
+                    const unitPrice = parseFloat(opt?.dataset?.price) || 0;
                     const qty = parseInt(formEl.querySelector('#vs_qty').value) || 1;
                     formEl.querySelector('#vs_valor').value = (unitPrice * qty).toFixed(2);
                 };
 
                 formEl.querySelector('#vs_sabor').onchange = updateSalesTotal;
                 formEl.querySelector('#vs_qty').oninput = updateSalesTotal;
+                
+                formEl.querySelector('#vs_cliente').oninput = (e) => {
+                    rootEl._vendasTempCliente = e.target.value;
+                };
 
-                formEl.querySelector('#vs_btn_reg').onclick = async () => {
-                    const cliente = formEl.querySelector('#vs_cliente').value;
+                // Adicionar ao Carrinho
+                formEl.querySelector('#vs_btn_add_basket').onclick = () => {
                     const sabor = formEl.querySelector('#vs_sabor').value;
                     const valor = parseFloat(formEl.querySelector('#vs_valor').value);
                     const quantidade = parseInt(formEl.querySelector('#vs_qty').value) || 1;
 
-                    if (!cliente || !sabor || isNaN(valor)) return;
+                    if (!sabor || isNaN(valor)) {
+                        alert('Por favor, selecione um sabor 🍰');
+                        return;
+                    }
 
-                    const res = await fetch('/api/vendas?type=historico', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cliente, sabor, valor, quantidade })
+                    rootEl._vendasBasket.push({ sabor, valor, quantidade });
+                    
+                    // Reset form fields
+                    formEl.querySelector('#vs_sabor').value = '';
+                    formEl.querySelector('#vs_qty').value = '1';
+                    formEl.querySelector('#vs_valor').value = '';
+                    
+                    this.renderVendasSales(formEl, mainEl, history, recipes, rootEl);
+                };
+
+                // Remover do Carrinho
+                formEl.querySelectorAll('.vs-remove-item').forEach(btn => {
+                    btn.onclick = () => {
+                        const idx = parseInt(btn.dataset.idx);
+                        rootEl._vendasBasket.splice(idx, 1);
+                        this.renderVendasSales(formEl, mainEl, history, recipes, rootEl);
+                    };
+                });
+
+                // Registrar Venda Final (Consolidada)
+                formEl.querySelector('#vs_btn_reg').onclick = async () => {
+                    const cliente = formEl.querySelector('#vs_cliente').value;
+                    if (!cliente) {
+                        alert('Informe o nome do cliente 👤');
+                        formEl.querySelector('#vs_cliente').focus();
+                        return;
+                    }
+                    if (!rootEl._vendasBasket.length) return;
+
+                    const btn = formEl.querySelector('#vs_btn_reg');
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
+
+                    try {
+                        // Consolida os itens para uma única entrada
+                        const saborConsolidado = rootEl._vendasBasket
+                            .map(item => `${item.sabor} (${item.quantidade}x)`)
+                            .join(' / ');
+                        
+                        const valorTotal = rootEl._vendasBasket.reduce((sum, i) => sum + i.valor, 0);
+                        const qtdTotal = rootEl._vendasBasket.reduce((sum, i) => sum + i.quantidade, 0);
+
+                        const res = await fetch('/api/vendas?type=historico', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                cliente, 
+                                sabor: saborConsolidado, 
+                                valor: valorTotal, 
+                                quantidade: qtdTotal 
+                            })
+                        });
+
+                        if (!res.ok) throw new Error('Erro no servidor');
+                        
+                        // Clear state
+                        rootEl._vendasBasket = [];
+                        rootEl._vendasTempCliente = '';
+                        
+                        this.refreshAppContent('vendas');
+                        alert('Venda registrada com sucesso! 🎉');
+                    } catch (err) {
+                        console.error(err);
+                        alert('Erro ao registrar venda ❌');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-check-circle"></i> Finalizar e Registrar Venda';
+                    }
+                };
+
+                mainEl.querySelectorAll('.vendas-btn-del').forEach(btn => {
+                    btn.onclick = async () => {
+                        if (!confirm('Excluir esta venda do histórico?')) return;
+                        const res = await fetch('/api/vendas?type=historico', {
+                            method: 'DELETE',
+                            body: JSON.stringify({ id: btn.dataset.id })
+                        });
+                        if (res.ok) this.refreshAppContent('vendas');
+                    };
+                });
+            }
+                        return fetch('/api/vendas?type=historico', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ cliente, ...item })
+                        });
                     });
-                    if (res.ok) this.refreshAppContent('vendas');
+
+                    await Promise.all(promises);
+                    rootEl._vendasBasket = [];
+                    rootEl._vendasTempCliente = '';
+                    this.refreshAppContent('vendas');
                 };
 
                 mainEl.querySelectorAll('.vendas-btn-del').forEach(btn => {
