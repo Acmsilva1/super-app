@@ -4724,6 +4724,13 @@
 
             renderVendasPricing(formEl, mainEl, recipes, rootEl) {
                 let ingredients = rootEl._vendasTempIngredients || [];
+                let currentType = rootEl._vendasTempType || 'peso';
+
+                const typeMap = {
+                    peso: { unit: 'g', label: 'Peso (kg)', vol: 'Peso Usado (g)', rec: 'Peso Total (g)' },
+                    volume: { unit: 'ml', label: 'Volume (L)', vol: 'Vol Usado (ml)', rec: 'Vol Total (ml)' },
+                    unidade: { unit: 'un', label: 'Unidade (un)', vol: 'Qtd Usada', rec: 'Qtd Total' }
+                };
 
                 const calculateTotal = () => ingredients.reduce((sum, ing) => sum + ((ing.volume / ing.recipe) * ing.unitPrice), 0);
                 const totalCost = calculateTotal();
@@ -4743,18 +4750,26 @@
                             </div>
                             <div class="vendas-grid-2">
                                 <div class="vendas-form-group">
-                                    <input type="text" id="v_ing_mat" placeholder="Unid (kg, L)">
+                                    <label>Tipo de Medida</label>
+                                    <select id="v_ing_type">
+                                        <option value="peso" ${currentType === 'peso' ? 'selected' : ''}>Quilo (kg)</option>
+                                        <option value="volume" ${currentType === 'volume' ? 'selected' : ''}>Litro (L)</option>
+                                        <option value="unidade" ${currentType === 'unidade' ? 'selected' : ''}>Unidade (un)</option>
+                                    </select>
                                 </div>
                                 <div class="vendas-form-group">
-                                    <input type="number" id="v_ing_vol" placeholder="Vol Usado">
+                                    <label id="v_label_vol">${typeMap[currentType].vol}</label>
+                                    <input type="number" id="v_ing_vol" placeholder="Ex: 200">
                                 </div>
                             </div>
                             <div class="vendas-grid-2">
                                 <div class="vendas-form-group">
-                                    <input type="number" id="v_ing_rec" placeholder="Vol Receita">
+                                    <label id="v_label_rec">${typeMap[currentType].rec}</label>
+                                    <input type="number" id="v_ing_rec" placeholder="Ex: 1000">
                                 </div>
                                 <div class="vendas-form-group">
-                                    <input type="number" id="v_ing_price" placeholder="Preço Unid">
+                                    <label>Preço do Pacote</label>
+                                    <input type="number" id="v_ing_price" placeholder="R$ 0.00">
                                 </div>
                             </div>
                             <button class="vendas-btn-add" id="v_btn_add_ing"><i class="fas fa-plus"></i> Adicionar</button>
@@ -4819,14 +4834,20 @@
                 `;
 
                 // Eventos
+                formEl.querySelector('#v_ing_type').onchange = (e) => {
+                    rootEl._vendasTempType = e.target.value;
+                    this.renderVendasPricing(formEl, mainEl, recipes, rootEl);
+                };
+
                 formEl.querySelector('#v_btn_add_ing').onclick = () => {
                     const name = formEl.querySelector('#v_ing_name').value;
-                    const mat = formEl.querySelector('#v_ing_mat').value;
+                    const type = formEl.querySelector('#v_ing_type').value;
+                    const mat = typeMap[type].unit;
                     const vol = parseFloat(formEl.querySelector('#v_ing_vol').value);
                     const rec = parseFloat(formEl.querySelector('#v_ing_rec').value);
                     const price = parseFloat(formEl.querySelector('#v_ing_price').value);
 
-                    if (!name || !mat || isNaN(vol) || isNaN(rec) || isNaN(price)) return alert('Preencha todos os campos do ingrediente');
+                    if (!name || isNaN(vol) || isNaN(rec) || isNaN(price)) return alert('Preencha todos os campos do ingrediente');
                     
                     ingredients.push({ name, material: mat, volume: vol, recipe: rec, unitPrice: price });
                     rootEl._vendasTempIngredients = ingredients;
