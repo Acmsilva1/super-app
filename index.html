@@ -140,6 +140,19 @@
         [data-theme="dark"] .app-modal { background: var(--bg-white); color: var(--text-dark); }
         [data-theme="dark"] .app-list li:hover { background: var(--bg-gray); }
 
+        /* Global Select/Menu Styles */
+        select { color-scheme: dark; }
+        [data-theme="light"] select { color-scheme: light; }
+        
+        option {
+            background: #0f172a;
+            color: #f1f5f9;
+        }
+        [data-theme="light"] option {
+            background: #ffffff;
+            color: #1e293b;
+        }
+
         [data-theme="light"] body {
             background:
                 radial-gradient(1200px 800px at 8% -14%, rgba(56, 189, 248, 0.24), transparent 44%),
