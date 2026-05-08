@@ -4884,7 +4884,12 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ nome, ingredientes: [], custo_total: 0, preco_final: 0 })
                     });
-                    if (res.ok) this.refreshAppContent('vendas');
+                    if (res.ok) {
+                        this.refreshAppContent('vendas');
+                    } else {
+                        const err = await res.json();
+                        alert('Erro: ' + (err.error || 'Verifique se as tabelas foram criadas no Supabase'));
+                    }
                 };
 
                 formEl.querySelector('#v_recipe_select').onchange = (e) => {
@@ -4916,7 +4921,12 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ id: selectedId, ingredientes: updatedIngs, custo_total: newTotal, preco_final: newTotal })
                         });
-                        if (res.ok) this.refreshAppContent('vendas');
+                        if (res.ok) {
+                            this.refreshAppContent('vendas');
+                        } else {
+                            const err = await res.json();
+                            alert('Erro ao atualizar: ' + (err.error || 'Verifique a conexão'));
+                        }
                     };
                 }
 
