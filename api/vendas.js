@@ -29,11 +29,11 @@ export default async function handler(req, res) {
     
     // Validação básica baseada no tipo
     if (type === 'receitas') {
-      const { nome, ingredientes, custo_total, margem_lucro, preco_final } = body;
+      const { nome, ingredientes, custo_total, margem_lucro, preco_final, porcoes } = body;
       if (!nome) return json(res, 400, { error: 'nome é obrigatório' });
       
       const { data, error } = await supabase.from(tableName).insert({
-        nome, ingredientes, custo_total, margem_lucro, preco_final
+        nome, ingredientes, custo_total, margem_lucro, preco_final, porcoes: porcoes || 1
       }).select().single();
       
       if (error) return json(res, 500, { error: error.message });

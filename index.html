@@ -4922,8 +4922,15 @@
                         <div class="vendas-form-group">
                             <input type="text" id="v_new_recipe_name" placeholder="Ex: Bolo de Milho">
                         </div>
-                        <div class="vendas-form-group">
-                            <input type="number" id="v_new_recipe_price" placeholder="Preço de Venda (R$)" step="0.01">
+                        <div class="vendas-grid-2">
+                            <div class="vendas-form-group">
+                                <label style="font-size:0.6rem; opacity:0.7">Venda (R$)</label>
+                                <input type="number" id="v_new_recipe_price" placeholder="R$ 0.00" step="0.01">
+                            </div>
+                            <div class="vendas-form-group">
+                                <label style="font-size:0.6rem; opacity:0.7">Porções</label>
+                                <input type="number" id="v_new_recipe_portions" value="1" min="1">
+                            </div>
                         </div>
                         <button class="vendas-btn-add" id="v_btn_create_recipe"><i class="fas fa-plus"></i> Criar Receita</button>
                     </div>
@@ -5016,11 +5023,12 @@
                 formEl.querySelector('#v_btn_create_recipe').onclick = async () => {
                     const nome = formEl.querySelector('#v_new_recipe_name').value;
                     const preco_final = parseFloat(formEl.querySelector('#v_new_recipe_price').value) || 0;
+                    const porcoes = parseInt(formEl.querySelector('#v_new_recipe_portions').value) || 1;
                     if (!nome) return;
                     const res = await fetch('/api/vendas?type=receitas', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nome, ingredientes: [], custo_total: 0, margem_lucro: 0, preco_final })
+                        body: JSON.stringify({ nome, ingredientes: [], custo_total: 0, margem_lucro: 0, preco_final, porcoes })
                     });
                     if (res.ok) {
                         this.refreshAppContent('vendas');
@@ -5110,17 +5118,31 @@
                             </div>
                             <div class="modal-body">
                                 ${editing ? `
-                                    <div class="vendas-card" style="margin-bottom:1rem; border:1px solid var(--primary); background:rgba(56,189,248,0.05)">
-                                        <label style="font-size:0.7rem; font-weight:700; color:var(--primary); text-transform:uppercase">Preço de Venda (R$)</label>
-                                        <input type="number" id="vm_recipe_price" value="${Number(recipe.preco_final).toFixed(2)}" step="0.01" style="font-size:1.3rem; font-weight:800; color:var(--text-dark); background:transparent; border:none; width:100%; outline:none">
+                                    <div class="vendas-grid-2" style="margin-bottom:1rem; gap:10px">
+                                        <div class="vendas-card" style="margin:0; border:1px solid var(--primary); background:rgba(56,189,248,0.05); padding:0.75rem">
+                                            <label style="font-size:0.6rem; font-weight:700; color:var(--primary); text-transform:uppercase">Preço Venda (R$)</label>
+                                            <input type="number" id="vm_recipe_price" value="${Number(recipe.preco_final).toFixed(2)}" step="0.01" style="font-size:1.1rem; font-weight:800; color:var(--text-dark); background:transparent; border:none; width:100%; outline:none">
+                                        </div>
+                                        <div class="vendas-card" style="margin:0; border:1px solid var(--primary); background:rgba(56,189,248,0.05); padding:0.75rem">
+                                            <label style="font-size:0.6rem; font-weight:700; color:var(--primary); text-transform:uppercase">Porções</label>
+                                            <input type="number" id="vm_recipe_portions" value="${recipe.porcoes || 1}" min="1" style="font-size:1.1rem; font-weight:800; color:var(--text-dark); background:transparent; border:none; width:100%; outline:none">
+                                        </div>
                                     </div>
                                 ` : `
-                                    <div class="vendas-summary-grid" style="margin-bottom:1rem; grid-template-columns: 1fr auto">
+                                    <div class="vendas-summary-grid" style="margin-bottom:1rem; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)) auto; gap:10px">
                                         <div class="vendas-summary-item cost" style="padding:0.6rem">
-                                            <div class="vendas-summary-label">Custo Produção</div>
-                                            <div class="vendas-summary-value" style="font-size:1.1rem">R$ ${Number(recipe.custo_total).toFixed(2)}</div>
+                                            <div class="vendas-summary-label">Custo Total</div>
+                                            <div class="vendas-summary-value" style="font-size:1rem">R$ ${Number(recipe.custo_total).toFixed(2)}</div>
                                         </div>
-                                        <button class="vendas-btn-add" id="vm_btn_edit" style="margin:0; background:var(--primary); padding:0 1.5rem"><i class="fas fa-edit"></i> Editar Receita</button>
+                                        <div class="vendas-summary-item" style="padding:0.6rem; background:rgba(59,130,246,0.05)">
+                                            <div class="vendas-summary-label">Porções</div>
+                                            <div class="vendas-summary-value" style="font-size:1rem">${recipe.porcoes || 1}</div>
+                                        </div>
+                                        <div class="vendas-summary-item" style="padding:0.6rem; background:rgba(16,185,129,0.05)">
+                                            <div class="vendas-summary-label">Custo/Porção</div>
+                                            <div class="vendas-summary-value" style="font-size:1rem">R$ ${(Number(recipe.custo_total) / (recipe.porcoes || 1)).toFixed(2)}</div>
+                                        </div>
+                                        <button class="vendas-btn-add" id="vm_btn_edit" style="margin:0; background:var(--primary); padding:0 1rem; font-size:0.8rem"><i class="fas fa-edit"></i> Editar</button>
                                     </div>
                                 `}
 
@@ -5172,6 +5194,7 @@
                         modal.querySelector('#vm_btn_cancel').onclick = () => renderModalContent(false);
                         modal.querySelector('#vm_btn_save').onclick = async () => {
                             const newPrice = parseFloat(modal.querySelector('#vm_recipe_price').value) || 0;
+                            const newPortions = parseInt(modal.querySelector('#vm_recipe_portions').value) || 1;
                             const volInputs = modal.querySelectorAll('.vm-ing-vol');
                             const priceInputs = modal.querySelectorAll('.vm-ing-price');
                             
@@ -5186,7 +5209,7 @@
                             const res = await fetch('/api/vendas?type=receitas', {
                                 method: 'PATCH',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ id: recipe.id, ingredientes: updatedIngs, custo_total: newCost, preco_final: newPrice, margem_lucro: 0 })
+                                body: JSON.stringify({ id: recipe.id, ingredientes: updatedIngs, custo_total: newCost, preco_final: newPrice, porcoes: newPortions, margem_lucro: 0 })
                             });
                             if (res.ok) {
                                 modal.remove();
