@@ -1983,11 +1983,14 @@
         .finance-parcela-tag {
             color: #facc15;
             font-weight: 700;
-            margin-left: 0.35rem;
+            margin-left: 1.1rem;
+            padding-left: 0.65rem;
+            border-left: 1px solid rgba(148, 163, 184, 0.35);
             white-space: nowrap;
         }
         [data-theme="light"] .finance-parcela-tag {
             color: #ca8a04;
+            border-left-color: rgba(100, 116, 139, 0.4);
         }
         .finance-parcelas-check {
             display: inline-flex;
@@ -5528,7 +5531,7 @@
                     const pt = Number(r.parcela_total ?? 0);
                     const pa = Number(r.parcela_atual ?? 0);
                     const parcelaHtml = (Number.isFinite(pt) && Number.isFinite(pa) && pt > 0 && pa > 0 && pa <= pt)
-                        ? ` <span class="finance-parcela-tag">${escapeHtml(String(pa))}x${escapeHtml(String(pt))}</span>`
+                        ? `<span class="finance-parcela-tag">Parcela ${escapeHtml(String(pa))} de ${escapeHtml(String(pt))}</span>`
                         : '';
                     return `<tr>
                         <td><strong>${escapeHtml(r.descricao || '')}</strong>${parcelaHtml}</td>
