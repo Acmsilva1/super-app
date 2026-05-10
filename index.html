@@ -1980,6 +1980,27 @@
             touch-action: pan-x pan-y;
             border-radius: 0 0 0.75rem 0.75rem;
         }
+        .finance-parcela-tag {
+            color: #facc15;
+            font-weight: 700;
+            margin-left: 0.35rem;
+            white-space: nowrap;
+        }
+        [data-theme="light"] .finance-parcela-tag {
+            color: #ca8a04;
+        }
+        .finance-parcelas-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .finance-parcelas-check input {
+            width: 1.05rem;
+            height: 1.05rem;
+            accent-color: #38bdf8;
+        }
         .poupanca-meta-entry-card {
             position: sticky;
             top: 4.5rem;
@@ -5504,8 +5525,13 @@
                     const statusLabel = statusRaw === 'pago' ? 'Pago' : 'Pendente';
                     const badgeClass = statusRaw === 'pago' ? 'is-paid' : 'is-pending';
                     const hora = fmtHoraBrasilia(r.created_at);
+                    const pt = Number(r.parcela_total ?? 0);
+                    const pa = Number(r.parcela_atual ?? 0);
+                    const parcelaHtml = (Number.isFinite(pt) && Number.isFinite(pa) && pt > 0 && pa > 0 && pa <= pt)
+                        ? ` <span class="finance-parcela-tag">${escapeHtml(String(pa))}x${escapeHtml(String(pt))}</span>`
+                        : '';
                     return `<tr>
-                        <td><strong>${escapeHtml(r.descricao || '')}</strong></td>
+                        <td><strong>${escapeHtml(r.descricao || '')}</strong>${parcelaHtml}</td>
                         <td><button type="button" class="finance-status-toggle ${badgeClass}" data-action="financeiro-toggle-status" data-id="${r.id}" data-status-atual="${statusRaw}" title="Clique para alternar status">${statusLabel}</button></td>
                         <td style="color:${statusRaw === 'pago' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
@@ -6114,6 +6140,9 @@
                 const gastoCategorias = ['Alimentacao','Habitacao','Transporte','Lazer','Saude','Ticket','Compras','Contas','Outros'];
                 const receitaCategorias = ['Salário','Benefício','Ticket','Outro'];
                 const tipoRegistro = item?.tipo_registro || defaultTipo || 'gasto_variado';
+                const parcelaTotalInit = Math.max(0, Math.round(Number(item?.parcela_total ?? 0)));
+                const parcelaAtualInit = Math.max(0, Math.round(Number(item?.parcela_atual ?? 0)));
+                const parcelasCheckedInit = parcelaTotalInit > 0 && parcelaAtualInit > 0 && parcelaAtualInit <= parcelaTotalInit;
                 const overlay = document.createElement('div');
                 overlay.className = 'app-modal-overlay';
                 const todayIso = this.getBrazilDateIsoFrom(new Date());
@@ -6135,6 +6164,11 @@
                                 <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">Mês de competência</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
                                 <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
                                 <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
+                                <div class="field" id="financeiro-parcelas-wrap" style="display:none;">
+                                    <label class="finance-parcelas-check"><input type="checkbox" id="financeiro-modal-parcelas" ${parcelasCheckedInit ? 'checked' : ''} /> Parcelas</label>
+                                </div>
+                                <div class="field" id="financeiro-parcela-atual-field" style="display:none;"><label>Parcela atual</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-atual" value="${parcelasCheckedInit ? String(parcelaAtualInit) : ''}" placeholder="Ex.: 1" /></div>
+                                <div class="field" id="financeiro-parcela-total-field" style="display:none;"><label>Total de parcelas</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-total" value="${parcelasCheckedInit ? String(parcelaTotalInit) : ''}" placeholder="Ex.: 12" /></div>
                                 <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
                                 <div class="field" id="financeiro-data-wrap"><label>Data do lançamento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" /></div>
                             </div>
@@ -6155,6 +6189,24 @@
                 const contextoEl = overlay.querySelector('#financeiro-modal-contexto');
                 const mesRefWrap = overlay.querySelector('#financeiro-mes-ref-wrap');
                 const mesRefEl = overlay.querySelector('#financeiro-modal-mes-ref');
+                const parcelasWrap = overlay.querySelector('#financeiro-parcelas-wrap');
+                const parcelaAtualField = overlay.querySelector('#financeiro-parcela-atual-field');
+                const parcelaTotalField = overlay.querySelector('#financeiro-parcela-total-field');
+                const parcelasCb = overlay.querySelector('#financeiro-modal-parcelas');
+                const syncParcelasUI = () => {
+                    const t = tipoEl.value;
+                    const showBlk = t === 'despesa_fixa';
+                    if (parcelasWrap) parcelasWrap.style.display = showBlk ? '' : 'none';
+                    if (!showBlk) {
+                        if (parcelaAtualField) parcelaAtualField.style.display = 'none';
+                        if (parcelaTotalField) parcelaTotalField.style.display = 'none';
+                        return;
+                    }
+                    const showInputs = parcelasCb && parcelasCb.checked;
+                    if (parcelaAtualField) parcelaAtualField.style.display = showInputs ? '' : 'none';
+                    if (parcelaTotalField) parcelaTotalField.style.display = showInputs ? '' : 'none';
+                };
+                if (parcelasCb) parcelasCb.addEventListener('change', syncParcelasUI);
                 const mesForBounds = () => {
                     const v = mesRefEl && mesRefEl.value ? mesRefEl.value.trim() : '';
                     if (v && /^\d{4}-\d{2}$/.test(v)) return v;
@@ -6204,6 +6256,7 @@
                         if (item?.categoria) catEl.value = item.categoria;
                         if (contextoEl) contextoEl.innerHTML = 'Escolha <strong>qualquer data</strong>: o lançamento aparece no mês correspondente a essa data.';
                     }
+                    syncParcelasUI();
                 };
                 setTipoUI(tipoEl.value);
                 tipoEl.onchange = () => setTipoUI(tipoEl.value);
@@ -6241,7 +6294,23 @@
                             ? dataValRaw
                             : (dataValRaw || todayIso),
                         mesAno: mesAnoPayload,
+                        parcelas: false,
+                        parcela_atual: null,
+                        parcela_total: null,
                     };
+                    if (tipoVal === 'despesa_fixa') {
+                        payload.parcelas = !!(parcelasCb && parcelasCb.checked);
+                        if (payload.parcelas) {
+                            const pa = parseInt(String(overlay.querySelector('#financeiro-modal-parcela-atual')?.value || ''), 10);
+                            const pt = parseInt(String(overlay.querySelector('#financeiro-modal-parcela-total')?.value || ''), 10);
+                            if (!Number.isFinite(pa) || !Number.isFinite(pt) || pa < 1 || pt < 1 || pa > pt) {
+                                alert('Informe parcela atual e total de parcelas (a atual não pode ser maior que o total).');
+                                return;
+                            }
+                            payload.parcela_atual = pa;
+                            payload.parcela_total = pt;
+                        }
+                    }
                     const ok = await this.submitFinanceiroSave(el, payload);
                     if (ok) close();
                 };
@@ -6275,9 +6344,16 @@
                 if (tipoRegistro === 'despesa_fixa' && !editId) requestBody.status = 'pendente';
                 else if (tipoRegistro === 'poupanca') {
                     requestBody.data_lancamento = dataLanc;
-                } else {
+                } else if (tipoRegistro !== 'despesa_fixa') {
                     requestBody.categoria = categoria;
                     requestBody.data_lancamento = dataLanc;
+                }
+                if (tipoRegistro === 'despesa_fixa') {
+                    requestBody.parcelas = !!payload?.parcelas;
+                    if (requestBody.parcelas) {
+                        requestBody.parcela_atual = payload.parcela_atual;
+                        requestBody.parcela_total = payload.parcela_total;
+                    }
                 }
                 if (editId) requestBody.id = editId;
                 try {
@@ -7299,5 +7375,6 @@
 
 
 
-/ /   t r i g g e r   d e p l o y  
+/ /   t r i g g e r   d e p l o y 
+ 
  

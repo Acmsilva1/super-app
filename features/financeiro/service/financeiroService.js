@@ -142,18 +142,35 @@ export function montarTabelaFinanceiroRows(rows, tipoRegistro) {
   }));
 }
 
+/** @returns {{ parcela_atual: number|null, parcela_total: number|null } | { error: string }} */
+function parcelasDespesaFixaFromBody(body) {
+  const ativo = body.parcelas === true || body.parcelas === 'true';
+  if (!ativo) return { parcela_atual: null, parcela_total: null };
+  const pa = Number(body.parcela_atual);
+  const pt = Number(body.parcela_total);
+  const atual = Math.round(pa);
+  const total = Math.round(pt);
+  if (!Number.isFinite(pa) || !Number.isFinite(pt)) return { error: 'parcelas invalidas' };
+  if (atual < 1 || total < 1 || atual > total) return { error: 'parcelas invalidas' };
+  return { parcela_atual: atual, parcela_total: total };
+}
+
 export function payloadInsertFinanceiro(body = {}) {
   const tipoRegistro = inferTipoRegistro(body);
   if (!tipoRegistro) return { error: 'tipo_registro obrigatorio' };
 
   if (tipoRegistro === TIPO_REGISTRO_DESPESA_FIXA) {
     if (!(body.descricao != null && String(body.descricao).trim() !== '')) return { error: 'descricao obrigatoria' };
+    const par = parcelasDespesaFixaFromBody(body);
+    if ('error' in par) return { error: par.error };
     return {
       tipo_registro: tipoRegistro,
       payload: {
         descricao: String(body.descricao || '').trim(),
         valor: Math.round((Number(body.valor) || 0) * 100) / 100,
         status: String(body.status || STATUS_PENDENTE).toLowerCase() === STATUS_PAGO ? STATUS_PAGO : STATUS_PENDENTE,
+        parcela_atual: par.parcela_atual,
+        parcela_total: par.parcela_total,
       },
     };
   }
@@ -220,6 +237,18 @@ export function payloadUpdateFinanceiro(body = {}) {
       if (ma && /^\d{4}-\d{2}$/.test(ma)) {
         const { ano, mes } = parseMesAno(ma);
         out.created_at = new Date(ano, mes - 1, 1, 12, 0, 0, 0).toISOString();
+      }
+    }
+    if (body.parcelas !== undefined) {
+      const ativo = body.parcelas === true || body.parcelas === 'true';
+      if (!ativo) {
+        out.parcela_atual = null;
+        out.parcela_total = null;
+      } else {
+        const par = parcelasDespesaFixaFromBody(body);
+        if ('error' in par) return { error: par.error };
+        out.parcela_atual = par.parcela_atual;
+        out.parcela_total = par.parcela_total;
       }
     }
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
