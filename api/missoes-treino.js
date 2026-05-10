@@ -807,25 +807,16 @@ export default async function handler(req, res) {
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
       await seedNextWeekOnSunday(dateRef);
       const weekday = getWeekdayMonToSunFromIso(dateRef);
-      if (!isTrainingWeekday(weekday)) {
-        const penalty = await getPenaltyState();
-        const performance = await fetchMonthlyPerformance(dateRef);
-        return json(res, 200, { date: dateRef, missions: [], penalty, performance, rest_day: true });
-      }
       const todayMissions = await fetchMissionsByDate(dateRef);
       const missions = await fetchWeeklyMissionsSnapshot(dateRef, todayMissions);
       const penalty = await getPenaltyState();
       const performance = await fetchMonthlyPerformance(dateRef);
-      return json(res, 200, { date: dateRef, missions, penalty, performance });
+      return json(res, 200, { date: dateRef, missions, penalty, performance, rest_day: !isTrainingWeekday(weekday) });
     }
 
     if (req.method === 'POST') {
       const body = parseBody(req);
       const dateRef = isIsoDate(body.date) ? String(body.date) : getTodayBrazilIsoDate();
-      const weekday = getWeekdayMonToSunFromIso(dateRef);
-      if (!isTrainingWeekday(weekday)) {
-        return json(res, 409, { error: 'Domingo e dia de descanso: treinos sao de segunda a sabado.' });
-      }
       const title = normalizeNome(body.title || 'Missao diaria') || 'Missao diaria';
       const items = normalizeItems(body.items);
 

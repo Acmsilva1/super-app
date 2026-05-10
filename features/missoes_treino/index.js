@@ -132,6 +132,7 @@ class MissoesTreinoApp {
     this.selectedGoalsMonth = null;
     this.isLoading = false;
     this.errorMessage = '';
+    this.currentTab = 'rotinas'; // 'rotinas' | 'treinos'
     this.onClick = this.onClick.bind(this);
     this.onKeyPress = this.onKeyPress.bind(this);
   }
@@ -287,6 +288,10 @@ class MissoesTreinoApp {
     const missionId = actionEl.getAttribute('data-mission-id');
 
     if (action === 'refresh') this.loadFromApi();
+    if (action === 'switch-tab') {
+      this.currentTab = actionEl.getAttribute('data-tab');
+      this.render();
+    }
     if (action === 'open-modal') this.openModal();
     if (action === 'close-modal') this.closeModal();
     if (action === 'clear-temp') {
@@ -557,9 +562,31 @@ class MissoesTreinoApp {
     const completedMissions = this.missions.filter((m) => m.completed).length;
     const progress = totalMissions ? Math.round((completedMissions / totalMissions) * 100) : 0;
 
-    this.completedEl.textContent = `${completedMissions}/${totalMissions}`;
-    this.progressEl.style.width = `${progress}%`;
-    this.progressEl.classList.toggle('is-full', totalMissions > 0 && progress === 100);
+    if (this.completedEl) this.completedEl.textContent = `${completedMissions}/${totalMissions}`;
+    if (this.progressEl) {
+      this.progressEl.style.width = `${progress}%`;
+      this.progressEl.classList.toggle('is-full', totalMissions > 0 && progress === 100);
+    }
+
+    this.container.querySelectorAll('[data-action="switch-tab"]').forEach(el => {
+      el.classList.toggle('is-active', el.getAttribute('data-tab') === this.currentTab);
+    });
+
+    const weekdayTokens = getWeekdayTokensForToday();
+    const isRestDay = !weekdayTokens.length;
+    
+    let displayMissions = this.missions;
+    let highlightedMissionId = null;
+
+    if (this.currentTab === 'rotinas') {
+      const todayMission = this.missions.find((mission) => missionMatchesTodayByName(mission, weekdayTokens));
+      highlightedMissionId = todayMission?.id || null;
+      displayMissions = todayMission ? [todayMission] : [];
+      this.performanceHost?.classList.remove('mt-is-hidden');
+    } else {
+      displayMissions = this.missions;
+      this.performanceHost?.classList.add('mt-is-hidden');
+    }
 
     if (this.isLoading) {
       this.listEl.innerHTML = `
@@ -572,21 +599,29 @@ class MissoesTreinoApp {
       return;
     }
 
-    if (!totalMissions) {
+    if (this.currentTab === 'rotinas' && isRestDay) {
       this.listEl.innerHTML = `
         <div class="mt-empty-card">
-          <p class="mt-empty-title">NENHUMA MISSAO GERADA</p>
-          <p class="mt-empty-text">Clique em [+] Nova Missao para comecar.</p>
+          <p class="mt-empty-title">DIA DE DESCANSO</p>
+          <p class="mt-empty-text">Aproveite para recarregar as energias. Hoje nao ha missoes programadas.</p>
         </div>
       `;
       this.renderPerformance();
       return;
     }
 
-    const weekdayTokens = getWeekdayTokensForToday();
-    const highlightedMission = this.missions.find((mission) => missionMatchesTodayByName(mission, weekdayTokens));
-    const highlightedMissionId = highlightedMission?.id || null;
-    this.listEl.innerHTML = this.missions
+    if (!displayMissions.length) {
+      this.listEl.innerHTML = `
+        <div class="mt-empty-card">
+          <p class="mt-empty-title">NENHUMA MISSAO</p>
+          <p class="mt-empty-text">${this.currentTab === 'rotinas' ? 'Nenhuma missao para hoje.' : 'Clique em [+] Nova Missao para comecar.'}</p>
+        </div>
+      `;
+      this.renderPerformance();
+      return;
+    }
+
+    this.listEl.innerHTML = displayMissions
       .map((mission, idx) => missionCardHtml(mission, idx, Boolean(highlightedMissionId && mission.id === highlightedMissionId)))
       .join('');
     this.renderPerformance();
@@ -903,6 +938,11 @@ class MissoesTreinoApp {
           .mt-cal-num{font-size:.72rem;color:#e7f8ff;font-weight:700}
           .mt-cal-meta{font-size:.52rem;color:#9fc0d8;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
           .mt-rest-emoji{display:inline-block;animation:mt-rest-emoji-nap 1.7s ease-in-out infinite;transform-origin:center}
+          .mt-tabs{display:flex;gap:12px;margin:12px 0 6px;border-bottom:1px solid rgba(0,229,255,.15)}
+          .mt-tab{padding:8px 16px;color:#94a3b8;font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s ease;font-family:"Orbitron",sans-serif}
+          .mt-tab:hover{color:var(--mt-accent)}
+          .mt-tab.is-active{color:var(--mt-accent);border-bottom-color:var(--mt-accent);text-shadow:0 0 8px rgba(0,229,255,.4)}
+          .mt-is-hidden{display:none !important}
           .mt-radar-wrap{display:flex;justify-content:center;animation:radarFloat 3.4s ease-in-out infinite}
           .mt-radar-svg{width:100%;max-width:260px;height:auto}
           .mt-radar-grid polygon{fill:none;stroke:rgba(86,126,154,.28);stroke-width:1}
@@ -944,6 +984,11 @@ class MissoesTreinoApp {
             <span>Missoes</span>
           </div>
         </header>
+
+        <nav class="mt-tabs">
+          <div class="mt-tab ${this.currentTab === 'rotinas' ? 'is-active' : ''}" data-action="switch-tab" data-tab="rotinas">Rotinas</div>
+          <div class="mt-tab ${this.currentTab === 'treinos' ? 'is-active' : ''}" data-action="switch-tab" data-tab="treinos">Treinos</div>
+        </nav>
 
         <div class="mt-progress-wrap"><div class="mt-progress" data-role="progress"></div></div>
         <section class="mt-list" data-role="list"></section>
