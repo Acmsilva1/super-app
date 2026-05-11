@@ -4875,12 +4875,18 @@
                 }
                 if (appId === 'missoes_treino') {
                     try {
-                        const mod = await import('./features/missoes_treino/index.js');
+                        // Query de versao: forca novo modulo no PWA; path no servidor e o mesmo (Vercel ignora query).
+                        const mod = await import('./features/missoes_treino/index.js?v=2026-05-11-mt-tabs');
                         mod.renderMissoesTreinoContent(contentEl);
-                        const savedScroll = Number(this.uiState.windowScrolls?.[appId]);
-                        const scrollToRestore = Number.isFinite(savedScroll) ? savedScroll : previousScrollTop;
-                        this.rememberWindowScroll(appId, scrollToRestore);
-                        this.restoreWindowScroll(appId, contentEl);
+                        // Scroll antigo (antes das abas) deixava header/tabs fora do ecra no mobile.
+                        if (this.uiState.windowScrolls && appId in this.uiState.windowScrolls) {
+                            delete this.uiState.windowScrolls[appId];
+                            this.saveUiState();
+                        }
+                        this.rememberWindowScroll(appId, 0);
+                        requestAnimationFrame(() => {
+                            contentEl.scrollTop = 0;
+                        });
                     } catch (err) {
                         console.error(err);
                         contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Nao foi possivel carregar Missoes de Treino.</div>';
