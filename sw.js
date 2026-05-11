@@ -2,7 +2,7 @@
  * Service Worker - SUPERAPP PWA
  * Incrementar CACHE_VERSION a cada deploy/commit para invalidar cache e forcar atualizacao.
  */
-const CACHE_VERSION = '2026-05-08-vendas-v2';
+const CACHE_VERSION = '2026-05-11-network-first-js';
 const CACHE_NAME = 'superapp-' + CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [
@@ -52,8 +52,11 @@ self.addEventListener('fetch', (event) => {
     url.pathname === '/index.html' ||
     url.pathname.endsWith('.html');
 
-  // Para HTML, usa network-first para evitar shell antigo no PWA.
-  if (isHtmlRequest) {
+  // JS de modulos (import dinamico em /features/...) tem URL estavel; cache-first deixava o PWA no mobile com codigo antigo.
+  const isStaleSensitiveScript =
+    url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs');
+
+  if (isHtmlRequest || isStaleSensitiveScript) {
     event.respondWith(
       fetch(event.request)
         .then((res) => {
