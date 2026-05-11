@@ -830,7 +830,7 @@ class MissoesTreinoApp {
           .mt-root{--mt-bg:#050508;--mt-panel:rgba(10,15,25,.82);--mt-border:rgba(0,229,255,.34);--mt-accent:#00e5ff;--mt-danger:#ff003c;--mt-ok:#00d084;--mt-text:#d8f3ff;background:radial-gradient(circle at center,#0a0f19 0%,#050508 100%);border:1px solid rgba(20,80,98,.4);border-radius:14px;box-shadow:inset 0 0 18px rgba(0,229,255,.05),0 12px 26px rgba(1,8,14,.32);color:var(--mt-text);font-family:"Space Mono","Consolas","Courier New",monospace;padding:14px;position:relative;overflow:visible;isolation:isolate}
           .mt-root *{box-sizing:border-box}
           .mt-root::before{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 50%,rgba(0,0,0,.14) 50%);background-size:100% 4px;pointer-events:none;opacity:.35}
-          .mt-sticky-top{position:sticky;top:0;z-index:8;margin:-14px -14px 12px -14px;padding:14px 14px 4px 14px;background:linear-gradient(180deg,rgba(5,8,12,.98) 0%,rgba(5,8,12,.96) 88%,rgba(5,8,12,0) 100%);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,229,255,.18)}
+          .mt-sticky-top{position:sticky;top:0;z-index:10;margin:-14px -14px 24px -14px;padding:14px 14px 0 14px;background:#060a12;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--mt-accent);box-shadow:0 10px 30px rgba(0,0,0,0.5)}
           .mt-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid var(--mt-border);padding-bottom:10px;margin-bottom:0;position:relative;z-index:1}
           .mt-brand{display:flex;gap:12px;align-items:flex-start}
           .mt-bolt{width:44px;height:44px;border:1px solid var(--mt-accent);transform:rotate(45deg);display:flex;align-items:center;justify-content:center;flex:none;background:rgba(0,229,255,.08);box-shadow:0 0 14px rgba(0,229,255,.32)}
@@ -846,7 +846,7 @@ class MissoesTreinoApp {
           .mt-progress-wrap{height:8px;background:#0d141f;border:1px solid rgba(96,102,122,.28);margin:8px 0 16px 0;border-radius:999px;overflow:hidden;position:relative;z-index:1}
           .mt-progress{height:100%;width:0%;background:linear-gradient(90deg,#00e5ff,#00c6ff);transition:width .35s ease}
           .mt-progress.is-full{background:linear-gradient(90deg,#00d084,#3ce29f)}
-          .mt-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;position:relative;z-index:1}
+          .mt-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;position:relative;z-index:1;padding-top:4px}
           .mt-empty-card{border:1px dashed var(--mt-border);background:rgba(255,255,255,.03);padding:24px 14px;text-align:center;border-radius:10px}
           .mt-empty-title{margin:0;color:var(--mt-accent);font-weight:800;letter-spacing:.12em;font-size:.78rem}
           .mt-empty-text{margin:6px 0 0;color:#8f9aa6;font-size:.72rem}
@@ -939,7 +939,7 @@ class MissoesTreinoApp {
           .mt-cal-num{font-size:.72rem;color:#e7f8ff;font-weight:700}
           .mt-cal-meta{font-size:.52rem;color:#9fc0d8;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
           .mt-rest-emoji{display:inline-block;animation:mt-rest-emoji-nap 1.7s ease-in-out infinite;transform-origin:center}
-          .mt-tabs{display:flex;gap:12px;margin:0;padding-top:4px;border-bottom:1px solid rgba(0,229,255,.15)}
+          .mt-tabs{display:flex;gap:12px;margin:0;padding-top:10px}
           .mt-tab{padding:8px 16px;color:#94a3b8;font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s ease;font-family:"Orbitron",sans-serif}
           .mt-tab:hover{color:var(--mt-accent)}
           .mt-tab.is-active{color:var(--mt-accent);border-bottom-color:var(--mt-accent);text-shadow:0 0 8px rgba(0,229,255,.4)}
