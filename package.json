@@ -4,9 +4,15 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "echo Build complete"
+    "build": "echo Build complete",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "express": "^4.21.2",
+    "supertest": "^7.1.1",
+    "vitest": "^2.1.4"
   }
 }
