@@ -132,7 +132,7 @@ class MissoesTreinoApp {
     this.selectedGoalsMonth = null;
     this.isLoading = false;
     this.errorMessage = '';
-    this.currentTab = 'rotinas'; // 'rotinas' | 'treinos'
+    this.currentTab = 'treinos'; // 'rotinas' | 'treinos'
     this.onClick = this.onClick.bind(this);
     this.onKeyPress = this.onKeyPress.bind(this);
   }
@@ -991,7 +991,6 @@ class MissoesTreinoApp {
 
         <nav class="mt-tabs-block">
           <div class="mt-tabs">
-            <div class="mt-tab ${this.currentTab === 'rotinas' ? 'is-active' : ''}" data-action="switch-tab" data-tab="rotinas">Rotinas</div>
             <div class="mt-tab ${this.currentTab === 'treinos' ? 'is-active' : ''}" data-action="switch-tab" data-tab="treinos">Treinos</div>
           </div>
         </nav>
