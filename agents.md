@@ -97,7 +97,20 @@ Estabelecer padrões para APIs e serviços backend seguros, testáveis e prontos
 
 ## Arquitetura
 - Adotar arquitetura modular (modular monolith) como padrão.
-- Estrutura de referência na raiz: `api/`, `web/`, `docs/` e diretórios de apoio.
+- Estrutura de referência na raiz:
+    /PROJETO-RAIZ
+    ├── .github/                    # [DEVOPS] Workflows de CI/CD (GitHub Actions)
+    ├── api/                        # [BACKEND] Node.js / TypeScript
+    ├── web/                        # [FRONTEND] React / PWA
+    ├── doc/                        # [DOCS] Manuais técnicos e fluxogramas
+    ├── features/                   # [PRODUTO] Documentação de requisitos
+    ├── monitoring/                 # [SRE] Logs de auditoria e métricas de saúde
+    ├── regras do agente de IA/     # [PROMPTS] Diretrizes para manter o padrão
+    ├── sql/                        # [DADOS] Migrations e queries otimizadas
+    ├── tests/                      # [QA] Testes unitários e de integração
+    ├── .env                        # [CONFIG] Variáveis de ambiente
+    ├── .gitignore                  # [GIT] Arquivos ignorados
+    └── docker-compose.yml          # [OPCIONAL] Orquestração de containers
 - Separar em camadas: `route -> controller -> use_case (interactor) -> service -> repository`.
 - Regras de negócio puras devem ficar em `use_case (interactor)`.
 - `service` deve concentrar orquestração técnica e integrações.

@@ -5717,7 +5717,15 @@
                                 </div>
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
-                                <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Gastos variados</p>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                                    <p style="font-size:0.875rem;font-weight:600;margin:0;">Gastos variados</p>
+                                    ${gastosVariados.length > 0 ? `
+                                    <select id="financeiro-filter-categoria-gastos" style="font-size:0.75rem; padding:0.25rem 0.5rem; border-radius:0.4rem; background:transparent; border:1px solid rgba(148, 163, 184, 0.4); color:inherit; outline:none; cursor:pointer;">
+                                        <option value="">Todas as categorias</option>
+                                        ${[...new Set(gastosVariados.map(g => g.categoria || 'Sem categoria'))].sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
+                                    </select>
+                                    ` : ''}
+                                </div>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
                                         <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
@@ -6045,6 +6053,22 @@
                 };
                 el.querySelector('#financeiro-mes').onchange = refreshMesAno;
                 el.querySelector('#financeiro-ano').onchange = refreshMesAno;
+
+                const categoriaSelect = el.querySelector('#financeiro-filter-categoria-gastos');
+                if (categoriaSelect) {
+                    categoriaSelect.onchange = () => {
+                        const selected = categoriaSelect.value;
+                        const tbody = el.querySelector('#financeiro-table-gastos');
+                        if (tbody) {
+                            if (!selected) {
+                                tbody.innerHTML = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mês.</td></tr>';
+                            } else {
+                                const filtered = gastosVariados.filter(g => (g.categoria || 'Sem categoria') === selected);
+                                tbody.innerHTML = filtered.length ? filtered.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto nesta categoria.</td></tr>';
+                            }
+                        }
+                    };
+                }
 
                 el.querySelector('[data-action="financeiro-open-modal"]').onclick = () => {
                     const currentTab = String(el.getAttribute('data-active-tab') || 'summary');
