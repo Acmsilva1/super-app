@@ -89,7 +89,6 @@ function missionCardHtml(mission, index, isTodayHighlight = false) {
     allDone ? 'is-done' : '',
     isTodayHighlight ? (allDone ? 'is-today-pulse-done' : 'is-today-pulse') : '',
   ].filter(Boolean).join(' ');
-  const concludeClass = allDone ? 'mt-btn mt-btn-complete is-done' : 'mt-btn mt-btn-complete';
   return `
     <section class="${shellClass}" style="--card-i:${index};">
       <header class="mt-mission-shell-header">
@@ -110,9 +109,6 @@ function missionCardHtml(mission, index, isTodayHighlight = false) {
         }).join('')}
       </div>
       <footer class="mt-card-actions">
-        <button class="${concludeClass}" data-action="toggle-mission" data-mission-id="${escapeHtml(mission.id)}" ${(mission._busy || allDone) ? 'disabled' : ''}>
-          ${allDone ? 'CONCLUIDA' : 'CONCLUIR MISSAO'}
-        </button>
         <button class="mt-btn-icon" data-action="edit-mission" data-mission-id="${escapeHtml(mission.id)}" ${mission._busy ? 'disabled' : ''}>Editar</button>
         <button class="mt-btn-icon is-danger" data-action="delete-mission" data-mission-id="${escapeHtml(mission.id)}" ${mission._busy ? 'disabled' : ''}>Excluir</button>
       </footer>
@@ -302,7 +298,6 @@ class MissoesTreinoApp {
     if (action === 'submit-modal') this.commitMissions();
     if (action === 'edit-temp' && id) this.startEditTempItem(id);
     if (action === 'remove-temp' && id) this.removeTempItem(id);
-    if (action === 'toggle-mission' && missionId) this.toggleMissionComplete(missionId);
     if (action === 'delete-mission' && missionId) this.deleteMission(missionId);
     if (action === 'edit-mission' && missionId) this.openModal(missionId);
   }
@@ -471,34 +466,6 @@ class MissoesTreinoApp {
       this.showToast('ERRO AO SALVAR MISSAO', 'error');
     } finally {
       this.modalSubmitEl.disabled = false;
-      this.render();
-    }
-  }
-
-  async toggleMissionComplete(missionId) {
-    const mission = this.missions.find((m) => m.id === missionId);
-    if (!mission) return;
-    if (mission.completed) {
-      this.setNotice('Missao ja concluida. Conclusao diaria e imutavel.');
-      this.showToast('MISSAO JA CONCLUIDA (IMUTAVEL)');
-      return;
-    }
-    mission._busy = true;
-    this.render();
-    try {
-      await this.api('', {
-        method: 'PATCH',
-        body: JSON.stringify({ mission_id: missionId, completed: true }),
-      });
-      mission.completed = true;
-      mission.items = (mission.items || []).map((item) => ({ ...item, completed: true }));
-      this.setNotice('Missao atualizada no banco.');
-      this.showToast('MISSAO CONCLUIDA COM SUCESSO');
-      await this.loadFromApi();
-    } catch (err) {
-      this.setNotice(err.message || 'Falha ao concluir missao.', true);
-    } finally {
-      mission._busy = false;
       this.render();
     }
   }
