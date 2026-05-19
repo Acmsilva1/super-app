@@ -1,17 +1,16 @@
 import { createHash } from 'node:crypto';
 
-import {
-  TIPO_REGISTRO_GASTO_VARIADO,
-  TIPO_REGISTRO_RECEITA,
-} from '../model/financeiro.js';
+import { TIPO_REGISTRO_GASTO_VARIADO } from '../model/financeiro.js';
 
 const MAX_OFX_BYTES = 4 * 1024 * 1024;
 const DEFAULT_CATEGORIA = 'Outros';
 
-const DEBIT_TYPES = new Set([
+/** Tipos OFX tratados como débito (saída) para gastos variados */
+const DEBIT_OFX_TYPES = new Set([
   'DEBIT', 'DEBITMEMO', 'PAYMENT', 'WITHDRAWAL', 'ATM', 'POS', 'CHECK', 'FEE', 'SRVCHG',
-  'DIRECTDEBIT', 'REPEATPMT', 'OTHER',
+  'DIRECTDEBIT', 'REPEATPMT',
 ]);
+const DEBIT_TYPES = new Set([...DEBIT_OFX_TYPES, 'OTHER']);
 const CREDIT_TYPES = new Set([
   'CREDIT', 'CREDITMEMO', 'DEP', 'DEPOSIT', 'INT', 'DIV', 'DIRECTDEP', 'XFER',
 ]);
@@ -81,6 +80,40 @@ export function inferTipoFromOfx(amount, trnType) {
   return 'despesa';
 }
 
+export function isPixRecebidoMemo(descricao = '') {
+  const memo = String(descricao || '').toUpperCase();
+  return memo.includes('PIX RECEB')
+    || memo.includes('PIX CRED')
+    || memo.includes('CRED PIX')
+    || memo.includes('PIX RECEBIDO')
+    || (memo.includes('PIX') && memo.includes('RECEBIDO'));
+}
+
+/** PIX enviado: saída com "PIX" no texto e sem indício de recebimento */
+export function isPixEnviadoOfx(amount, descricao = '') {
+  if (!(Number(amount) < 0)) return false;
+  if (isPixRecebidoMemo(descricao)) return false;
+  return String(descricao || '').toUpperCase().includes('PIX');
+}
+
+/** Débito explícito no OFX (TRNTYPE + valor negativo) */
+export function isDebitoOfx(amount, trnType) {
+  const tt = String(trnType || '').toUpperCase().trim();
+  if (CREDIT_TYPES.has(tt)) return false;
+  if (!DEBIT_OFX_TYPES.has(tt)) return false;
+  return Number(amount) < 0;
+}
+
+/**
+ * Importação OFX → gastos variados: somente débito (TRNTYPE) ou PIX enviado (memo + saída).
+ * Créditos, PIX recebido, transferências genéricas etc. não entram.
+ */
+export function shouldImportOfxAsGastoVariado(amount, trnType, descricao = '') {
+  if (Number(amount) >= 0 || inferTipoFromOfx(amount, trnType) === 'receita') return false;
+  if (isPixRecebidoMemo(descricao)) return false;
+  return isDebitoOfx(amount, trnType) || isPixEnviadoOfx(amount, descricao);
+}
+
 /** @param {string} ofxText */
 function extractStmtTrnBlocks(ofxText) {
   const blocks = [];
@@ -100,22 +133,23 @@ function extractStmtTrnBlocks(ofxText) {
 
 /**
  * @param {string} ofxText
- * @returns {{ lancamentos: object[], erros_parse: { indice: number, motivo: string }[], account_key: string }}
+ * @returns {{ lancamentos: object[], erros_parse: { indice: number, motivo: string }[], ignorados_credito: number, account_key: string }}
  */
 export function parseOfxToLancamentos(ofxText) {
   const text = String(ofxText || '');
   const sizeCheck = assertOfxSize(text);
   if (sizeCheck.error) {
-    return { lancamentos: [], erros_parse: [{ indice: -1, motivo: sizeCheck.error }], account_key: 'default' };
+    return { lancamentos: [], erros_parse: [{ indice: -1, motivo: sizeCheck.error }], ignorados_credito: 0, account_key: 'default' };
   }
   if (!text.includes('STMTTRN') && !text.includes('stmttrn')) {
-    return { lancamentos: [], erros_parse: [{ indice: -1, motivo: 'Nenhuma transação STMTTRN encontrada no arquivo' }], account_key: 'default' };
+    return { lancamentos: [], erros_parse: [{ indice: -1, motivo: 'Nenhuma transação STMTTRN encontrada no arquivo' }], ignorados_credito: 0, account_key: 'default' };
   }
 
   const accountKey = extractAccountKey(text);
   const blocks = extractStmtTrnBlocks(text);
   const lancamentos = [];
   const erros_parse = [];
+  let ignorados_credito = 0;
 
   blocks.forEach((block, indice) => {
     const fitid = readTag(block, 'FITID');
@@ -142,15 +176,18 @@ export function parseOfxToLancamentos(ofxText) {
     }
 
     const trnType = readTag(block, 'TRNTYPE');
-    const tipo = inferTipoFromOfx(amount, trnType);
-    const tipo_registro = tipo === 'receita' ? TIPO_REGISTRO_RECEITA : TIPO_REGISTRO_GASTO_VARIADO;
     const descricao = (readTag(block, 'MEMO') || readTag(block, 'NAME') || `Transação ${fitid}`).trim();
+
+    if (!shouldImportOfxAsGastoVariado(amount, trnType, descricao)) {
+      ignorados_credito += 1;
+      return;
+    }
 
     lancamentos.push({
       ofx_uid,
       fitid,
-      tipo_registro,
-      tipo,
+      tipo_registro: TIPO_REGISTRO_GASTO_VARIADO,
+      tipo: 'despesa',
       descricao: descricao.slice(0, 500),
       valor: Math.round(Math.abs(amount) * 100) / 100,
       data_lancamento: dt,
@@ -166,7 +203,7 @@ export function parseOfxToLancamentos(ofxText) {
     deduped.push(row);
   }
 
-  return { lancamentos: deduped, erros_parse, account_key: accountKey };
+  return { lancamentos: deduped, erros_parse, ignorados_credito, account_key: accountKey };
 }
 
 /**
@@ -184,9 +221,9 @@ export function annotateLancamentosExistencia(lancamentos, existingUids) {
  * @param {object[]} annotated
  * @param {{ indice: number, motivo: string }[]} erros_parse
  */
-export function resumoImportacaoOfx(annotated, erros_parse = []) {
+export function resumoImportacaoOfx(annotated, erros_parse = [], ignorados_credito = 0) {
   const total = annotated.length;
   const ja_existentes = annotated.filter((r) => r.ja_existente).length;
   const novos = total - ja_existentes;
-  return { total, novos, ja_existentes, erros_parse: erros_parse.length };
+  return { total, novos, ja_existentes, ignorados_credito, erros_parse: erros_parse.length };
 }

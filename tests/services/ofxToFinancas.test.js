@@ -10,6 +10,7 @@ import {
   parseOfxDate,
   parseOfxToLancamentos,
   resumoImportacaoOfx,
+  shouldImportOfxAsGastoVariado,
 } from '../../features/financeiro/service/ofxToFinancas.js';
 import { payloadInsertFinanceiro } from '../../features/financeiro/service/financeiroService.js';
 
@@ -33,22 +34,30 @@ describe('ofxToFinancas', () => {
     expect(buildOfxUid('x', '')).toBeNull();
   });
 
-  it('extrai lançamentos do fixture', () => {
-    const { lancamentos, erros_parse, account_key } = parseOfxToLancamentos(sampleOfx);
+  it('importa só débito OFX ou PIX enviado; demais linhas ignoradas', () => {
+    expect(shouldImportOfxAsGastoVariado(-10, 'DEBIT')).toBe(true);
+    expect(shouldImportOfxAsGastoVariado(100, 'CREDIT')).toBe(false);
+    expect(shouldImportOfxAsGastoVariado(-50, 'DEBIT', 'PIX ENVIADO')).toBe(true);
+    expect(shouldImportOfxAsGastoVariado(-50, 'OTHER', 'PIX ENVIADO')).toBe(true);
+    expect(shouldImportOfxAsGastoVariado(-50, 'XFER', 'TRANSFERENCIA')).toBe(false);
+    expect(shouldImportOfxAsGastoVariado(-50, 'OTHER', 'COMPRA CARTAO')).toBe(false);
+    expect(shouldImportOfxAsGastoVariado(50, 'CREDIT', 'PIX RECEBIDO')).toBe(false);
+
+    const { lancamentos, erros_parse, account_key, ignorados_credito } = parseOfxToLancamentos(sampleOfx);
     expect(erros_parse.filter((e) => e.indice === -1)).toHaveLength(0);
     expect(account_key).toBe('001:12345-6');
-    expect(lancamentos).toHaveLength(2);
+    expect(lancamentos).toHaveLength(1);
     expect(lancamentos[0].tipo).toBe('despesa');
+    expect(lancamentos[0].tipo_registro).toBe('gasto_variado');
     expect(lancamentos[0].valor).toBe(150.5);
-    expect(lancamentos[1].tipo).toBe('receita');
-    expect(lancamentos[1].valor).toBe(3200);
+    expect(ignorados_credito).toBe(1);
   });
 
   it('marca duplicados existentes no resumo', () => {
     const { lancamentos } = parseOfxToLancamentos(sampleOfx);
     const annotated = annotateLancamentosExistencia(lancamentos, new Set([lancamentos[0].ofx_uid]));
     const resumo = resumoImportacaoOfx(annotated);
-    expect(resumo.novos).toBe(1);
+    expect(resumo.novos).toBe(0);
     expect(resumo.ja_existentes).toBe(1);
   });
 

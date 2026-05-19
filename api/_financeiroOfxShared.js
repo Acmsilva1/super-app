@@ -62,7 +62,7 @@ export async function processarImportacaoOfx(req, options = {}) {
   }
 
   const lancamentos = annotateLancamentosExistencia(parsed.lancamentos, existingUids);
-  const resumo = resumoImportacaoOfx(lancamentos, parsed.erros_parse);
+  const resumo = resumoImportacaoOfx(lancamentos, parsed.erros_parse, parsed.ignorados_credito || 0);
 
   if (dryRun) {
     return {
@@ -73,6 +73,7 @@ export async function processarImportacaoOfx(req, options = {}) {
         lancamentos,
         resumo,
         erros_parse: parsed.erros_parse,
+        ignorados_credito: parsed.ignorados_credito || 0,
       },
     };
   }
@@ -129,6 +130,7 @@ export async function processarImportacaoOfx(req, options = {}) {
         ...resumo,
         inseridos: inseridos.length,
         ignorados_duplicado: ignorados_duplicado.length,
+        ignorados_credito: parsed.ignorados_credito || 0,
         falhas: falhas.length,
       },
       inseridos: inseridos.length,

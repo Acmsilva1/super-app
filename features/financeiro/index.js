@@ -38,4 +38,7 @@ export {
   parseOfxToLancamentos,
   annotateLancamentosExistencia,
   resumoImportacaoOfx,
+  shouldImportOfxAsGastoVariado,
+  isDebitoOfx,
+  isPixEnviadoOfx,
 } from './service/ofxToFinancas.js';
