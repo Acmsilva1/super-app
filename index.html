@@ -2308,6 +2308,51 @@
             border-radius: 1rem;
             padding: 1.1rem 1rem 0.95rem;
         }
+        .finance-modal-actions {
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .finance-modal-actions-right {
+            display: flex;
+            gap: 0.75rem;
+            margin-left: auto;
+        }
+        .finance-ofx-import {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border, rgba(148, 163, 184, 0.25));
+        }
+        .finance-ofx-preview {
+            margin-top: 0.65rem;
+            max-height: 220px;
+            overflow: auto;
+            font-size: 0.8125rem;
+        }
+        .finance-ofx-preview table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .finance-ofx-preview th,
+        .finance-ofx-preview td {
+            padding: 0.35rem 0.4rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        .finance-ofx-row--dup {
+            opacity: 0.65;
+        }
+        .finance-ofx-badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 0.1rem 0.35rem;
+            border-radius: 0.25rem;
+            background: rgba(148, 163, 184, 0.2);
+        }
+        .finance-ofx-badge--new {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
         @media (max-width: 768px) {
             .finance-module-shell {
                 padding-bottom: 5.4rem;
@@ -6211,6 +6256,112 @@
                 document.body.appendChild(overlay);
             }
 
+            async requestFinanceiroOfxPreview(overlay, ofxText) {
+                const previewEl = overlay.querySelector('#financeiro-ofx-preview');
+                if (!previewEl) return;
+                previewEl.hidden = false;
+                previewEl.innerHTML = '<p class="app-form-note">Lendo extrato…</p>';
+                try {
+                    const res = await fetch('/api/financeiro-ofx', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ofx: ofxText, dry_run: true }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao ler OFX');
+                    overlay._ofxRaw = ofxText;
+                    overlay._ofxPreview = data;
+                    this.renderFinanceiroOfxPreview(overlay, data);
+                } catch (err) {
+                    overlay._ofxRaw = null;
+                    overlay._ofxPreview = null;
+                    previewEl.innerHTML = `<p class="app-form-note" style="color:#ef4444;">${escapeHtml(err.message || 'Falha na leitura')}</p>`;
+                }
+            }
+
+            renderFinanceiroOfxPreview(overlay, data) {
+                const previewEl = overlay.querySelector('#financeiro-ofx-preview');
+                const importBtn = overlay.querySelector('[data-action="financeiro-ofx-import"]');
+                if (!previewEl) return;
+                const rows = data.lancamentos || [];
+                const resumo = data.resumo || {};
+                const erros = data.erros_parse || [];
+                if (!rows.length) {
+                    previewEl.innerHTML = `<p class="app-form-note">Nenhuma transação válida.${erros.length ? ` (${erros.length} ignorada(s) no parse)` : ''}</p>`;
+                    if (importBtn) importBtn.disabled = true;
+                    return;
+                }
+                const tableRows = rows.slice(0, 80).map((r) => {
+                    const dup = !!r.ja_existente;
+                    const tipoLabel = r.tipo === 'receita' ? 'Receita' : 'Despesa';
+                    const badge = dup
+                        ? '<span class="finance-ofx-badge">Já importada</span>'
+                        : '<span class="finance-ofx-badge finance-ofx-badge--new">Nova</span>';
+                    return `<tr class="${dup ? 'finance-ofx-row--dup' : ''}">
+                        <td>${escapeHtml(r.data_lancamento || '')}</td>
+                        <td>${escapeHtml(r.descricao || '')}</td>
+                        <td>${tipoLabel}</td>
+                        <td>${this.formatMoneyBr(Number(r.valor || 0))}</td>
+                        <td>${badge}</td>
+                    </tr>`;
+                }).join('');
+                const more = rows.length > 80
+                    ? `<p class="app-form-note">… e mais ${rows.length - 80} linha(s).</p>`
+                    : '';
+                previewEl.innerHTML = `
+                    <p class="app-form-note"><strong>${resumo.novos ?? 0}</strong> nova(s), <strong>${resumo.ja_existentes ?? 0}</strong> já importada(s)${erros.length ? `, ${erros.length} ignorada(s) no arquivo` : ''}.</p>
+                    <div class="finance-ofx-preview-inner"><table>
+                        <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Status</th></tr></thead>
+                        <tbody>${tableRows}</tbody>
+                    </table></div>
+                    ${more}
+                `;
+                if (importBtn) importBtn.disabled = !(resumo.novos > 0);
+            }
+
+            clearFinanceiroOfxState(overlay) {
+                overlay._ofxRaw = null;
+                overlay._ofxPreview = null;
+                const previewEl = overlay.querySelector('#financeiro-ofx-preview');
+                const fileEl = overlay.querySelector('#financeiro-ofx-file');
+                if (previewEl) { previewEl.hidden = true; previewEl.innerHTML = ''; }
+                if (fileEl) fileEl.value = '';
+                const importBtn = overlay.querySelector('[data-action="financeiro-ofx-import"]');
+                if (importBtn) importBtn.disabled = true;
+            }
+
+            async confirmFinanceiroOfxImport(overlay, el) {
+                const ofxText = overlay._ofxRaw;
+                if (!ofxText) {
+                    alert('Selecione um arquivo OFX primeiro.');
+                    return false;
+                }
+                const novos = overlay._ofxPreview?.resumo?.novos ?? 0;
+                if (novos <= 0) {
+                    alert('Não há lançamentos novos para importar.');
+                    return false;
+                }
+                if (!(await this.showConfirm('Importar extrato', `Importar ${novos} lançamento(s) novo(s)?`))) return false;
+                try {
+                    const res = await fetch('/api/financeiro-ofx', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ofx: ofxText, dry_run: false }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao importar');
+                    const ins = data.resumo?.inseridos ?? data.inseridos ?? 0;
+                    const ign = data.resumo?.ignorados_duplicado ?? (data.ignorados_duplicado?.length || 0);
+                    alert(`Importação concluída: ${ins} inserido(s), ${ign} ignorado(s) (já existiam).`);
+                    overlay.remove();
+                    await this.refreshAppContent('financeiro');
+                    return true;
+                } catch (err) {
+                    alert(err.message || 'Erro ao importar extrato');
+                    return false;
+                }
+            }
+
             openFinanceiroModal(el, { item = null, defaultTipo = 'gasto_variado' } = {}) {
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 let initialMesRef = mesAno;
@@ -6259,9 +6410,19 @@
                                 <div class="field" id="financeiro-data-wrap"><label>Data do lançamento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" /></div>
                             </div>
                         </div>
-                        <div class="app-modal-actions">
-                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
-                            <button type="button" class="app-btn" data-action="modal-save">${item ? 'Salvar' : 'Registrar'}</button>
+                        ${!item ? `
+                        <div class="finance-ofx-import" id="financeiro-ofx-wrap">
+                            <input type="file" id="financeiro-ofx-file" accept=".ofx,.OFX" hidden />
+                            <div id="financeiro-ofx-preview" class="finance-ofx-preview" hidden></div>
+                        </div>
+                        ` : ''}
+                        <div class="app-modal-actions finance-modal-actions">
+                            ${!item ? '<button type="button" class="app-btn app-btn-secondary" data-action="financeiro-ofx-pick">Inserir extrato</button>' : '<span></span>'}
+                            <div class="finance-modal-actions-right">
+                                <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
+                                ${!item ? '<button type="button" class="app-btn app-btn-secondary" data-action="financeiro-ofx-import" disabled>Importar extrato</button>' : ''}
+                                <button type="button" class="app-btn" data-action="modal-save">${item ? 'Salvar' : 'Registrar'}</button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -6347,6 +6508,32 @@
                 setTipoUI(tipoEl.value);
                 tipoEl.onchange = () => setTipoUI(tipoEl.value);
                 if (mesRefEl) mesRefEl.addEventListener('change', () => setTipoUI(tipoEl.value));
+
+                if (!item) {
+                    overlay._ofxRaw = null;
+                    overlay._ofxPreview = null;
+                    const ofxFile = overlay.querySelector('#financeiro-ofx-file');
+                    const ofxPick = overlay.querySelector('[data-action="financeiro-ofx-pick"]');
+                    const ofxImport = overlay.querySelector('[data-action="financeiro-ofx-import"]');
+                    if (ofxPick && ofxFile) {
+                        ofxPick.onclick = () => ofxFile.click();
+                        ofxFile.onchange = async () => {
+                            const file = ofxFile.files && ofxFile.files[0];
+                            if (!file) return;
+                            try {
+                                const text = await file.text();
+                                await this.requestFinanceiroOfxPreview(overlay, text);
+                            } catch (err) {
+                                alert(err.message || 'Não foi possível ler o arquivo');
+                            }
+                        };
+                    }
+                    if (ofxImport) {
+                        ofxImport.onclick = async () => {
+                            await this.confirmFinanceiroOfxImport(overlay, el);
+                        };
+                    }
+                }
 
                 const close = () => overlay.remove();
                 overlay.querySelector('[data-action="modal-cancel"]').onclick = close;

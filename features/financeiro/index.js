@@ -29,3 +29,13 @@ export {
   payloadUpdateFinanceiro,
   inferTipoRegistro,
 } from './service/financeiroService.js';
+
+export {
+  assertOfxSize,
+  buildOfxUid,
+  parseOfxDate,
+  inferTipoFromOfx,
+  parseOfxToLancamentos,
+  annotateLancamentosExistencia,
+  resumoImportacaoOfx,
+} from './service/ofxToFinancas.js';

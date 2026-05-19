@@ -178,15 +178,18 @@ export function payloadInsertFinanceiro(body = {}) {
   if (tipoRegistro === TIPO_REGISTRO_GASTO_VARIADO || tipoRegistro === TIPO_REGISTRO_RECEITA) {
     if (!(body.descricao != null && String(body.descricao).trim() !== '')) return { error: 'descricao obrigatoria' };
     const tipo = tipoRegistro === TIPO_REGISTRO_RECEITA ? 'receita' : 'despesa';
+    const payload = {
+      descricao: String(body.descricao || '').trim(),
+      valor: Math.round((Number(body.valor) || 0) * 100) / 100,
+      tipo,
+      categoria: body.categoria || null,
+      data_lancamento: body.data_lancamento || getBrazilTodayIso(),
+    };
+    const ofxUid = body.ofx_uid != null ? String(body.ofx_uid).trim() : '';
+    if (ofxUid) payload.ofx_uid = ofxUid;
     return {
       tipo_registro: tipoRegistro,
-      payload: {
-        descricao: String(body.descricao || '').trim(),
-        valor: Math.round((Number(body.valor) || 0) * 100) / 100,
-        tipo,
-        categoria: body.categoria || null,
-        data_lancamento: body.data_lancamento || getBrazilTodayIso(),
-      },
+      payload,
     };
   }
 
