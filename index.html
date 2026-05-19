@@ -3981,6 +3981,21 @@
             background: rgba(15, 27, 48, 0.45);
             border: 1px solid rgba(89, 132, 194, 0.18);
             border-radius: 0.5rem;
+            list-style: none;
+            cursor: pointer;
+            user-select: none;
+        }
+        .finance-despesas-col-header::-webkit-details-marker {
+            display: none;
+        }
+        .finance-despesas-col-header .finance-col-chevron {
+            font-size: 0.75em;
+            margin-left: 0.4rem;
+            opacity: 0.6;
+            transition: transform 0.2s ease;
+        }
+        details[open] .finance-despesas-col-header .finance-col-chevron {
+            transform: rotate(-180deg);
         }
         [data-theme="light"] .finance-despesas-col-header {
             background: rgba(241, 245, 249, 0.85);
@@ -5726,6 +5741,8 @@
                 const rowsFixasPagasHtml = despesasFixasPagas.length ? despesasFixasPagas.map(mkRowFixa).join('') : '<tr><td colspan="4" class="module-table-empty">Nenhuma despesa paga.</td></tr>';
                 const fixasEmpty = despesasFixas.length === 0;
                 const showImportFixasCallout = fixasEmpty && activeDataFilter === 'despesas_fixas';
+                const isMobileFixas = typeof window !== 'undefined' && window.innerWidth <= 900;
+                const detailsAttr = isMobileFixas ? '' : 'open';
                 const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mês.</td></tr>';
                 const rowsReceitasHtml = receitas.length ? receitas.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mês.</td></tr>';
                 const rowsPoupancaHtml = poupancaLogs.length
@@ -5812,30 +5829,30 @@
                                     <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-import-fixas-prev-month">Importar do mês anterior</button>
                                 </div>` : ''}
                                 <div class="finance-despesas-fixas-grid">
-                                    <div class="finance-despesas-col">
-                                        <p class="finance-despesas-col-header" style="color: #ef4444;">
-                                            <span>Pendentes</span>
+                                    <details class="finance-despesas-col" ${detailsAttr}>
+                                        <summary class="finance-despesas-col-header" style="color: #ef4444;">
+                                            <span>Pendentes<i class="fas fa-chevron-down finance-col-chevron"></i></span>
                                             <span>${this.formatMoneyBr(totalPendenteFixas)}</span>
-                                        </p>
+                                        </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
                                                 <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
                                                 <tbody id="financeiro-table-fixas-pendentes">${rowsFixasPendentesHtml}</tbody>
                                             </table>
                                         </div>
-                                    </div>
-                                    <div class="finance-despesas-col">
-                                        <p class="finance-despesas-col-header" style="color: #22c55e;">
-                                            <span>Pagas</span>
+                                    </details>
+                                    <details class="finance-despesas-col" ${detailsAttr}>
+                                        <summary class="finance-despesas-col-header" style="color: #22c55e;">
+                                            <span>Pagas<i class="fas fa-chevron-down finance-col-chevron"></i></span>
                                             <span>${this.formatMoneyBr(totalPagoFixas)}</span>
-                                        </p>
+                                        </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
                                                 <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
                                                 <tbody id="financeiro-table-fixas-pagas">${rowsFixasPagasHtml}</tbody>
                                             </table>
                                         </div>
-                                    </div>
+                                    </details>
                                 </div>
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
