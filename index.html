@@ -5617,11 +5617,15 @@
                     const hora = fmtHoraBrasilia(r.created_at);
                     const pt = Number(r.parcela_total ?? 0);
                     const pa = Number(r.parcela_atual ?? 0);
+                    const isContaFixa = r.conta_fixa === true || r.conta_fixa === 'true';
+                    const contaFixaHtml = isContaFixa
+                        ? `<span class="finance-parcela-tag">Conta fixa</span>`
+                        : '';
                     const parcelaHtml = (Number.isFinite(pt) && Number.isFinite(pa) && pt > 0 && pa > 0 && pa <= pt)
                         ? `<span class="finance-parcela-tag">Parcela ${escapeHtml(String(pa))} de ${escapeHtml(String(pt))}</span>`
                         : '';
                     return `<tr>
-                        <td><strong>${escapeHtml(r.descricao || '')}</strong>${parcelaHtml}</td>
+                        <td><strong>${escapeHtml(r.descricao || '')}</strong>${contaFixaHtml}${parcelaHtml}</td>
                         <td><button type="button" class="finance-status-toggle ${badgeClass}" data-action="financeiro-toggle-status" data-id="${r.id}" data-status-atual="${statusRaw}" title="Clique para alternar status">${statusLabel}</button></td>
                         <td style="color:${statusRaw === 'pago' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
