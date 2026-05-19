@@ -171,6 +171,7 @@ export function payloadInsertFinanceiro(body = {}) {
         status: String(body.status || STATUS_PENDENTE).toLowerCase() === STATUS_PAGO ? STATUS_PAGO : STATUS_PENDENTE,
         parcela_atual: par.parcela_atual,
         parcela_total: par.parcela_total,
+        conta_fixa: body.conta_fixa === true || body.conta_fixa === 'true',
       },
     };
   }
@@ -253,6 +254,9 @@ export function payloadUpdateFinanceiro(body = {}) {
         out.parcela_atual = par.parcela_atual;
         out.parcela_total = par.parcela_total;
       }
+    }
+    if (body.conta_fixa !== undefined) {
+      out.conta_fixa = body.conta_fixa === true || body.conta_fixa === 'true';
     }
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };

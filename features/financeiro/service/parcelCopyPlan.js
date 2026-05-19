@@ -6,13 +6,20 @@
  *   | { skip: true, reason: 'last'|'invalid' }}
  */
 export function parcelCopyPlanFromPreviousMonthRow(row) {
+  const isContaFixa = row?.conta_fixa === true || row?.conta_fixa === 'true';
   const pt = Number(row?.parcela_total);
   const pa = Number(row?.parcela_atual);
   const hasParcelas = Number.isFinite(pt) && Number.isFinite(pa) && pt >= 1 && pa >= 1;
-  if (!hasParcelas) {
-    return { skip: false, parcelas: false, parcela_atual: null, parcela_total: null };
+
+  if (isContaFixa) {
+    return { skip: false, conta_fixa: true, parcelas: false, parcela_atual: null, parcela_total: null };
   }
-  if (pa > pt) return { skip: true, reason: 'invalid' };
-  if (pa >= pt) return { skip: true, reason: 'last' };
-  return { skip: false, parcelas: true, parcela_atual: pa + 1, parcela_total: pt };
+
+  if (hasParcelas) {
+    if (pa > pt) return { skip: true, reason: 'invalid' };
+    if (pa >= pt) return { skip: true, reason: 'last' };
+    return { skip: false, conta_fixa: false, parcelas: true, parcela_atual: pa + 1, parcela_total: pt };
+  }
+
+  return { skip: true, reason: 'not_recurring' };
 }

@@ -6401,6 +6401,9 @@
                                 <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">Mês de competência</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
                                 <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
                                 <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
+                                <div class="field" id="financeiro-conta-fixa-wrap" style="display:none;">
+                                    <label class="finance-conta-fixa-check"><input type="checkbox" id="financeiro-modal-conta-fixa" ${item?.conta_fixa ? 'checked' : ''} /> Conta fixa</label>
+                                </div>
                                 <div class="field" id="financeiro-parcelas-wrap" style="display:none;">
                                     <label class="finance-parcelas-check"><input type="checkbox" id="financeiro-modal-parcelas" ${parcelasCheckedInit ? 'checked' : ''} /> Parcelas</label>
                                 </div>
@@ -6436,6 +6439,8 @@
                 const contextoEl = overlay.querySelector('#financeiro-modal-contexto');
                 const mesRefWrap = overlay.querySelector('#financeiro-mes-ref-wrap');
                 const mesRefEl = overlay.querySelector('#financeiro-modal-mes-ref');
+                const contaFixaWrap = overlay.querySelector('#financeiro-conta-fixa-wrap');
+                const contaFixaCb = overlay.querySelector('#financeiro-modal-conta-fixa');
                 const parcelasWrap = overlay.querySelector('#financeiro-parcelas-wrap');
                 const parcelaAtualField = overlay.querySelector('#financeiro-parcela-atual-field');
                 const parcelaTotalField = overlay.querySelector('#financeiro-parcela-total-field');
@@ -6443,6 +6448,7 @@
                 const syncParcelasUI = () => {
                     const t = tipoEl.value;
                     const showBlk = t === 'despesa_fixa';
+                    if (contaFixaWrap) contaFixaWrap.style.display = showBlk ? '' : 'none';
                     if (parcelasWrap) parcelasWrap.style.display = showBlk ? '' : 'none';
                     if (!showBlk) {
                         if (parcelaAtualField) parcelaAtualField.style.display = 'none';
@@ -6453,7 +6459,22 @@
                     if (parcelaAtualField) parcelaAtualField.style.display = showInputs ? '' : 'none';
                     if (parcelaTotalField) parcelaTotalField.style.display = showInputs ? '' : 'none';
                 };
-                if (parcelasCb) parcelasCb.addEventListener('change', syncParcelasUI);
+                if (contaFixaCb) {
+                    contaFixaCb.addEventListener('change', () => {
+                        if (contaFixaCb.checked && parcelasCb) {
+                            parcelasCb.checked = false;
+                            syncParcelasUI();
+                        }
+                    });
+                }
+                if (parcelasCb) {
+                    parcelasCb.addEventListener('change', () => {
+                        if (parcelasCb.checked && contaFixaCb) {
+                            contaFixaCb.checked = false;
+                        }
+                        syncParcelasUI();
+                    });
+                }
                 const mesForBounds = () => {
                     const v = mesRefEl && mesRefEl.value ? mesRefEl.value.trim() : '';
                     if (v && /^\d{4}-\d{2}$/.test(v)) return v;
@@ -6567,11 +6588,13 @@
                             ? dataValRaw
                             : (dataValRaw || todayIso),
                         mesAno: mesAnoPayload,
+                        conta_fixa: false,
                         parcelas: false,
                         parcela_atual: null,
                         parcela_total: null,
                     };
                     if (tipoVal === 'despesa_fixa') {
+                        payload.conta_fixa = !!(contaFixaCb && contaFixaCb.checked);
                         payload.parcelas = !!(parcelasCb && parcelasCb.checked);
                         if (payload.parcelas) {
                             const pa = parseInt(String(overlay.querySelector('#financeiro-modal-parcela-atual')?.value || ''), 10);
@@ -6623,6 +6646,7 @@
                     requestBody.data_lancamento = dataLanc;
                 }
                 if (tipoRegistro === 'despesa_fixa') {
+                    requestBody.conta_fixa = !!payload?.conta_fixa;
                     requestBody.parcelas = !!payload?.parcelas;
                     if (requestBody.parcelas) {
                         requestBody.parcela_atual = payload.parcela_atual;
@@ -6658,15 +6682,20 @@
              * Caso contrário (atual menor que total): copia com parcela atual incrementada em 1.
              */
             _parcelCopyPlanFromPreviousMonthRow(r) {
+                const isContaFixa = r?.conta_fixa === true || r?.conta_fixa === 'true';
                 const pt = Number(r?.parcela_total);
                 const pa = Number(r?.parcela_atual);
                 const hasParcelas = Number.isFinite(pt) && Number.isFinite(pa) && pt >= 1 && pa >= 1;
-                if (!hasParcelas) {
-                    return { skip: false, parcelas: false, parcela_atual: null, parcela_total: null };
+
+                if (isContaFixa) {
+                    return { skip: false, conta_fixa: true, parcelas: false, parcela_atual: null, parcela_total: null };
                 }
-                if (pa > pt) return { skip: true, reason: 'invalid' };
-                if (pa >= pt) return { skip: true, reason: 'last' };
-                return { skip: false, parcelas: true, parcela_atual: pa + 1, parcela_total: pt };
+                if (hasParcelas) {
+                    if (pa > pt) return { skip: true, reason: 'invalid' };
+                    if (pa >= pt) return { skip: true, reason: 'last' };
+                    return { skip: false, conta_fixa: false, parcelas: true, parcela_atual: pa + 1, parcela_total: pt };
+                }
+                return { skip: true, reason: 'not_recurring' };
             }
 
             async importFinanceiroFixasFromPreviousMonth(el) {
@@ -6705,6 +6734,7 @@
                             descricao,
                             valor: Number(r.valor || 0),
                             mesAno: mesAtual,
+                            conta_fixa: plan.conta_fixa === true,
                             parcelas: plan.parcelas === true,
                             parcela_atual: plan.parcela_atual ?? null,
                             parcela_total: plan.parcela_total ?? null,

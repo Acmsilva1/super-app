@@ -82,4 +82,23 @@ describe('financeiroService', () => {
     expect(upd.payload.parcela_atual).toBeNull();
     expect(upd.payload.parcela_total).toBeNull();
   });
+
+  it('inclui conta_fixa em despesa fixa no insert e no update', () => {
+    const ins = payloadInsertFinanceiro({
+      tipo_registro: 'despesa_fixa',
+      descricao: 'Internet',
+      valor: 99.90,
+      conta_fixa: true,
+    });
+    expect(ins.error).toBeUndefined();
+    expect(ins.payload.conta_fixa).toBe(true);
+
+    const upd = payloadUpdateFinanceiro({
+      id: 'y',
+      tipo_registro: 'despesa_fixa',
+      conta_fixa: false,
+    });
+    expect(upd.error).toBeUndefined();
+    expect(upd.payload.conta_fixa).toBe(false);
+  });
 });

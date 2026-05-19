@@ -52,3 +52,8 @@ export {
   memoMatchesAny,
   normalizeOfxText,
 } from './service/ofxBankLabels.js';
+
+export {
+  parcelCopyPlanFromPreviousMonthRow,
+} from './service/parcelCopyPlan.js';
+
