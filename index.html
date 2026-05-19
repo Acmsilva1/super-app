@@ -5617,6 +5617,7 @@
                     const hora = fmtHoraBrasilia(r.created_at);
                     const pt = Number(r.parcela_total ?? 0);
                     const pa = Number(r.parcela_atual ?? 0);
+                    // Identifica se e uma conta fixa para exibir o marcador visual
                     const isContaFixa = r.conta_fixa === true || r.conta_fixa === 'true';
                     const contaFixaHtml = isContaFixa
                         ? `<span class="finance-parcela-tag">Conta fixa</span>`
