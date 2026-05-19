@@ -42,3 +42,13 @@ export {
   isDebitoOfx,
   isPixEnviadoOfx,
 } from './service/ofxToFinancas.js';
+
+export {
+  OFX_BANK_LABELS,
+  OFX_PROFILE_SANTANDER,
+  OFX_PROFILE_GENERIC_BR,
+  detectOfxBankProfile,
+  getOfxLabelSet,
+  memoMatchesAny,
+  normalizeOfxText,
+} from './service/ofxBankLabels.js';

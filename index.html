@@ -6309,7 +6309,7 @@
                     ? `<p class="app-form-note">… e mais ${rows.length - 80} linha(s).</p>`
                     : '';
                 previewEl.innerHTML = `
-                    <p class="app-form-note"><strong>${resumo.novos ?? 0}</strong> despesa(s) nova(s), <strong>${resumo.ja_existentes ?? 0}</strong> já importada(s)${(resumo.ignorados_credito ?? 0) > 0 ? `, <strong>${resumo.ignorados_credito}</strong> linha(s) ignorada(s)` : ''}${erros.length ? `, ${erros.length} inválida(s)` : ''}. Só entram <strong>débito</strong> e <strong>PIX enviado</strong> do extrato.</p>
+                    <p class="app-form-note"><strong>${resumo.novos ?? 0}</strong> despesa(s) nova(s), <strong>${resumo.ja_existentes ?? 0}</strong> já importada(s)${(resumo.ignorados_credito ?? 0) > 0 ? `, <strong>${resumo.ignorados_credito}</strong> linha(s) ignorada(s)` : ''}${erros.length ? `, ${erros.length} inválida(s)` : ''}. Só entram <strong>débito</strong> e <strong>PIX enviado</strong>${data.bank_profile === 'santander' ? ' (dicionário Santander)' : ''}.</p>
                     <div class="finance-ofx-preview-inner"><table>
                         <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Status</th></tr></thead>
                         <tbody>${tableRows}</tbody>

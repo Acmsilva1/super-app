@@ -12,10 +12,12 @@ import {
   resumoImportacaoOfx,
   shouldImportOfxAsGastoVariado,
 } from '../../features/financeiro/service/ofxToFinancas.js';
+import { detectOfxBankProfile, OFX_PROFILE_SANTANDER } from '../../features/financeiro/service/ofxBankLabels.js';
 import { payloadInsertFinanceiro } from '../../features/financeiro/service/financeiroService.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const sampleOfx = readFileSync(join(__dirname, '../fixtures/sample.ofx'), 'utf8');
+const sampleSantanderOfx = readFileSync(join(__dirname, '../fixtures/sample-santander.ofx'), 'utf8');
 
 describe('ofxToFinancas', () => {
   it('parseia datas OFX', () => {
@@ -40,7 +42,7 @@ describe('ofxToFinancas', () => {
     expect(shouldImportOfxAsGastoVariado(-50, 'DEBIT', 'PIX ENVIADO')).toBe(true);
     expect(shouldImportOfxAsGastoVariado(-50, 'OTHER', 'PIX ENVIADO')).toBe(true);
     expect(shouldImportOfxAsGastoVariado(-50, 'XFER', 'TRANSFERENCIA')).toBe(false);
-    expect(shouldImportOfxAsGastoVariado(-50, 'OTHER', 'COMPRA CARTAO')).toBe(false);
+    expect(shouldImportOfxAsGastoVariado(-50, 'OTHER', 'COMPRA CARTAO ELO')).toBe(true);
     expect(shouldImportOfxAsGastoVariado(50, 'CREDIT', 'PIX RECEBIDO')).toBe(false);
 
     const { lancamentos, erros_parse, account_key, ignorados_credito } = parseOfxToLancamentos(sampleOfx);
@@ -59,6 +61,17 @@ describe('ofxToFinancas', () => {
     const resumo = resumoImportacaoOfx(annotated);
     expect(resumo.novos).toBe(0);
     expect(resumo.ja_existentes).toBe(1);
+  });
+
+  it('detecta perfil Santander e importa compra + PIX enviado', () => {
+    expect(detectOfxBankProfile(sampleSantanderOfx)).toBe(OFX_PROFILE_SANTANDER);
+    const { lancamentos, ignorados_credito, bank_profile } = parseOfxToLancamentos(sampleSantanderOfx);
+    expect(bank_profile).toBe(OFX_PROFILE_SANTANDER);
+    expect(lancamentos).toHaveLength(2);
+    expect(lancamentos.map((r) => r.descricao)).toEqual(
+      expect.arrayContaining(['COMPRA CARTAO ELO', 'PIX ENVIADO']),
+    );
+    expect(ignorados_credito).toBe(2);
   });
 
   it('payloadInsertFinanceiro aceita ofx_uid', () => {

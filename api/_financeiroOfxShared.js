@@ -70,6 +70,7 @@ export async function processarImportacaoOfx(req, options = {}) {
       data: {
         dry_run: true,
         account_key: parsed.account_key,
+        bank_profile: parsed.bank_profile,
         lancamentos,
         resumo,
         erros_parse: parsed.erros_parse,
@@ -126,6 +127,7 @@ export async function processarImportacaoOfx(req, options = {}) {
     data: {
       dry_run: false,
       account_key: parsed.account_key,
+      bank_profile: parsed.bank_profile,
       resumo: {
         ...resumo,
         inseridos: inseridos.length,
