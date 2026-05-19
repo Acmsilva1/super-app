@@ -8,6 +8,7 @@ import {
 } from '../features/financeiro/index.js';
 
 const UID_CHUNK = 100;
+const VALUE_CHUNK = 100;
 
 function getBody(req) {
   return typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
@@ -35,6 +36,74 @@ async function fetchExistingOfxUids(uids) {
   return existing;
 }
 
+function parseDuplicateDecisions(raw) {
+  if (!raw || typeof raw !== 'object') return {};
+  const out = {};
+  for (const [k, v] of Object.entries(raw)) {
+    const uid = String(k || '').trim();
+    if (!uid) continue;
+    out[uid] = v === true || v === 'true';
+  }
+  return out;
+}
+
+function moneyKey(v) {
+  return (Math.round(Number(v || 0) * 100) / 100).toFixed(2);
+}
+
+function dupKey(date, value) {
+  return `${String(date || '')}|${moneyKey(value)}`;
+}
+
+async function fetchExistingRowsByDateAndValue(lancamentos) {
+  const dates = [...new Set((lancamentos || []).map((r) => String(r?.data_lancamento || '')).filter(Boolean))];
+  const values = [...new Set((lancamentos || []).map((r) => moneyKey(r?.valor)).filter(Boolean))];
+  if (!dates.length || !values.length) return [];
+
+  const found = [];
+  for (const date of dates) {
+    for (let i = 0; i < values.length; i += VALUE_CHUNK) {
+      const valueChunk = values.slice(i, i + VALUE_CHUNK).map((v) => Number(v));
+      const { data, error } = await supabase
+        .from(TABLE_FINANCAS)
+        .select('id,descricao,valor,data_lancamento,tipo,ofx_uid,created_at')
+        .eq('tipo', 'despesa')
+        .eq('data_lancamento', date)
+        .in('valor', valueChunk)
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) throw new Error(error.message);
+      for (const row of data || []) found.push(row);
+    }
+  }
+  return found;
+}
+
+function annotateBusinessDuplicates(lancamentos, existingRows) {
+  const existingByKey = new Map();
+  for (const row of existingRows || []) {
+    const key = dupKey(row?.data_lancamento, row?.valor);
+    if (!existingByKey.has(key)) existingByKey.set(key, []);
+    existingByKey.get(key).push({
+      id: row?.id ?? null,
+      descricao: String(row?.descricao || ''),
+      valor: Math.round(Number(row?.valor || 0) * 100) / 100,
+      data_lancamento: String(row?.data_lancamento || ''),
+      ofx_uid: row?.ofx_uid ? String(row.ofx_uid) : null,
+      created_at: row?.created_at || null,
+    });
+  }
+
+  return (lancamentos || []).map((row) => {
+    const conflitos = existingByKey.get(dupKey(row?.data_lancamento, row?.valor)) || [];
+    return {
+      ...row,
+      possivel_duplicado: conflitos.length > 0,
+      possiveis_duplicados: conflitos,
+    };
+  });
+}
+
 /**
  * @param {object} req
  * @param {{ dry_run?: boolean }} options
@@ -43,6 +112,7 @@ export async function processarImportacaoOfx(req, options = {}) {
   const body = getBody(req);
   const ofxText = String(body.ofx || '');
   const dryRun = options.dry_run ?? body.dry_run === true || body.dry_run === 'true';
+  const duplicateDecisions = parseDuplicateDecisions(body.duplicate_decisions);
 
   if (!ofxText.trim()) {
     return { status: 400, data: { error: 'Campo ofx obrigatorio' } };
@@ -61,8 +131,17 @@ export async function processarImportacaoOfx(req, options = {}) {
     return { status: 500, data: { error: err.message || 'Erro ao consultar duplicados' } };
   }
 
-  const lancamentos = annotateLancamentosExistencia(parsed.lancamentos, existingUids);
+  let existingBusinessRows;
+  try {
+    existingBusinessRows = await fetchExistingRowsByDateAndValue(parsed.lancamentos);
+  } catch (err) {
+    return { status: 500, data: { error: err.message || 'Erro ao consultar possíveis duplicados' } };
+  }
+
+  const lancamentosBase = annotateLancamentosExistencia(parsed.lancamentos, existingUids);
+  const lancamentos = annotateBusinessDuplicates(lancamentosBase, existingBusinessRows);
   const resumo = resumoImportacaoOfx(lancamentos, parsed.erros_parse, parsed.ignorados_credito || 0);
+  const totalPossiveisDuplicados = lancamentos.filter((r) => r.possivel_duplicado && !r.ja_existente).length;
 
   if (dryRun) {
     return {
@@ -72,6 +151,7 @@ export async function processarImportacaoOfx(req, options = {}) {
         account_key: parsed.account_key,
         bank_profile: parsed.bank_profile,
         lancamentos,
+        total_possiveis_duplicados: totalPossiveisDuplicados,
         resumo,
         erros_parse: parsed.erros_parse,
         ignorados_credito: parsed.ignorados_credito || 0,
@@ -81,11 +161,23 @@ export async function processarImportacaoOfx(req, options = {}) {
 
   const inseridos = [];
   const ignorados_duplicado = [];
+  const ignorados_duplicado_regra = [];
   const falhas = [];
 
   for (const row of lancamentos) {
     if (row.ja_existente) {
-      ignorados_duplicado.push({ ofx_uid: row.ofx_uid, motivo: 'ja_existente' });
+      ignorados_duplicado.push({ ofx_uid: row.ofx_uid, motivo: 'ja_existente', data_lancamento: row.data_lancamento, valor: row.valor });
+      continue;
+    }
+
+    if (row.possivel_duplicado && duplicateDecisions[row.ofx_uid] !== true) {
+      ignorados_duplicado_regra.push({
+        ofx_uid: row.ofx_uid,
+        motivo: 'possivel_duplicado_nao_confirmado',
+        data_lancamento: row.data_lancamento,
+        valor: row.valor,
+        descricao: row.descricao,
+      });
       continue;
     }
 
@@ -112,7 +204,7 @@ export async function processarImportacaoOfx(req, options = {}) {
 
     if (error) {
       if (isUniqueViolation(error)) {
-        ignorados_duplicado.push({ ofx_uid: row.ofx_uid, motivo: 'conflito_unicidade' });
+        ignorados_duplicado.push({ ofx_uid: row.ofx_uid, motivo: 'conflito_unicidade', data_lancamento: row.data_lancamento, valor: row.valor });
         continue;
       }
       falhas.push({ ofx_uid: row.ofx_uid, error: error.message });
@@ -131,12 +223,15 @@ export async function processarImportacaoOfx(req, options = {}) {
       resumo: {
         ...resumo,
         inseridos: inseridos.length,
-        ignorados_duplicado: ignorados_duplicado.length,
+        ignorados_duplicado: ignorados_duplicado.length + ignorados_duplicado_regra.length,
+        ignorados_duplicado_tecnico: ignorados_duplicado.length,
+        ignorados_duplicado_regra: ignorados_duplicado_regra.length,
         ignorados_credito: parsed.ignorados_credito || 0,
         falhas: falhas.length,
       },
       inseridos: inseridos.length,
       ignorados_duplicado,
+      ignorados_duplicado_regra,
       falhas,
       erros_parse: parsed.erros_parse,
     },

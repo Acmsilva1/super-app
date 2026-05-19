@@ -6472,6 +6472,139 @@
                 }
             }
 
+            async requestFinanceiroOfxPreviewV2(overlay, ofxText) {
+                const res = await fetch('/api/financeiro-ofx', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ofx: ofxText, dry_run: true }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao ler OFX');
+                overlay._ofxRaw = ofxText;
+                overlay._ofxPreview = data;
+                return data;
+            }
+
+            async showFinanceiroOfxAnalysisModalV2(data) {
+                const rows = data?.lancamentos || [];
+                const resumo = data?.resumo || {};
+                const erros = data?.erros_parse || [];
+                return new Promise((resolve) => {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'app-modal-overlay';
+                    const tableRows = rows.slice(0, 120).map((r) => {
+                        const badge = r.ja_existente
+                            ? '<span class="finance-ofx-badge">Já importada</span>'
+                            : '<span class="finance-ofx-badge finance-ofx-badge--new">Nova</span>';
+                        return `<tr class="${r.ja_existente ? 'finance-ofx-row--dup' : ''}">
+                            <td>${escapeHtml(r.data_lancamento || '')}</td>
+                            <td>${escapeHtml(r.descricao || '')}</td>
+                            <td>${this.formatMoneyBr(Number(r.valor || 0))}</td>
+                            <td>${badge}</td>
+                        </tr>`;
+                    }).join('');
+                    const more = rows.length > 120 ? `<p class="app-form-note">... e mais ${rows.length - 120} linha(s).</p>` : '';
+                    overlay.innerHTML = `
+                        <div class="app-modal finance-entry-modal">
+                            <h4>Pré-análise do extrato</h4>
+                            <p class="app-form-note"><strong>${resumo.novos ?? 0}</strong> novos, <strong>${resumo.ja_existentes ?? 0}</strong> já importados${(resumo.ignorados_credito ?? 0) > 0 ? `, <strong>${resumo.ignorados_credito}</strong> ignorados` : ''}${erros.length ? `, ${erros.length} inválidos` : ''}.</p>
+                            <div class="finance-ofx-preview-inner"><table>
+                                <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead>
+                                <tbody>${tableRows || '<tr><td colspan="4">Nenhuma transação válida.</td></tr>'}</tbody>
+                            </table></div>
+                            ${more}
+                            <div class="app-modal-actions">
+                                <button type="button" class="app-btn app-btn-secondary" data-action="cancel">Cancelar</button>
+                                <button type="button" class="app-btn" data-action="ok">OK</button>
+                            </div>
+                        </div>
+                    `;
+                    const close = (result) => { overlay.remove(); resolve(result); };
+                    overlay.querySelector('[data-action="cancel"]').onclick = () => close(false);
+                    overlay.querySelector('[data-action="ok"]').onclick = () => close(true);
+                    overlay.onclick = (e) => { if (e.target === overlay) close(false); };
+                    document.body.appendChild(overlay);
+                });
+            }
+
+            async showFinanceiroOfxDuplicateDecisionModalV2(rows = []) {
+                const dupRows = (rows || []).filter((r) => r.possivel_duplicado && !r.ja_existente);
+                if (!dupRows.length) return {};
+                return new Promise((resolve) => {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'app-modal-overlay';
+                    const tableRows = dupRows.map((r, idx) => {
+                        const conflitos = (r.possiveis_duplicados || []).slice(0, 2).map((c) => (
+                            `${escapeHtml(c.data_lancamento || '')} · ${this.formatMoneyBr(Number(c.valor || 0))} · ${escapeHtml(c.descricao || '')}`
+                        )).join('<br/>');
+                        return `<tr>
+                            <td><input type="checkbox" data-dup-uid="${escapeHtml(r.ofx_uid || '')}" id="dup-check-${idx}" /></td>
+                            <td>${escapeHtml(r.data_lancamento || '')}</td>
+                            <td>${escapeHtml(r.descricao || '')}</td>
+                            <td>${this.formatMoneyBr(Number(r.valor || 0))}</td>
+                            <td>${conflitos || '-'}</td>
+                        </tr>`;
+                    }).join('');
+                    overlay.innerHTML = `
+                        <div class="app-modal finance-entry-modal">
+                            <h4>Possíveis duplicados</h4>
+                            <p class="app-form-note">Marque apenas os itens que você deseja inserir mesmo com suspeita de duplicidade.</p>
+                            <div class="finance-ofx-preview-inner"><table>
+                                <thead><tr><th>Inserir?</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Já existe</th></tr></thead>
+                                <tbody>${tableRows}</tbody>
+                            </table></div>
+                            <div class="app-modal-actions">
+                                <button type="button" class="app-btn app-btn-secondary" data-action="skip">Ignorar duplicados</button>
+                                <button type="button" class="app-btn" data-action="ok">Continuar</button>
+                            </div>
+                        </div>
+                    `;
+                    const close = (selected) => { overlay.remove(); resolve(selected); };
+                    overlay.querySelector('[data-action="skip"]').onclick = () => close({});
+                    overlay.querySelector('[data-action="ok"]').onclick = () => {
+                        const selected = {};
+                        overlay.querySelectorAll('input[data-dup-uid]').forEach((cb) => {
+                            const uid = String(cb.getAttribute('data-dup-uid') || '').trim();
+                            if (uid && cb.checked) selected[uid] = true;
+                        });
+                        close(selected);
+                    };
+                    overlay.onclick = (e) => { if (e.target === overlay) close({}); };
+                    document.body.appendChild(overlay);
+                });
+            }
+
+            async importFinanceiroOfxFlowV2(overlay, el, ofxText) {
+                const preview = await this.requestFinanceiroOfxPreviewV2(overlay, ofxText);
+                if (!(await this.showFinanceiroOfxAnalysisModalV2(preview))) return false;
+                const novos = preview?.resumo?.novos ?? 0;
+                if (novos <= 0) {
+                    alert('Não há lançamentos novos para importar.');
+                    return false;
+                }
+                const rows = preview?.lancamentos || [];
+                const selectedDuplicateUids = await this.showFinanceiroOfxDuplicateDecisionModalV2(rows);
+                overlay._selectedDuplicateUids = selectedDuplicateUids;
+                const res = await fetch('/api/financeiro-ofx', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ofx: ofxText,
+                        dry_run: false,
+                        duplicate_decisions: selectedDuplicateUids,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao importar');
+                const ins = data.resumo?.inseridos ?? data.inseridos ?? 0;
+                const ignRegra = data.resumo?.ignorados_duplicado_regra ?? (data.ignorados_duplicado_regra?.length || 0);
+                const ignUid = data.resumo?.ignorados_duplicado_tecnico ?? (data.ignorados_duplicado?.length || 0);
+                alert(`Importação concluída: ${ins} inserido(s), ${ignRegra} ignorado(s) por duplicidade, ${ignUid} ignorado(s) por OFX já importado.`);
+                overlay.remove();
+                await this.refreshAppContent('financeiro');
+                return true;
+            }
+
             openFinanceiroModal(el, { item = null, defaultTipo = 'gasto_variado' } = {}) {
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 let initialMesRef = mesAno;
@@ -6526,14 +6659,12 @@
                         ${!item ? `
                         <div class="finance-ofx-import" id="financeiro-ofx-wrap">
                             <input type="file" id="financeiro-ofx-file" accept=".ofx,.OFX" hidden />
-                            <div id="financeiro-ofx-preview" class="finance-ofx-preview" hidden></div>
                         </div>
                         ` : ''}
                         <div class="app-modal-actions finance-modal-actions">
                             ${!item ? '<button type="button" class="app-btn app-btn-secondary" data-action="financeiro-ofx-pick">Inserir extrato</button>' : '<span></span>'}
                             <div class="finance-modal-actions-right">
                                 <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
-                                ${!item ? '<button type="button" class="app-btn app-btn-secondary" data-action="financeiro-ofx-import" disabled>Importar extrato</button>' : ''}
                                 <button type="button" class="app-btn" data-action="modal-save">${item ? 'Salvar' : 'Registrar'}</button>
                             </div>
                         </div>
@@ -6643,9 +6774,9 @@
                 if (!item) {
                     overlay._ofxRaw = null;
                     overlay._ofxPreview = null;
+                    overlay._selectedDuplicateUids = {};
                     const ofxFile = overlay.querySelector('#financeiro-ofx-file');
                     const ofxPick = overlay.querySelector('[data-action="financeiro-ofx-pick"]');
-                    const ofxImport = overlay.querySelector('[data-action="financeiro-ofx-import"]');
                     if (ofxPick && ofxFile) {
                         ofxPick.onclick = () => ofxFile.click();
                         ofxFile.onchange = async () => {
@@ -6653,15 +6784,10 @@
                             if (!file) return;
                             try {
                                 const text = await file.text();
-                                await this.requestFinanceiroOfxPreview(overlay, text);
+                                await this.importFinanceiroOfxFlowV2(overlay, el, text);
                             } catch (err) {
                                 alert(err.message || 'Não foi possível ler o arquivo');
                             }
-                        };
-                    }
-                    if (ofxImport) {
-                        ofxImport.onclick = async () => {
-                            await this.confirmFinanceiroOfxImport(overlay, el);
                         };
                     }
                 }
