@@ -3955,6 +3955,52 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Grid de Despesas Fixas Lado a Lado */
+        .finance-despesas-fixas-grid {
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+        .finance-despesas-col {
+            flex: 1 1 calc(50% - 0.625rem);
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .finance-despesas-col-header {
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem 0.6rem;
+            background: rgba(15, 27, 48, 0.45);
+            border: 1px solid rgba(89, 132, 194, 0.18);
+            border-radius: 0.5rem;
+        }
+        [data-theme="light"] .finance-despesas-col-header {
+            background: rgba(241, 245, 249, 0.85);
+            border-color: rgba(148, 163, 184, 0.25);
+        }
+        .finance-despesas-col .finance-table-scroll {
+            margin-top: 0;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(89, 132, 194, 0.22);
+            background: rgba(8, 17, 33, 0.35);
+        }
+        .finance-despesas-col .module-table {
+            min-width: 100%;
+        }
+        @media (max-width: 900px) {
+            .finance-despesas-col {
+                flex: 1 1 100%;
+            }
+        }
+
     </style>
 </head>
 <body class="view-apps">
@@ -5625,11 +5671,14 @@
                     const parcelaHtml = (Number.isFinite(pt) && Number.isFinite(pa) && pt > 0 && pa > 0 && pa <= pt)
                         ? `<span class="finance-parcela-tag">Parcela ${escapeHtml(String(pa))} de ${escapeHtml(String(pt))}</span>`
                         : '';
+                    const dateSub = `${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` às ${escapeHtml(hora)}` : ''}`;
                     return `<tr>
-                        <td><strong>${escapeHtml(r.descricao || '')}</strong>${contaFixaHtml}${parcelaHtml}</td>
+                        <td>
+                            <strong>${escapeHtml(r.descricao || '')}</strong>${contaFixaHtml}${parcelaHtml}
+                            <div style="font-size:0.72rem;color:#9ca3af;margin-top:0.15rem;">${dateSub}</div>
+                        </td>
                         <td><button type="button" class="finance-status-toggle ${badgeClass}" data-action="financeiro-toggle-status" data-id="${r.id}" data-status-atual="${statusRaw}" title="Clique para alternar status">${statusLabel}</button></td>
                         <td style="color:${statusRaw === 'pago' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
-                        <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
                         <td class="col-actions">
                             <div class="app-list-actions">
                                 <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="despesa_fixa">Editar</button>
@@ -5662,16 +5711,19 @@
                 const pagoVal = Number(pagosPendentes.pago) || 0;
                 const pendenteVal = Number(pagosPendentes.pendente) || 0;
 
-                const rankFixaStatus = (r) => (String(r?.status || 'pendente').toLowerCase() === 'pago' ? 1 : 0);
                 const stampFixa = (r) => String(r?.created_at || r?.data_lancamento || '');
-                const despesasFixasOrdenadas = [...despesasFixas].sort((a, b) => {
-                    const da = rankFixaStatus(a);
-                    const db = rankFixaStatus(b);
-                    if (da !== db) return da - db;
-                    return stampFixa(b).localeCompare(stampFixa(a));
-                });
+                
+                const despesasFixasPendentes = despesasFixas.filter(r => String(r.status || 'pendente').toLowerCase() !== 'pago');
+                const despesasFixasPagas = despesasFixas.filter(r => String(r.status || 'pendente').toLowerCase() === 'pago');
+                
+                despesasFixasPendentes.sort((a, b) => stampFixa(b).localeCompare(stampFixa(a)));
+                despesasFixasPagas.sort((a, b) => stampFixa(b).localeCompare(stampFixa(a)));
 
-                const rowsFixasHtml = despesasFixasOrdenadas.length ? despesasFixasOrdenadas.map(mkRowFixa).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma despesa fixa neste mês.</td></tr>';
+                const totalPendenteFixas = despesasFixasPendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+                const totalPagoFixas = despesasFixasPagas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+
+                const rowsFixasPendentesHtml = despesasFixasPendentes.length ? despesasFixasPendentes.map(mkRowFixa).join('') : '<tr><td colspan="4" class="module-table-empty">Nenhuma despesa pendente.</td></tr>';
+                const rowsFixasPagasHtml = despesasFixasPagas.length ? despesasFixasPagas.map(mkRowFixa).join('') : '<tr><td colspan="4" class="module-table-empty">Nenhuma despesa paga.</td></tr>';
                 const fixasEmpty = despesasFixas.length === 0;
                 const showImportFixasCallout = fixasEmpty && activeDataFilter === 'despesas_fixas';
                 const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mês.</td></tr>';
@@ -5753,17 +5805,37 @@
                                 Nenhuma tabela aberta. Escolha <strong>Despesas fixas</strong>, <strong>Gastos variados</strong> ou <strong>Receitas</strong>.
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="despesas_fixas" id="financeiro-section-despesas-fixas" data-fixas-empty="${fixasEmpty ? '1' : '0'}">
-                                <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Despesas fixas</p>
+                                <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.8rem;">Despesas fixas</p>
                                 ${fixasEmpty ? `
                                 <div id="financeiro-import-fixas-callout" class="finance-import-fixas-callout ${showImportFixasCallout ? '' : 'hidden'}" role="region" aria-label="Importar despesas fixas">
                                     <p class="finance-import-fixas-callout__text">Este mês ainda não tem despesas fixas. Copie do mês anterior; lançamentos com parcelas passam para a próxima parcela (itens já na última parcela não são copiados).</p>
                                     <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-import-fixas-prev-month">Importar do mês anterior</button>
                                 </div>` : ''}
-                                <div class="finance-table-scroll">
-                                    <table class="module-table">
-                                        <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
-                                        <tbody id="financeiro-table-fixas">${rowsFixasHtml}</tbody>
-                                    </table>
+                                <div class="finance-despesas-fixas-grid">
+                                    <div class="finance-despesas-col">
+                                        <p class="finance-despesas-col-header" style="color: #ef4444;">
+                                            <span>Pendentes</span>
+                                            <span>${this.formatMoneyBr(totalPendenteFixas)}</span>
+                                        </p>
+                                        <div class="finance-table-scroll">
+                                            <table class="module-table">
+                                                <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
+                                                <tbody id="financeiro-table-fixas-pendentes">${rowsFixasPendentesHtml}</tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="finance-despesas-col">
+                                        <p class="finance-despesas-col-header" style="color: #22c55e;">
+                                            <span>Pagas</span>
+                                            <span>${this.formatMoneyBr(totalPagoFixas)}</span>
+                                        </p>
+                                        <div class="finance-table-scroll">
+                                            <table class="module-table">
+                                                <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
+                                                <tbody id="financeiro-table-fixas-pagas">${rowsFixasPagasHtml}</tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
