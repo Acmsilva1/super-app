@@ -4015,6 +4015,19 @@
                 flex: 1 1 100%;
             }
         }
+        .finance-desc-text {
+            display: inline-block;
+            vertical-align: middle;
+            max-width: 100%;
+        }
+        @media (max-width: 768px) {
+            .finance-desc-text {
+                max-width: 38vw;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
 
     </style>
 </head>
@@ -5689,7 +5702,7 @@
                     const dateSub = `${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` às ${escapeHtml(hora)}` : ''}`;
                     return `<tr>
                         <td>
-                            <strong>${escapeHtml(r.descricao || '')}</strong>${contaFixaHtml}${parcelaHtml}
+                            <strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong>${contaFixaHtml}${parcelaHtml}
                             <div style="font-size:0.72rem;color:#9ca3af;margin-top:0.15rem;">${dateSub}</div>
                         </td>
                         <td><button type="button" class="finance-status-toggle ${badgeClass}" data-action="financeiro-toggle-status" data-id="${r.id}" data-status-atual="${statusRaw}" title="Clique para alternar status">${statusLabel}</button></td>
@@ -5705,7 +5718,7 @@
                 const mkRowFin = (r) => {
                     const hora = fmtHoraBrasilia(r.created_at);
                     return `<tr>
-                        <td><strong>${escapeHtml(r.descricao || '')}</strong></td>
+                        <td><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong></td>
                         <td>${escapeHtml(r.categoria || '--')}</td>
                         <td style="color:${String(r.tipo_registro) === 'receita' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
@@ -5749,7 +5762,7 @@
                     ? poupancaLogs.map((r) => {
                         const hora = fmtHoraBrasilia(r.created_at);
                         return `<tr>
-                            <td><strong>${escapeHtml(r.descricao || '')}</strong></td>
+                            <td><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong></td>
                             <td style="color:#22c55e">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                             <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
                             <td class="col-actions">
