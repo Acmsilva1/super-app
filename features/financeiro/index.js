@@ -14,46 +14,10 @@ export {
   CATEGORIAS_RECEITA,
 } from './model/financeiro.js';
 
-export {
-  parseMesAno,
-  rangeMes,
-  getBrazilTodayIso,
-  sortCronologiaAsc,
-  sortCronologiaDesc,
-  filtrarFinancasPorMes,
-  classificarFinancas,
-  calcularDashboard,
-  calcularGraficos,
-  montarTabelaFinanceiroRows,
-  payloadInsertFinanceiro,
-  payloadUpdateFinanceiro,
-  inferTipoRegistro,
-} from './service/financeiroService.js';
 
-export {
-  assertOfxSize,
-  buildOfxUid,
-  parseOfxDate,
-  inferTipoFromOfx,
-  parseOfxToLancamentos,
-  annotateLancamentosExistencia,
-  resumoImportacaoOfx,
-  shouldImportOfxAsGastoVariado,
-  isDebitoOfx,
-  isPixEnviadoOfx,
-} from './service/ofxToFinancas.js';
-
-export {
-  OFX_BANK_LABELS,
-  OFX_PROFILE_SANTANDER,
-  OFX_PROFILE_GENERIC_BR,
-  detectOfxBankProfile,
-  getOfxLabelSet,
-  memoMatchesAny,
-  normalizeOfxText,
-} from './service/ofxBankLabels.js';
 
 export {
   parcelCopyPlanFromPreviousMonthRow,
 } from './service/parcelCopyPlan.js';
+
 

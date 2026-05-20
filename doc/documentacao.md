@@ -1,4 +1,4 @@
-﻿# Documentacao do Projeto - Super App
+# Documentacao do Projeto - Super App
 
 ## 1. Visao geral
 O Super App e uma aplicacao web em formato PWA com frontend principal em um unico arquivo HTML e backend em funcoes serverless Node.js.
@@ -67,14 +67,12 @@ Observacao: o endpoint consolidado atual para financas e `/api/financeiro`, mas 
 Arquivos existentes em `api/`:
 - `apps.js`
 - `financeiro.js`
-- `financeiro-ofx.js`
 - `fluxograma.js`
 - `lista-compras.js`
 - `missoes-treino.js`
 - `roadmap.js`
 - `statistics.js`
 - `_financeiroShared.js` (shared interno)
-- `_financeiroOfxShared.js` (legado OFX, sem uso no fluxo ativo)
 
 ### 6.1 Catalogo e shell
 #### `GET /api/apps`
@@ -100,17 +98,9 @@ Comportamento:
 - `POST/PATCH/DELETE` suportam `tipo_registro` para rotear operacao na tabela correta
 
 Regra de replicacao de despesas fixas:
-- A replicacao automatica para o mes seguinte ocorre somente no fechamento do mes de origem (ultimo dia do mes ou depois).
+- A replicacao automatica para o mes seguinte ocorre somente no ultimo dia do mes de origem.
 - Antes do fechamento, nenhum item entra automaticamente no mes seguinte.
 - Antes do fechamento, a entrada no mes seguinte e apenas manual (via lancamento explicito do usuario).
-
-#### `/api/financeiro-ofx`
-Status atual: funcionalidade removida.
-
-Comportamento:
-- Endpoint mantido apenas por compatibilidade tecnica.
-- Retorna `410` (`Gone`) para qualquer metodo, com mensagem de OFX removido.
-- Nao ha mais botao, input ou fluxo de importacao OFX no frontend financeiro.
 
 ### 6.3 Lista de compras
 #### `/api/lista-compras`
@@ -189,7 +179,6 @@ npm install
 ## 12. Estado atual e observacoes
 - O `README.md` existente descreve alguns componentes que nao aparecem mais no estado atual do repositorio (por exemplo, workflows em `.github/workflows/` e endpoint de calendario).
 - Esta documentacao foi revisada com base no codigo efetivamente presente em `2026-05-20`.
-- A importacao OFX do financeiro foi descontinuada no fluxo ativo (UI + endpoint funcional).
 - A pasta `docs/` segue disponivel para anexos, diagramas e RFCs futuros.
 
 ## 13. Proximos passos recomendados
@@ -197,3 +186,5 @@ npm install
 2. Adicionar exemplos de payload/request/response por endpoint.
 3. Criar um diagrama de arquitetura versionado (mermaid) no proprio repositrio.
 4. Documentar politicas de erro e codigos de resposta por modulo.
+
+

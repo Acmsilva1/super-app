@@ -1,4 +1,4 @@
-﻿
+�
         // ============================================
         // SUPERAPP - Sistema de Gerenciamento de Apps
         // ============================================
@@ -42,7 +42,7 @@
                     latest_at: null,
                     summary: { status: 'no_data', uptime_percent: 0, error_rate_percent: 0, p95_latency_ms: 0, checks_total: 0, checks_success: 0, checks_failed: 0, critical_failures: 0 },
                     health: { healthy: 0, attention: 100 },
-                    services: { labels: ['Total', 'SaudÃ¡veis', 'Falhas'], values: [0, 0, 0] },
+                    services: { labels: ['Total', 'Saudáveis', 'Falhas'], values: [0, 0, 0] },
                     latency_current: { labels: [], values: [] },
                     storage_by_app: { labels: [], values: [] },
                     db: { connected: 0, unstable: 100 },
@@ -212,13 +212,13 @@
             async loadApps() {
                 try {
                     const response = await fetch('/api/apps');
-                    if (!response.ok) throw new Error('Falha ao carregar aplicaÃ§Ãµes');
+                    if (!response.ok) throw new Error('Falha ao carregar aplicações');
                     const data = await response.json();
                     this.apps = Array.isArray(data) ? data : (data.apps || []);
                     this.renderApps();
                     if (document.getElementById('chartSize')) this.renderDashboardCharts();
                 } catch (error) {
-                    console.error('Erro ao carregar aplicaÃ§Ãµes:', error);
+                    console.error('Erro ao carregar aplicações:', error);
                     this.apps = [];
                     this.renderApps();
                 }
@@ -227,12 +227,12 @@
             async loadStatistics() {
                 try {
                     const response = await fetch('/api/statistics');
-                    if (!response.ok) throw new Error('Falha ao carregar estatÃ­sticas');
+                    if (!response.ok) throw new Error('Falha ao carregar estatísticas');
                     const data = await response.json();
                     this.statistics = { ...data, openApps: this.openWindows.size };
                     this.renderDashboardCharts();
                 } catch (error) {
-                    console.error('Erro ao carregar estatÃ­sticas:', error);
+                    console.error('Erro ao carregar estatísticas:', error);
                     this.statistics = { totalApps: 0, activeApps: 0, betaApps: 0, openApps: this.openWindows.size };
                     this.renderDashboardCharts();
                 }
@@ -259,7 +259,7 @@
                         ? `/api/system-analysis-dashboard?profile=${encodeURIComponent(profile)}&t=${Date.now()}`
                         : `/api/system-analysis-dashboard?profile=${encodeURIComponent(profile)}`;
                     const response = await fetch(url);
-                    if (!response.ok) throw new Error('Falha ao carregar anÃ¡lise do sistema');
+                    if (!response.ok) throw new Error('Falha ao carregar análise do sistema');
                     const data = await response.json();
                     this.dashboardMetrics = data || this.dashboardMetrics;
                     this.updateDashboardEndpointOptions();
@@ -269,8 +269,8 @@
                     this.renderDashboardHealthReport();
                     this.renderDashboardInsights();
                 } catch (error) {
-                    console.error('Erro ao carregar anÃ¡lise do sistema:', error);
-                    this.renderDashboardLastUpdate('Ãšltima anÃ¡lise: sem dados');
+                    console.error('Erro ao carregar análise do sistema:', error);
+                    this.renderDashboardLastUpdate('�altima análise: sem dados');
                     this.renderDashboardSummary('Sem dados');
                     this.renderDashboardCharts();
                     this.renderDashboardHealthReport('Sem dados de monitoramento no momento.');
@@ -565,15 +565,15 @@
                 }
                 const latestAt = this.dashboardMetrics?.latest_at;
                 if (!latestAt) {
-                    el.textContent = `Ãšltima anÃ¡lise: sem dados (${profileLabel})`;
+                    el.textContent = `�altima análise: sem dados (${profileLabel})`;
                     return;
                 }
                 const dt = new Date(latestAt);
                 if (Number.isNaN(dt.getTime())) {
-                    el.textContent = `Ãšltima anÃ¡lise: sem dados (${profileLabel})`;
+                    el.textContent = `�altima análise: sem dados (${profileLabel})`;
                     return;
                 }
-                el.textContent = `Ãšltima anÃ¡lise: ${dt.toLocaleString('pt-BR')} (${profileLabel})`;
+                el.textContent = `�altima análise: ${dt.toLocaleString('pt-BR')} (${profileLabel})`;
             }
 
             renderDashboardSummary(fallbackText = null) {
@@ -600,8 +600,8 @@
                 const uptime = Number(summary.uptime_percent || 0);
                 const status = String(summary.status || 'no_data').toLowerCase();
                 const statusMap = {
-                    healthy: { label: 'SaudÃ¡vel', className: 'is-ok' },
-                    attention: { label: 'AtenÃ§Ã£o', className: criticalFailures > 0 ? 'is-bad' : 'is-warn' },
+                    healthy: { label: 'Saudável', className: 'is-ok' },
+                    attention: { label: 'Atenção', className: criticalFailures > 0 ? 'is-bad' : 'is-warn' },
                     no_data: { label: 'Sem dados', className: 'is-warn' }
                 };
                 const statusView = statusMap[status] || { label: 'Indefinido', className: 'is-warn' };
@@ -618,7 +618,7 @@
                         <span class="dashboard-summary-meta">${checksFailed} check(s) com falha</span>
                     </div>
                     <div class="dashboard-summary-card">
-                        <span class="dashboard-summary-label">Falhas CrÃ­ticas</span>
+                        <span class="dashboard-summary-label">Falhas Críticas</span>
                         <strong class="dashboard-summary-value ${criticalFailures > 0 ? 'is-bad' : 'is-ok'}">${criticalFailures}</strong>
                         <span class="dashboard-summary-meta">Pontos vitais fora do ar</span>
                     </div>
@@ -644,7 +644,7 @@
                 const failedEndpoints = Array.isArray(metrics.failed_endpoints) ? metrics.failed_endpoints : [];
 
                 const status = String(summary.status || 'no_data').toLowerCase();
-                const statusLabel = status === 'healthy' ? 'SaudÃ¡vel' : (status === 'attention' ? 'AtenÃ§Ã£o' : 'Sem dados');
+                const statusLabel = status === 'healthy' ? 'Saudável' : (status === 'attention' ? 'Atenção' : 'Sem dados');
                 const checksTotal = Number(summary.checks_total || services.values?.[0] || 0);
                 const checksOk = Number(summary.checks_success || services.values?.[1] || 0);
                 const checksFail = Number(summary.checks_failed || services.values?.[2] || 0);
@@ -675,7 +675,7 @@
                     ? failedEndpoints.slice(0, 6).map((item) => `
                         <div class="dashboard-health-list-item">
                             <strong>${escapeHtml(item.endpoint_name || 'endpoint')}</strong>
-                            <span>Status: ${escapeHtml(String(item.status_code ?? 'sem status'))} | CrÃ­tico: ${item.critical ? 'sim' : 'nÃ£o'}</span>
+                            <span>Status: ${escapeHtml(String(item.status_code ?? 'sem status'))} | Crítico: ${item.critical ? 'sim' : 'não'}</span>
                             <span>${escapeHtml(item.error_message || 'Falha sem detalhe')}</span>
                         </div>
                     `).join('')
@@ -684,19 +684,19 @@
                 body.innerHTML = `
                     <div class="dashboard-health-status-row">
                         <span class="dashboard-status-chip ${statusChipClass}"><i class="fas fa-shield-halved"></i>${escapeHtml(statusLabel)}</span>
-                        <span class="dashboard-status-chip ${criticalFailures > 0 ? 'bad' : 'ok'}"><i class="fas fa-triangle-exclamation"></i>${criticalFailures} falha(s) crÃ­tica(s)</span>
+                        <span class="dashboard-status-chip ${criticalFailures > 0 ? 'bad' : 'ok'}"><i class="fas fa-triangle-exclamation"></i>${criticalFailures} falha(s) crítica(s)</span>
                     </div>
                     <div class="dashboard-health-grid">
                         <div class="dashboard-health-panel">
                             <h5>Resumo Executivo</h5>
                             <p><strong>Status geral:</strong> ${escapeHtml(statusLabel)}. ${checksOk}/${checksTotal} checks passaram e ${checksFail} falharam.</p>
                             <p><strong>Confiabilidade:</strong> uptime ${uptime.toFixed(2)}% | taxa de erro ${errorRate.toFixed(2)}% | p95 ${Math.round(p95)}ms.</p>
-                            <p><strong>Ponto de atenÃ§Ã£o:</strong> endpoint mais lento recente: ${escapeHtml(slowLabel)} (${Math.round(slowValue)}ms).</p>
-                            <p><strong>Banco:</strong> conexÃ£o com DB em ${dbConnected.toFixed(2)}%.</p>
-                            <p><strong>Ãšltima amostra:</strong> ${escapeHtml(latestText)}.</p>
+                            <p><strong>Ponto de atenção:</strong> endpoint mais lento recente: ${escapeHtml(slowLabel)} (${Math.round(slowValue)}ms).</p>
+                            <p><strong>Banco:</strong> conexão com DB em ${dbConnected.toFixed(2)}%.</p>
+                            <p><strong>�altima amostra:</strong> ${escapeHtml(latestText)}.</p>
                         </div>
                         <div class="dashboard-health-panel" style="grid-column: 1 / -1;">
-                            <h5>Falhas do Ãšltimo Snapshot</h5>
+                            <h5>Falhas do �altimo Snapshot</h5>
                             <div class="dashboard-health-list">${failuresHtml}</div>
                         </div>
                     </div>
@@ -746,24 +746,24 @@
                         <p>Taxa de erro atual: ${errorRate.toFixed(2)}%.</p>
                     </article>
                     <article class="dashboard-insight-card ${latencyPeak > 900 ? 'bad' : (latencyPeak > 450 ? 'warn' : 'good')}">
-                        <h5>LatÃªncia</h5>
+                        <h5>Latência</h5>
                         <strong>Pico ${Math.round(latencyPeak)}ms</strong>
-                        <p>MÃ©dia filtrada: ${Math.round(latencyAvg)}ms (${latencyCurrent.labels.length} endpoint(s)).</p>
+                        <p>Média filtrada: ${Math.round(latencyAvg)}ms (${latencyCurrent.labels.length} endpoint(s)).</p>
                     </article>
                     <article class="dashboard-insight-card ${dbConnected < 85 ? 'warn' : 'good'}">
                         <h5>Banco de Dados</h5>
                         <strong>${dbConnected.toFixed(2)}% conectado</strong>
-                        <p>${dbConnected < 85 ? 'Instabilidade detectada no DB.' : 'Conectividade saudÃ¡vel no DB.'}</p>
+                        <p>${dbConnected < 85 ? 'Instabilidade detectada no DB.' : 'Conectividade saudável no DB.'}</p>
                     </article>
                     <article class="dashboard-insight-card ${failedEndpoints.length ? 'bad' : 'good'}">
                         <h5>Anomalias</h5>
                         <strong>${failedEndpoints.length} endpoint(s) falho(s)</strong>
-                        <p>${failedEndpoints.length ? `Principal: ${escapeHtml(String(failedEndpoints[0]?.endpoint_name || 'desconhecido'))}.` : 'Nenhuma falha no Ãºltimo snapshot.'}</p>
+                        <p>${failedEndpoints.length ? `Principal: ${escapeHtml(String(failedEndpoints[0]?.endpoint_name || 'desconhecido'))}.` : 'Nenhuma falha no último snapshot.'}</p>
                     </article>
                     <article class="dashboard-insight-card ${trend > 50 ? 'warn' : 'good'}">
-                        <h5>TendÃªncia de p95</h5>
+                        <h5>Tendência de p95</h5>
                         <strong>${trend >= 0 ? '+' : ''}${Math.round(trend)}ms</strong>
-                        <p>${historyWindow ? `Comparando os Ãºltimos ${historyWindow} pontos.` : 'Comparando janela completa disponÃ­vel.'}</p>
+                        <p>${historyWindow ? `Comparando os últimos ${historyWindow} pontos.` : 'Comparando janela completa disponível.'}</p>
                     </article>
                 `;
             }
@@ -778,8 +778,8 @@
                                 <div class="empty-state-icon">
                                     <i class="fas fa-inbox"></i>
                                 </div>
-                                <p class="empty-state-text">Nenhuma aplicaÃ§Ã£o disponÃ­vel</p>
-                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicaÃ§Ãµes serÃ£o carregadas do backend</p>
+                                <p class="empty-state-text">Nenhuma aplicação disponível</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
                             </div>
                         </div>
                     `;
@@ -820,25 +820,25 @@
             getAppEmoji(app) {
                 const id = String(app?.id || '').toLowerCase();
                 const title = String(app?.title || '').toLowerCase();
-                if (id.includes('fin') || title.includes('finan')) return 'ðŸ’°';
-                if (id.includes('despesa')) return 'ðŸ§¾';
-                if (id.includes('lista') || title.includes('compra')) return 'ðŸ›’';
-                if (id.includes('saude') || title.includes('saÃºde')) return 'ðŸ©º';
-                if (id.includes('calend') || title.includes('agenda')) return 'ðŸ“…';
-                if (id.includes('flux')) return 'ðŸ§ ';
-                if (id.includes('treino') || title.includes('miss')) return 'ðŸ”¥';
-                if (id.includes('roadmap')) return 'ðŸ—ºï¸';
-                return 'ðŸš€';
+                if (id.includes('fin') || title.includes('finan')) return '�x�';
+                if (id.includes('despesa')) return '�x��';
+                if (id.includes('lista') || title.includes('compra')) return '�x:';
+                if (id.includes('saude') || title.includes('saúde')) return '�x��';
+                if (id.includes('calend') || title.includes('agenda')) return '�x&';
+                if (id.includes('flux')) return '�x��';
+                if (id.includes('treino') || title.includes('miss')) return '�x�';
+                if (id.includes('roadmap')) return '�x�️';
+                return '�xa�';
             }
 
             getAppOrbitEmoji(app) {
                 const id = String(app?.id || '').toLowerCase();
-                if (id.includes('fin') || id.includes('despesa')) return 'âœ¨';
-                if (id.includes('saude') || id.includes('treino')) return 'âš¡';
-                if (id.includes('flux')) return 'ðŸ’«';
-                if (id.includes('lista')) return 'âœ…';
-                if (id.includes('calend')) return 'ðŸ””';
-                return 'âœ¦';
+                if (id.includes('fin') || id.includes('despesa')) return '�S�';
+                if (id.includes('saude') || id.includes('treino')) return '�a�';
+                if (id.includes('flux')) return '�x�';
+                if (id.includes('lista')) return '�S&';
+                if (id.includes('calend')) return '�x';
+                return '�S�';
             }
 
             getMotionHelpers() {
@@ -913,8 +913,8 @@
                                 <div class="roadmap-empty-icon">
                                     <i class="fas fa-map"></i>
                                 </div>
-                                <p class="roadmap-empty-text">Roadmap nÃ£o carregado</p>
-                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap serÃ¡ carregado do backend</p>
+                                <p class="roadmap-empty-text">Roadmap não carregado</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap será carregado do backend</p>
                             </div>
                         </div>
                     `;
@@ -933,7 +933,7 @@
             }
 
             // ============================================
-            // DIÃLOGOS DE CONFIRMAÃ‡ÃƒO PERSONALIZADOS
+            // DIÁLOGOS DE CONFIRMA�!ÒO PERSONALIZADOS
             // ============================================
             async showConfirm(title, message) {
                 return new Promise((resolve) => {
@@ -1161,13 +1161,13 @@
                 const chartsHtml = chartSections.map((section) => `
                     <section class="section">
                         <h3>${escapeHtml(section.title || '')}</h3>
-                        ${section.img ? `<img src="${section.img}" alt="${escapeHtml(section.title || 'GrÃ¡fico')}" />` : '<p>Sem dados para grÃ¡fico neste mÃªs.</p>'}
+                        ${section.img ? `<img src="${section.img}" alt="${escapeHtml(section.title || 'Gráfico')}" />` : '<p>Sem dados para gráfico neste mês.</p>'}
                     </section>
                 `).join('');
                 const tableHead = tableHeaders.map((h) => `<th>${escapeHtml(h)}</th>`).join('');
                 const tableBody = tableRows.length
                     ? tableRows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(String(cell ?? ''))}</td>`).join('')}</tr>`).join('')
-                    : `<tr><td colspan="${Math.max(1, tableHeaders.length)}">Sem dados no perÃ­odo.</td></tr>`;
+                    : `<tr><td colspan="${Math.max(1, tableHeaders.length)}">Sem dados no período.</td></tr>`;
 
                 return `<!doctype html>
 <html lang="pt-BR">
@@ -1311,7 +1311,7 @@
       <div class="subtitle">${escapeHtml(subtitle)}</div>
       <div class="chips">
         <span class="chip">Resumo mensal</span>
-        <span class="chip">GrÃ¡ficos + dados detalhados</span>
+        <span class="chip">Gráficos + dados detalhados</span>
       </div>
       <div class="summary">${summaryHtml}</div>
     </header>
@@ -1510,9 +1510,9 @@
                     </tr>`;
                 };
 
-                const rowsFixasHtml = despesasFixas.length ? despesasFixas.map(mkRowFixa).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma despesa fixa neste mÃªs.</td></tr>';
-                const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mÃªs.</td></tr>';
-                const rowsReceitasHtml = receitas.length ? receitas.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mÃªs.</td></tr>';
+                const rowsFixasHtml = despesasFixas.length ? despesasFixas.map(mkRowFixa).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma despesa fixa neste mês.</td></tr>';
+                const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mês.</td></tr>';
+                const rowsReceitasHtml = receitas.length ? receitas.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mês.</td></tr>';
                 const rowsPoupancaHtml = poupancaLogs.length
                     ? poupancaLogs.map((r) => {
                         const hora = fmtHoraBrasilia(r.created_at);
@@ -1528,7 +1528,7 @@
                             </td>
                         </tr>`;
                     }).join('')
-                    : '<tr><td colspan="4" class="module-table-empty">Nenhum lanÃ§amento em poupanÃ§a.</td></tr>';
+                    : '<tr><td colspan="4" class="module-table-empty">Nenhum lançamento em poupança.</td></tr>';
                 const metaNome = String(poupancaMetaAtiva?.nome_meta || '').trim();
                 const metaId = Number(poupancaMetaAtiva?.id || 0);
                 const metaValor = Number(poupancaMetaAtiva?.valor_meta || 0);
@@ -1541,14 +1541,14 @@
                     <div class="finance-module-shell">
                         <div class="finance-sticky-head">
                             <div class="app-mes-ano">
-                                <label>MÃªs/Ano</label>
+                                <label>Mês/Ano</label>
                                 <select id="financeiro-mes">${meses.map((m, i) => `<option value="${i + 1}" ${(i + 1 === mes) ? 'selected' : ''}>${m}</option>`).join('')}</select>
                                 <select id="financeiro-ano">${anos.map((a) => `<option value="${a}" ${(a === ano) ? 'selected' : ''}>${a}</option>`).join('')}</select>
                             </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Resumo</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">PoupanÃ§a</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupança</button>
                             </div>
                             <div class="finance-data-filter-bar" style="${activeTab === 'data' ? '' : 'display:none;'}">
                                 <label for="financeiro-data-target">Tabela</label>
@@ -1570,7 +1570,7 @@
                                 <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(receitasVal)}</div><div class="stat-label">Receitas</div></div>
                                 <div class="totais-card"><div class="val" style="color:#ef4444">${this.formatMoneyBr(despesasFixasVal)}</div><div class="stat-label">Despesas fixas</div></div>
                                 <div class="totais-card"><div class="val" style="color:#f97316">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label">Despesas variadas</div></div>
-                                <div class="totais-card"><div class="val" style="color:${liquidoVal >= 0 ? '#2563eb' : '#dc2626'}">${this.formatMoneyBr(liquidoVal)}</div><div class="stat-label">LÃ­quido</div></div>
+                                <div class="totais-card"><div class="val" style="color:${liquidoVal >= 0 ? '#2563eb' : '#dc2626'}">${this.formatMoneyBr(liquidoVal)}</div><div class="stat-label">Líquido</div></div>
                             </div>
                             <div class="app-charts">
                                 <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias de gastos</p><canvas id="financeiro-chart-categorias"></canvas></div>
@@ -1579,40 +1579,40 @@
                         </div>
                         <div class="module-tab-panel ${activeTab === 'data' ? '' : 'hidden'}" data-tab-panel="data">
                             <div class="module-data-toolbar">
-                                <p class="app-form-note" style="margin:0;">3 tabelas em ordem cronolÃ³gica (mais recente primeiro).</p>
+                                <p class="app-form-note" style="margin:0;">3 tabelas em ordem cronológica (mais recente primeiro).</p>
                             </div>
                             <div class="module-table-wrap finance-data-section" data-table-section="despesas_fixas" id="financeiro-section-despesas-fixas">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Despesas fixas</p>
                                 <table class="module-table">
-                                    <thead><tr><th>DescriÃ§Ã£o</th><th>Status</th><th>Valor</th><th>Data</th><th>AÃ§Ãµes</th></tr></thead>
+                                    <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                     <tbody id="financeiro-table-fixas">${rowsFixasHtml}</tbody>
                                 </table>
                             </div>
                             <div class="module-table-wrap finance-data-section" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Gastos variados</p>
                                 <table class="module-table">
-                                    <thead><tr><th>DescriÃ§Ã£o</th><th>Categoria</th><th>Valor</th><th>Data</th><th>AÃ§Ãµes</th></tr></thead>
+                                    <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                     <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
                                 </table>
                             </div>
                             <div class="module-table-wrap finance-data-section" data-table-section="receitas" id="financeiro-section-receitas" style="margin-top:0.85rem;">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Receitas</p>
                                 <table class="module-table">
-                                    <thead><tr><th>DescriÃ§Ã£o</th><th>Categoria</th><th>Valor</th><th>Data</th><th>AÃ§Ãµes</th></tr></thead>
+                                    <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                     <tbody id="financeiro-table-receitas">${rowsReceitasHtml}</tbody>
                                 </table>
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'poupanca' ? '' : 'hidden'}" data-tab-panel="poupanca">
                             <div class="app-totais">
-                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(poupancaTotal)}</div><div class="stat-label">Total acumulado em poupanÃ§a</div></div>
+                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(poupancaTotal)}</div><div class="stat-label">Total acumulado em poupança</div></div>
                             </div>
-                            ${poupancaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca` nÃ£o encontrada no Supabase. Crie a tabela para habilitar este mÃ³dulo.</p>'}
-                            ${poupancaMetaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca_metas` nÃ£o encontrada no Supabase. Crie a tabela para habilitar metas.</p>'}
+                            ${poupancaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca` não encontrada no Supabase. Crie a tabela para habilitar este módulo.</p>'}
+                            ${poupancaMetaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca_metas` não encontrada no Supabase. Crie a tabela para habilitar metas.</p>'}
                             <div class="poupanca-meta-entry-card">
                                 <div>
                                     <h4>Adicionar Meta</h4>
-                                    <p>Abra o formulÃ¡rio padrÃ£o para cadastrar descriÃ§Ã£o, valor e data de inÃ­cio.</p>
+                                    <p>Abra o formulário padrão para cadastrar descrição, valor e data de início.</p>
                                 </div>
                                 <button type="button" class="app-btn" data-action="poupanca-open-meta-modal">Adicionar Meta</button>
                             </div>
@@ -1620,8 +1620,8 @@
                                 <div class="poupanca-meta-card">
                                     <div class="poupanca-meta-card-top">
                                         <div>
-                                            <h4>${escapeHtml(metaNome || 'Meta de poupanÃ§a')}</h4>
-                                            <p class="meta-sub">InÃ­cio: ${escapeHtml(metaInicio ? this.formatDateBr(metaInicio) : '--')}</p>
+                                            <h4>${escapeHtml(metaNome || 'Meta de poupança')}</h4>
+                                            <p class="meta-sub">Início: ${escapeHtml(metaInicio ? this.formatDateBr(metaInicio) : '--')}</p>
                                         </div>
                                         <div class="poupanca-meta-card-actions">
                                             <button type="button" class="app-btn app-btn-secondary" data-action="poupanca-meta-edit" data-id="${metaId}">Editar</button>
@@ -1633,9 +1633,9 @@
                                             <div id="financeiro-poupanca-meta-chart" class="poupanca-meta-chart"></div>
                                         </div>
                                         <div class="poupanca-meta-insight">
-                                            <div class="title">TermÃ´metro da meta</div>
+                                            <div class="title">Termômetro da meta</div>
                                             <div class="value">${metaPercent}%</div>
-                                            <p class="meta-sub" style="margin-top:0.25rem;">Faixas: atÃ© 29% em azul, de 30% a 99% em amarelo, e meta concluÃ­da em verde.</p>
+                                            <p class="meta-sub" style="margin-top:0.25rem;">Faixas: até 29% em azul, de 30% a 99% em amarelo, e meta concluída em verde.</p>
                                         </div>
                                     </div>
                                     <div class="poupanca-meta-stats">
@@ -1648,7 +1648,7 @@
                             ` : ''}
                             <div class="module-table-wrap">
                                 <table class="module-table">
-                                    <thead><tr><th>DescriÃ§Ã£o</th><th>Valor</th><th>Data</th><th>AÃ§Ãµes</th></tr></thead>
+                                    <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                     <tbody id="financeiro-table-poupanca">${rowsPoupancaHtml}</tbody>
                                 </table>
                             </div>
@@ -1897,7 +1897,7 @@
             }
 
             async submitFinanceiroMetaSave(el, { editId = 0, nomeMeta, dataInicio, valorMeta } = {}) {
-                if (!nomeMeta) { alert('Nome da meta Ã© obrigatÃ³rio'); return false; }
+                if (!nomeMeta) { alert('Nome da meta é obrigatório'); return false; }
                 if (!(valorMeta > 0)) { alert('Valor da meta precisa ser maior que zero'); return false; }
                 try {
                     const res = await fetch('/api/financeiro', {
@@ -1924,7 +1924,7 @@
             }
 
             async submitFinanceiroMetaDelete(id, el) {
-                if (!(await this.showConfirm('Excluir meta', 'Tem certeza que deseja excluir esta meta de poupanÃ§a?'))) return false;
+                if (!(await this.showConfirm('Excluir meta', 'Tem certeza que deseja excluir esta meta de poupança?'))) return false;
                 try {
                     const res = await fetch(`/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=meta_poupanca`, { method: 'DELETE' });
                     if (!res.ok) {
@@ -1945,19 +1945,19 @@
                 overlay.className = 'app-modal-overlay';
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
-                        <h4>${editId > 0 ? 'Editar meta de poupanÃ§a' : 'Adicionar meta de poupanÃ§a'}</h4>
+                        <h4>${editId > 0 ? 'Editar meta de poupança' : 'Adicionar meta de poupança'}</h4>
                         <div class="app-form">
                             <div class="app-form-row fin-form-grid">
                                 <div class="field">
-                                    <label>DescriÃ§Ã£o</label>
-                                    <input type="text" id="poupanca-meta-modal-nome" value="${escapeHtml(String(meta?.nome_meta || ''))}" placeholder="Ex: Reserva de emergÃªncia" />
+                                    <label>Descrição</label>
+                                    <input type="text" id="poupanca-meta-modal-nome" value="${escapeHtml(String(meta?.nome_meta || ''))}" placeholder="Ex: Reserva de emergência" />
                                 </div>
                                 <div class="field">
                                     <label>Valor (R$)</label>
                                     <input type="number" step="0.01" id="poupanca-meta-modal-valor" value="${editId > 0 ? Number(meta?.valor_meta || 0) : ''}" />
                                 </div>
                                 <div class="field">
-                                    <label>Data de inÃ­cio</label>
+                                    <label>Data de início</label>
                                     <input type="date" id="poupanca-meta-modal-inicio" value="${escapeHtml(String(meta?.data_inicio || this.getBrazilDateIsoFrom(new Date())).slice(0, 10))}" />
                                 </div>
                             </div>
@@ -1989,7 +1989,7 @@
                 const firstDayMonth = `${ano}-${pad(mes)}-01`;
                 const lastDayMonth = `${ano}-${pad(mes)}-${pad(new Date(ano, mes, 0).getDate())}`;
                 const gastoCategorias = ['Alimentacao','Habitacao','Transporte','Lazer','Saude','Compras','Contas','Outros'];
-                const receitaCategorias = ['SalÃ¡rio','BenefÃ­cio','Outro'];
+                const receitaCategorias = ['Salário','Benefício','Outro'];
                 const tipoRegistro = item?.tipo_registro || defaultTipo || 'gasto_variado';
                 const overlay = document.createElement('div');
                 overlay.className = 'app-modal-overlay';
@@ -1997,7 +1997,7 @@
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
                         <h4>${item ? 'Editar registro financeiro' : 'Novo registro financeiro'}</h4>
-                        <p class="app-form-note" id="financeiro-modal-contexto">MÃªs de referÃªncia: <strong>${this.formatMesAnoLabel(mesAno)}</strong></p>
+                        <p class="app-form-note" id="financeiro-modal-contexto">Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong></p>
                         <div class="app-form">
                             <div class="app-form-row fin-form-grid">
                                 <div class="field"><label>Tipo de registro</label>
@@ -2005,14 +2005,14 @@
                                         <option value="despesa_fixa" ${tipoRegistro === 'despesa_fixa' ? 'selected' : ''}>Despesa fixa</option>
                                         <option value="gasto_variado" ${tipoRegistro === 'gasto_variado' ? 'selected' : ''}>Despesa variada</option>
                                         <option value="receita" ${tipoRegistro === 'receita' ? 'selected' : ''}>Receita</option>
-                                        <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>PoupanÃ§a</option>
+                                        <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>Poupança</option>
                                     </select>
                                 </div>
-                                <div class="field" id="financeiro-descricao-wrap"><label>DescriÃ§Ã£o</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
+                                <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
                                 <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
                                 <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
                                 <div class="field" id="financeiro-status-wrap"><label>Status (fixa)</label><select id="financeiro-modal-status"><option value="pendente" ${(String(item?.status || 'pendente').toLowerCase() === 'pendente') ? 'selected' : ''}>Pendente</option><option value="pago" ${(String(item?.status || '').toLowerCase() === 'pago') ? 'selected' : ''}>Pago</option></select></div>
-                                <div class="field" id="financeiro-data-wrap"><label>Data do lanÃ§amento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" min="${firstDayMonth}" max="${lastDayMonth}" /></div>
+                                <div class="field" id="financeiro-data-wrap"><label>Data do lançamento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" min="${firstDayMonth}" max="${lastDayMonth}" /></div>
                             </div>
                         </div>
                         <div class="app-modal-actions">
@@ -2041,10 +2041,10 @@
                         }
                         statusWrap.style.display = '';
                         catEl.innerHTML = '<option value="">--</option>';
-                        if (contextoEl) contextoEl.innerHTML = `MÃªs de referÃªncia: <strong>${this.formatMesAnoLabel(mesAno)}</strong>`;
+                        if (contextoEl) contextoEl.innerHTML = `Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong>`;
                     } else if (tipo === 'poupanca') {
                         if (descricaoWrap) descricaoWrap.style.display = 'none';
-                        if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'PoupanÃ§a';
+                        if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'Poupança';
                         statusWrap.style.display = 'none';
                         dataWrap.style.display = '';
                         if (dataEl) {
@@ -2053,7 +2053,7 @@
                         }
                         catWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
-                        if (contextoEl) contextoEl.textContent = 'Registro de poupanÃ§a (sem filtro mensal).';
+                        if (contextoEl) contextoEl.textContent = 'Registro de poupança (sem filtro mensal).';
                     } else {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         statusWrap.style.display = 'none';
@@ -2066,7 +2066,7 @@
                         const categories = tipo === 'receita' ? receitaCategorias : gastoCategorias;
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
                         if (item?.categoria) catEl.value = item.categoria;
-                        if (contextoEl) contextoEl.innerHTML = `MÃªs de referÃªncia: <strong>${this.formatMesAnoLabel(mesAno)}</strong>`;
+                        if (contextoEl) contextoEl.innerHTML = `Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong>`;
                     }
                 };
                 setTipoUI(tipoEl.value);
@@ -2101,19 +2101,19 @@
                 const status = String(payload?.status || 'pendente').toLowerCase();
                 const dataLanc = String(payload?.data_lancamento || '');
                 const mesAno = payload?.mesAno || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro invÃ¡lido'); return false; }
-                if (tipoRegistro !== 'poupanca' && !descricao) { alert('DescriÃ§Ã£o Ã© obrigatÃ³ria'); return false; }
+                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro inválido'); return false; }
+                if (tipoRegistro !== 'poupanca' && !descricao) { alert('Descrição é obrigatória'); return false; }
                 if (tipoRegistro !== 'despesa_fixa' && tipoRegistro !== 'poupanca') {
                     const [yy, mm] = mesAno.split('-').map(Number);
                     const [dy, dm] = dataLanc.split('-').map(Number);
                     if (dy !== yy || dm !== mm) {
-                        alert('A data do lanÃ§amento precisa estar dentro do mÃªs selecionado.');
+                        alert('A data do lançamento precisa estar dentro do mês selecionado.');
                         return false;
                     }
                 }
                 const requestBody = {
                     tipo_registro: tipoRegistro,
-                    descricao: tipoRegistro === 'poupanca' ? (descricao || 'PoupanÃ§a') : descricao,
+                    descricao: tipoRegistro === 'poupanca' ? (descricao || 'Poupança') : descricao,
                     valor,
                     mes_ano: mesAno,
                 };
@@ -2195,7 +2195,7 @@
                                         <option value="diamond">Losango</option>
                                         <option value="hexagon">Hexagono</option>
                                     </select>
-                                    <label>ConexÃ£o</label>
+                                    <label>Conexão</label>
                                     <select id="flux-connectionTypeSelect">
                                         <option value="arrow">Seta ida</option>
                                         <option value="both">Seta ida/volta</option>
@@ -2209,14 +2209,14 @@
                                         <span id="flux-currentColorSwatch" class="flux-color-preview-swatch is-empty"></span>
                                         <span id="flux-currentColorText">Sem selecao</span>
                                     </span>
-                                    <span class="flux-color-preview-item" title="Ãšltima cor usada">
+                                    <span class="flux-color-preview-item" title="�altima cor usada">
                                         <span id="flux-activeColorSwatch" class="flux-color-preview-swatch"></span>
                                         <span id="flux-activeColorText">#3B82F6</span>
                                     </span>
                                 </div>
                                 <div class="flux-fc-stats">
                                     <span>Nos: <b id="flux-totalNodes">0</b></span>
-                                    <span>ConexÃµes: <b id="flux-totalConnections">0</b></span>
+                                    <span>Conexões: <b id="flux-totalConnections">0</b></span>
                                     <span>Conectados: <b id="flux-connectedNodes">0</b></span>
                                 </div>
                                 <div class="flux-fc-actions">
@@ -2399,7 +2399,7 @@
                 const quantidade = parseInt(el.querySelector('#lista-qtd').value, 10) || 1;
                 const categoria = el.querySelector('#lista-categoria').value || 'Mantimentos';
                 const unidade = (el.querySelector('#lista-unidade').value || '').trim();
-                if (!item) { alert('Item Ã© obrigatÃ³rio'); return; }
+                if (!item) { alert('Item é obrigatório'); return; }
                 try {
                     if (editId) {
                         const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, item, quantidade, categoria, unidade_medida: unidade }) });
@@ -2421,7 +2421,7 @@
                 } catch (e) { alert(e.message); }
             }
             async submitListaDeleteAll(el) {
-                if (!confirm('Apagar TODOS os itens da lista? NÃ£o Ã© possÃ­vel desfazer.')) return;
+                if (!confirm('Apagar TODOS os itens da lista? Não é possível desfazer.')) return;
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete_all: true }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
@@ -2596,7 +2596,7 @@
                 }
                 const horaVal = (el.querySelector('#saude-hora') && el.querySelector('#saude-hora').value) || '';
                 const hora_evento = horaVal.trim() ? horaVal.trim().slice(0, 5) : null;
-                if (!membro_familia) { alert('Membro Ã© obrigatÃ³rio'); return; }
+                if (!membro_familia) { alert('Membro é obrigatório'); return; }
                 const editingId = el.dataset.saudeEditingId;
                 try {
                     if (editingId) {
@@ -2621,7 +2621,7 @@
             }
             async submitSaudeDelete(id, el) {
                 if (!id) return;
-                if (!confirm('Excluir este registro? NÃ£o Ã© possÃ­vel desfazer.')) return;
+                if (!confirm('Excluir este registro? Não é possível desfazer.')) return;
                 try {
                     const res = await fetch('/api/saude', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
@@ -2717,7 +2717,7 @@
             async buildSaudeNotificationItems(targetDate) {
                 const res = await fetch('/api/saude');
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Falha ao carregar saÃºde familiar');
+                if (!res.ok) throw new Error(data.error || 'Falha ao carregar saúde familiar');
                 const rows = data.rows || data.registros || [];
                 const due = rows.filter((r) => this.normalizeIsoDate(r.data_evento) === targetDate);
                 return due.map((r) => ({
@@ -2744,7 +2744,7 @@
                         return ta.localeCompare(tb);
                     });
                 } catch (err) {
-                    console.error('Erro ao carregar notificaÃ§Ãµes de eventos:', err);
+                    console.error('Erro ao carregar notificações de eventos:', err);
                     this.notificationItems = [];
                 }
                 this.refreshNotificationBadge();
@@ -2770,8 +2770,8 @@
                         source: 'sistema',
                         date: '',
                         time: '',
-                        title: 'Nova versÃ£o do app disponÃ­vel',
-                        details: 'Use o botÃ£o Atualizar no aviso exibido na tela.'
+                        title: 'Nova versão do app disponível',
+                        details: 'Use o botão Atualizar no aviso exibido na tela.'
                     });
                 }
                 const overlay = document.createElement('div');
@@ -2779,19 +2779,19 @@
                 const content = items.length
                     ? `<ul class="app-list" style="max-height:50vh;overflow:auto;border:1px solid var(--border-color);border-radius:8px;">
                         ${items.map((item, idx) => {
-                            const modulo = item.source === 'saude' ? 'SaÃºde familiar' : 'Sistema';
+                            const modulo = item.source === 'saude' ? 'Saúde familiar' : 'Sistema';
                             const quando = [this.formatDateBr(item.date), item.time].filter(Boolean).join(' - ');
                             const detalhes = [modulo, quando, item.details].filter(Boolean).join(' | ');
                             return `<li><div><strong>${idx + 1}. ${escapeHtml(item.title || '')}</strong><br/><span style="font-size:0.8rem;color:#9ca3af;">${escapeHtml(detalhes)}</span></div></li>`;
                         }).join('')}
                        </ul>`
-                    : '<p style="font-size:0.9rem;color:var(--text-light);">Nenhum evento para amanhÃ£.</p>';
+                    : '<p style="font-size:0.9rem;color:var(--text-light);">Nenhum evento para amanhã.</p>';
                 overlay.innerHTML = `
                     <div class="app-modal" style="width:min(680px,calc(100vw - 2rem));">
-                        <h4>NotificaÃ§Ãµes de eventos</h4>
+                        <h4>Notificações de eventos</h4>
                         ${content}
                         <div class="app-modal-actions">
-                            ${hasEventItems ? '<button type="button" class="app-btn app-btn-secondary" data-action="clear-notifications">Limpar notificaÃ§Ãµes</button>' : ''}
+                            ${hasEventItems ? '<button type="button" class="app-btn app-btn-secondary" data-action="clear-notifications">Limpar notificações</button>' : ''}
                             <button type="button" class="app-btn app-btn-secondary" data-action="close-notifications">Fechar</button>
                         </div>
                     </div>
@@ -2836,11 +2836,11 @@
             }
 
             // ============================================
-            // MÃ‰TODOS PARA INTEGRAÃ‡ÃƒO COM BACKEND
+            // M�0TODOS PARA INTEGRA�!ÒO COM BACKEND
             // ============================================
             
             /**
-             * MÃ©todo para vocÃª chamar quando receber dados do backend
+             * Método para você chamar quando receber dados do backend
              * Exemplo: superApp.setApps(dataFromBackend)
              */
             setApps(apps) {
@@ -2849,7 +2849,7 @@
             }
 
             /**
-             * MÃ©todo para vocÃª chamar quando receber estatÃ­sticas do backend
+             * Método para você chamar quando receber estatísticas do backend
              * Exemplo: superApp.setStatistics(statsFromBackend)
              */
             setStatistics(stats) {
@@ -2858,7 +2858,7 @@
             }
 
             /**
-             * MÃ©todo para vocÃª chamar quando receber roadmap do backend
+             * Método para você chamar quando receber roadmap do backend
              * Exemplo: superApp.setRoadmap(roadmapFromBackend)
              */
             setRoadmap(roadmap) {
@@ -2876,7 +2876,7 @@
         // ============================================
         
         /*
-        // Exemplo 1: Carregar dados quando pÃ¡gina carrega
+        // Exemplo 1: Carregar dados quando página carrega
         window.addEventListener('load', async () => {
             try {
                 const [appsRes, statsRes, roadmapRes] = await Promise.all([
@@ -2904,11 +2904,11 @@
                 const stats = await response.json();
                 superApp.setStatistics(stats);
             } catch (error) {
-                console.error('Erro ao atualizar estatÃ­sticas:', error);
+                console.error('Erro ao atualizar estatísticas:', error);
             }
         }, 30000);
 
-        // Exemplo 3: Usar WebSocket para atualizaÃ§Ãµes em tempo real
+        // Exemplo 3: Usar WebSocket para atualizações em tempo real
         const ws = new WebSocket('ws://seu-backend.com/api/updates');
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -2918,7 +2918,7 @@
         };
         */
 
-        // PWA: instalaÃ§Ã£o no mobile como app (nÃ£o Ã© atalho)
+        // PWA: instalação no mobile como app (não é atalho)
         let deferredInstallPrompt = null;
         const pwaInstallBtn = document.getElementById('pwaInstallBtn');
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -2945,13 +2945,13 @@
                     deferredInstallPrompt = null;
                     if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
                 } else if (isMobile) {
-                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (â‹® ou â˜°)\n2. Escolha "Instalar app" ou "Adicionar Ã  tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
+                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (�9� ou �ܰ)\n2. Escolha "Instalar app" ou "Adicionar à tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
                 }
             });
         }
         updateInstallButton();
 
-        // PWA: registrar SW, detectar mudanÃ§a de versÃ£o (deploy) e atualizar cache
+        // PWA: registrar SW, detectar mudança de versão (deploy) e atualizar cache
         if ('serviceWorker' in navigator) {
             let pendingWorker = null;
             const banner = document.createElement('div');

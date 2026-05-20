@@ -50,12 +50,12 @@ function getMesAnoAnterior(mesAno) {
   return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
 }
 
-function isLastDayOrLaterMes(mesAno, todayIso) {
+function isLastDayMes(mesAno, todayIso) {
   if (!mesAno || !/^\d{4}-\d{2}$/.test(mesAno)) return false;
   const [y, m] = mesAno.split('-').map(Number);
   const lastDay = new Date(y, m, 0).getDate();
   const [ty, tm, td] = String(todayIso || '').split('-').map(Number);
-  return ty > y || (ty === y && tm > m) || (ty === y && tm === m && td >= lastDay);
+  return ty === y && tm === m && td === lastDay;
 }
 
 export async function verificarECopiarDespesasFixas(mesAnoSource) {
@@ -138,12 +138,12 @@ export async function garantirDespesasFixasMes(mesAno) {
 
   if (!rows || rows.length === 0) {
     // Só permite "entrar" automático no mês alvo após o fechamento do mês anterior.
-    if (isLastDayOrLaterMes(prevMesAno, todayStr)) {
+    if (isLastDayMes(prevMesAno, todayStr)) {
       await verificarECopiarDespesasFixas(prevMesAno);
     }
   }
 
-  if (isLastDayOrLaterMes(mesAno, todayStr)) {
+  if (isLastDayMes(mesAno, todayStr)) {
     await verificarECopiarDespesasFixas(mesAno);
   }
 }
@@ -300,7 +300,7 @@ export async function criarRegistroFinanceiro(req) {
     const mesAno = body.mes_ano || (row?.created_at && String(row.created_at).slice(0, 7));
     if (mesAno && /^\d{4}-\d{2}$/.test(mesAno)) {
       const todayStr = getBrazilTodayIso();
-      if (isLastDayOrLaterMes(mesAno, todayStr)) {
+      if (isLastDayMes(mesAno, todayStr)) {
         await verificarECopiarDespesasFixas(mesAno);
       }
     }
@@ -329,7 +329,7 @@ export async function atualizarRegistroFinanceiro(req) {
     const mesAno = body.mes_ano || (row?.created_at && String(row.created_at).slice(0, 7));
     if (mesAno && /^\d{4}-\d{2}$/.test(mesAno)) {
       const todayStr = getBrazilTodayIso();
-      if (isLastDayOrLaterMes(mesAno, todayStr)) {
+      if (isLastDayMes(mesAno, todayStr)) {
         await verificarECopiarDespesasFixas(mesAno);
       }
     }
@@ -381,3 +381,4 @@ export async function removerRegistroFinanceiro(req) {
   if (error) return { status: 500, data: { error: error.message } };
   return { status: 200, data: { ok: true } };
 }
+

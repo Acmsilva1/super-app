@@ -195,8 +195,6 @@ export function payloadInsertFinanceiro(body = {}) {
       categoria: body.categoria || null,
       data_lancamento: body.data_lancamento || getBrazilTodayIso(),
     };
-    const ofxUid = body.ofx_uid != null ? String(body.ofx_uid).trim() : '';
-    if (ofxUid) payload.ofx_uid = ofxUid;
     return {
       tipo_registro: tipoRegistro,
       payload,
@@ -312,3 +310,4 @@ export function payloadUpdateFinanceiro(body = {}) {
 
   return { error: 'tipo_registro invalido' };
 }
+
