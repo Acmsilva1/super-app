@@ -101,4 +101,29 @@ describe('financeiroService', () => {
     expect(upd.error).toBeUndefined();
     expect(upd.payload.conta_fixa).toBe(false);
   });
+
+  it('rejeita conta_fixa e parcelas simultaneamente no insert', () => {
+    const out = payloadInsertFinanceiro({
+      tipo_registro: 'despesa_fixa',
+      descricao: 'Conflito',
+      valor: 100,
+      conta_fixa: true,
+      parcelas: true,
+      parcela_atual: 1,
+      parcela_total: 3,
+    });
+    expect(out.error).toBe('conta_fixa e parcelas nao podem coexistir');
+  });
+
+  it('rejeita conta_fixa e parcelas simultaneamente no update', () => {
+    const out = payloadUpdateFinanceiro({
+      id: 'z',
+      tipo_registro: 'despesa_fixa',
+      conta_fixa: true,
+      parcelas: true,
+      parcela_atual: 1,
+      parcela_total: 2,
+    });
+    expect(out.error).toBe('conta_fixa e parcelas nao podem coexistir');
+  });
 });

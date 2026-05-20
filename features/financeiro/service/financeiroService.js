@@ -155,12 +155,21 @@ function parcelasDespesaFixaFromBody(body) {
   return { parcela_atual: atual, parcela_total: total };
 }
 
+function validateExclusividadeContaFixaParcelas(body) {
+  const contaFixa = body.conta_fixa === true || body.conta_fixa === 'true';
+  const parcelas = body.parcelas === true || body.parcelas === 'true';
+  if (contaFixa && parcelas) return { error: 'conta_fixa e parcelas nao podem coexistir' };
+  return { contaFixa, parcelas };
+}
+
 export function payloadInsertFinanceiro(body = {}) {
   const tipoRegistro = inferTipoRegistro(body);
   if (!tipoRegistro) return { error: 'tipo_registro obrigatorio' };
 
   if (tipoRegistro === TIPO_REGISTRO_DESPESA_FIXA) {
     if (!(body.descricao != null && String(body.descricao).trim() !== '')) return { error: 'descricao obrigatoria' };
+    const exclusividade = validateExclusividadeContaFixaParcelas(body);
+    if ('error' in exclusividade) return { error: exclusividade.error };
     const par = parcelasDespesaFixaFromBody(body);
     if ('error' in par) return { error: par.error };
     return {
@@ -171,7 +180,7 @@ export function payloadInsertFinanceiro(body = {}) {
         status: String(body.status || STATUS_PENDENTE).toLowerCase() === STATUS_PAGO ? STATUS_PAGO : STATUS_PENDENTE,
         parcela_atual: par.parcela_atual,
         parcela_total: par.parcela_total,
-        conta_fixa: body.conta_fixa === true || body.conta_fixa === 'true',
+        conta_fixa: exclusividade.contaFixa,
       },
     };
   }
@@ -232,6 +241,8 @@ export function payloadUpdateFinanceiro(body = {}) {
   if (!body.id) return { error: 'id obrigatorio' };
 
   if (tipoRegistro === TIPO_REGISTRO_DESPESA_FIXA) {
+    const exclusividade = validateExclusividadeContaFixaParcelas(body);
+    if ('error' in exclusividade) return { error: exclusividade.error };
     const out = {};
     if (body.descricao !== undefined) out.descricao = String(body.descricao).trim();
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
@@ -244,7 +255,7 @@ export function payloadUpdateFinanceiro(body = {}) {
       }
     }
     if (body.parcelas !== undefined) {
-      const ativo = body.parcelas === true || body.parcelas === 'true';
+      const ativo = exclusividade.parcelas;
       if (!ativo) {
         out.parcela_atual = null;
         out.parcela_total = null;
@@ -256,7 +267,7 @@ export function payloadUpdateFinanceiro(body = {}) {
       }
     }
     if (body.conta_fixa !== undefined) {
-      out.conta_fixa = body.conta_fixa === true || body.conta_fixa === 'true';
+      out.conta_fixa = exclusividade.contaFixa;
     }
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
