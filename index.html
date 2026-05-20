@@ -18,8 +18,6 @@
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Chart.js (modulos legados) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <!-- Motion (animacoes modernas) -->
     <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.min.js"></script>
@@ -2317,42 +2315,7 @@
             display: flex;
             gap: 0.75rem;
             margin-left: auto;
-        }
-        .finance-ofx-import {
-            margin-top: 0.75rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid var(--border, rgba(148, 163, 184, 0.25));
-        }
-        .finance-ofx-preview {
-            margin-top: 0.65rem;
-            max-height: 220px;
-            overflow: auto;
-            font-size: 0.8125rem;
-        }
-        .finance-ofx-preview table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .finance-ofx-preview th,
-        .finance-ofx-preview td {
-            padding: 0.35rem 0.4rem;
-            text-align: left;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-        }
-        .finance-ofx-row--dup {
-            opacity: 0.65;
-        }
-        .finance-ofx-badge {
-            display: inline-block;
-            font-size: 0.7rem;
-            padding: 0.1rem 0.35rem;
-            border-radius: 0.25rem;
-            background: rgba(148, 163, 184, 0.2);
-        }
-        .finance-ofx-badge--new {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-        }
+        }
         @media (max-width: 768px) {
             .finance-module-shell {
                 padding-bottom: 5.4rem;
@@ -4243,18 +4206,12 @@
                         return Boolean(window[globalName]);
                     };
 
-                    const [echartsOk, chartOk] = await Promise.all([
-                        ensureOne('echarts', [
-                            'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js',
-                            'https://unpkg.com/echarts@5.5.0/dist/echarts.min.js'
-                        ]),
-                        ensureOne('Chart', [
-                            'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
-                            'https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js'
-                        ])
+                    const echartsOk = await ensureOne('echarts', [
+                        'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js',
+                        'https://unpkg.com/echarts@5.5.0/dist/echarts.min.js'
                     ]);
 
-                    this.vizLibrariesReady = echartsOk && chartOk;
+                    this.vizLibrariesReady = echartsOk;
                     return this.vizLibrariesReady;
                 })();
 
@@ -4556,135 +4513,6 @@
                 return `R$ ${Number(value || 0).toFixed(2)}`;
             }
 
-            getChartThemeTokens(forceDark = null) {
-                const isDark = forceDark === null
-                    ? document.documentElement.getAttribute('data-theme') === 'dark'
-                    : Boolean(forceDark);
-                return {
-                    isDark,
-                    text: isDark ? '#e2ecff' : '#0f172a',
-                    textMuted: isDark ? '#94a3b8' : '#475569',
-                    grid: isDark ? 'rgba(148,163,184,0.22)' : 'rgba(51,65,85,0.16)',
-                    tooltipBg: isDark ? 'rgba(10,20,38,0.92)' : 'rgba(248,250,252,0.96)',
-                    tooltipBorder: isDark ? 'rgba(89,132,194,0.35)' : 'rgba(148,163,184,0.4)',
-                };
-            }
-
-            getModernChartBaseOptions({ indexAxis = 'x', legend = true, forceDark = null } = {}) {
-                const theme = this.getChartThemeTokens(forceDark);
-                const baseAxis = {
-                    ticks: { color: theme.textMuted, font: { family: 'Space Grotesk, sans-serif', size: 11 } },
-                    grid: { color: theme.grid, drawBorder: false },
-                    border: { display: false },
-                };
-                return {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis,
-                    animation: { duration: 620, easing: 'easeOutQuart' },
-                    layout: { padding: { top: 10, right: 28, bottom: 4, left: 8 } },
-                    plugins: {
-                        legend: {
-                            display: legend,
-                            position: 'bottom',
-                            labels: {
-                                color: theme.text,
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                boxWidth: 10,
-                                padding: 12,
-                                font: { family: 'Space Grotesk, sans-serif', size: 11, weight: 600 }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: theme.tooltipBg,
-                            borderColor: theme.tooltipBorder,
-                            borderWidth: 1,
-                            titleColor: theme.text,
-                            bodyColor: theme.text,
-                            titleFont: { family: 'Space Grotesk, sans-serif', size: 12, weight: 700 },
-                            bodyFont: { family: 'Space Grotesk, sans-serif', size: 11, weight: 500 },
-                            padding: 10,
-                            displayColors: true
-                        }
-                    },
-                    scales: {
-                        x: { ...baseAxis, beginAtZero: indexAxis === 'y' },
-                        y: { ...baseAxis, beginAtZero: indexAxis !== 'y' }
-                    }
-                };
-            }
-
-            mergeChartOptions(baseOptions = {}, incomingOptions = {}) {
-                const merged = { ...baseOptions, ...incomingOptions };
-                const basePlugins = baseOptions.plugins || {};
-                const incomingPlugins = incomingOptions.plugins || {};
-                merged.plugins = {
-                    ...basePlugins,
-                    ...incomingPlugins,
-                    legend: { ...(basePlugins.legend || {}), ...(incomingPlugins.legend || {}) },
-                    tooltip: { ...(basePlugins.tooltip || {}), ...(incomingPlugins.tooltip || {}) },
-                };
-                const baseScales = baseOptions.scales || {};
-                const incomingScales = incomingOptions.scales || {};
-                merged.scales = { ...baseScales, ...incomingScales };
-                ['x', 'y', 'y1'].forEach((axis) => {
-                    if (baseScales[axis] || incomingScales[axis]) {
-                        merged.scales[axis] = { ...(baseScales[axis] || {}), ...(incomingScales[axis] || {}) };
-                    }
-                });
-                return merged;
-            }
-
-            buildInlineChartValuePlugin({ asMoney = false, forceDark = null } = {}) {
-                const pluginId = `modernInlineValueLabels-${asMoney ? 'money' : 'plain'}-${forceDark === null ? 'auto' : (forceDark ? 'dark' : 'light')}`;
-                return {
-                    id: pluginId,
-                    afterDatasetsDraw: (chart) => {
-                        const dataset = chart?.data?.datasets?.[0];
-                        const meta = chart?.getDatasetMeta?.(0);
-                        if (!dataset || !meta?.data?.length) return;
-                        const theme = this.getChartThemeTokens(forceDark);
-                        const ctx = chart.ctx;
-                        ctx.save();
-                        ctx.font = '600 11px Space Grotesk, sans-serif';
-                        ctx.fillStyle = theme.text;
-                        ctx.textBaseline = 'middle';
-                        const chartArea = chart.chartArea || {};
-                        const areaLeft = Number.isFinite(chartArea.left) ? chartArea.left : 0;
-                        const areaRight = Number.isFinite(chartArea.right) ? chartArea.right : chart.width;
-                        const areaTop = Number.isFinite(chartArea.top) ? chartArea.top : 0;
-                        meta.data.forEach((element, index) => {
-                            const raw = Number(dataset.data?.[index] ?? 0);
-                            if (!Number.isFinite(raw) || raw <= 0) return;
-                            const label = asMoney ? this.formatMoneyBr(raw) : `${Math.round(raw)}`;
-                            const pos = element.tooltipPosition();
-                            const labelWidth = ctx.measureText(label).width;
-                            if (chart.config.type === 'bar') {
-                                const isHorizontal = chart.options?.indexAxis === 'y';
-                                if (isHorizontal) {
-                                    ctx.textAlign = 'left';
-                                    const rightLimit = areaRight - labelWidth - 4;
-                                    const leftLimit = areaLeft + 4;
-                                    const x = Math.max(leftLimit, Math.min(pos.x + 8, rightLimit));
-                                    const y = pos.y;
-                                    ctx.fillText(label, x, y);
-                                    return;
-                                }
-                                ctx.textAlign = 'center';
-                                const x = Math.max(areaLeft + (labelWidth / 2) + 2, Math.min(pos.x, areaRight - (labelWidth / 2) - 2));
-                                const y = Math.max(areaTop + 8, pos.y - 10);
-                                ctx.fillText(label, x, y);
-                            } else {
-                                ctx.textAlign = 'center';
-                                ctx.fillText(label, pos.x, pos.y);
-                            }
-                        });
-                        ctx.restore();
-                    }
-                };
-            }
-
             downloadHtmlReport(filenameBase, htmlContent) {
                 const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
@@ -4695,42 +4523,6 @@
                 a.click();
                 a.remove();
                 URL.revokeObjectURL(url);
-            }
-
-            async renderChartImageDataUrl(config, width = 1000, height = 420) {
-                if (typeof Chart === 'undefined') return '';
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) return '';
-                const chartType = String(config?.type || 'bar').toLowerCase();
-                const incomingOptions = config?.options || {};
-                const incomingPlugins = Array.isArray(config?.plugins) ? config.plugins : [];
-                const baseOptions = this.getModernChartBaseOptions({
-                    indexAxis: incomingOptions.indexAxis || 'x',
-                    legend: chartType !== 'bar',
-                    forceDark: true
-                });
-                const finalConfig = {
-                    ...config,
-                    options: this.mergeChartOptions(
-                        {
-                            ...baseOptions,
-                            responsive: false,
-                            maintainAspectRatio: false,
-                            animation: false,
-                            devicePixelRatio: 2
-                        },
-                        incomingOptions
-                    ),
-                    plugins: [...incomingPlugins, this.buildInlineChartValuePlugin({ asMoney: false, forceDark: true })]
-                };
-                const chart = new Chart(ctx, finalConfig);
-                await new Promise((resolve) => requestAnimationFrame(resolve));
-                const dataUrl = canvas.toDataURL('image/png');
-                chart.destroy();
-                return dataUrl;
             }
 
             buildReportHtml({ title, subtitle, summaryRows = [], chartSections = [], tableHeaders = [], tableRows = [] }) {
@@ -5647,8 +5439,8 @@
 
             renderFinanceiroContent(el, data) {
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
-                if (el._financeiroChartCategoria) { el._financeiroChartCategoria.destroy(); el._financeiroChartCategoria = null; }
-                if (el._financeiroChartStatus) { el._financeiroChartStatus.destroy(); el._financeiroChartStatus = null; }
+                if (el._financeiroChartCategoria) { try { el._financeiroChartCategoria.dispose(); } catch (_) {} el._financeiroChartCategoria = null; }
+                if (el._financeiroChartStatus) { try { el._financeiroChartStatus.dispose(); } catch (_) {} el._financeiroChartStatus = null; }
                 const tabRaw = (el.getAttribute('data-active-tab') || '').toLowerCase();
                 const activeTab = ['summary', 'data', 'poupanca'].includes(tabRaw) ? tabRaw : 'summary';
                 const dataFilterRaw = String(el.getAttribute('data-active-data-filter') || '').toLowerCase();
@@ -5826,8 +5618,8 @@
                                 <div class="totais-card totais-card--pendente"><div class="val">${this.formatMoneyBr(pendenteVal)}</div><div class="stat-label">PENDENTE</div></div>
                             </div>
                             <div class="app-charts">
-                                <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias de gastos</p><canvas id="financeiro-chart-categorias"></canvas></div>
-                                <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Despesas fixas: pagos x pendentes</p><canvas id="financeiro-chart-status"></canvas></div>
+                                <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias de gastos</p><div id="financeiro-chart-categorias" style="height:280px;"></div></div>
+                                <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Despesas fixas: pagos x pendentes</p><div id="financeiro-chart-status" style="height:280px;"></div></div>
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'data' ? '' : 'hidden'}" data-tab-panel="data">
@@ -5967,7 +5759,7 @@
                 const ensureCharts = () => {
                     const summaryPanel = el.querySelector('[data-tab-panel="summary"]');
                     if (!summaryPanel || summaryPanel.classList.contains('hidden')) return;
-                    if (typeof Chart === 'undefined') {
+                    if (typeof echarts === 'undefined') {
                         this.ensureVisualizationLibraries().then(() => this.refreshAppContent('financeiro')).catch(() => {});
                         return;
                     }
@@ -5983,94 +5775,98 @@
                             { duration: 0.52, delay: delayPattern, easing: 'cubic-bezier(.2,.8,.2,1)' }
                         );
                     };
-                    const valueLabelsPlugin = this.buildInlineChartValuePlugin({ asMoney: true });
-                    const ctxCategorias = el.querySelector('#financeiro-chart-categorias');
-                    if (ctxCategorias && !el._financeiroChartCategoria) {
+                    const chartCategoriasNode = el.querySelector('#financeiro-chart-categorias');
+                    if (chartCategoriasNode) {
                         const labels = categoriasGastos.map((x) => x.categoria);
                         const valores = categoriasGastos.map((x) => x.valor);
                         if (labels.length > 0) {
-                            const grad = ctxCategorias.getContext('2d')?.createLinearGradient(0, 0, 420, 0);
-                            if (grad) {
-                                grad.addColorStop(0, 'rgba(56, 189, 248, 0.95)');
-                                grad.addColorStop(0.52, 'rgba(59, 130, 246, 0.9)');
-                                grad.addColorStop(1, 'rgba(37, 99, 235, 0.96)');
+                            let chart = el._financeiroChartCategoria;
+                            if (!chart || chart.isDisposed?.()) {
+                                chart = echarts.init(chartCategoriasNode);
+                                el._financeiroChartCategoria = chart;
                             }
-                            el._financeiroChartCategoria = new Chart(ctxCategorias, {
-                                type: 'bar',
-                                data: {
-                                    labels,
-                                    datasets: [{
-                                        label: 'Gastos (R$)',
-                                        data: valores,
-                                        borderRadius: 10,
-                                        borderSkipped: false,
-                                        backgroundColor: grad || '#2563eb',
-                                        borderColor: 'rgba(125, 211, 252, 0.95)',
-                                        borderWidth: 1.2,
-                                        hoverBackgroundColor: 'rgba(59, 130, 246, 1)',
-                                        hoverBorderColor: 'rgba(186, 230, 253, 1)',
-                                        hoverBorderWidth: 1.4,
-                                    }],
+                            chart.setOption({
+                                animationDuration: 800,
+                                animationEasing: 'cubicOut',
+                                grid: { left: 10, right: 12, top: 8, bottom: 4, containLabel: true },
+                                xAxis: {
+                                    type: 'value',
+                                    axisLabel: { color: '#94a3b8' },
+                                    splitLine: { lineStyle: { color: 'rgba(148,163,184,0.16)' } }
                                 },
-                                options: this.mergeChartOptions(
-                                    this.getModernChartBaseOptions({ indexAxis: 'y', legend: false }),
-                                    {
-                                        indexAxis: 'y',
-                                        animation: { duration: 850, easing: 'easeOutQuart', delay: (ctx) => (ctx.dataIndex || 0) * 60 },
-                                        scales: { x: { beginAtZero: true } },
-                                        plugins: {
-                                            tooltip: {
-                                                backgroundColor: 'rgba(8, 20, 38, 0.95)',
-                                                borderColor: 'rgba(125, 211, 252, 0.38)',
-                                                borderWidth: 1,
-                                                titleColor: '#f0f9ff',
-                                                bodyColor: '#dbeafe'
-                                            }
-                                        }
+                                yAxis: {
+                                    type: 'category',
+                                    data: labels,
+                                    axisLabel: { color: '#cbd5e1' },
+                                    axisTick: { show: false },
+                                    axisLine: { show: false }
+                                },
+                                tooltip: {
+                                    trigger: 'axis',
+                                    axisPointer: { type: 'shadow' },
+                                    formatter: (items) => {
+                                        const i = items?.[0];
+                                        if (!i) return '';
+                                        return `${i.name}<br/>${this.formatMoneyBr(Number(i.value || 0))}`;
                                     }
-                                ),
-                                plugins: [valueLabelsPlugin],
+                                },
+                                series: [{
+                                    type: 'bar',
+                                    data: valores,
+                                    barMaxWidth: 22,
+                                    itemStyle: {
+                                        borderRadius: [8, 8, 8, 8],
+                                        color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                                            { offset: 0, color: '#2563eb' },
+                                            { offset: 0.55, color: '#3b82f6' },
+                                            { offset: 1, color: '#38bdf8' }
+                                        ])
+                                    },
+                                    label: {
+                                        show: true,
+                                        position: 'right',
+                                        color: '#e2e8f0',
+                                        formatter: ({ value }) => this.formatMoneyBr(Number(value || 0))
+                                    }
+                                }]
                             });
+                            chart.resize();
                         }
                     }
-                    const ctxStatus = el.querySelector('#financeiro-chart-status');
-                    if (ctxStatus && !el._financeiroChartStatus) {
+                    const chartStatusNode = el.querySelector('#financeiro-chart-status');
+                    if (chartStatusNode) {
                         const pago = Number(pagosPendentes.pago) || 0;
                         const pendente = Number(pagosPendentes.pendente) || 0;
                         if (pago > 0 || pendente > 0) {
-                            el._financeiroChartStatus = new Chart(ctxStatus, {
-                                type: 'doughnut',
-                                data: {
-                                    labels: ['Pago', 'Pendente'],
-                                    datasets: [{
-                                        data: [pago, pendente],
-                                        backgroundColor: ['#22c55e', '#ef4444'],
-                                        hoverBackgroundColor: ['#4ade80', '#fb7185'],
-                                        borderWidth: 2,
-                                        borderColor: ['rgba(134, 239, 172, 0.8)', 'rgba(252, 165, 165, 0.8)'],
-                                        hoverOffset: 8,
-                                    }],
+                            let chart = el._financeiroChartStatus;
+                            if (!chart || chart.isDisposed?.()) {
+                                chart = echarts.init(chartStatusNode);
+                                el._financeiroChartStatus = chart;
+                            }
+                            chart.setOption({
+                                animationDuration: 850,
+                                animationEasing: 'cubicOut',
+                                tooltip: {
+                                    trigger: 'item',
+                                    formatter: ({ name, value, percent }) => `${name}: ${this.formatMoneyBr(Number(value || 0))} (${percent}%)`
                                 },
-                                options: this.mergeChartOptions(
-                                    this.getModernChartBaseOptions({ legend: true }),
-                                    {
-                                        cutout: '58%',
-                                        rotation: -110,
-                                        animation: { animateRotate: true, animateScale: true, duration: 900, easing: 'easeOutCubic' },
-                                        plugins: {
-                                            legend: { position: 'bottom' },
-                                            tooltip: {
-                                                backgroundColor: 'rgba(8, 20, 38, 0.95)',
-                                                borderColor: 'rgba(148, 163, 184, 0.34)',
-                                                borderWidth: 1,
-                                                titleColor: '#f0f9ff',
-                                                bodyColor: '#dbeafe'
-                                            }
-                                        }
-                                    }
-                                ),
-                                plugins: [valueLabelsPlugin],
+                                legend: {
+                                    bottom: 0,
+                                    textStyle: { color: '#cbd5e1' }
+                                },
+                                series: [{
+                                    type: 'pie',
+                                    radius: ['50%', '74%'],
+                                    center: ['50%', '42%'],
+                                    itemStyle: { borderRadius: 8, borderColor: 'rgba(15,23,42,0.55)', borderWidth: 2 },
+                                    label: { color: '#e2e8f0', formatter: '{d}%' },
+                                    data: [
+                                        { value: pago, name: 'Pago', itemStyle: { color: '#22c55e' } },
+                                        { value: pendente, name: 'Pendente', itemStyle: { color: '#ef4444' } },
+                                    ]
+                                }]
                             });
+                            chart.resize();
                         }
                     }
                     animateSummaryCards();
@@ -6366,245 +6162,6 @@
                 document.body.appendChild(overlay);
             }
 
-            async requestFinanceiroOfxPreview(overlay, ofxText) {
-                const previewEl = overlay.querySelector('#financeiro-ofx-preview');
-                if (!previewEl) return;
-                previewEl.hidden = false;
-                previewEl.innerHTML = '<p class="app-form-note">Lendo extrato…</p>';
-                try {
-                    const res = await fetch('/api/financeiro-ofx', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ofx: ofxText, dry_run: true }),
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Erro ao ler OFX');
-                    overlay._ofxRaw = ofxText;
-                    overlay._ofxPreview = data;
-                    this.renderFinanceiroOfxPreview(overlay, data);
-                } catch (err) {
-                    overlay._ofxRaw = null;
-                    overlay._ofxPreview = null;
-                    previewEl.innerHTML = `<p class="app-form-note" style="color:#ef4444;">${escapeHtml(err.message || 'Falha na leitura')}</p>`;
-                }
-            }
-
-            renderFinanceiroOfxPreview(overlay, data) {
-                const previewEl = overlay.querySelector('#financeiro-ofx-preview');
-                const importBtn = overlay.querySelector('[data-action="financeiro-ofx-import"]');
-                if (!previewEl) return;
-                const rows = data.lancamentos || [];
-                const resumo = data.resumo || {};
-                const erros = data.erros_parse || [];
-                if (!rows.length) {
-                    previewEl.innerHTML = `<p class="app-form-note">Nenhuma transação válida.${erros.length ? ` (${erros.length} ignorada(s) no parse)` : ''}</p>`;
-                    if (importBtn) importBtn.disabled = true;
-                    return;
-                }
-                const tableRows = rows.slice(0, 80).map((r) => {
-                    const dup = !!r.ja_existente;
-                    const tipoLabel = 'Despesa';
-                    const badge = dup
-                        ? '<span class="finance-ofx-badge">Já importada</span>'
-                        : '<span class="finance-ofx-badge finance-ofx-badge--new">Nova</span>';
-                    return `<tr class="${dup ? 'finance-ofx-row--dup' : ''}">
-                        <td>${escapeHtml(r.data_lancamento || '')}</td>
-                        <td>${escapeHtml(r.descricao || '')}</td>
-                        <td>${tipoLabel}</td>
-                        <td>${this.formatMoneyBr(Number(r.valor || 0))}</td>
-                        <td>${badge}</td>
-                    </tr>`;
-                }).join('');
-                const more = rows.length > 80
-                    ? `<p class="app-form-note">… e mais ${rows.length - 80} linha(s).</p>`
-                    : '';
-                previewEl.innerHTML = `
-                    <p class="app-form-note"><strong>${resumo.novos ?? 0}</strong> despesa(s) nova(s), <strong>${resumo.ja_existentes ?? 0}</strong> já importada(s)${(resumo.ignorados_credito ?? 0) > 0 ? `, <strong>${resumo.ignorados_credito}</strong> linha(s) ignorada(s)` : ''}${erros.length ? `, ${erros.length} inválida(s)` : ''}. Só entram <strong>débito</strong> e <strong>PIX enviado</strong>${data.bank_profile === 'santander' ? ' (dicionário Santander)' : ''}.</p>
-                    <div class="finance-ofx-preview-inner"><table>
-                        <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Status</th></tr></thead>
-                        <tbody>${tableRows}</tbody>
-                    </table></div>
-                    ${more}
-                `;
-                if (importBtn) importBtn.disabled = !(resumo.novos > 0);
-            }
-
-            clearFinanceiroOfxState(overlay) {
-                overlay._ofxRaw = null;
-                overlay._ofxPreview = null;
-                const previewEl = overlay.querySelector('#financeiro-ofx-preview');
-                const fileEl = overlay.querySelector('#financeiro-ofx-file');
-                if (previewEl) { previewEl.hidden = true; previewEl.innerHTML = ''; }
-                if (fileEl) fileEl.value = '';
-                const importBtn = overlay.querySelector('[data-action="financeiro-ofx-import"]');
-                if (importBtn) importBtn.disabled = true;
-            }
-
-            async confirmFinanceiroOfxImport(overlay, el) {
-                const ofxText = overlay._ofxRaw;
-                if (!ofxText) {
-                    alert('Selecione um arquivo OFX primeiro.');
-                    return false;
-                }
-                const novos = overlay._ofxPreview?.resumo?.novos ?? 0;
-                if (novos <= 0) {
-                    alert('Não há lançamentos novos para importar.');
-                    return false;
-                }
-                if (!(await this.showConfirm('Importar extrato', `Importar ${novos} lançamento(s) novo(s)?`))) return false;
-                try {
-                    const res = await fetch('/api/financeiro-ofx', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ofx: ofxText, dry_run: false }),
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Erro ao importar');
-                    const ins = data.resumo?.inseridos ?? data.inseridos ?? 0;
-                    const ign = data.resumo?.ignorados_duplicado ?? (data.ignorados_duplicado?.length || 0);
-                    alert(`Importação concluída: ${ins} inserido(s), ${ign} ignorado(s) (já existiam).`);
-                    overlay.remove();
-                    await this.refreshAppContent('financeiro');
-                    return true;
-                } catch (err) {
-                    alert(err.message || 'Erro ao importar extrato');
-                    return false;
-                }
-            }
-
-            async requestFinanceiroOfxPreviewV2(overlay, ofxText) {
-                const res = await fetch('/api/financeiro-ofx', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ofx: ofxText, dry_run: true }),
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Erro ao ler OFX');
-                overlay._ofxRaw = ofxText;
-                overlay._ofxPreview = data;
-                return data;
-            }
-
-            async showFinanceiroOfxAnalysisModalV2(data) {
-                const rows = data?.lancamentos || [];
-                const resumo = data?.resumo || {};
-                const erros = data?.erros_parse || [];
-                return new Promise((resolve) => {
-                    const overlay = document.createElement('div');
-                    overlay.className = 'app-modal-overlay';
-                    const tableRows = rows.slice(0, 120).map((r) => {
-                        const badge = r.ja_existente
-                            ? '<span class="finance-ofx-badge">Já importada</span>'
-                            : '<span class="finance-ofx-badge finance-ofx-badge--new">Nova</span>';
-                        return `<tr class="${r.ja_existente ? 'finance-ofx-row--dup' : ''}">
-                            <td>${escapeHtml(r.data_lancamento || '')}</td>
-                            <td>${escapeHtml(r.descricao || '')}</td>
-                            <td>${this.formatMoneyBr(Number(r.valor || 0))}</td>
-                            <td>${badge}</td>
-                        </tr>`;
-                    }).join('');
-                    const more = rows.length > 120 ? `<p class="app-form-note">... e mais ${rows.length - 120} linha(s).</p>` : '';
-                    overlay.innerHTML = `
-                        <div class="app-modal finance-entry-modal">
-                            <h4>Pré-análise do extrato</h4>
-                            <p class="app-form-note"><strong>${resumo.novos ?? 0}</strong> novos, <strong>${resumo.ja_existentes ?? 0}</strong> já importados${(resumo.ignorados_credito ?? 0) > 0 ? `, <strong>${resumo.ignorados_credito}</strong> ignorados` : ''}${erros.length ? `, ${erros.length} inválidos` : ''}.</p>
-                            <div class="finance-ofx-preview-inner"><table>
-                                <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead>
-                                <tbody>${tableRows || '<tr><td colspan="4">Nenhuma transação válida.</td></tr>'}</tbody>
-                            </table></div>
-                            ${more}
-                            <div class="app-modal-actions">
-                                <button type="button" class="app-btn app-btn-secondary" data-action="cancel">Cancelar</button>
-                                <button type="button" class="app-btn" data-action="ok">OK</button>
-                            </div>
-                        </div>
-                    `;
-                    const close = (result) => { overlay.remove(); resolve(result); };
-                    overlay.querySelector('[data-action="cancel"]').onclick = () => close(false);
-                    overlay.querySelector('[data-action="ok"]').onclick = () => close(true);
-                    overlay.onclick = (e) => { if (e.target === overlay) close(false); };
-                    document.body.appendChild(overlay);
-                });
-            }
-
-            async showFinanceiroOfxDuplicateDecisionModalV2(rows = []) {
-                const dupRows = (rows || []).filter((r) => r.possivel_duplicado && !r.ja_existente);
-                if (!dupRows.length) return {};
-                return new Promise((resolve) => {
-                    const overlay = document.createElement('div');
-                    overlay.className = 'app-modal-overlay';
-                    const tableRows = dupRows.map((r, idx) => {
-                        const conflitos = (r.possiveis_duplicados || []).slice(0, 2).map((c) => (
-                            `${escapeHtml(c.data_lancamento || '')} · ${this.formatMoneyBr(Number(c.valor || 0))} · ${escapeHtml(c.descricao || '')}`
-                        )).join('<br/>');
-                        return `<tr>
-                            <td><input type="checkbox" data-dup-uid="${escapeHtml(r.ofx_uid || '')}" id="dup-check-${idx}" /></td>
-                            <td>${escapeHtml(r.data_lancamento || '')}</td>
-                            <td>${escapeHtml(r.descricao || '')}</td>
-                            <td>${this.formatMoneyBr(Number(r.valor || 0))}</td>
-                            <td>${conflitos || '-'}</td>
-                        </tr>`;
-                    }).join('');
-                    overlay.innerHTML = `
-                        <div class="app-modal finance-entry-modal">
-                            <h4>Possíveis duplicados</h4>
-                            <p class="app-form-note">Marque apenas os itens que você deseja inserir mesmo com suspeita de duplicidade.</p>
-                            <div class="finance-ofx-preview-inner"><table>
-                                <thead><tr><th>Inserir?</th><th>Data</th><th>Descrição</th><th>Valor</th><th>Já existe</th></tr></thead>
-                                <tbody>${tableRows}</tbody>
-                            </table></div>
-                            <div class="app-modal-actions">
-                                <button type="button" class="app-btn app-btn-secondary" data-action="skip">Ignorar duplicados</button>
-                                <button type="button" class="app-btn" data-action="ok">Continuar</button>
-                            </div>
-                        </div>
-                    `;
-                    const close = (selected) => { overlay.remove(); resolve(selected); };
-                    overlay.querySelector('[data-action="skip"]').onclick = () => close({});
-                    overlay.querySelector('[data-action="ok"]').onclick = () => {
-                        const selected = {};
-                        overlay.querySelectorAll('input[data-dup-uid]').forEach((cb) => {
-                            const uid = String(cb.getAttribute('data-dup-uid') || '').trim();
-                            if (uid && cb.checked) selected[uid] = true;
-                        });
-                        close(selected);
-                    };
-                    overlay.onclick = (e) => { if (e.target === overlay) close({}); };
-                    document.body.appendChild(overlay);
-                });
-            }
-
-            async importFinanceiroOfxFlowV2(overlay, el, ofxText) {
-                const preview = await this.requestFinanceiroOfxPreviewV2(overlay, ofxText);
-                if (!(await this.showFinanceiroOfxAnalysisModalV2(preview))) return false;
-                const novos = preview?.resumo?.novos ?? 0;
-                if (novos <= 0) {
-                    alert('Não há lançamentos novos para importar.');
-                    return false;
-                }
-                const rows = preview?.lancamentos || [];
-                const selectedDuplicateUids = await this.showFinanceiroOfxDuplicateDecisionModalV2(rows);
-                overlay._selectedDuplicateUids = selectedDuplicateUids;
-                const res = await fetch('/api/financeiro-ofx', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ofx: ofxText,
-                        dry_run: false,
-                        duplicate_decisions: selectedDuplicateUids,
-                    }),
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Erro ao importar');
-                const ins = data.resumo?.inseridos ?? data.inseridos ?? 0;
-                const ignRegra = data.resumo?.ignorados_duplicado_regra ?? (data.ignorados_duplicado_regra?.length || 0);
-                const ignUid = data.resumo?.ignorados_duplicado_tecnico ?? (data.ignorados_duplicado?.length || 0);
-                alert(`Importação concluída: ${ins} inserido(s), ${ignRegra} ignorado(s) por duplicidade, ${ignUid} ignorado(s) por OFX já importado.`);
-                overlay.remove();
-                await this.refreshAppContent('financeiro');
-                return true;
-            }
-
             openFinanceiroModal(el, { item = null, defaultTipo = 'gasto_variado' } = {}) {
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 let initialMesRef = mesAno;
@@ -6656,13 +6213,8 @@
                                 <div class="field" id="financeiro-data-wrap"><label>Data do lançamento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" /></div>
                             </div>
                         </div>
-                        ${!item ? `
-                        <div class="finance-ofx-import" id="financeiro-ofx-wrap">
-                            <input type="file" id="financeiro-ofx-file" accept=".ofx,.OFX" hidden />
-                        </div>
-                        ` : ''}
                         <div class="app-modal-actions finance-modal-actions">
-                            ${!item ? '<button type="button" class="app-btn app-btn-secondary" data-action="financeiro-ofx-pick">Inserir extrato</button>' : '<span></span>'}
+                            
                             <div class="finance-modal-actions-right">
                                 <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
                                 <button type="button" class="app-btn" data-action="modal-save">${item ? 'Salvar' : 'Registrar'}</button>
@@ -6769,26 +6321,7 @@
                 };
                 setTipoUI(tipoEl.value);
                 tipoEl.onchange = () => setTipoUI(tipoEl.value);
-                if (mesRefEl) mesRefEl.addEventListener('change', () => setTipoUI(tipoEl.value));
-
-                if (!item) {
-                    overlay._ofxRaw = null;
-                    overlay._ofxPreview = null;
-                    overlay._selectedDuplicateUids = {};
-                    const ofxFile = overlay.querySelector('#financeiro-ofx-file');
-                    const ofxPick = overlay.querySelector('[data-action="financeiro-ofx-pick"]');
-                    if (ofxPick && ofxFile) {
-                        ofxPick.onclick = () => ofxFile.click();
-                        ofxFile.onchange = async () => {
-                            const file = ofxFile.files && ofxFile.files[0];
-                            if (!file) return;
-                            try {
-                                const text = await file.text();
-                                await this.importFinanceiroOfxFlowV2(overlay, el, text);
-                            } catch (err) {
-                                alert(err.message || 'Não foi possível ler o arquivo');
-                            }
-                        };
+                if (mesRefEl) mesRefEl.addEventListener('change', () => setTipoUI(tipoEl.value));`r`n                        };
                     }
                 }
 
