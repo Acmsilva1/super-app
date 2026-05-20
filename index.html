@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -1192,7 +1192,7 @@
             margin-bottom: 1rem;
         }
 
-        /* MÃ³dulo Fluxograma (escopo isolado; tema escuro nÃ£o afeta o body do SUPERAPP) */
+        /* Módulo Fluxograma (escopo isolado; tema escuro não afeta o body do SUPERAPP) */
         .window-content.fluxograma-window-content {
             padding: 0 !important;
             overflow: hidden !important;
@@ -1951,7 +1951,7 @@
         .finance-data-section.hidden-by-filter {
             display: none;
         }
-        /* Scroll apenas dentro da grelha (â‰ˆ10 linhas); cabeÃ§alho da tabela colado ao topo deste bloco â€” nÃ£o herda o scroll da janela no mobile */
+        /* Scroll apenas dentro da grelha (≈10 linhas); cabeçalho da tabela colado ao topo deste bloco — não herda o scroll da janela no mobile */
         .module-table-wrap.finance-data-section.finance-data-table-limited,
         .module-table-wrap.finance-poupanca-table-wrap {
             display: flex;
@@ -1959,7 +1959,7 @@
             overflow: hidden;
             min-height: 0;
         }
-        /* Sobrescreve display:flex acima quando o filtro oculta a secÃ§Ã£o (mesma especificidade + classe extra) */
+        /* Sobrescreve display:flex acima quando o filtro oculta a secção (mesma especificidade + classe extra) */
         .module-table-wrap.finance-data-section.finance-data-table-limited.hidden-by-filter {
             display: none;
         }
@@ -2315,7 +2315,8 @@
             display: flex;
             gap: 0.75rem;
             margin-left: auto;
-        }
+        }
+
         @media (max-width: 768px) {
             .finance-module-shell {
                 padding-bottom: 5.4rem;
@@ -2647,7 +2648,7 @@
         .lista-compras-col-list li:last-child { border-bottom: none; }
         .lista-compras-cols li.lista-compras-empty { display: block; width: 100%; text-align: center; color: #9ca3af; padding: 0.85rem; font-size: 0.875rem; border: none; list-style: none; }
 
-        /* Lista de compras â€” formulÃ¡rio â€œmercadoâ€ (grid + chips, cara prÃ³pria) */
+        /* Lista de compras — formulário "mercado" (grid + chips, cara própria) */
         .lista-entry-shell { margin-bottom: 1.15rem; }
         .lista-compras-module-shell,
         .saude-module-shell {
@@ -2656,7 +2657,7 @@
             position: relative;
             padding-bottom: 5rem;
         }
-        /* Linhas da lista â€” nome e detalhe separados (evita â€œAndrÃ© influenzaâ€ colado) */
+        /* Linhas da lista — nome e detalhe separados (evita "André influenza" colado) */
         .saude-module-shell .app-list li { align-items: flex-start; }
         .saude-item-cell {
             display: flex;
@@ -2963,7 +2964,7 @@
             color: #fff;
         }
 
-        /* SaÃºde familiar â€” formulÃ¡rio â€œprontuÃ¡rioâ€ (painÃ©is numerados) */
+        /* Saúde familiar — formulário "prontuário" (painéis numerados) */
         .saude-entry-shell { margin-bottom: 1.15rem; }
         .saude-entry-card {
             border-radius: 1rem;
@@ -4013,7 +4014,7 @@
                 </div>
 
                 <nav>
-                    <a href="#apps" id="navApps" class="nav-link active">AplicaÃ§Ãµes</a>
+                    <a href="#apps" id="navApps" class="nav-link active">Aplicações</a>
                 </nav>
 
                 <div class="header-actions">
@@ -4023,7 +4024,7 @@
                     <button class="header-btn" id="darkModeToggle" title="Modo escuro (alternar)" aria-label="Alternar modo escuro">
                         <i class="fas fa-moon" id="darkModeIcon"></i>
                     </button>
-                    <button class="header-btn" id="notificationsBtn" title="NotificaÃ§Ãµes" style="position: relative;">
+                    <button class="header-btn" id="notificationsBtn" title="Notificações" style="position: relative;">
                         <i class="fas fa-bell"></i>
                         <span id="notificationBadge" class="notification-badge" aria-hidden="true"></span>
                     </button>
@@ -4038,15 +4039,15 @@
     <!-- APPLICATIONS -->
     <section id="apps" class="apps-section">
         <div class="container">
-            <h3 class="section-title">AplicaÃ§Ãµes DisponÃ­veis</h3>
+            <h3 class="section-title">Aplicações Disponíveis</h3>
             <div id="appsContainer" class="apps-grid">
                 <div class="empty-state">
                     <div>
                         <div class="empty-state-icon">
                             <i class="fas fa-inbox"></i>
                         </div>
-                        <p class="empty-state-text">Nenhuma aplicaÃ§Ã£o disponÃ­vel</p>
-                        <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicaÃ§Ãµes serÃ£o carregadas do backend</p>
+                        <p class="empty-state-text">Nenhuma aplicação disponível</p>
+                        <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
                     </div>
                 </div>
             </div>
@@ -4061,7 +4062,7 @@
 
     <!-- APP WINDOWS CONTAINER -->
     <div id="windowsContainer"></div>
-    <button id="homeFinanceFab" type="button" class="finance-fab finance-fab-pulse home-finance-fab" aria-label="LanÃ§amento rÃ¡pido no financeiro" title="LanÃ§amento rÃ¡pido no financeiro">+</button>
+    <button id="homeFinanceFab" type="button" class="finance-fab finance-fab-pulse home-finance-fab" aria-label="Lançamento rápido no financeiro" title="Lançamento rápido no financeiro">+</button>
 
     <script>
         // ============================================
@@ -4305,8 +4306,8 @@
                                 <div class="empty-state-icon">
                                     <i class="fas fa-inbox"></i>
                                 </div>
-                                <p class="empty-state-text">Nenhuma aplicaÃ§Ã£o disponÃ­vel</p>
-                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicaÃ§Ãµes serÃ£o carregadas do backend</p>
+                                <p class="empty-state-text">Nenhuma aplicação disponível</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
                             </div>
                         </div>
                     `;
@@ -4359,25 +4360,25 @@
             getAppEmoji(app) {
                 const id = String(app?.id || '').toLowerCase();
                 const title = String(app?.title || '').toLowerCase();
-                if (id.includes('fin') || title.includes('finan')) return 'ðŸ’°';
-                if (id.includes('despesa')) return 'ðŸ§¾';
-                if (id.includes('lista') || title.includes('compra')) return 'ðŸ›’';
-                if (id.includes('saude') || title.includes('saÃºde')) return 'ðŸ©º';
-                if (id.includes('calend') || title.includes('agenda')) return 'ðŸ“…';
-                if (id.includes('flux')) return 'ðŸ§ ';
-                if (id.includes('treino') || title.includes('miss')) return 'ðŸ”¥';
-                if (id.includes('roadmap')) return 'ðŸ—ºï¸';
-                return 'ðŸš€';
+                if (id.includes('fin') || title.includes('finan')) return '💰';
+                if (id.includes('despesa')) return '🧾';
+                if (id.includes('lista') || title.includes('compra')) return '🛒';
+                if (id.includes('saude') || title.includes('saúde')) return '🩺';
+                if (id.includes('calend') || title.includes('agenda')) return '📅';
+                if (id.includes('flux')) return '🧠';
+                if (id.includes('treino') || title.includes('miss')) return '🔥';
+                if (id.includes('roadmap')) return '🗺️';
+                return '🚀';
             }
 
             getAppOrbitEmoji(app) {
                 const id = String(app?.id || '').toLowerCase();
-                if (id.includes('fin') || id.includes('despesa')) return 'âœ¨';
+                if (id.includes('fin') || id.includes('despesa')) return '✨';
                 if (id.includes('saude') || id.includes('treino')) return 'âš¡';
-                if (id.includes('flux')) return 'ðŸ’«';
-                if (id.includes('lista')) return 'âœ…';
-                if (id.includes('calend')) return 'ðŸ””';
-                return 'âœ¦';
+                if (id.includes('flux')) return '💫';
+                if (id.includes('lista')) return '✅';
+                if (id.includes('calend')) return '🔔';
+                return '✦';
             }
 
             getMotionHelpers() {
@@ -4452,8 +4453,8 @@
                                 <div class="roadmap-empty-icon">
                                     <i class="fas fa-map"></i>
                                 </div>
-                                <p class="roadmap-empty-text">Roadmap nÃ£o carregado</p>
-                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap serÃ¡ carregado do backend</p>
+                                <p class="roadmap-empty-text">Roadmap não carregado</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap será carregado do backend</p>
                             </div>
                         </div>
                     `;
@@ -4472,7 +4473,7 @@
             }
 
             // ============================================
-            // DIÃLOGOS DE CONFIRMAÃ‡ÃƒO PERSONALIZADOS
+            // DIÁLOGOS DE CONFIRMAÇÃO PERSONALIZADOS
             // ============================================
             async showConfirm(title, message) {
                 return new Promise((resolve) => {
@@ -4535,13 +4536,13 @@
                 const chartsHtml = chartSections.map((section) => `
                     <section class="section">
                         <h3>${escapeHtml(section.title || '')}</h3>
-                        ${section.img ? `<img src="${section.img}" alt="${escapeHtml(section.title || 'GrÃ¡fico')}" />` : '<p>Sem dados para grÃ¡fico neste mÃªs.</p>'}
+                        ${section.img ? `<img src="${section.img}" alt="${escapeHtml(section.title || 'Gráfico')}" />` : '<p>Sem dados para gráfico neste mês.</p>'}
                     </section>
                 `).join('');
                 const tableHead = tableHeaders.map((h) => `<th>${escapeHtml(h)}</th>`).join('');
                 const tableBody = tableRows.length
                     ? tableRows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(String(cell ?? ''))}</td>`).join('')}</tr>`).join('')
-                    : `<tr><td colspan="${Math.max(1, tableHeaders.length)}">Sem dados no perÃ­odo.</td></tr>`;
+                    : `<tr><td colspan="${Math.max(1, tableHeaders.length)}">Sem dados no período.</td></tr>`;
 
                 return `<!doctype html>
 <html lang="pt-BR">
@@ -4685,7 +4686,7 @@
       <div class="subtitle">${escapeHtml(subtitle)}</div>
       <div class="chips">
         <span class="chip">Resumo mensal</span>
-        <span class="chip">GrÃ¡ficos + dados detalhados</span>
+        <span class="chip">Gráficos + dados detalhados</span>
       </div>
       <div class="summary">${summaryHtml}</div>
     </header>
@@ -4758,7 +4759,7 @@
                 return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
             }
 
-            /** MÃªs civil anterior a `YYYY-MM` (ex.: 2026-03 â†’ 2026-02; 2026-01 â†’ 2025-12). */
+            /** Mês civil anterior a `YYYY-MM` (ex.: 2026-03 → 2026-02; 2026-01 → 2025-12). */
             getMesAnoAnterior(mesAno) {
                 const parts = String(mesAno || '').split('-').map(Number);
                 const y = parts[0];
@@ -4857,7 +4858,7 @@
                     <div class="vendas-container">
                         <div class="vendas-sidebar">
                             <div class="vendas-tabs">
-                                <button class="vendas-tab-btn ${activeTab === 'pricing' ? 'active' : ''}" data-tab="pricing">PrecificaÃ§Ã£o</button>
+                                <button class="vendas-tab-btn ${activeTab === 'pricing' ? 'active' : ''}" data-tab="pricing">Precificação</button>
                                 <button class="vendas-tab-btn ${activeTab === 'sales' ? 'active' : ''}" data-tab="sales">Vendas</button>
                             </div>
                             <div id="vendas-form-container"></div>
@@ -4908,7 +4909,7 @@
                                 <input type="number" id="v_new_recipe_price" placeholder="R$ 0.00" step="0.01">
                             </div>
                             <div class="vendas-form-group">
-                                <label style="font-size:0.6rem; opacity:0.7">PorÃ§Ãµes</label>
+                                <label style="font-size:0.6rem; opacity:0.7">Porções</label>
                                 <input type="number" id="v_new_recipe_portions" value="1" min="1">
                             </div>
                         </div>
@@ -4971,7 +4972,7 @@
                                     <tr>
                                         <th>Receita</th>
                                         <th>Custo</th>
-                                        <th>AÃ§Ã£o</th>
+                                        <th>Ação</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -5100,11 +5101,11 @@
                                 ${editing ? `
                                     <div class="vendas-grid-2" style="margin-bottom:1rem; gap:10px">
                                         <div class="vendas-card" style="margin:0; border:1px solid var(--primary); background:rgba(56,189,248,0.05); padding:0.75rem">
-                                            <label style="font-size:0.6rem; font-weight:700; color:var(--primary); text-transform:uppercase">PreÃ§o Venda (R$)</label>
+                                            <label style="font-size:0.6rem; font-weight:700; color:var(--primary); text-transform:uppercase">Preço Venda (R$)</label>
                                             <input type="number" id="vm_recipe_price" value="${Number(recipe.preco_final).toFixed(2)}" step="0.01" style="font-size:1.1rem; font-weight:800; color:var(--text-dark); background:transparent; border:none; width:100%; outline:none">
                                         </div>
                                         <div class="vendas-card" style="margin:0; border:1px solid var(--primary); background:rgba(56,189,248,0.05); padding:0.75rem">
-                                            <label style="font-size:0.6rem; font-weight:700; color:var(--primary); text-transform:uppercase">PorÃ§Ãµes</label>
+                                            <label style="font-size:0.6rem; font-weight:700; color:var(--primary); text-transform:uppercase">Porções</label>
                                             <input type="number" id="vm_recipe_portions" value="${recipe.porcoes || 1}" min="1" style="font-size:1.1rem; font-weight:800; color:var(--text-dark); background:transparent; border:none; width:100%; outline:none">
                                         </div>
                                     </div>
@@ -5115,11 +5116,11 @@
                                             <div class="vendas-summary-value" style="font-size:1rem">R$ ${Number(recipe.custo_total).toFixed(2)}</div>
                                         </div>
                                         <div class="vendas-summary-item" style="padding:0.6rem; background:rgba(59,130,246,0.05)">
-                                            <div class="vendas-summary-label">PorÃ§Ãµes</div>
+                                            <div class="vendas-summary-label">Porções</div>
                                             <div class="vendas-summary-value" style="font-size:1rem">${recipe.porcoes || 1}</div>
                                         </div>
                                         <div class="vendas-summary-item" style="padding:0.6rem; background:rgba(16,185,129,0.05)">
-                                            <div class="vendas-summary-label">Custo/PorÃ§Ã£o</div>
+                                            <div class="vendas-summary-label">Custo/Porção</div>
                                             <div class="vendas-summary-value" style="font-size:1rem">R$ ${(Number(recipe.custo_total) / (recipe.porcoes || 1)).toFixed(2)}</div>
                                         </div>
                                         <button class="vendas-btn-add" id="vm_btn_edit" style="margin:0; background:var(--primary); padding:0 1rem; font-size:0.8rem"><i class="fas fa-edit"></i> Editar</button>
@@ -5158,7 +5159,7 @@
                                 
                                 ${editing ? `
                                     <div style="display:flex; gap:10px; margin-top:2rem">
-                                        <button class="vendas-btn-save" id="vm_btn_save" style="margin:0; flex:2"><i class="fas fa-save"></i> Salvar AlteraÃ§Ãµes</button>
+                                        <button class="vendas-btn-save" id="vm_btn_save" style="margin:0; flex:2"><i class="fas fa-save"></i> Salvar Alterações</button>
                                         <button class="vendas-btn-add" id="vm_btn_cancel" style="margin:0; flex:1; background:var(--bg-gray); color:var(--text-light)"><i class="fas fa-times"></i> Cancelar</button>
                                     </div>
                                 ` : ''}
@@ -5216,7 +5217,7 @@
                 const revenue = history.reduce((sum, s) => sum + Number(s.valor), 0);
                 const avg = totalSales ? revenue / totalSales : 0;
                 
-                // Inicializa o carrinho e cliente temporario se nÃ£o existirem
+                // Inicializa o carrinho e cliente temporario se não existirem
                 rootEl._vendasBasket = rootEl._vendasBasket || [];
 
                 formEl.innerHTML = `
@@ -5290,21 +5291,21 @@
                 mainEl.innerHTML = `
                     <div class="vendas-summary-grid">
                         <div class="vendas-summary-item" style="background:rgba(16,185,129,0.08); border-left:4px solid #10b981">
-                            <div class="vendas-summary-label">ðŸš€ Vendas Hoje</div>
+                            <div class="vendas-summary-label">🚀 Vendas Hoje</div>
                             <div class="vendas-summary-value">${totalSales}</div>
                         </div>
                         <div class="vendas-summary-item" style="background:rgba(249,115,22,0.08); border-left:4px solid #f97316">
-                            <div class="vendas-summary-label">ðŸ’° Faturamento</div>
+                            <div class="vendas-summary-label">💰 Faturamento</div>
                             <div class="vendas-summary-value">R$ ${revenue.toFixed(2)}</div>
                         </div>
                         <div class="vendas-summary-item" style="background:rgba(59,130,246,0.08); border-left:4px solid #3b82f6">
-                            <div class="vendas-summary-label">ðŸ“Š Ticket MÃ©dio</div>
+                            <div class="vendas-summary-label">📊 Ticket Médio</div>
                             <div class="vendas-summary-value">R$ ${avg.toFixed(2)}</div>
                         </div>
                     </div>
                     <div class="vendas-card" style="padding:0">
                         <div style="padding:1.5rem; border-bottom:1px solid rgba(255,255,255,0.05)">
-                            <h3 style="margin:0"><i class="fas fa-history"></i> HistÃ³rico de Vendas</h3>
+                            <h3 style="margin:0"><i class="fas fa-history"></i> Histórico de Vendas</h3>
                         </div>
                         <div class="vendas-table-wrap">
                             <table class="vendas-table">
@@ -5324,7 +5325,7 @@
                                             <td><b style="color:var(--success)">R$ ${Number(s.valor).toFixed(2)}</b></td>
                                             <td style="text-align:right"><button class="vendas-btn-del" data-id="${s.id}"><i class="fas fa-trash-alt"></i></button></td>
                                         </tr>
-                                    `).join('') : '<tr><td colspan="4" style="text-align:center;padding:2rem;opacity:0.5">Nenhuma venda registrada hoje ðŸ°</td></tr>'}
+                                    `).join('') : '<tr><td colspan="4" style="text-align:center;padding:2rem;opacity:0.5">Nenhuma venda registrada hoje 🍰</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
@@ -5353,7 +5354,7 @@
                     const quantidade = parseInt(formEl.querySelector('#vs_qty').value) || 1;
 
                     if (!sabor || isNaN(valor)) {
-                        alert('Por favor, selecione um sabor ðŸ°');
+                        alert('Por favor, selecione um sabor 🍰');
                         return;
                     }
 
@@ -5380,7 +5381,7 @@
                 formEl.querySelector('#vs_btn_reg').onclick = async () => {
                     const cliente = formEl.querySelector('#vs_cliente').value;
                     if (!cliente) {
-                        alert('Informe o nome do cliente ðŸ‘¤');
+                        alert('Informe o nome do cliente 👤');
                         formEl.querySelector('#vs_cliente').focus();
                         return;
                     }
@@ -5391,7 +5392,7 @@
                     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
 
                     try {
-                        // Consolida os itens para uma Ãºnica entrada
+                        // Consolida os itens para uma única entrada
                         const saborConsolidado = rootEl._vendasBasket
                             .map(item => `${item.sabor} (${item.quantidade}x)`)
                             .join(' / ');
@@ -5419,7 +5420,7 @@
                         this.refreshAppContent('vendas');
                     } catch (err) {
                         console.error(err);
-                        alert('Erro ao registrar venda âŒ');
+                        alert('Erro ao registrar venda ❌');
                         btn.disabled = false;
                         btn.innerHTML = '<i class="fas fa-check-circle"></i> Finalizar e Registrar Venda';
                     }
@@ -5427,7 +5428,7 @@
 
                 mainEl.querySelectorAll('.vendas-btn-del').forEach(btn => {
                     btn.onclick = async () => {
-                        if (!confirm('Excluir esta venda do histÃ³rico?')) return;
+                        if (!confirm('Excluir esta venda do histórico?')) return;
                         const res = await fetch('/api/vendas?type=historico', {
                             method: 'DELETE',
                             body: JSON.stringify({ id: btn.dataset.id })
@@ -5494,7 +5495,7 @@
                     const parcelaHtml = (Number.isFinite(pt) && Number.isFinite(pa) && pt > 0 && pa > 0 && pa <= pt)
                         ? `<span class="finance-parcela-tag">Parcela ${escapeHtml(String(pa))} de ${escapeHtml(String(pt))}</span>`
                         : '';
-                    const dateSub = `${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` Ã s ${escapeHtml(hora)}` : ''}`;
+                    const dateSub = `${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` às ${escapeHtml(hora)}` : ''}`;
                     return `<tr>
                         <td>
                             <strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong>${contaFixaHtml}${parcelaHtml}
@@ -5551,8 +5552,8 @@
                 const showImportFixasCallout = fixasEmpty && activeDataFilter === 'despesas_fixas';
                 const isMobileFixas = typeof window !== 'undefined' && window.innerWidth <= 900;
                 const detailsAttr = isMobileFixas ? '' : 'open';
-                const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mÃªs.</td></tr>';
-                const rowsReceitasHtml = receitas.length ? receitas.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mÃªs.</td></tr>';
+                const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mês.</td></tr>';
+                const rowsReceitasHtml = receitas.length ? receitas.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mês.</td></tr>';
                 const rowsPoupancaHtml = poupancaLogs.length
                     ? poupancaLogs.map((r) => {
                         const hora = fmtHoraBrasilia(r.created_at);
@@ -5568,7 +5569,7 @@
                             </td>
                         </tr>`;
                     }).join('')
-                    : '<tr><td colspan="4" class="module-table-empty">Nenhum lanÃ§amento em poupanÃ§a.</td></tr>';
+                    : '<tr><td colspan="4" class="module-table-empty">Nenhum lançamento em poupança.</td></tr>';
                 const metaNome = String(poupancaMetaAtiva?.nome_meta || '').trim();
                 const metaId = Number(poupancaMetaAtiva?.id || 0);
                 const metaValor = Number(poupancaMetaAtiva?.valor_meta || 0);
@@ -5581,26 +5582,26 @@
                     <div class="finance-module-shell">
                         <div class="finance-sticky-head">
                             <div class="app-mes-ano">
-                                <label>MÃªs/Ano</label>
+                                <label>Mês/Ano</label>
                                 <select id="financeiro-mes">${meses.map((m, i) => `<option value="${i + 1}" ${(i + 1 === mes) ? 'selected' : ''}>${m}</option>`).join('')}</select>
                                 <select id="financeiro-ano">${anos.map((a) => `<option value="${a}" ${(a === ano) ? 'selected' : ''}>${a}</option>`).join('')}</select>
                             </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Resumo</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">PoupanÃ§a</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupança</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <button type="button" class="finance-filter-chip finance-filter-chip--fixas" data-action="financeiro-data-filter" data-target="despesas_fixas" role="tab" aria-selected="false">
-                                    <span class="finance-filter-chip-label">Ver sÃ³</span>
+                                    <span class="finance-filter-chip-label">Ver só</span>
                                     <span class="finance-filter-chip-title">Despesas fixas</span>
                                 </button>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--variadas" data-action="financeiro-data-filter" data-target="gastos_variados" role="tab" aria-selected="false">
-                                    <span class="finance-filter-chip-label">Ver sÃ³</span>
+                                    <span class="finance-filter-chip-label">Ver só</span>
                                     <span class="finance-filter-chip-title">Gastos variados</span>
                                 </button>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--receitas" data-action="financeiro-data-filter" data-target="receitas" role="tab" aria-selected="false">
-                                    <span class="finance-filter-chip-label">Ver sÃ³</span>
+                                    <span class="finance-filter-chip-label">Ver só</span>
                                     <span class="finance-filter-chip-title">Receitas</span>
                                 </button>
                             </div>
@@ -5633,8 +5634,8 @@
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.8rem;">Despesas fixas</p>
                                 ${fixasEmpty ? `
                                 <div id="financeiro-import-fixas-callout" class="finance-import-fixas-callout ${showImportFixasCallout ? '' : 'hidden'}" role="region" aria-label="Importar despesas fixas">
-                                    <p class="finance-import-fixas-callout__text">Este mÃªs ainda nÃ£o tem despesas fixas. Copie do mÃªs anterior; lanÃ§amentos com parcelas passam para a prÃ³xima parcela (itens jÃ¡ na Ãºltima parcela nÃ£o sÃ£o copiados).</p>
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-import-fixas-prev-month">Importar do mÃªs anterior</button>
+                                    <p class="finance-import-fixas-callout__text">Este mês ainda não tem despesas fixas. Copie do mês anterior; lançamentos com parcelas passam para a próxima parcela (itens já na última parcela não são copiados).</p>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-import-fixas-prev-month">Importar do mês anterior</button>
                                 </div>` : ''}
                                 <div class="finance-despesas-fixas-grid">
                                     <details class="finance-despesas-col" ${detailsAttr}>
@@ -5644,7 +5645,7 @@
                                         </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
-                                                <thead><tr><th>DescriÃ§Ã£o</th><th>Status</th><th>Valor</th><th>AÃ§Ãµes</th></tr></thead>
+                                                <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
                                                 <tbody id="financeiro-table-fixas-pendentes">${rowsFixasPendentesHtml}</tbody>
                                             </table>
                                         </div>
@@ -5656,7 +5657,7 @@
                                         </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
-                                                <thead><tr><th>DescriÃ§Ã£o</th><th>Status</th><th>Valor</th><th>AÃ§Ãµes</th></tr></thead>
+                                                <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
                                                 <tbody id="financeiro-table-fixas-pagas">${rowsFixasPagasHtml}</tbody>
                                             </table>
                                         </div>
@@ -5675,7 +5676,7 @@
                                 </div>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th>DescriÃ§Ã£o</th><th>Categoria</th><th>Valor</th><th>Data</th><th>AÃ§Ãµes</th></tr></thead>
+                                        <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                         <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
                                     </table>
                                 </div>
@@ -5684,7 +5685,7 @@
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Receitas</p>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th>DescriÃ§Ã£o</th><th>Categoria</th><th>Valor</th><th>Data</th><th>AÃ§Ãµes</th></tr></thead>
+                                        <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                         <tbody id="financeiro-table-receitas">${rowsReceitasHtml}</tbody>
                                     </table>
                                 </div>
@@ -5692,14 +5693,14 @@
                         </div>
                         <div class="module-tab-panel ${activeTab === 'poupanca' ? '' : 'hidden'}" data-tab-panel="poupanca">
                             <div class="app-totais">
-                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(poupancaTotal)}</div><div class="stat-label">Total acumulado em poupanÃ§a</div></div>
+                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(poupancaTotal)}</div><div class="stat-label">Total acumulado em poupança</div></div>
                             </div>
-                            ${poupancaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca` nÃ£o encontrada no Supabase. Crie a tabela para habilitar este mÃ³dulo.</p>'}
-                            ${poupancaMetaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca_metas` nÃ£o encontrada no Supabase. Crie a tabela para habilitar metas.</p>'}
+                            ${poupancaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca` não encontrada no Supabase. Crie a tabela para habilitar este módulo.</p>'}
+                            ${poupancaMetaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca_metas` não encontrada no Supabase. Crie a tabela para habilitar metas.</p>'}
                             <div class="poupanca-meta-entry-card">
                                 <div>
                                     <h4>Adicionar Meta</h4>
-                                    <p>Abra o formulÃ¡rio padrÃ£o para cadastrar descriÃ§Ã£o, valor e data de inÃ­cio.</p>
+                                    <p>Abra o formulário padrão para cadastrar descrição, valor e data de início.</p>
                                 </div>
                                 <button type="button" class="app-btn" data-action="poupanca-open-meta-modal">Adicionar Meta</button>
                             </div>
@@ -5707,8 +5708,8 @@
                                 <div class="poupanca-meta-card">
                                     <div class="poupanca-meta-card-top">
                                         <div>
-                                            <h4>${escapeHtml(metaNome || 'Meta de poupanÃ§a')}</h4>
-                                            <p class="meta-sub">InÃ­cio: ${escapeHtml(metaInicio ? this.formatDateBr(metaInicio) : '--')}</p>
+                                            <h4>${escapeHtml(metaNome || 'Meta de poupança')}</h4>
+                                            <p class="meta-sub">Início: ${escapeHtml(metaInicio ? this.formatDateBr(metaInicio) : '--')}</p>
                                         </div>
                                         <div class="poupanca-meta-card-actions">
                                             <button type="button" class="app-btn app-btn-secondary" data-action="poupanca-meta-edit" data-id="${metaId}">Editar</button>
@@ -5720,9 +5721,9 @@
                                             <div id="financeiro-poupanca-meta-chart" class="poupanca-meta-chart"></div>
                                         </div>
                                         <div class="poupanca-meta-insight">
-                                            <div class="title">TermÃ´metro da meta</div>
+                                            <div class="title">Termômetro da meta</div>
                                             <div class="value">${metaPercent}%</div>
-                                            <p class="meta-sub" style="margin-top:0.25rem;">Faixas: atÃ© 29% em azul, de 30% a 99% em amarelo, e meta concluÃ­da em verde.</p>
+                                            <p class="meta-sub" style="margin-top:0.25rem;">Faixas: até 29% em azul, de 30% a 99% em amarelo, e meta concluída em verde.</p>
                                         </div>
                                     </div>
                                     <div class="poupanca-meta-stats">
@@ -5736,7 +5737,7 @@
                             <div class="module-table-wrap finance-poupanca-table-wrap">
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th>DescriÃ§Ã£o</th><th>Valor</th><th>Data</th><th>AÃ§Ãµes</th></tr></thead>
+                                        <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                                         <tbody id="financeiro-table-poupanca">${rowsPoupancaHtml}</tbody>
                                     </table>
                                 </div>
@@ -6012,7 +6013,7 @@
                         const tbody = el.querySelector('#financeiro-table-gastos');
                         if (tbody) {
                             if (!selected) {
-                                tbody.innerHTML = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mÃªs.</td></tr>';
+                                tbody.innerHTML = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto variado neste mês.</td></tr>';
                             } else {
                                 const filtered = gastosVariados.filter(g => (g.categoria || 'Sem categoria') === selected);
                                 tbody.innerHTML = filtered.length ? filtered.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto nesta categoria.</td></tr>';
@@ -6077,7 +6078,7 @@
             }
 
             async submitFinanceiroMetaSave(el, { editId = 0, nomeMeta, dataInicio, valorMeta } = {}) {
-                if (!nomeMeta) { alert('Nome da meta Ã© obrigatÃ³rio'); return false; }
+                if (!nomeMeta) { alert('Nome da meta é obrigatório'); return false; }
                 if (!(valorMeta > 0)) { alert('Valor da meta precisa ser maior que zero'); return false; }
                 try {
                     const res = await fetch('/api/financeiro', {
@@ -6104,7 +6105,7 @@
             }
 
             async submitFinanceiroMetaDelete(id, el) {
-                if (!(await this.showConfirm('Excluir meta', 'Tem certeza que deseja excluir esta meta de poupanÃ§a?'))) return false;
+                if (!(await this.showConfirm('Excluir meta', 'Tem certeza que deseja excluir esta meta de poupança?'))) return false;
                 try {
                     const res = await fetch(`/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=meta_poupanca`, { method: 'DELETE' });
                     if (!res.ok) {
@@ -6125,19 +6126,19 @@
                 overlay.className = 'app-modal-overlay';
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
-                        <h4>${editId > 0 ? 'Editar meta de poupanÃ§a' : 'Adicionar meta de poupanÃ§a'}</h4>
+                        <h4>${editId > 0 ? 'Editar meta de poupança' : 'Adicionar meta de poupança'}</h4>
                         <div class="app-form">
                             <div class="app-form-row fin-form-grid">
                                 <div class="field">
-                                    <label>DescriÃ§Ã£o</label>
-                                    <input type="text" id="poupanca-meta-modal-nome" value="${escapeHtml(String(meta?.nome_meta || ''))}" placeholder="Ex: Reserva de emergÃªncia" />
+                                    <label>Descrição</label>
+                                    <input type="text" id="poupanca-meta-modal-nome" value="${escapeHtml(String(meta?.nome_meta || ''))}" placeholder="Ex: Reserva de emergência" />
                                 </div>
                                 <div class="field">
                                     <label>Valor (R$)</label>
                                     <input type="number" step="0.01" id="poupanca-meta-modal-valor" value="${editId > 0 ? Number(meta?.valor_meta || 0) : ''}" />
                                 </div>
                                 <div class="field">
-                                    <label>Data de inÃ­cio</label>
+                                    <label>Data de início</label>
                                     <input type="date" id="poupanca-meta-modal-inicio" value="${escapeHtml(String(meta?.data_inicio || this.getBrazilDateIsoFrom(new Date())).slice(0, 10))}" />
                                 </div>
                             </div>
@@ -6175,7 +6176,7 @@
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const pad = (n) => String(n).padStart(2, '0');
                 const gastoCategorias = ['Alimentacao','Habitacao','Transporte','Lazer','Saude','Ticket','Compras','Contas','Outros'];
-                const receitaCategorias = ['SalÃ¡rio','BenefÃ­cio','Ticket','Outro'];
+                const receitaCategorias = ['Salário','Benefício','Ticket','Outro'];
                 const tipoRegistro = item?.tipo_registro || defaultTipo || 'gasto_variado';
                 const parcelaTotalInit = Math.max(0, Math.round(Number(item?.parcela_total ?? 0)));
                 const parcelaAtualInit = Math.max(0, Math.round(Number(item?.parcela_atual ?? 0)));
@@ -6187,7 +6188,7 @@
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
                         <h4>${item ? 'Editar registro financeiro' : 'Novo registro financeiro'}</h4>
-                        <p class="app-form-note" id="financeiro-modal-contexto">MÃªs de referÃªncia: <strong>${this.formatMesAnoLabel(mesAno)}</strong></p>
+                        <p class="app-form-note" id="financeiro-modal-contexto">Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong></p>
                         <div class="app-form">
                             <div class="app-form-row fin-form-grid">
                                 <div class="field"><label>Tipo de registro</label>
@@ -6195,11 +6196,11 @@
                                         <option value="despesa_fixa" ${tipoRegistro === 'despesa_fixa' ? 'selected' : ''}>Despesa fixa</option>
                                         <option value="gasto_variado" ${tipoRegistro === 'gasto_variado' ? 'selected' : ''}>Despesa variada</option>
                                         <option value="receita" ${tipoRegistro === 'receita' ? 'selected' : ''}>Receita</option>
-                                        <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>PoupanÃ§a</option>
+                                        <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>Poupança</option>
                                     </select>
                                 </div>
-                                <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">MÃªs de competÃªncia</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
-                                <div class="field" id="financeiro-descricao-wrap"><label>DescriÃ§Ã£o</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
+                                <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">Mês de competência</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
+                                <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
                                 <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
                                 <div class="field" id="financeiro-conta-fixa-wrap" style="display:none;">
                                     <label class="finance-conta-fixa-check"><input type="checkbox" id="financeiro-modal-conta-fixa" ${item?.conta_fixa ? 'checked' : ''} /> Conta fixa</label>
@@ -6210,7 +6211,7 @@
                                 <div class="field" id="financeiro-parcela-atual-field" style="display:none;"><label>Parcela atual</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-atual" value="${parcelasCheckedInit ? String(parcelaAtualInit) : ''}" placeholder="Ex.: 1" /></div>
                                 <div class="field" id="financeiro-parcela-total-field" style="display:none;"><label>Total de parcelas</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-total" value="${parcelasCheckedInit ? String(parcelaTotalInit) : ''}" placeholder="Ex.: 12" /></div>
                                 <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
-                                <div class="field" id="financeiro-data-wrap"><label>Data do lanÃ§amento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" /></div>
+                                <div class="field" id="financeiro-data-wrap"><label>Data do lançamento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" /></div>
                             </div>
                         </div>
                         <div class="app-modal-actions finance-modal-actions">
@@ -6290,11 +6291,11 @@
                         applyDateBoundsFromMes(mesForBounds());
                         catEl.innerHTML = '<option value="">--</option>';
                         const mr = mesForBounds();
-                        if (contextoEl) contextoEl.innerHTML = `A despesa fixa vale para o mÃªs em <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
+                        if (contextoEl) contextoEl.innerHTML = `A despesa fixa vale para o mês em <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
                     } else if (tipo === 'poupanca') {
                         if (descricaoWrap) descricaoWrap.style.display = 'none';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
-                        if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'PoupanÃ§a';
+                        if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'Poupança';
                         dataWrap.style.display = '';
                         if (dataEl) {
                             dataEl.removeAttribute('min');
@@ -6302,7 +6303,7 @@
                         }
                         catWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
-                        if (contextoEl) contextoEl.textContent = 'Registro de poupanÃ§a (sem filtro mensal).';
+                        if (contextoEl) contextoEl.textContent = 'Registro de poupança (sem filtro mensal).';
                     } else {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
@@ -6315,7 +6316,7 @@
                         const categories = tipo === 'receita' ? receitaCategorias : gastoCategorias;
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
                         if (item?.categoria) catEl.value = item.categoria;
-                        if (contextoEl) contextoEl.innerHTML = 'Escolha <strong>qualquer data</strong>: o lanÃ§amento aparece no mÃªs correspondente a essa data.';
+                        if (contextoEl) contextoEl.innerHTML = 'Escolha <strong>qualquer data</strong>: o lançamento aparece no mês correspondente a essa data.';
                     }
                     syncParcelasUI();
                 };
@@ -6332,14 +6333,14 @@
                     if (tipoVal === 'despesa_fixa') {
                         const v = mesRefEl && mesRefEl.value ? mesRefEl.value.trim() : '';
                         if (!v || !/^\d{4}-\d{2}$/.test(v)) {
-                            alert('Selecione o mÃªs de competÃªncia da despesa fixa.');
+                            alert('Selecione o mês de competência da despesa fixa.');
                             return;
                         }
                         mesAnoPayload = v;
                     } else if (tipoVal === 'gasto_variado' || tipoVal === 'receita') {
                         const dl = String(overlay.querySelector('#financeiro-modal-data')?.value || '').trim();
                         if (!/^\d{4}-\d{2}-\d{2}$/.test(dl)) {
-                            alert('Informe a data do lanÃ§amento.');
+                            alert('Informe a data do lançamento.');
                             return;
                         }
                         mesAnoPayload = dl.slice(0, 7);
@@ -6367,7 +6368,7 @@
                             const pa = parseInt(String(overlay.querySelector('#financeiro-modal-parcela-atual')?.value || ''), 10);
                             const pt = parseInt(String(overlay.querySelector('#financeiro-modal-parcela-total')?.value || ''), 10);
                             if (!Number.isFinite(pa) || !Number.isFinite(pt) || pa < 1 || pt < 1 || pa > pt) {
-                                alert('Informe parcela atual e total de parcelas (a atual nÃ£o pode ser maior que o total).');
+                                alert('Informe parcela atual e total de parcelas (a atual não pode ser maior que o total).');
                                 return;
                             }
                             payload.parcela_atual = pa;
@@ -6389,19 +6390,19 @@
                 const categoria = payload?.categoria || null;
                 const dataLanc = String(payload?.data_lancamento || '');
                 const mesAno = payload?.mesAno || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro invÃ¡lido'); return false; }
-                if (tipoRegistro !== 'poupanca' && !descricao) { alert('DescriÃ§Ã£o Ã© obrigatÃ³ria'); return false; }
+                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro inválido'); return false; }
+                if (tipoRegistro !== 'poupanca' && !descricao) { alert('Descrição é obrigatória'); return false; }
                 if (tipoRegistro !== 'despesa_fixa' && tipoRegistro !== 'poupanca') {
                     const [yy, mm] = mesAno.split('-').map(Number);
                     const [dy, dm] = dataLanc.split('-').map(Number);
                     if (dy !== yy || dm !== mm) {
-                        alert('A data do lanÃ§amento precisa estar dentro do mÃªs selecionado.');
+                        alert('A data do lançamento precisa estar dentro do mês selecionado.');
                         return false;
                     }
                 }
                 const requestBody = {
                     tipo_registro: tipoRegistro,
-                    descricao: tipoRegistro === 'poupanca' ? (descricao || 'PoupanÃ§a') : descricao,
+                    descricao: tipoRegistro === 'poupanca' ? (descricao || 'Poupança') : descricao,
                     valor,
                     mes_ano: mesAno,
                 };
@@ -6443,10 +6444,10 @@
             }
 
             /**
-             * Plano de cÃ³pia de uma despesa fixa do mÃªs anterior para o mÃªs atual (parcelas).
-             * Sem parcelamento vÃ¡lido: copia descriÃ§Ã£o e valor, sem parcelas no destino.
-             * Com parcelas (atual e total vÃ¡lidos): se atual igual a total, nÃ£o copia (Ãºltima parcela).
-             * Caso contrÃ¡rio (atual menor que total): copia com parcela atual incrementada em 1.
+             * Plano de cópia de uma despesa fixa do mês anterior para o mês atual (parcelas).
+             * Sem parcelamento válido: copia descrição e valor, sem parcelas no destino.
+             * Com parcelas (atual e total válidos): se atual igual a total, não copia (última parcela).
+             * Caso contrário (atual menor que total): copia com parcela atual incrementada em 1.
              */
             _parcelCopyPlanFromPreviousMonthRow(r) {
                 const isContaFixa = r?.conta_fixa === true || r?.conta_fixa === 'true';
@@ -6472,17 +6473,17 @@
                 const labelAtual = this.formatMesAnoLabel(mesAtual);
                 const okConfirm = await this.showConfirm(
                     'Importar despesas fixas',
-                    `Os dados de ${labelAnt} serÃ£o copiados para ${labelAtual}. Itens na Ãºltima parcela (ex.: Parcela 5 de 5) nÃ£o serÃ£o copiados. Deseja continuar?`
+                    `Os dados de ${labelAnt} serão copiados para ${labelAtual}. Itens na última parcela (ex.: Parcela 5 de 5) não serão copiados. Deseja continuar?`
                 );
                 if (!okConfirm) return;
                 let res;
                 try {
                     res = await fetch(`/api/financeiro?bi=1&mes_ano=${encodeURIComponent(mesAnterior)}`);
-                    if (!res.ok) throw new Error('NÃ£o foi possÃ­vel ler o mÃªs anterior.');
+                    if (!res.ok) throw new Error('Não foi possível ler o mês anterior.');
                     const data = await res.json();
                     const rows = data?.tabelas?.despesas_fixas || [];
                     if (!rows.length) {
-                        alert('NÃ£o hÃ¡ despesas fixas no mÃªs anterior para importar.');
+                        alert('Não há despesas fixas no mês anterior para importar.');
                         return;
                     }
                     let copied = 0;
@@ -6513,8 +6514,8 @@
                     if (copied === 0) {
                         alert(
                             skippedUltima > 0
-                                ? 'Nenhum lanÃ§amento foi copiado: todos estavam na Ãºltima parcela (N de N) ou nÃ£o havia linhas vÃ¡lidas.'
-                                : 'Nenhum lanÃ§amento foi copiado.'
+                                ? 'Nenhum lançamento foi copiado: todos estavam na última parcela (N de N) ou não havia linhas válidas.'
+                                : 'Nenhum lançamento foi copiado.'
                         );
                     }
                 } catch (e) {
@@ -6596,7 +6597,7 @@
                                         <option value="diamond">Losango</option>
                                         <option value="hexagon">Hexagono</option>
                                     </select>
-                                    <label>ConexÃ£o</label>
+                                    <label>Conexão</label>
                                     <select id="flux-connectionTypeSelect">
                                         <option value="arrow">Seta ida</option>
                                         <option value="both">Seta ida/volta</option>
@@ -6610,14 +6611,14 @@
                                         <span id="flux-currentColorSwatch" class="flux-color-preview-swatch is-empty"></span>
                                         <span id="flux-currentColorText">Sem selecao</span>
                                     </span>
-                                    <span class="flux-color-preview-item" title="Ãšltima cor usada">
+                                    <span class="flux-color-preview-item" title="Última cor usada">
                                         <span id="flux-activeColorSwatch" class="flux-color-preview-swatch"></span>
                                         <span id="flux-activeColorText">#3B82F6</span>
                                     </span>
                                 </div>
                                 <div class="flux-fc-stats">
                                     <span>Nos: <b id="flux-totalNodes">0</b></span>
-                                    <span>ConexÃµes: <b id="flux-totalConnections">0</b></span>
+                                    <span>Conexões: <b id="flux-totalConnections">0</b></span>
                                     <span>Conectados: <b id="flux-connectedNodes">0</b></span>
                                 </div>
                                 <div class="flux-fc-actions">
@@ -6723,7 +6724,7 @@
                             <button type="button" class="app-btn app-btn-secondary lista-toolbar-clear" data-action="lista-delete-all">Apagar todos</button>
                         </div>
                         <div class="lista-compras-cols" id="lista-compras-cols">${colsHtml}</div>
-                        <button type="button" class="lista-compras-fab lista-compras-fab-pulse" data-action="lista-open-modal" aria-label="Adicionar item Ã  lista">+</button>
+                        <button type="button" class="lista-compras-fab lista-compras-fab-pulse" data-action="lista-open-modal" aria-label="Adicionar item à lista">+</button>
                     </div>
                 `;
                 el.querySelector('[data-action="lista-open-modal"]').onclick = () => this.openListaComprasModal(el);
@@ -6788,14 +6789,14 @@
                             <header class="lista-entry-hero">
                                 <span class="lista-entry-hero-badge">Mercado</span>
                                 <div>
-                                    <h3 class="lista-entry-title" id="lista-modal-heading">${item ? 'Editar item' : 'Adicionar Ã  lista'}</h3>
-                                    <p class="lista-entry-sub">${item ? 'Ajuste nome, quantidade ou corredor.' : 'Abra o formulÃ¡rio pelo + e monte o item antes de ir ao mercado.'}</p>
+                                    <h3 class="lista-entry-title" id="lista-modal-heading">${item ? 'Editar item' : 'Adicionar à lista'}</h3>
+                                    <p class="lista-entry-sub">${item ? 'Ajuste nome, quantidade ou corredor.' : 'Abra o formulário pelo + e monte o item antes de ir ao mercado.'}</p>
                                 </div>
                             </header>
                             <div class="lista-entry-grid">
                                 <div class="field lista-field-span-2"><label for="lista-modal-item">Produto</label><input type="text" id="lista-modal-item" value="${initialItem}" placeholder="Ex.: Leite integral, papel toalha..." autocomplete="off" /></div>
                                 <div class="field"><label for="lista-modal-qtd">Quantidade</label><input type="number" min="1" id="lista-modal-qtd" value="${initialQtd}" /></div>
-                                <div class="field"><label for="lista-modal-unidade">Unidade</label><select id="lista-modal-unidade"><option value="">â€”</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
+                                <div class="field"><label for="lista-modal-unidade">Unidade</label><select id="lista-modal-unidade"><option value="">—</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
                             </div>
                             <div class="lista-cat-block">
                                 <span class="lista-cat-heading">Corredor</span>
@@ -6864,7 +6865,7 @@
                 const quantidade = parseInt(payload?.quantidade, 10) || 1;
                 const categoria = payload?.categoria || 'Mantimentos';
                 const unidade = String(payload?.unidade || '').trim();
-                if (!item) { alert('Item Ã© obrigatÃ³rio'); return false; }
+                if (!item) { alert('Item é obrigatório'); return false; }
                 try {
                     if (editId) {
                         const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, item, quantidade, categoria, unidade_medida: unidade }) });
@@ -6889,7 +6890,7 @@
                 } catch (e) { alert(e.message); }
             }
             async submitListaDeleteAll(el) {
-                if (!confirm('Apagar TODOS os itens da lista? NÃ£o Ã© possÃ­vel desfazer.')) return;
+                if (!confirm('Apagar TODOS os itens da lista? Não é possível desfazer.')) return;
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete_all: true }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
@@ -6941,7 +6942,7 @@
                 el.innerHTML = `
                     <div class="saude-module-shell">
                         <div class="lista-compras-cols" id="saude-cols"></div>
-                        <button type="button" class="saude-fab saude-fab-pulse" data-action="saude-open-modal" aria-label="Novo registro de saÃºde familiar">+</button>
+                        <button type="button" class="saude-fab saude-fab-pulse" data-action="saude-open-modal" aria-label="Novo registro de saúde familiar">+</button>
                     </div>
                 `;
                 const fmtDataBR = (d) => this.saudeFmtDataBR(d);
@@ -6949,7 +6950,7 @@
                 const itemLi = (r, colTipo) => {
                     const dataBr = fmtDataBR(r.data_evento);
                     const hora = fmtHora(r.hora_evento);
-                    const quando = [dataBr || null, hora ? ('Ã s ' + hora) : null].filter(Boolean).join(' Â· ');
+                    const quando = [dataBr || null, hora ? ('às ' + hora) : null].filter(Boolean).join(' · ');
                     const det = String(r.detalhes || '').trim();
                     const detBlock = det
                         ? `<p class="saude-item-detalhe" title="${escapeHtml(det)}">${escapeHtml(det)}</p>`
@@ -7038,7 +7039,7 @@
                                 <span class="saude-entry-hero-icon" aria-hidden="true">&#128137;</span>
                                 <div>
                                     <h3 class="saude-entry-title" id="saude-modal-heading">${item ? 'Editar registro' : 'Registro familiar'}</h3>
-                                    <p class="saude-entry-sub">${item ? 'Atualize os dados do cuidado de saÃºde.' : 'Use o + para abrir este formulÃ¡rio â€” trÃªs passos rÃ¡pidos, em janela.'}</p>
+                                    <p class="saude-entry-sub">${item ? 'Atualize os dados do cuidado de saúde.' : 'Use o + para abrir este formulário — três passos rápidos, em janela.'}</p>
                                 </div>
                             </header>
                             <div class="saude-panels">
@@ -7046,13 +7047,13 @@
                                     <span class="saude-panel-badge">1</span>
                                     <div class="saude-panel-body">
                                         <span id="saude-modal-membro-label" class="saude-panel-label">Quem</span>
-                                        <div class="field"><label for="saude-modal-membro">Nome no nÃºcleo familiar</label><input type="text" id="saude-modal-membro" value="${membro0}" placeholder="Ex.: Ana, Pedro..." autocomplete="name" /></div>
+                                        <div class="field"><label for="saude-modal-membro">Nome no núcleo familiar</label><input type="text" id="saude-modal-membro" value="${membro0}" placeholder="Ex.: Ana, Pedro..." autocomplete="name" /></div>
                                     </div>
                                 </section>
                                 <section class="saude-panel saude-panel--what">
                                     <span class="saude-panel-badge">2</span>
                                     <div class="saude-panel-body">
-                                        <span class="saude-panel-label">O quÃª</span>
+                                        <span class="saude-panel-label">O quê</span>
                                         <div class="saude-panel-grid">
                                             <div class="field"><label for="saude-modal-tipo">Tipo</label><select id="saude-modal-tipo">${saudeTipoOpts}${needsExtraOpt ? '<option value="' + escapeHtml(tipoRow) + '">' + escapeHtml(tipoRow) + '</option>' : ''}</select></div>
                                             <div class="field"><label for="saude-modal-detalhes">Detalhes</label><input type="text" id="saude-modal-detalhes" value="${detalhes0}" placeholder="Ex.: Dose 1, jejum, especialidade..." /></div>
@@ -7101,10 +7102,10 @@
 
             async submitSaudePayload({ editingId = '', membro_familia, tipo_registro, detalhes, data_evento, hora_evento }) {
                 if (data_evento && !/^\d{4}-\d{2}-\d{2}$/.test(data_evento)) {
-                    alert('Data invÃ¡lida.');
+                    alert('Data inválida.');
                     return false;
                 }
-                if (!String(membro_familia || '').trim()) { alert('Membro Ã© obrigatÃ³rio'); return false; }
+                if (!String(membro_familia || '').trim()) { alert('Membro é obrigatório'); return false; }
                 try {
                     if (editingId) {
                         const res = await fetch('/api/saude', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingId, membro_familia, tipo_registro, detalhes, data_evento, hora_evento }) });
@@ -7125,7 +7126,7 @@
             }
             async submitSaudeDelete(id, el) {
                 if (!id) return;
-                if (!confirm('Excluir este registro? NÃ£o Ã© possÃ­vel desfazer.')) return;
+                if (!confirm('Excluir este registro? Não é possível desfazer.')) return;
                 try {
                     const res = await fetch('/api/saude', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                     if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
@@ -7233,7 +7234,7 @@
                         return ta.localeCompare(tb);
                     });
                 } catch (err) {
-                    console.error('Erro ao carregar notificaÃ§Ãµes de eventos:', err);
+                    console.error('Erro ao carregar notificações de eventos:', err);
                     this.notificationItems = [];
                 }
                 this.refreshNotificationBadge();
@@ -7259,8 +7260,8 @@
                         source: 'sistema',
                         date: '',
                         time: '',
-                        title: 'Nova versÃ£o do app disponÃ­vel',
-                        details: 'Use o botÃ£o Atualizar no aviso exibido na tela.'
+                        title: 'Nova versão do app disponível',
+                        details: 'Use o botão Atualizar no aviso exibido na tela.'
                     });
                 }
                 const overlay = document.createElement('div');
@@ -7274,13 +7275,13 @@
                             return `<li><div><strong>${idx + 1}. ${escapeHtml(item.title || '')}</strong><br/><span style="font-size:0.8rem;color:#9ca3af;">${escapeHtml(detalhes)}</span></div></li>`;
                         }).join('')}
                        </ul>`
-                    : '<p style="font-size:0.9rem;color:var(--text-light);">Nenhum evento para amanhÃ£.</p>';
+                    : '<p style="font-size:0.9rem;color:var(--text-light);">Nenhum evento para amanhã.</p>';
                 overlay.innerHTML = `
                     <div class="app-modal" style="width:min(680px,calc(100vw - 2rem));">
-                        <h4>NotificaÃ§Ãµes de eventos</h4>
+                        <h4>Notificações de eventos</h4>
                         ${content}
                         <div class="app-modal-actions">
-                            ${hasEventItems ? '<button type="button" class="app-btn app-btn-secondary" data-action="clear-notifications">Limpar notificaÃ§Ãµes</button>' : ''}
+                            ${hasEventItems ? '<button type="button" class="app-btn app-btn-secondary" data-action="clear-notifications">Limpar notificações</button>' : ''}
                             <button type="button" class="app-btn app-btn-secondary" data-action="close-notifications">Fechar</button>
                         </div>
                     </div>
@@ -7329,11 +7330,11 @@
             }
 
             // ============================================
-            // MÃ‰TODOS PARA INTEGRAÃ‡ÃƒO COM BACKEND
+            // MÉTODOS PARA INTEGRAÇÃO COM BACKEND
             // ============================================
             
             /**
-             * MÃ©todo para vocÃª chamar quando receber dados do backend
+             * Método para você chamar quando receber dados do backend
              * Exemplo: superApp.setApps(dataFromBackend)
              */
             setApps(apps) {
@@ -7342,7 +7343,7 @@
             }
 
             /**
-             * MÃ©todo para vocÃª chamar quando receber estatÃ­sticas do backend
+             * Método para você chamar quando receber estatísticas do backend
              * Exemplo: superApp.setStatistics(statsFromBackend)
              */
             setStatistics(stats) {
@@ -7350,7 +7351,7 @@
             }
 
             /**
-             * MÃ©todo para vocÃª chamar quando receber roadmap do backend
+             * Método para você chamar quando receber roadmap do backend
              * Exemplo: superApp.setRoadmap(roadmapFromBackend)
              */
             setRoadmap(roadmap) {
@@ -7368,7 +7369,7 @@
         // ============================================
         
         /*
-        // Exemplo 1: Carregar dados quando pÃ¡gina carrega
+        // Exemplo 1: Carregar dados quando página carrega
         window.addEventListener('load', async () => {
             try {
                 const [appsRes, statsRes, roadmapRes] = await Promise.all([
@@ -7396,11 +7397,11 @@
                 const stats = await response.json();
                 superApp.setStatistics(stats);
             } catch (error) {
-                console.error('Erro ao atualizar estatÃ­sticas:', error);
+                console.error('Erro ao atualizar estatísticas:', error);
             }
         }, 30000);
 
-        // Exemplo 3: Usar WebSocket para atualizaÃ§Ãµes em tempo real
+        // Exemplo 3: Usar WebSocket para atualizações em tempo real
         const ws = new WebSocket('ws://seu-backend.com/api/updates');
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -7410,7 +7411,7 @@
         };
         */
 
-        // PWA: instalaÃ§Ã£o no mobile como app (nÃ£o Ã© atalho)
+        // PWA: instalação no mobile como app (não é atalho)
         let deferredInstallPrompt = null;
         const pwaInstallBtn = document.getElementById('pwaInstallBtn');
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -7437,13 +7438,13 @@
                     deferredInstallPrompt = null;
                     if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
                 } else if (isMobile) {
-                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (â‹® ou â˜°)\n2. Escolha "Instalar app" ou "Adicionar Ã  tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
+                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (⋮ ou ☰)\n2. Escolha "Instalar app" ou "Adicionar à tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
                 }
             });
         }
         updateInstallButton();
 
-        // PWA: registrar SW, detectar mudanÃ§a de versÃ£o (deploy) e atualizar cache
+        // PWA: registrar SW, detectar mudança de versão (deploy) e atualizar cache
         if ('serviceWorker' in navigator) {
             let pendingWorker = null;
             const banner = document.createElement('div');
