@@ -50,6 +50,14 @@ function getMesAnoAnterior(mesAno) {
   return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
 }
 
+function isLastDayOrLaterMes(mesAno, todayIso) {
+  if (!mesAno || !/^\d{4}-\d{2}$/.test(mesAno)) return false;
+  const [y, m] = mesAno.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  const [ty, tm, td] = String(todayIso || '').split('-').map(Number);
+  return ty > y || (ty === y && tm > m) || (ty === y && tm === m && td >= lastDay);
+}
+
 export async function verificarECopiarDespesasFixas(mesAnoSource) {
   if (!mesAnoSource || !/^\d{4}-\d{2}$/.test(mesAnoSource)) return;
   const [y, m] = mesAnoSource.split('-').map(Number);
@@ -125,21 +133,17 @@ export async function garantirDespesasFixasMes(mesAno) {
 
   if (error) return;
 
+  const prevMesAno = getMesAnoAnterior(mesAno);
+  const todayStr = getBrazilTodayIso();
+
   if (!rows || rows.length === 0) {
-    const prevMesAno = getMesAnoAnterior(mesAno);
-    await verificarECopiarDespesasFixas(prevMesAno);
+    // Só permite "entrar" automático no mês alvo após o fechamento do mês anterior.
+    if (isLastDayOrLaterMes(prevMesAno, todayStr)) {
+      await verificarECopiarDespesasFixas(prevMesAno);
+    }
   }
 
-  const lastDay = new Date(y, m, 0).getDate();
-  const todayStr = getBrazilTodayIso();
-  const [ty, tm, td] = todayStr.split('-').map(Number);
-
-  const isLastDayOrLater =
-    ty > y ||
-    (ty === y && tm > m) ||
-    (ty === y && tm === m && td >= lastDay);
-
-  if (isLastDayOrLater) {
+  if (isLastDayOrLaterMes(mesAno, todayStr)) {
     await verificarECopiarDespesasFixas(mesAno);
   }
 }
@@ -295,12 +299,8 @@ export async function criarRegistroFinanceiro(req) {
   if (parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA) {
     const mesAno = body.mes_ano || (row?.created_at && String(row.created_at).slice(0, 7));
     if (mesAno && /^\d{4}-\d{2}$/.test(mesAno)) {
-      const [y, m] = mesAno.split('-').map(Number);
-      const lastDay = new Date(y, m, 0).getDate();
       const todayStr = getBrazilTodayIso();
-      const [ty, tm, td] = todayStr.split('-').map(Number);
-      const isLastDayOrLater = ty > y || (ty === y && tm > m) || (ty === y && tm === m && td >= lastDay);
-      if (isLastDayOrLater) {
+      if (isLastDayOrLaterMes(mesAno, todayStr)) {
         await verificarECopiarDespesasFixas(mesAno);
       }
     }
@@ -328,12 +328,8 @@ export async function atualizarRegistroFinanceiro(req) {
   if (parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA) {
     const mesAno = body.mes_ano || (row?.created_at && String(row.created_at).slice(0, 7));
     if (mesAno && /^\d{4}-\d{2}$/.test(mesAno)) {
-      const [y, m] = mesAno.split('-').map(Number);
-      const lastDay = new Date(y, m, 0).getDate();
       const todayStr = getBrazilTodayIso();
-      const [ty, tm, td] = todayStr.split('-').map(Number);
-      const isLastDayOrLater = ty > y || (ty === y && tm > m) || (ty === y && tm === m && td >= lastDay);
-      if (isLastDayOrLater) {
+      if (isLastDayOrLaterMes(mesAno, todayStr)) {
         await verificarECopiarDespesasFixas(mesAno);
       }
     }

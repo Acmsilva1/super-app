@@ -67,12 +67,14 @@ Observacao: o endpoint consolidado atual para financas e `/api/financeiro`, mas 
 Arquivos existentes em `api/`:
 - `apps.js`
 - `financeiro.js`
+- `financeiro-ofx.js`
 - `fluxograma.js`
 - `lista-compras.js`
 - `missoes-treino.js`
 - `roadmap.js`
 - `statistics.js`
 - `_financeiroShared.js` (shared interno)
+- `_financeiroOfxShared.js` (legado OFX, sem uso no fluxo ativo)
 
 ### 6.1 Catalogo e shell
 #### `GET /api/apps`
@@ -96,6 +98,19 @@ Comportamento:
   - `tb_poupanca_metas`
 - `GET` retorna dashboard, graficos, tabelas e bloco de poupanca
 - `POST/PATCH/DELETE` suportam `tipo_registro` para rotear operacao na tabela correta
+
+Regra de replicacao de despesas fixas:
+- A replicacao automatica para o mes seguinte ocorre somente no fechamento do mes de origem (ultimo dia do mes ou depois).
+- Antes do fechamento, nenhum item entra automaticamente no mes seguinte.
+- Antes do fechamento, a entrada no mes seguinte e apenas manual (via lancamento explicito do usuario).
+
+#### `/api/financeiro-ofx`
+Status atual: funcionalidade removida.
+
+Comportamento:
+- Endpoint mantido apenas por compatibilidade tecnica.
+- Retorna `410` (`Gone`) para qualquer metodo, com mensagem de OFX removido.
+- Nao ha mais botao, input ou fluxo de importacao OFX no frontend financeiro.
 
 ### 6.3 Lista de compras
 #### `/api/lista-compras`
@@ -173,7 +188,8 @@ npm install
 
 ## 12. Estado atual e observacoes
 - O `README.md` existente descreve alguns componentes que nao aparecem mais no estado atual do repositorio (por exemplo, workflows em `.github/workflows/` e endpoint de calendario).
-- Esta documentacao foi escrita com base no codigo efetivamente presente em `2026-04-24`.
+- Esta documentacao foi revisada com base no codigo efetivamente presente em `2026-05-20`.
+- A importacao OFX do financeiro foi descontinuada no fluxo ativo (UI + endpoint funcional).
 - A pasta `docs/` segue disponivel para anexos, diagramas e RFCs futuros.
 
 ## 13. Proximos passos recomendados
