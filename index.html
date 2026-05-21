@@ -4819,15 +4819,14 @@
                             fetch('/api/vendas?type=receitas'),
                             fetch('/api/vendas?type=historico')
                         ]);
-                        const recipes = await recipesRes.json();
-                        const history = await historyRes.json();
+                        const recipes = await this.readApiJsonOrThrow(recipesRes, 'Falha ao carregar receitas');
+                        const history = await this.readApiJsonOrThrow(historyRes, 'Falha ao carregar histórico');
                         this.renderVendasContent(contentEl, { recipes, history });
                     } else {
                         let url = '/api/' + path;
                     if (appId === 'financeiro') url = '/api/financeiro?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     const res = await fetch(url);
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Falha ao carregar');
+                    const data = await this.readApiJsonOrThrow(res, 'Falha ao carregar');
                     if (appId === 'financeiro') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinanceiroContent(contentEl, data); }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
                     }
@@ -5530,11 +5529,9 @@
                 const mkRowCompra = (r) => {
                     const hora = fmtHoraBrasilia(r.created_at);
                     const pagoLabel = String(r.metodo_pagamento || '').toUpperCase() || '--';
-                    const isDebito = String(r.metodo_pagamento || '').toLowerCase() === 'debito';
-                    const badgeStyle = isDebito
-                        ? 'background:rgba(34, 197, 94, 0.15); color:#22c55e; border:1px solid rgba(34, 197, 94, 0.3);'
-                        : 'background:rgba(59, 130, 246, 0.15); color:#3b82f6; border:1px solid rgba(59, 130, 246, 0.3);';
-                    const metodoBadge = `<span style="font-size:0.62rem; font-weight:600; padding:0.1rem 0.3rem; border-radius:0.25rem; margin-left:0.35rem; text-transform:uppercase; vertical-align:middle; ${badgeStyle}">${pagoLabel}</span>`;
+                    const metodoBadge = pagoLabel === '--'
+                        ? ''
+                        : `<span class="finance-parcela-tag">${escapeHtml(pagoLabel)}</span>`;
                     return `<tr>
                         <td><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong>${metodoBadge}</td>
                         <td>${escapeHtml(r.local || '--')}</td>
@@ -6136,10 +6133,7 @@
                             valor_meta: valorMeta,
                         }),
                     });
-                    if (!res.ok) {
-                        const d = await res.json();
-                        throw new Error(d.error || 'Erro ao salvar meta');
-                    }
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao salvar meta'));
                     await this.refreshAppContent('financeiro');
                     return true;
                 } catch (e) {
@@ -6152,16 +6146,42 @@
                 if (!(await this.showConfirm('Excluir meta', 'Tem certeza que deseja excluir esta meta de poupança?'))) return false;
                 try {
                     const res = await fetch(`/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=meta_poupanca`, { method: 'DELETE' });
-                    if (!res.ok) {
-                        const d = await res.json();
-                        throw new Error(d.error || 'Erro ao excluir meta');
-                    }
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir meta'));
                     await this.refreshAppContent('financeiro');
                     return true;
                 } catch (e) {
                     alert(e.message);
                     return false;
                 }
+            }
+
+            async readApiErrorMessage(res, fallback = 'Erro na requisição') {
+                try {
+                    const raw = await res.text();
+                    if (!raw) return fallback;
+                    try {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && typeof parsed.error === 'string' && parsed.error.trim()) return parsed.error.trim();
+                        if (parsed && typeof parsed.message === 'string' && parsed.message.trim()) return parsed.message.trim();
+                    } catch (_) {}
+                    const normalized = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                    return normalized || fallback;
+                } catch (_) {
+                    return fallback;
+                }
+            }
+
+            async readApiJsonOrThrow(res, fallback = 'Erro na requisição') {
+                const raw = await res.text();
+                let data = {};
+                if (raw) {
+                    try { data = JSON.parse(raw); } catch (_) { data = {}; }
+                }
+                if (!res.ok) {
+                    const msg = (data && (data.error || data.message)) ? String(data.error || data.message) : (raw || fallback);
+                    throw new Error(msg || fallback);
+                }
+                return data;
             }
 
             openPoupancaMetaModal(el, meta = null) {
@@ -6540,10 +6560,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(requestBody),
                     });
-                    if (!res.ok) {
-                        const d = await res.json();
-                        throw new Error(d.error || 'Erro ao salvar');
-                    }
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao salvar'));
                     if ((tipoRegistro === 'despesa_fixa' || tipoRegistro === 'gasto_variado' || tipoRegistro === 'receita') && mesAno) {
                         el.setAttribute('data-mes-ano', mesAno);
                     }
@@ -6639,10 +6656,7 @@
                 if (!(await this.showConfirm('Excluir registro', 'Tem certeza que deseja excluir este registro financeiro?'))) return;
                 try {
                     const res = await fetch(`/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=${encodeURIComponent(tipoRegistro)}`, { method: 'DELETE' });
-                    if (!res.ok) {
-                        const d = await res.json();
-                        throw new Error(d.error || 'Erro ao excluir');
-                    }
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir'));
                     await this.refreshAppContent('financeiro');
                 } catch (e) { alert(e.message); }
             }
@@ -6659,10 +6673,7 @@
                             status: nextStatus
                         }),
                     });
-                    if (!res.ok) {
-                        const d = await res.json();
-                        throw new Error(d.error || 'Erro ao atualizar status');
-                    }
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao atualizar status'));
                     await this.refreshAppContent('financeiro');
                 } catch (e) {
                     alert(e.message);
@@ -6964,7 +6975,7 @@
             async submitListaSetComprado(id, comprado, el) {
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, comprado }) });
-                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     await this.refreshAppContent('lista_compras');
                 } catch (e) {
                     alert(e.message);
@@ -6981,10 +6992,10 @@
                 try {
                     if (editId) {
                         const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, item, quantidade, categoria, unidade_medida: unidade }) });
-                        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                        if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     } else {
                         const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade, categoria, unidade_medida: unidade || undefined }) });
-                        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                        if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     }
                     await this.refreshAppContent('lista_compras');
                     return true;
@@ -6997,7 +7008,7 @@
                 if (!confirm('Excluir este item da lista?')) return;
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     await this.refreshAppContent('lista_compras');
                 } catch (e) { alert(e.message); }
             }
@@ -7005,7 +7016,7 @@
                 if (!confirm('Apagar TODOS os itens da lista? Não é possível desfazer.')) return;
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete_all: true }) });
-                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro'); }
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     await this.refreshAppContent('lista_compras');
                 } catch (e) { alert(e.message); }
             }
@@ -7221,12 +7232,10 @@
                 try {
                     if (editingId) {
                         const res = await fetch('/api/saude', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingId, membro_familia, tipo_registro, detalhes, data_evento, hora_evento }) });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data.error || 'Erro ao atualizar');
+                        if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao atualizar'));
                     } else {
                         const res = await fetch('/api/saude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membro_familia, tipo_registro, detalhes, data_evento, hora_evento: hora_evento || undefined }) });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data.error || 'Erro ao salvar');
+                        if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao salvar'));
                     }
                     await this.refreshAppContent('saude');
                     this.refreshEventNotifications();
@@ -7241,7 +7250,7 @@
                 if (!confirm('Excluir este registro? Não é possível desfazer.')) return;
                 try {
                     const res = await fetch('/api/saude', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Erro ao excluir'); }
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir'));
                     delete el.dataset.saudeEditingId;
                     await this.refreshAppContent('saude');
                     this.refreshEventNotifications();
@@ -7598,7 +7607,3 @@
     </script>
 </body>
 </html>
-
-
-
-

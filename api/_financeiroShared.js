@@ -44,6 +44,14 @@ function normalizeDate(dateLike) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
 }
 
+function resolveTipoRegistroFinanceiro(row, fallback = TIPO_REGISTRO_GASTO_VARIADO) {
+  const tipoGasto = String(row?.tipo_gasto || '').toLowerCase();
+  if (tipoGasto === 'compra_variada') return TIPO_REGISTRO_COMPRA_VARIADA;
+  const tipo = String(row?.tipo || '').toLowerCase();
+  if (tipo === 'receita') return TIPO_REGISTRO_RECEITA;
+  return fallback;
+}
+
 function getMesAnoAnterior(mesAno) {
   const [y, m] = mesAno.split('-').map(Number);
   const prevYear = m === 1 ? y - 1 : y;
@@ -209,7 +217,8 @@ export async function obterFinanceiroMes(query = {}) {
   const { receitas, gastosVariados, comprasVariadas } = classificarFinancas(financasMes);
 
   const receitasTabela = montarTabelaFinanceiroRows(receitas, TIPO_REGISTRO_RECEITA);
-  const gastosVariadosTabela = montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO);
+  const gastosVariadosTabela = montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO)
+    .map((r) => ({ ...r, tipo_registro: resolveTipoRegistroFinanceiro(r, TIPO_REGISTRO_GASTO_VARIADO) }));
   const comprasVariadasTabela = montarTabelaFinanceiroRows(comprasVariadas, TIPO_REGISTRO_COMPRA_VARIADA);
   const despesasFixasTabela = montarTabelaFinanceiroRows(despesasFixasRowsRaw || [], TIPO_REGISTRO_DESPESA_FIXA);
   const poupancaTabela = montarTabelaFinanceiroRows(poupancaRowsRaw || [], TIPO_REGISTRO_POUPANCA);
