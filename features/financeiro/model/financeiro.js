@@ -5,6 +5,7 @@ export const TABLE_POUPANCA_METAS = 'tb_poupanca_metas';
 
 export const TIPO_REGISTRO_DESPESA_FIXA = 'despesa_fixa';
 export const TIPO_REGISTRO_GASTO_VARIADO = 'gasto_variado';
+export const TIPO_REGISTRO_COMPRA_VARIADA = 'compra_variada';
 export const TIPO_REGISTRO_RECEITA = 'receita';
 export const TIPO_REGISTRO_POUPANCA = 'poupanca';
 export const TIPO_REGISTRO_META_POUPANCA = 'meta_poupanca';

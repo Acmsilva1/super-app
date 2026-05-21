@@ -3,6 +3,7 @@ import {
   STATUS_PENDENTE,
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
+  TIPO_REGISTRO_COMPRA_VARIADA,
   TIPO_REGISTRO_META_POUPANCA,
   TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
@@ -92,12 +93,24 @@ export function filtrarFinancasPorMes(rows, ano, mes) {
 export function classificarFinancas(rows) {
   const receitas = [];
   const gastosVariados = [];
+  const comprasVariadas = [];
   for (const row of rows || []) {
     const tipo = String(row?.tipo || 'despesa').toLowerCase();
-    if (tipo === 'receita') receitas.push(row);
-    else gastosVariados.push(row);
+    if (tipo === 'receita') {
+      receitas.push(row);
+    } else {
+      const isCompra = row?.tipo_gasto === 'compra_variada' || row?.tipo_registro === 'compra_variada';
+      if (isCompra) {
+        comprasVariadas.push(row);
+        if (String(row?.metodo_pagamento || '').toLowerCase() === 'debito') {
+          gastosVariados.push(row);
+        }
+      } else {
+        gastosVariados.push(row);
+      }
+    }
   }
-  return { receitas, gastosVariados };
+  return { receitas, gastosVariados, comprasVariadas };
 }
 
 export function calcularDashboard({ receitasRows, gastosRows, despesasFixasRows }) {
@@ -185,7 +198,7 @@ export function payloadInsertFinanceiro(body = {}) {
     };
   }
 
-  if (tipoRegistro === TIPO_REGISTRO_GASTO_VARIADO || tipoRegistro === TIPO_REGISTRO_RECEITA) {
+  if (tipoRegistro === TIPO_REGISTRO_GASTO_VARIADO || tipoRegistro === TIPO_REGISTRO_RECEITA || tipoRegistro === TIPO_REGISTRO_COMPRA_VARIADA) {
     if (!(body.descricao != null && String(body.descricao).trim() !== '')) return { error: 'descricao obrigatoria' };
     const tipo = tipoRegistro === TIPO_REGISTRO_RECEITA ? 'receita' : 'despesa';
     const payload = {
@@ -195,6 +208,11 @@ export function payloadInsertFinanceiro(body = {}) {
       categoria: body.categoria || null,
       data_lancamento: body.data_lancamento || getBrazilTodayIso(),
     };
+    if (tipoRegistro === TIPO_REGISTRO_COMPRA_VARIADA) {
+      payload.local = body.local || null;
+      payload.metodo_pagamento = body.metodo_pagamento || null;
+      payload.tipo_gasto = 'compra_variada';
+    }
     return {
       tipo_registro: tipoRegistro,
       payload,
@@ -271,13 +289,18 @@ export function payloadUpdateFinanceiro(body = {}) {
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }
 
-  if (tipoRegistro === TIPO_REGISTRO_GASTO_VARIADO || tipoRegistro === TIPO_REGISTRO_RECEITA) {
+  if (tipoRegistro === TIPO_REGISTRO_GASTO_VARIADO || tipoRegistro === TIPO_REGISTRO_RECEITA || tipoRegistro === TIPO_REGISTRO_COMPRA_VARIADA) {
     const out = {};
     if (body.descricao !== undefined) out.descricao = String(body.descricao).trim();
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
     if (body.categoria !== undefined) out.categoria = body.categoria || null;
     if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
+    if (body.local !== undefined) out.local = body.local || null;
+    if (body.metodo_pagamento !== undefined) out.metodo_pagamento = body.metodo_pagamento || null;
     out.tipo = tipoRegistro === TIPO_REGISTRO_RECEITA ? 'receita' : 'despesa';
+    if (tipoRegistro === TIPO_REGISTRO_COMPRA_VARIADA) {
+      out.tipo_gasto = 'compra_variada';
+    }
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }

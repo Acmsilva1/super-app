@@ -126,4 +126,57 @@ describe('financeiroService', () => {
     });
     expect(out.error).toBe('conta_fixa e parcelas nao podem coexistir');
   });
+
+  describe('compras_variadas', () => {
+    it('classifica compras variadas e replica débitos para gastos variados', () => {
+      const rows = [
+        { id: 1, tipo: 'despesa', tipo_gasto: 'compra_variada', metodo_pagamento: 'debito', valor: 100 },
+        { id: 2, tipo: 'despesa', tipo_gasto: 'compra_variada', metodo_pagamento: 'credito', valor: 200 },
+        { id: 3, tipo: 'despesa', tipo_gasto: 'gasto_variado', valor: 50 },
+      ];
+      const { gastosVariados, comprasVariadas } = classificarFinancas(rows);
+
+      // Compras variadas deve conter as duas compras
+      expect(comprasVariadas).toHaveLength(2);
+      expect(comprasVariadas.map(c => c.id)).toContain(1);
+      expect(comprasVariadas.map(c => c.id)).toContain(2);
+
+      // Gastos variados deve conter o gasto normal e a compra em débito, mas NÃO a compra em crédito
+      expect(gastosVariados).toHaveLength(2);
+      expect(gastosVariados.map(g => g.id)).toContain(1);
+      expect(gastosVariados.map(g => g.id)).toContain(3);
+      expect(gastosVariados.map(g => g.id)).not.toContain(2);
+    });
+
+    it('valida payload de insert para compra_variada', () => {
+      const ok = payloadInsertFinanceiro({
+        tipo_registro: 'compra_variada',
+        descricao: 'Televisão',
+        valor: 1500,
+        local: 'Magazine Luiza',
+        metodo_pagamento: 'credito',
+        categoria: 'eletro',
+      });
+      expect(ok.error).toBeUndefined();
+      expect(ok.payload.local).toBe('Magazine Luiza');
+      expect(ok.payload.metodo_pagamento).toBe('credito');
+      expect(ok.payload.tipo_gasto).toBe('compra_variada');
+      expect(ok.payload.tipo).toBe('despesa');
+      expect(ok.payload.categoria).toBe('eletro');
+    });
+
+    it('valida payload de update para compra_variada', () => {
+      const ok = payloadUpdateFinanceiro({
+        id: 'compra-123',
+        tipo_registro: 'compra_variada',
+        local: 'Casas Bahia',
+        metodo_pagamento: 'debito',
+      });
+      expect(ok.error).toBeUndefined();
+      expect(ok.payload.local).toBe('Casas Bahia');
+      expect(ok.payload.metodo_pagamento).toBe('debito');
+      expect(ok.payload.tipo_gasto).toBe('compra_variada');
+    });
+  });
 });
+

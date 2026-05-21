@@ -6,6 +6,7 @@ import {
   TABLE_POUPANCA,
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
+  TIPO_REGISTRO_COMPRA_VARIADA,
   TIPO_REGISTRO_META_POUPANCA,
   TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
@@ -205,10 +206,11 @@ export async function obterFinanceiroMes(query = {}) {
   }
 
   const financasMes = filtrarFinancasPorMes(allFinancasRows || [], ano, mes);
-  const { receitas, gastosVariados } = classificarFinancas(financasMes);
+  const { receitas, gastosVariados, comprasVariadas } = classificarFinancas(financasMes);
 
   const receitasTabela = montarTabelaFinanceiroRows(receitas, TIPO_REGISTRO_RECEITA);
   const gastosVariadosTabela = montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO);
+  const comprasVariadasTabela = montarTabelaFinanceiroRows(comprasVariadas, TIPO_REGISTRO_COMPRA_VARIADA);
   const despesasFixasTabela = montarTabelaFinanceiroRows(despesasFixasRowsRaw || [], TIPO_REGISTRO_DESPESA_FIXA);
   const poupancaTabela = montarTabelaFinanceiroRows(poupancaRowsRaw || [], TIPO_REGISTRO_POUPANCA);
 
@@ -242,6 +244,7 @@ export async function obterFinanceiroMes(query = {}) {
       tabelas: {
         despesas_fixas: despesasFixasTabela,
         gastos_variados: gastosVariadosTabela,
+        compras_variadas: comprasVariadasTabela,
         receitas: receitasTabela,
         poupanca: poupancaTabela,
       },
@@ -346,9 +349,18 @@ export async function removerRegistroFinanceiro(req) {
   if (!id) return { status: 400, data: { error: 'id obrigatorio' } };
 
   if (!tipoRegistro) {
-    const { data: inFin, error: errFin } = await supabase.from(TABLE_FINANCAS).select('id').eq('id', id).limit(1);
+    const { data: inFin, error: errFin } = await supabase.from(TABLE_FINANCAS).select('id, tipo_gasto, tipo').eq('id', id).limit(1);
     if (errFin) return { status: 500, data: { error: errFin.message } };
-    if (Array.isArray(inFin) && inFin.length > 0) tipoRegistro = TIPO_REGISTRO_GASTO_VARIADO;
+    if (Array.isArray(inFin) && inFin.length > 0) {
+      const row = inFin[0];
+      if (row.tipo_gasto === 'compra_variada') {
+        tipoRegistro = TIPO_REGISTRO_COMPRA_VARIADA;
+      } else if (row.tipo === 'receita') {
+        tipoRegistro = TIPO_REGISTRO_RECEITA;
+      } else {
+        tipoRegistro = TIPO_REGISTRO_GASTO_VARIADO;
+      }
+    }
     if (!tipoRegistro) {
       const { data: inFix, error: errFix } = await supabase.from(TABLE_DESPESAS_FIXAS).select('id').eq('id', id).limit(1);
       if (errFix) return { status: 500, data: { error: errFix.message } };
@@ -367,7 +379,14 @@ export async function removerRegistroFinanceiro(req) {
     if (!tipoRegistro) return { status: 404, data: { error: 'registro nao encontrado para exclusao' } };
   }
 
-  if (![TIPO_REGISTRO_DESPESA_FIXA, TIPO_REGISTRO_GASTO_VARIADO, TIPO_REGISTRO_RECEITA, TIPO_REGISTRO_POUPANCA, TIPO_REGISTRO_META_POUPANCA].includes(tipoRegistro)) {
+  if (![
+    TIPO_REGISTRO_DESPESA_FIXA,
+    TIPO_REGISTRO_GASTO_VARIADO,
+    TIPO_REGISTRO_COMPRA_VARIADA,
+    TIPO_REGISTRO_RECEITA,
+    TIPO_REGISTRO_POUPANCA,
+    TIPO_REGISTRO_META_POUPANCA,
+  ].includes(tipoRegistro)) {
     return { status: 400, data: { error: 'tipo_registro invalido' } };
   }
   const table = tipoRegistro === TIPO_REGISTRO_DESPESA_FIXA
