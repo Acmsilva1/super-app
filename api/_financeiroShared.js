@@ -25,7 +25,14 @@ import {
 } from '../features/financeiro/index.js';
 
 function getBody(req) {
-  return typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+  if (typeof req.body !== 'string') return req.body || {};
+  const raw = String(req.body || '').trim();
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
 }
 
 function rowOrFirst(data) {

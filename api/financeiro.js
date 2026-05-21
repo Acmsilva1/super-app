@@ -11,22 +11,27 @@ function json(res, status, data) {
 }
 
 export default async function handler(req, res) {
-  if (req.method === 'GET') {
-    const result = await obterFinanceiroMes(req.query || {});
-    return json(res, result.status, result.data || { error: result.error || 'Erro ao carregar financeiro' });
+  try {
+    if (req.method === 'GET') {
+      const result = await obterFinanceiroMes(req.query || {});
+      return json(res, result.status, result.data || { error: result.error || 'Erro ao carregar financeiro' });
+    }
+    if (req.method === 'POST') {
+      const result = await criarRegistroFinanceiro(req);
+      return json(res, result.status, result.data);
+    }
+    if (req.method === 'PATCH') {
+      const result = await atualizarRegistroFinanceiro(req);
+      return json(res, result.status, result.data);
+    }
+    if (req.method === 'DELETE') {
+      const result = await removerRegistroFinanceiro(req);
+      return json(res, result.status, result.data);
+    }
+    res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
+    return json(res, 405, { error: 'Method Not Allowed' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erro interno no módulo financeiro';
+    return json(res, 500, { error: message });
   }
-  if (req.method === 'POST') {
-    const result = await criarRegistroFinanceiro(req);
-    return json(res, result.status, result.data);
-  }
-  if (req.method === 'PATCH') {
-    const result = await atualizarRegistroFinanceiro(req);
-    return json(res, result.status, result.data);
-  }
-  if (req.method === 'DELETE') {
-    const result = await removerRegistroFinanceiro(req);
-    return json(res, result.status, result.data);
-  }
-  res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
-  return json(res, 405, { error: 'Method Not Allowed' });
 }
