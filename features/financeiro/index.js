@@ -21,4 +21,18 @@ export {
   parcelCopyPlanFromPreviousMonthRow,
 } from './service/parcelCopyPlan.js';
 
+export {
+  inferTipoRegistro,
+  parseMesAno,
+  rangeMes,
+  filtrarFinancasPorMes,
+  classificarFinancas,
+  calcularDashboard,
+  calcularGraficos,
+  montarTabelaFinanceiroRows,
+  payloadInsertFinanceiro,
+  payloadUpdateFinanceiro,
+  getBrazilTodayIso,
+} from './service/financeiroService.js';
+
 
