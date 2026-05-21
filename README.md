@@ -137,6 +137,11 @@ flowchart TD
 | `TELEGRAM_TOKEN` | token do bot Telegram |
 | `TELEGRAM_CHAT_ID` | destino das notificacoes |
 
+Observacao:
+- O arquivo `.env` nao e versionado neste repositorio.
+- Em ambiente local, configure as variaveis no shell ou em um `.env` privado.
+- Em producao, configure via painel da Vercel.
+
 ## Deploy e Operacao
 
 ### Vercel

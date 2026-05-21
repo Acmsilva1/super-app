@@ -150,6 +150,10 @@ Configuracao minima obrigatoria (ver `lib/supabase.js`):
 
 Sem essas variaveis, a API falha ao inicializar.
 
+Politica de versionamento:
+- O arquivo `.env` nao deve ser commitado no repositorio.
+- Defina as variaveis localmente (shell ou `.env` privado) e na Vercel via Environment Variables.
+
 ## 9. Scripts SQL disponiveis
 Arquivos presentes em `sql/`:
 - `20260418_remove_notes_module.sql`
