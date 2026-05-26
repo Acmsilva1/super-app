@@ -215,9 +215,6 @@ function applyCanvasSize() {
     r.style.height = `${state.viewportHeight}px`;
     wrap.style.width = `${state.viewportWidth}px`;
     wrap.style.height = `${state.viewportHeight}px`;
-    wrap.style.transformOrigin = "0 0";
-    wrap.style.transform = `scale(${normalizeCanvasZoom(state.zoom || 1)})`;
-    wrap.style.willChange = "transform";
 }
 
 function resizeCanvas(scale = true) {
@@ -632,53 +629,59 @@ function getMagnetPortAtPosition(x, y, ignoreNodeId = null, threshold = PORT_HOV
 
 function drawCanvas(time = performance.now()) {
     const c = el("canvas"), ctx = c.getContext("2d");
-    ctx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
-    const bg = ctx.createLinearGradient(0, 0, state.canvasWidth, state.canvasHeight);
+    const dpr = window.devicePixelRatio || 1;
+    const zoom = normalizeCanvasZoom(state.zoom || 1);
+    const worldWidth = state.viewportWidth / zoom;
+    const worldHeight = state.viewportHeight / zoom;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, 0, 0);
+    const bg = ctx.createLinearGradient(0, 0, worldWidth, worldHeight);
     bg.addColorStop(0, "#020816");
     bg.addColorStop(0.55, "#050d1f");
     bg.addColorStop(1, "#081528");
     ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
-    const glowA = ctx.createRadialGradient(state.canvasWidth * 0.14, state.canvasHeight * 0.16, 0, state.canvasWidth * 0.14, state.canvasHeight * 0.16, Math.max(state.canvasWidth, state.canvasHeight) * 0.56);
+    ctx.fillRect(0, 0, worldWidth, worldHeight);
+    const glowA = ctx.createRadialGradient(worldWidth * 0.14, worldHeight * 0.16, 0, worldWidth * 0.14, worldHeight * 0.16, Math.max(worldWidth, worldHeight) * 0.56);
     glowA.addColorStop(0, "rgba(56, 189, 248, .14)");
     glowA.addColorStop(0.4, "rgba(56, 189, 248, .04)");
     glowA.addColorStop(1, "rgba(56, 189, 248, 0)");
     ctx.fillStyle = glowA;
-    ctx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
-    const glowB = ctx.createRadialGradient(state.canvasWidth * 0.88, state.canvasHeight * 0.2, 0, state.canvasWidth * 0.88, state.canvasHeight * 0.2, Math.max(state.canvasWidth, state.canvasHeight) * 0.5);
+    ctx.fillRect(0, 0, worldWidth, worldHeight);
+    const glowB = ctx.createRadialGradient(worldWidth * 0.88, worldHeight * 0.2, 0, worldWidth * 0.88, worldHeight * 0.2, Math.max(worldWidth, worldHeight) * 0.5);
     glowB.addColorStop(0, "rgba(34, 197, 94, .08)");
     glowB.addColorStop(0.45, "rgba(34, 197, 94, .03)");
     glowB.addColorStop(1, "rgba(34, 197, 94, 0)");
     ctx.fillStyle = glowB;
-    ctx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
+    ctx.fillRect(0, 0, worldWidth, worldHeight);
     ctx.save();
     ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
     ctx.lineWidth = 1;
     const grid = 52, startX = -((state.cameraX % grid) + grid) % grid, startY = -((state.cameraY % grid) + grid) % grid;
-    for (let x = startX; x < state.canvasWidth; x += grid) {
+    for (let x = startX; x < worldWidth; x += grid) {
         ctx.beginPath();
         ctx.moveTo(x + 0.5, 0);
-        ctx.lineTo(x + 0.5, state.canvasHeight);
+        ctx.lineTo(x + 0.5, worldHeight);
         ctx.stroke();
     }
-    for (let y = startY; y < state.canvasHeight; y += grid) {
+    for (let y = startY; y < worldHeight; y += grid) {
         ctx.beginPath();
         ctx.moveTo(0, y + 0.5);
-        ctx.lineTo(state.canvasWidth, y + 0.5);
+        ctx.lineTo(worldWidth, y + 0.5);
         ctx.stroke();
     }
     ctx.strokeStyle = "rgba(125, 211, 252, 0.06)";
     ctx.lineWidth = 1.5;
-    for (let x = startX; x < state.canvasWidth; x += grid * 5) {
+    for (let x = startX; x < worldWidth; x += grid * 5) {
         ctx.beginPath();
         ctx.moveTo(x + 0.5, 0);
-        ctx.lineTo(x + 0.5, state.canvasHeight);
+        ctx.lineTo(x + 0.5, worldHeight);
         ctx.stroke();
     }
-    for (let y = startY; y < state.canvasHeight; y += grid * 5) {
+    for (let y = startY; y < worldHeight; y += grid * 5) {
         ctx.beginPath();
         ctx.moveTo(0, y + 0.5);
-        ctx.lineTo(state.canvasWidth, y + 0.5);
+        ctx.lineTo(worldWidth, y + 0.5);
         ctx.stroke();
     }
     ctx.restore();
@@ -721,7 +724,7 @@ function drawCanvas(time = performance.now()) {
     });
     state.nodes.forEach(n => {
         const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
-        if (sx + nw < 0 || sy + nh < 0 || sx > state.canvasWidth || sy > state.canvasHeight) return;
+        if (sx + nw < 0 || sy + nh < 0 || sx > worldWidth || sy > worldHeight) return;
         const sel = n.id === state.selectedNode, from = n.id === state.connectingFrom, accent = getNodeAccent(n);
         const glow = sel ? "rgba(125, 211, 252, 0.34)" : from ? "rgba(34, 197, 94, 0.34)" : `${accent}55`;
         const body = ctx.createLinearGradient(sx, sy, sx + nw, sy + nh);
@@ -835,7 +838,7 @@ function drawCanvas(time = performance.now()) {
     }
     state.texts.forEach(t => {
         const sx = t.x - state.cameraX, sy = t.y - state.cameraY, tw = Number(t.w) || 0, th = Number(t.h) || 0;
-        if (sx + tw < 0 || sy + th < 0 || sx > state.canvasWidth || sy > state.canvasHeight) return;
+        if (sx + tw < 0 || sy + th < 0 || sx > worldWidth || sy > worldHeight) return;
         ctx.font = getTextFont(t);
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
@@ -962,22 +965,36 @@ function positionInlineEditor() {
     if (state.inlineEditNodeId === null) return;
     const n = state.nodes.find(x => x.id === state.inlineEditNodeId), i = el("nodeEditText");
     if (!n || state.isViewMode) { i.style.display = "none"; return; }
+    const zoom = normalizeCanvasZoom(state.zoom || 1);
+    const viewW = state.viewportWidth / zoom;
+    const viewH = state.viewportHeight / zoom;
     const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
-    if (sx + nw < 0 || sy + nh < 0 || sx > state.viewportWidth || sy > state.viewportHeight) { i.style.display = "none"; return; }
-    i.style.left = `${sx}px`; i.style.top = `${sy}px`; i.style.width = `${nw}px`; i.style.height = `${nh}px`; i.style.display = "block";
+    if (sx + nw < 0 || sy + nh < 0 || sx > viewW || sy > viewH) { i.style.display = "none"; return; }
+    i.style.left = `${sx * zoom}px`;
+    i.style.top = `${sy * zoom}px`;
+    i.style.width = `${nw * zoom}px`;
+    i.style.height = `${nh * zoom}px`;
+    i.style.fontSize = `${16 * zoom}px`;
+    i.style.lineHeight = "1.25";
+    i.style.display = "block";
 }
 
 function positionInlineTextEditor() {
     if (state.inlineEditTextId === null) return;
     const t = state.texts.find(x => x.id === state.inlineEditTextId), i = el("freeTextEdit");
     if (!t || state.isViewMode) { i.style.display = "none"; return; }
+    const zoom = normalizeCanvasZoom(state.zoom || 1);
+    const viewW = state.viewportWidth / zoom;
+    const viewH = state.viewportHeight / zoom;
     const sx = t.x - state.cameraX, sy = t.y - state.cameraY;
-    if (sx + (Number(t.w) || 0) < 0 || sy + (Number(t.h) || 0) < 0 || sx > state.viewportWidth || sy > state.viewportHeight) { i.style.display = "none"; return; }
-    i.style.left = `${sx}px`;
-    i.style.top = `${sy}px`;
-    i.style.width = `${Math.max(80, (Number(t.w) || 0) + 24)}px`;
-    i.style.height = `${Math.max(30, (Number(t.h) || 0) + 8)}px`;
-    i.style.font = getTextFont(t);
+    const tw = Number(t.w) || 0;
+    const th = Number(t.h) || 0;
+    if (sx + tw < 0 || sy + th < 0 || sx > viewW || sy > viewH) { i.style.display = "none"; return; }
+    i.style.left = `${sx * zoom}px`;
+    i.style.top = `${sy * zoom}px`;
+    i.style.width = `${Math.max(80, tw + 24) * zoom}px`;
+    i.style.height = `${Math.max(30, th + 8) * zoom}px`;
+    i.style.font = `700 ${Math.max(16, Number(t.fontSize) || 24) * zoom}px Segoe UI`;
     i.style.color = t.color || "#1a1f28";
     i.style.display = "block";
 }
