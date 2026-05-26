@@ -1221,25 +1221,46 @@
         .flux-hub-top {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: flex-end;
             flex-wrap: wrap;
-            gap: 0.75rem;
+            gap: 0.9rem;
+            padding: 1rem 1.05rem;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 1.35rem;
+            background: linear-gradient(135deg, rgba(10, 16, 33, 0.78), rgba(12, 20, 39, 0.58));
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+            backdrop-filter: blur(22px) saturate(140%);
         }
         .flux-hub-top h1 {
-            font-size: 1.35rem;
-            color: #214f83;
+            font-size: clamp(2rem, 4.2vw, 3.8rem);
+            line-height: 0.95;
+            letter-spacing: -0.05em;
+            color: #e8f1ff;
             font-family: inherit;
             text-transform: none;
-            letter-spacing: normal;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.18rem;
         }
-        .flux-hub-top p { font-size: 0.9rem; color: #667; }
-        .flux-hub-status { font-size: 0.82rem; color: #6b7280; align-self: center; }
-        .flux-hub-error { font-size: 0.85rem; color: #b91c1c; padding: 0.5rem 0; }
+        .flux-hub-top p {
+            font-size: 0.98rem;
+            color: #9aa8b8;
+            max-width: 62ch;
+            line-height: 1.5;
+        }
+        .flux-hub-status {
+            font-size: 0.82rem;
+            color: #b6f7d2;
+            align-self: center;
+            padding: 0.42rem 0.7rem;
+            border-radius: 999px;
+            border: 1px solid rgba(34, 197, 94, 0.18);
+            background: rgba(5, 150, 105, 0.08);
+            box-shadow: 0 12px 30px rgba(16, 185, 129, 0.08);
+        }
+        .flux-hub-error { font-size: 0.85rem; color: #fecaca; padding: 0.5rem 0 0; }
         .flux-hub-cards-wrap {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-            gap: 0.85rem;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
             align-content: start;
         }
         .fluxograma-root .flux-project-card {
@@ -1619,6 +1640,715 @@
             .fluxograma-root .menu-tools .flux-color-preview-item { font-size: .64rem; }
             .fluxograma-root .flux-fc-stats { width: 100%; }
             .fluxograma-root .fab-wrap { right: .75rem; bottom: .75rem; }
+        }
+
+        .fluxograma-root {
+            --flux-bg-0: #030712;
+            --flux-bg-1: #07101f;
+            --flux-bg-2: #0a1730;
+            --flux-surface: rgba(9, 16, 33, 0.68);
+            --flux-surface-strong: rgba(12, 20, 39, 0.84);
+            --flux-border: rgba(148, 163, 184, 0.16);
+            --flux-border-strong: rgba(125, 211, 252, 0.28);
+            --flux-text: #e8f1ff;
+            --flux-muted: #9aa8b8;
+            --flux-glow: rgba(56, 189, 248, 0.22);
+            --flux-glow-strong: rgba(99, 102, 241, 0.28);
+            background:
+                radial-gradient(circle at 15% 12%, rgba(56, 189, 248, 0.16), transparent 20%),
+                radial-gradient(circle at 85% 8%, rgba(168, 85, 247, 0.14), transparent 18%),
+                radial-gradient(circle at 50% 98%, rgba(34, 197, 94, 0.1), transparent 24%),
+                linear-gradient(180deg, var(--flux-bg-1) 0%, var(--flux-bg-0) 100%);
+            color: var(--flux-text);
+        }
+        .fluxograma-root .flux-hub-screen {
+            padding: clamp(1rem, 1.8vw, 1.45rem);
+            background:
+                radial-gradient(circle at 20% 0%, rgba(56, 189, 248, 0.16), transparent 24%),
+                radial-gradient(circle at 90% 10%, rgba(168, 85, 247, 0.12), transparent 18%),
+                linear-gradient(180deg, #06101f 0%, #020617 100%);
+        }
+        .fluxograma-root .flux-hub-shell,
+        .fluxograma-root .flux-editor-shell {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .fluxograma-root .flux-hub-shell::before,
+        .fluxograma-root .flux-editor-shell::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(120deg, transparent 0 34%, rgba(255,255,255,.04) 38%, transparent 44%),
+                radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.1), transparent 18%),
+                radial-gradient(circle at 80% 8%, rgba(168, 85, 247, 0.08), transparent 16%);
+            opacity: 0.9;
+            mix-blend-mode: screen;
+        }
+        .fluxograma-root .flux-hub-hero {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: flex-end;
+            padding: clamp(1rem, 2vw, 1.6rem);
+            border: 1px solid var(--flux-border);
+            border-radius: 1.35rem;
+            background: linear-gradient(135deg, rgba(10, 16, 33, 0.78), rgba(12, 20, 39, 0.58));
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.35),
+                inset 0 1px 0 rgba(255,255,255,0.06);
+            backdrop-filter: blur(22px) saturate(140%);
+        }
+        .fluxograma-root .flux-hub-copy {
+            display: grid;
+            gap: 0.45rem;
+            max-width: 720px;
+        }
+        .fluxograma-root .flux-hub-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            width: fit-content;
+            padding: 0.32rem 0.7rem;
+            border-radius: 999px;
+            border: 1px solid rgba(125, 211, 252, 0.24);
+            background: rgba(15, 23, 42, 0.75);
+            color: #8ed8ff;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.08), 0 12px 24px rgba(6, 182, 212, 0.08);
+        }
+        .fluxograma-root .flux-hub-copy h1 {
+            font-size: clamp(2rem, 4.2vw, 3.8rem);
+            line-height: 0.95;
+            letter-spacing: -0.05em;
+            color: var(--flux-text);
+            text-wrap: balance;
+        }
+        .fluxograma-root .flux-hub-copy p {
+            max-width: 60ch;
+            color: var(--flux-muted);
+            font-size: 0.98rem;
+            line-height: 1.5;
+        }
+        .fluxograma-root .flux-hub-hero-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.8rem;
+            min-width: min(100%, 340px);
+        }
+        .fluxograma-root .flux-hub-search {
+            width: min(100%, 340px);
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.82rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(6, 11, 24, 0.58);
+            backdrop-filter: blur(18px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 18px 36px rgba(0,0,0,.2);
+        }
+        .fluxograma-root .flux-hub-search i { color: #7dd3fc; font-size: 0.96rem; }
+        .fluxograma-root .flux-hub-search input {
+            width: 100%;
+            border: none;
+            padding: 0;
+            background: transparent;
+            color: var(--flux-text);
+            font-size: 0.95rem;
+            box-shadow: none;
+        }
+        .fluxograma-root .flux-hub-search input::placeholder { color: rgba(154, 168, 184, 0.82); }
+        .fluxograma-root .flux-hub-search input:focus { box-shadow: none; }
+        .fluxograma-root .flux-hub-status {
+            padding: 0.42rem 0.7rem;
+            border-radius: 999px;
+            border: 1px solid rgba(34, 197, 94, 0.18);
+            background: rgba(5, 150, 105, 0.08);
+            color: #b6f7d2;
+            box-shadow: 0 12px 30px rgba(16, 185, 129, 0.08);
+        }
+        .fluxograma-root .flux-hub-error {
+            min-height: 1.2rem;
+            padding: 0;
+            color: #fecaca;
+        }
+        .fluxograma-root .flux-hub-cards-wrap {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            align-content: start;
+        }
+        .fluxograma-root .flux-project-card {
+            position: relative;
+            overflow: hidden;
+            text-align: left;
+            padding: 1rem 1.05rem 1.05rem;
+            border-radius: 1.1rem;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background:
+                radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--flux-accent, #38bdf8) 32%, transparent), transparent 28%),
+                linear-gradient(160deg, rgba(13, 19, 37, 0.85), rgba(10, 16, 31, 0.68));
+            color: var(--flux-text);
+            cursor: pointer;
+            min-height: 170px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-start;
+            gap: 0.35rem;
+            box-shadow:
+                0 16px 40px rgba(0,0,0,.28),
+                0 0 0 1px rgba(255,255,255,.03) inset;
+            backdrop-filter: blur(20px) saturate(140%);
+            transform: translateZ(0);
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+            content-visibility: auto;
+            contain-intrinsic-size: 220px 170px;
+            contain: layout paint style;
+        }
+        .fluxograma-root .flux-project-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 18%, rgba(255,255,255,.17), transparent 20%),
+                radial-gradient(circle at 70% 72%, color-mix(in srgb, var(--flux-accent, #38bdf8) 26%, transparent), transparent 20%);
+            opacity: 0.85;
+            pointer-events: none;
+        }
+        .fluxograma-root .flux-project-card::after {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            border-radius: 1.05rem;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,.05);
+        }
+        .fluxograma-root .flux-project-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--flux-border-strong);
+            box-shadow:
+                0 24px 50px rgba(0,0,0,.38),
+                0 0 34px var(--flux-glow);
+        }
+        .fluxograma-root .flux-project-card > * {
+            position: relative;
+            z-index: 1;
+        }
+        .fluxograma-root .flux-project-card--new {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 170px;
+            border-style: dashed;
+            background:
+                radial-gradient(circle at 50% 16%, rgba(125, 211, 252, 0.16), transparent 24%),
+                linear-gradient(155deg, rgba(14, 22, 43, 0.88), rgba(8, 14, 28, 0.68));
+        }
+        .fluxograma-root .flux-project-card--new .flux-card-new-icon {
+            width: 2.9rem;
+            height: 2.9rem;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            font-size: 1.6rem;
+            line-height: 1;
+            color: #03111f;
+            background: linear-gradient(135deg, #7dd3fc, #a78bfa);
+            box-shadow: 0 0 26px rgba(125, 211, 252, 0.42);
+            margin-bottom: 0.55rem;
+        }
+        .fluxograma-root .flux-card-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--flux-text);
+            width: 100%;
+            padding-right: 1.75rem;
+            line-height: 1.3;
+        }
+        .fluxograma-root .flux-card-meta {
+            font-size: 0.8rem;
+            color: rgba(154, 168, 184, 0.9);
+        }
+        .fluxograma-root .flux-project-card .flux-card-del {
+            position: absolute;
+            top: 0.55rem;
+            right: 0.55rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            padding: 0;
+            font-size: 1.1rem;
+            line-height: 1;
+            background: rgba(2, 6, 23, 0.48);
+            color: #cbd5e1;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(14px);
+        }
+        .fluxograma-root .flux-project-card .flux-card-del:hover {
+            background: rgba(239, 68, 68, 0.14);
+            color: #fecaca;
+            border-color: rgba(248, 113, 113, 0.35);
+        }
+        .fluxograma-root .flux-editor-screen {
+            padding: 0.9rem;
+            gap: 0.9rem;
+            background:
+                radial-gradient(circle at 22% 18%, rgba(56, 189, 248, 0.12), transparent 20%),
+                radial-gradient(circle at 82% 6%, rgba(168, 85, 247, 0.1), transparent 18%),
+                linear-gradient(180deg, #050a14 0%, #030712 100%);
+        }
+        .fluxograma-root .flux-editor-shell {
+            padding: 0.95rem;
+            border-radius: 1.5rem;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(6, 11, 24, 0.6);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.38);
+            backdrop-filter: blur(24px) saturate(150%);
+            overflow: hidden;
+        }
+        .fluxograma-root .flux-editor-dock {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.8rem 0.9rem;
+            margin-bottom: 0.9rem;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 1.1rem;
+            background: rgba(6, 11, 24, 0.68);
+            backdrop-filter: blur(20px) saturate(140%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 14px 28px rgba(0,0,0,.18);
+        }
+        .fluxograma-root .flux-editor-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            min-width: 0;
+        }
+        .fluxograma-root .flux-editor-title {
+            display: grid;
+            gap: 0.16rem;
+        }
+        .fluxograma-root .flux-editor-title h1 {
+            font-size: 1.15rem;
+            line-height: 1.1;
+            color: var(--flux-text);
+            text-transform: none;
+            letter-spacing: -0.03em;
+        }
+        .fluxograma-root .flux-editor-title p {
+            font-size: 0.82rem;
+            color: var(--flux-muted);
+        }
+        .fluxograma-root .flux-editor-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.4rem 0.72rem;
+            border-radius: 999px;
+            border: 1px solid rgba(125, 211, 252, 0.24);
+            background: rgba(15, 23, 42, 0.7);
+            color: #8ed8ff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .fluxograma-root .flux-editor-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .fluxograma-root .flux-action-btn,
+        .fluxograma-root .flux-toolbar-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            min-height: 42px;
+            padding: 0.55rem 0.9rem;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            background: rgba(15, 23, 42, 0.64);
+            color: var(--flux-text);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+        }
+        .fluxograma-root .flux-action-btn:hover:not(:disabled),
+        .fluxograma-root .flux-toolbar-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            border-color: rgba(125, 211, 252, 0.34);
+            box-shadow: 0 12px 26px rgba(0,0,0,.18), 0 0 22px rgba(56, 189, 248, 0.16);
+        }
+        .fluxograma-root .flux-action-btn i,
+        .fluxograma-root .flux-toolbar-btn i {
+            font-size: 0.95rem;
+            color: #7dd3fc;
+        }
+        .fluxograma-root .flux-action-btn--primary {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.9), rgba(99, 102, 241, 0.9));
+            border-color: rgba(125, 211, 252, 0.2);
+            color: #eff6ff;
+            box-shadow: 0 14px 28px rgba(14, 165, 233, 0.16);
+        }
+        .fluxograma-root .flux-action-btn--primary i { color: #eff6ff; }
+        .fluxograma-root .flux-editor-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.9rem;
+            flex-wrap: wrap;
+            padding: 0.85rem 0.9rem;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 1.2rem;
+            background: rgba(6, 11, 24, 0.54);
+            backdrop-filter: blur(18px) saturate(135%);
+        }
+        .fluxograma-root .flux-toolbar-icons {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+        }
+        .fluxograma-root .flux-toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .fluxograma-root .flux-toolbar-group .menu-tools {
+            background: transparent;
+            border: none;
+            padding: 0;
+            gap: 0.5rem;
+        }
+        .fluxograma-root .menu-tools {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            flex-wrap: wrap;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        .fluxograma-root .menu-tools label {
+            font-size: 0.72rem;
+            color: #9aa8b8;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .fluxograma-root .menu-tools select,
+        .fluxograma-root .menu-tools .flux-color-preview-item {
+            height: 38px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 0.9rem;
+            background: rgba(8, 14, 28, 0.72);
+            color: var(--flux-text);
+            font-size: 0.8rem;
+            padding: 0 0.75rem;
+        }
+        .fluxograma-root .menu-tools .mini {
+            height: 38px;
+            padding: 0 0.9rem;
+            font-size: 0.78rem;
+        }
+        .fluxograma-root .flux-color-palette {
+            display: grid;
+            grid-template-columns: repeat(8, 20px);
+            gap: .24rem;
+            padding: .22rem;
+            border-radius: .8rem;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            background: rgba(8, 14, 28, 0.72);
+        }
+        .fluxograma-root .flux-fc-container {
+            flex: 1;
+            min-height: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .fluxograma-root .flux-fc-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.9rem;
+            height: 100%;
+            min-height: 0;
+        }
+        .fluxograma-root .flux-fc-card {
+            background: rgba(7, 13, 27, 0.58);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 1.25rem;
+            padding: 0.9rem;
+            box-shadow: 0 22px 54px rgba(0,0,0,.28);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            backdrop-filter: blur(20px) saturate(140%);
+        }
+        .fluxograma-root .flux-fc-card h2 {
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
+            text-transform: none;
+            letter-spacing: normal;
+            color: var(--flux-text);
+        }
+        .fluxograma-root .canvas-wrap {
+            position: relative;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow:
+                inset 0 0 0 1px rgba(125, 211, 252, 0.06),
+                0 0 0 1px rgba(255,255,255,.02);
+        }
+        .fluxograma-root .canvas-scroll {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            border: 1px solid rgba(125, 211, 252, 0.12);
+            border-radius: 1rem;
+            background:
+                radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.1), transparent 20%),
+                radial-gradient(circle at 85% 18%, rgba(168, 85, 247, 0.08), transparent 18%),
+                linear-gradient(180deg, #040814 0%, #060b17 100%);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.02), 0 0 0 1px rgba(2, 6, 23, .8);
+        }
+        .fluxograma-root #flux-canvas,
+        .fluxograma-root #flux-renderView {
+            display: block;
+            background: transparent;
+        }
+        .fluxograma-root #flux-canvas { cursor: crosshair; touch-action: none; }
+        .fluxograma-root #flux-renderView { display: none; overflow: hidden; }
+        .fluxograma-root #flux-nodeEditText {
+            position: absolute;
+            display: none;
+            resize: none;
+            border: 1px solid rgba(125, 211, 252, 0.4);
+            border-radius: 0.8rem;
+            padding: 0.55rem 0.65rem;
+            font: 600 16px "Segoe UI", sans-serif;
+            line-height: 1.25;
+            color: #dbeafe;
+            outline: none;
+            background: rgba(3, 7, 18, 0.72);
+            backdrop-filter: blur(12px);
+            z-index: 2;
+            box-shadow: 0 0 0 1px rgba(255,255,255,.04), 0 18px 28px rgba(0,0,0,.24);
+        }
+        .fluxograma-root #flux-freeTextEdit {
+            position: absolute;
+            display: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            font: 700 24px "Segoe UI", sans-serif;
+            line-height: 1.1;
+            color: #dbeafe;
+            outline: none;
+            background: transparent;
+            box-shadow: none;
+            z-index: 3;
+        }
+        .fluxograma-root .status {
+            position: absolute;
+            left: 50%;
+            bottom: 1rem;
+            transform: translateX(-50%) translateY(10px);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 60;
+            min-width: 220px;
+            max-width: min(92vw, 420px);
+            font-size: .84rem;
+            padding: .65rem .8rem;
+            border-radius: .7rem;
+            box-shadow: 0 10px 24px rgba(0,0,0,.22);
+            transition: opacity .35s ease, transform .35s ease;
+        }
+        .fluxograma-root .status.success { background: rgba(12, 74, 110, 0.9); color: #cffafe; border: 1px solid rgba(103, 232, 249, 0.25); }
+        .fluxograma-root .status.error { background: rgba(127, 29, 29, 0.9); color: #fecaca; border: 1px solid rgba(248, 113, 113, 0.25); }
+        .fluxograma-root .status.info { background: rgba(15, 23, 42, 0.92); color: #dbeafe; border: 1px solid rgba(125, 211, 252, 0.18); }
+        .fluxograma-root .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.72);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        .fluxograma-root .modal > div {
+            background: rgba(8, 14, 28, 0.95);
+            width: 92%;
+            max-width: 420px;
+            border-radius: 16px;
+            padding: 1.2rem;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: 0 24px 70px rgba(0,0,0,.48);
+            color: var(--flux-text);
+        }
+        .fluxograma-root .group { display: flex; flex-direction: column; gap: .5rem; }
+        .fluxograma-root button {
+            padding: .56rem .9rem;
+            border: none;
+            border-radius: .6rem;
+            font-size: .86rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fluxograma-root button:disabled { opacity: .5; cursor: not-allowed; }
+        .fluxograma-root .sec {
+            background: rgba(15, 23, 42, 0.72);
+            color: var(--flux-text);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .fluxograma-root .sec:hover:not(:disabled) { background: rgba(30, 41, 59, 0.78); }
+        .fluxograma-root .pri {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.92), rgba(99, 102, 241, 0.92));
+            color: #eff6ff;
+        }
+        .fluxograma-root .danger {
+            background: linear-gradient(135deg, rgba(185, 28, 28, 0.95), rgba(239, 68, 68, 0.9));
+            color: #fff;
+        }
+        .fluxograma-root textarea,
+        .fluxograma-root input[type=text] {
+            width: 100%;
+            padding: .6rem .75rem;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: .7rem;
+            font: inherit;
+            font-size: .9rem;
+            background: rgba(8, 14, 28, 0.82);
+            color: var(--flux-text);
+        }
+        .fluxograma-root textarea { min-height: 100px; resize: vertical; }
+        .fluxograma-root textarea:focus,
+        .fluxograma-root input:focus {
+            outline: none;
+            border-color: rgba(125, 211, 252, 0.38);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+        }
+        .fluxograma-root .fab-wrap { display: none; }
+        .fluxograma-root .flux-editor-shell {
+            position: relative;
+            padding: 0.95rem;
+            border-radius: 1.5rem;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(6, 11, 24, 0.6);
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.38);
+            backdrop-filter: blur(24px) saturate(150%);
+            overflow: hidden;
+        }
+        .fluxograma-root .flux-fc-editor-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.9rem;
+            padding: 0.75rem 0.85rem;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 1rem;
+            background: rgba(6, 11, 24, 0.54);
+            backdrop-filter: blur(18px) saturate(130%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+        }
+        .fluxograma-root .flux-fc-header-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding: 1rem 1.05rem;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 1.25rem;
+            background: linear-gradient(135deg, rgba(10, 16, 33, 0.78), rgba(12, 20, 39, 0.58));
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.06);
+            backdrop-filter: blur(22px) saturate(140%);
+        }
+        .fluxograma-root .flux-fc-header-wrap > div:first-child {
+            max-width: 720px;
+        }
+        .fluxograma-root .flux-fc-header-wrap h1 {
+            font-size: clamp(1.9rem, 4vw, 3rem);
+            line-height: 0.98;
+            letter-spacing: -0.04em;
+            color: #e8f1ff;
+            margin-bottom: 0.2rem;
+        }
+        .fluxograma-root .flux-fc-header-wrap p {
+            font-size: 0.95rem;
+            color: #9aa8b8;
+            line-height: 1.5;
+        }
+        .fluxograma-root .menu-tools {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            flex-wrap: wrap;
+            padding: 0.8rem 0.9rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(6, 11, 24, 0.54);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(18px) saturate(130%);
+        }
+        .fluxograma-root .menu-tools label {
+            font-size: 0.72rem;
+            color: #9aa8b8;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .fluxograma-root .flux-fc-actions {
+            display: flex;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .fluxograma-root .flux-fc-stats {
+            display: flex;
+            gap: .75rem;
+            flex-wrap: wrap;
+            font-size: .82rem;
+            color: #b6c2d0;
+            padding: 0.45rem 0.7rem;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(15, 23, 42, 0.58);
+        }
+        .fluxograma-root .flux-fc-stats b { color: #e5e7eb; }
+        .fluxograma-root .flux-fc-container {
+            flex: 1;
+            min-height: 0;
+            padding: 0;
+            overflow: hidden;
         }
 
         /* APP CONTENT: forms and lists */
@@ -6781,24 +7511,33 @@
                 el.innerHTML = `
                     <div id="fluxograma-root" class="fluxograma-root">
                         <div id="flux-hub-screen" class="flux-hub-screen">
-                            <div class="flux-hub-top">
-                                <div>
-                                    <h1>Fluxogramas</h1>
-                                    <p>Abra um projeto ou crie um novo  alteraes so salvas na nuvem automaticamente</p>
+                            <div class="flux-hub-shell">
+                                <div class="flux-hub-hero">
+                                    <div class="flux-hub-copy">
+                                        <span class="flux-hub-kicker">Command Center</span>
+                                        <h1>Fluxogramas</h1>
+                                        <p>Abra um projeto ou crie um novo. As alterações são salvas na nuvem automaticamente e o hall interno foi desenhado para navegação rápida, leve e mais imersiva.</p>
+                                    </div>
+                                    <div class="flux-hub-hero-actions">
+                                        <span id="flux-hub-status" class="flux-hub-status"></span>
+                                        <label class="flux-hub-search" for="flux-hub-search">
+                                            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                                            <input id="flux-hub-search" type="search" placeholder="Buscar projeto" autocomplete="off" spellcheck="false">
+                                        </label>
+                                    </div>
                                 </div>
-                                <span id="flux-hub-status" class="flux-hub-status"></span>
-                            </div>
-                            <div id="flux-hub-error" class="flux-hub-error" role="alert"></div>
-                            <div id="flux-hub-cards-wrap" class="flux-hub-cards-wrap">
-                                <button type="button" id="flux-hub-new" class="flux-project-card flux-project-card--new">
-                                    <span class="flux-card-new-icon" aria-hidden="true">+</span>
-                                    <span class="flux-card-title">Novo projeto</span>
-                                    <span class="flux-card-meta">Canvas em branco</span>
-                                </button>
+                                <div id="flux-hub-error" class="flux-hub-error" role="alert"></div>
+                                <div id="flux-hub-cards-wrap" class="flux-hub-cards-wrap">
+                                    <button type="button" id="flux-hub-new" class="flux-project-card flux-project-card--new">
+                                        <span class="flux-card-new-icon" aria-hidden="true">+</span>
+                                        <span class="flux-card-title">Novo projeto</span>
+                                        <span class="flux-card-meta">Canvas em branco</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div id="flux-editor-screen" class="flux-editor-screen">
-                        <header>
+                        <div class="flux-editor-shell">
                             <div class="flux-fc-editor-top">
                                 <button type="button" class="sec mini" id="flux-back-hub">Meus projetos</button>
                                 <span id="flux-autosave-status" style="font-size:0.78rem;flex:1;min-width:120px;"></span>
@@ -6845,7 +7584,6 @@
                                     <button type="button" class="sec" id="flux-viewModeBtn" onclick="toggleViewMode()">Visualizar</button>
                                 </div>
                             </div>
-                        </header>
                         <div class="flux-fc-container">
                             <div class="flux-fc-grid">
                                 <div class="flux-fc-card">

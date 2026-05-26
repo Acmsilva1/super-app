@@ -453,10 +453,23 @@ function getResizeHandleAt(n, x, y) {
 function drawCanvas() {
     const c = el("canvas"), ctx = c.getContext("2d");
     ctx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
-    /* Área de desenho sempre no visual claro (igual ao fluxograma.html original); só o chrome usa dark mode. */
-    ctx.fillStyle = "#f7f8fa";
+    const bg = ctx.createLinearGradient(0, 0, state.canvasWidth, state.canvasHeight);
+    bg.addColorStop(0, "#040816");
+    bg.addColorStop(1, "#071424");
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
-    ctx.strokeStyle = "#e4e8ef"; ctx.lineWidth = 1;
+    const glowA = ctx.createRadialGradient(state.canvasWidth * 0.18, state.canvasHeight * 0.18, 0, state.canvasWidth * 0.18, state.canvasHeight * 0.18, Math.max(state.canvasWidth, state.canvasHeight) * 0.55);
+    glowA.addColorStop(0, "rgba(56, 189, 248, .11)");
+    glowA.addColorStop(1, "rgba(56, 189, 248, 0)");
+    ctx.fillStyle = glowA;
+    ctx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
+    const glowB = ctx.createRadialGradient(state.canvasWidth * 0.82, state.canvasHeight * 0.18, 0, state.canvasWidth * 0.82, state.canvasHeight * 0.18, Math.max(state.canvasWidth, state.canvasHeight) * 0.48);
+    glowB.addColorStop(0, "rgba(168, 85, 247, .08)");
+    glowB.addColorStop(1, "rgba(168, 85, 247, 0)");
+    ctx.fillStyle = glowB;
+    ctx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
+    ctx.strokeStyle = "rgba(125, 211, 252, 0.09)";
+    ctx.lineWidth = 1;
     const grid = 50, startX = -((state.cameraX % grid) + grid) % grid, startY = -((state.cameraY % grid) + grid) % grid;
     for (let x = startX; x < state.canvasWidth; x += grid) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, state.canvasHeight); ctx.stroke(); }
     for (let y = startY; y < state.canvasHeight; y += grid) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(state.canvasWidth, y); ctx.stroke(); }
@@ -466,18 +479,35 @@ function drawCanvas() {
         const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
         if (sx + nw < 0 || sy + nh < 0 || sx > state.canvasWidth || sy > state.canvasHeight) return;
         const sel = n.id === state.selectedNode, from = n.id === state.connectingFrom, fill = n.color || "#ffffff";
-        ctx.fillStyle = sel ? "#214f83" : from ? "#3d8d43" : fill; ctx.strokeStyle = sel ? "#214f83" : from ? "#3d8d43" : "#cfd6e2";
+        ctx.save();
+        ctx.shadowBlur = sel ? 24 : from ? 20 : 16;
+        ctx.shadowColor = sel ? "rgba(56, 189, 248, .42)" : from ? "rgba(34, 197, 94, .32)" : "rgba(56, 189, 248, .16)";
+        ctx.fillStyle = sel ? "#1d4ed8" : from ? "#16a34a" : fill;
+        ctx.strokeStyle = sel ? "#7dd3fc" : from ? "#86efac" : "rgba(148, 163, 184, 0.42)";
         ctx.lineWidth = 2.5; drawNodeShape(ctx, n.shape || "rect", sx, sy, nw, nh);
+        ctx.restore();
         ctx.fillStyle = sel || from ? "#fff" : getTextColorByFill(fill);
         ctx.font = "600 16px Segoe UI"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; drawLinesCentered(ctx, n._lines, sx + nw / 2, sy + nh / 2, NODE_LINE_HEIGHT);
-        if (sel && !state.isViewMode) { const hs = NODE_HANDLE_SIZE; ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#214f83"; ctx.lineWidth = 1.5; for (const h of getNodeHandles(n)) { const hx = h.x - state.cameraX, hy = h.y - state.cameraY; ctx.fillRect(hx, hy, hs, hs); ctx.strokeRect(hx, hy, hs, hs); } }
+        if (sel && !state.isViewMode) { const hs = NODE_HANDLE_SIZE; ctx.fillStyle = "#e0f2fe"; ctx.strokeStyle = "#7dd3fc"; ctx.lineWidth = 1.5; for (const h of getNodeHandles(n)) { const hx = h.x - state.cameraX, hy = h.y - state.cameraY; ctx.fillRect(hx, hy, hs, hs); ctx.strokeRect(hx, hy, hs, hs); } }
     });
     state.connections.forEach((cn, idx) => {
         const g = getConnectionGeometry(state, cn);
         if (!g) return;
         const fx = g.x1 - state.cameraX, fy = g.y1 - state.cameraY, tx = g.x2 - state.cameraX, ty = g.y2 - state.cameraY, c1x = g.c1x - state.cameraX, c1y = g.c1y - state.cameraY, c2x = g.c2x - state.cameraX, c2y = g.c2y - state.cameraY;
         const sel = idx === state.selectedConnectionIndex, type = cn.type || "arrow", base = cn.color || "#000000";
-        ctx.strokeStyle = sel ? "#f59e0b" : base; ctx.fillStyle = sel ? "#f59e0b" : base; ctx.lineWidth = sel ? 4 : 2.5; ctx.setLineDash(type === "line" ? [10, 6] : []); ctx.beginPath(); ctx.moveTo(fx, fy); if (type === "curve") ctx.bezierCurveTo(c1x, c1y, c2x, c2y, tx, ty); else ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]);
+        ctx.save();
+        ctx.shadowBlur = sel ? 18 : 10;
+        ctx.shadowColor = sel ? "rgba(245, 158, 11, .32)" : "rgba(56, 189, 248, .18)";
+        ctx.strokeStyle = sel ? "#f59e0b" : base;
+        ctx.fillStyle = sel ? "#f59e0b" : base;
+        ctx.lineWidth = sel ? 4 : 2.5;
+        ctx.setLineDash(type === "line" ? [10, 6] : []);
+        ctx.beginPath();
+        ctx.moveTo(fx, fy);
+        if (type === "curve") ctx.bezierCurveTo(c1x, c1y, c2x, c2y, tx, ty); else ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
         const endA = type === "curve" ? Math.atan2(ty - c2y, tx - c2x) : Math.atan2(ty - fy, tx - fx), startA = type === "curve" ? Math.atan2(c1y - fy, c1x - fx) : endA + Math.PI, s = 14;
         if (type === "arrow" || type === "both" || type === "curve") drawArrowHead(ctx, tx, ty, endA, s); if (type === "both") drawArrowHead(ctx, fx, fy, startA, s);
     });
@@ -619,6 +649,20 @@ function hideInlineTextEditor(commit = true) {
     drawCanvas();
 }
 
+function syncTopActions() {
+    const back = el("back-hub");
+    if (back && back.dataset.fluxSynced !== "1") {
+        back.innerHTML = '<i class="fas fa-right-from-bracket" aria-hidden="true"></i><span>Sair</span>';
+        back.dataset.fluxSynced = "1";
+    }
+    const viewBtn = el("viewModeBtn");
+    if (viewBtn) {
+        viewBtn.innerHTML = state.isViewMode
+            ? '<i class="fas fa-pen-to-square" aria-hidden="true"></i><span>Editar</span>'
+            : '<i class="fas fa-eye" aria-hidden="true"></i><span>Visualizar</span>';
+    }
+}
+
 function updateUI() {
     drawCanvas(); const connected = new Set();
     state.connections.forEach(c => { connected.add(c.from); connected.add(c.to); });
@@ -633,7 +677,8 @@ function toggleViewMode() {
     const root = fluxRoot();
     if (root) root.classList.toggle("view", state.isViewMode);
     if (state.isConnecting) cancelConnection(); if (state.isDisconnecting) cancelDisconnect();
-    el("viewModeBtn").textContent = state.isViewMode ? "Editar" : "Visualizar"; updateUI();
+    syncTopActions();
+    updateUI();
     showStatus(state.isViewMode ? "Modo visualização ativo." : "Modo edição ativo.", "info");
 }
 
@@ -800,6 +845,7 @@ export function bootFluxograma(opts = {}) {
     }
     ensureActiveColor();
     setProjectTitle();
+    syncTopActions();
     resizeCanvas(false);
     setupCanvasInteractions();
     renderColorPalette();
@@ -838,6 +884,7 @@ export function afterExternalHydrate() {
     hideInlineEditor(false);
     hideInlineTextEditor(false);
     setProjectTitle();
+    syncTopActions();
     if (el("canvasScroll")) resizeCanvas(false);
     updateUI();
     saveToLocalStorage();

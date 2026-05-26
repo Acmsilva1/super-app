@@ -137,7 +137,22 @@ export function drawNodeShape(ctx, shape, x, y, w, h) {
     if (shape === "hexagon") {
         const d = Math.min(w * 0.22, 44); ctx.beginPath(); ctx.moveTo(x + d, y); ctx.lineTo(x + w - d, y); ctx.lineTo(x + w, y + h / 2); ctx.lineTo(x + w - d, y + h); ctx.lineTo(x + d, y + h); ctx.lineTo(x, y + h / 2); ctx.closePath(); ctx.fill(); ctx.stroke(); return;
     }
-    ctx.fillRect(x, y, w, h); ctx.strokeRect(x, y, w, h);
+    const r = Math.max(8, Math.min(18, Math.min(w, h) * 0.16));
+    if (typeof ctx.roundRect === "function") {
+        ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.stroke(); return;
+    }
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
 }
 
 export function drawArrowHead(ctx, x, y, angle, size) {

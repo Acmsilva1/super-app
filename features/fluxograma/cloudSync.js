@@ -12,6 +12,7 @@ const AUTOSAVE_MS = 900;
 
 let autoSaveTimer = null;
 let savingCloud = false;
+let cachedProjects = [];
 
 function ce(id) {
     return document.getElementById("flux-" + id);
@@ -187,41 +188,62 @@ export async function initFluxogramaApp(mod) {
         }
     }
 
-    async function renderHub() {
+    function renderHubCards(filterTerm = "") {
         const errEl = document.getElementById("flux-hub-error");
         if (errEl) errEl.textContent = "";
         cardsWrap.querySelectorAll(".flux-project-card:not(.flux-project-card--new)").forEach((n) => n.remove());
-        if (hubStatus) hubStatus.textContent = "Carregando...";
+        const term = String(filterTerm || "").trim().toLowerCase();
+        const projects = term
+            ? cachedProjects.filter((p) => String(p.nome || "").toLowerCase().includes(term))
+            : cachedProjects;
+        if (hubStatus) hubStatus.textContent = cachedProjects.length === 0
+            ? "Nenhum projeto - crie o primeiro"
+            : `${projects.length}/${cachedProjects.length} projeto(s)`;
+        const palette = ["#38bdf8", "#a78bfa", "#22c55e", "#f97316", "#f43f5e", "#60a5fa"];
+        projects.forEach((p, idx) => {
+            const card = document.createElement("button");
+            card.type = "button";
+            card.className = "flux-project-card";
+            card.style.setProperty("--flux-accent", palette[idx % palette.length]);
+            const title = document.createElement("span");
+            title.className = "flux-card-title";
+            title.textContent = p.nome || "Sem nome";
+            const meta = document.createElement("span");
+            meta.className = "flux-card-meta";
+            meta.textContent = p.updated_at
+                ? "Atualizado " + new Date(p.updated_at).toLocaleString("pt-BR")
+                : "Sem atualização recente";
+            const del = document.createElement("button");
+            del.type = "button";
+            del.className = "flux-card-del";
+            del.setAttribute("aria-label", "Excluir");
+            del.textContent = "";
+            del.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                deleteProject(p.id);
+            });
+            card.append(title, meta, del);
+            card.addEventListener("click", () => openExistingProject(p.id));
+            cardsWrap.appendChild(card);
+        });
+        if (term && projects.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "flux-hub-error";
+            empty.textContent = "Nenhum projeto encontrado para a busca atual.";
+            cardsWrap.appendChild(empty);
+        }
+    }
+
+    async function renderHub(filterTerm = (document.getElementById("flux-hub-search")?.value || ""), forceRefresh = true) {
+        const errEl = document.getElementById("flux-hub-error");
+        if (errEl) errEl.textContent = "";
         try {
-            const data = await fetchJson("/api/fluxograma");
-            const projects = data.projects || [];
-            if (hubStatus) hubStatus.textContent = projects.length === 0 ? "Nenhum projeto - crie o primeiro" : `${projects.length} projeto(s)`;
-            for (const p of projects) {
-                const card = document.createElement("button");
-                card.type = "button";
-                card.className = "flux-project-card";
-                const title = document.createElement("span");
-                title.className = "flux-card-title";
-                title.textContent = p.nome || "Sem nome";
-                const meta = document.createElement("span");
-                meta.className = "flux-card-meta";
-                meta.textContent = p.updated_at
-                    ? "Atualizado " + new Date(p.updated_at).toLocaleString("pt-BR")
-                    : "";
-                const del = document.createElement("button");
-                del.type = "button";
-                del.className = "flux-card-del";
-                del.setAttribute("aria-label", "Excluir");
-                del.textContent = "";
-                del.addEventListener("click", (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    deleteProject(p.id);
-                });
-                card.append(title, meta, del);
-                card.addEventListener("click", () => openExistingProject(p.id));
-                cardsWrap.appendChild(card);
+            if (forceRefresh || cachedProjects.length === 0) {
+                const data = await fetchJson("/api/fluxograma");
+                cachedProjects = data.projects || [];
             }
+            renderHubCards(filterTerm);
         } catch (e) {
             if (hubStatus) hubStatus.textContent = "";
             if (errEl) errEl.textContent = "Não foi possível listar projetos: " + (e.message || String(e));
@@ -229,6 +251,11 @@ export async function initFluxogramaApp(mod) {
     }
 
     btnNew.addEventListener("click", () => openNewProject());
+
+    const searchInput = document.getElementById("flux-hub-search");
+    if (searchInput) {
+        searchInput.addEventListener("input", () => renderHub(searchInput.value, false));
+    }
 
     if (btnBack) {
         btnBack.addEventListener("click", async () => {
