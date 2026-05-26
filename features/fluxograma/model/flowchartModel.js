@@ -39,7 +39,7 @@ export const state = {
     viewportHeight: 700,
     cameraX: 0,
     cameraY: 0,
-    activeColor: "#22c55e",
+    activeColor: "#d1d5db",
     defaultConnectionType: "line",
     connectionPointerX: 0,
     connectionPointerY: 0,
@@ -109,7 +109,7 @@ export function getGraphPayload() {
         })),
         nextId: state.nextId,
         projectName: state.projectName,
-        activeColor: state.activeColor || "#22c55e",
+        activeColor: state.activeColor || "#d1d5db",
         cameraX: state.cameraX,
         cameraY: state.cameraY
     };
@@ -152,7 +152,7 @@ export function applyPersistedData(d) {
         : "Novo Fluxograma";
     state.activeColor = typeof d.activeColor === "string" && d.activeColor.trim()
         ? d.activeColor.trim()
-        : "#22c55e";
+        : "#d1d5db";
     state.cameraX = Number(d.cameraX) || 0;
     state.cameraY = Number(d.cameraY) || 0;
 }
@@ -165,7 +165,7 @@ export function resetGraphState() {
     state.connections = [];
     state.nextId = 1;
     state.projectName = "Novo Fluxograma";
-    state.activeColor = "#22c55e";
+    state.activeColor = "#d1d5db";
     state.cameraX = 0;
     state.cameraY = 0;
     state.connectingFromSide = null;

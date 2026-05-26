@@ -1793,12 +1793,14 @@
             position: relative;
             overflow: hidden;
             text-align: left;
-            padding: 1rem 1.05rem 1.05rem;
-            border-radius: 1.1rem;
-            border: 1px solid rgba(148, 163, 184, 0.18);
+            padding: 1.1rem 1.1rem 1.05rem;
+            border-radius: 1.85rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
             background:
-                radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--flux-accent, #38bdf8) 32%, transparent), transparent 28%),
-                linear-gradient(160deg, rgba(13, 19, 37, 0.85), rgba(10, 16, 31, 0.68));
+                radial-gradient(circle at 18% 14%, color-mix(in srgb, var(--flux-accent, #38bdf8) 36%, rgba(255,255,255,0.85)), transparent 21%),
+                radial-gradient(circle at 84% 12%, rgba(255,255,255,0.12), transparent 16%),
+                radial-gradient(circle at 78% 86%, color-mix(in srgb, var(--flux-accent, #38bdf8) 20%, transparent), transparent 24%),
+                linear-gradient(145deg, rgba(18, 27, 48, 0.88), rgba(7, 12, 24, 0.78));
             color: var(--flux-text);
             cursor: pointer;
             min-height: 170px;
@@ -1806,13 +1808,14 @@
             flex-direction: column;
             justify-content: flex-end;
             align-items: flex-start;
-            gap: 0.35rem;
+            gap: 0.42rem;
             box-shadow:
-                0 16px 40px rgba(0,0,0,.28),
-                0 0 0 1px rgba(255,255,255,.03) inset;
-            backdrop-filter: blur(20px) saturate(140%);
+                0 18px 38px rgba(0, 0, 0, 0.24),
+                0 0 0 1px rgba(255,255,255,.04) inset,
+                0 0 40px color-mix(in srgb, var(--flux-accent, #38bdf8) 20%, transparent);
+            backdrop-filter: blur(24px) saturate(155%);
             transform: translateZ(0);
-            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, filter .18s ease;
             content-visibility: auto;
             contain-intrinsic-size: 220px 170px;
             contain: layout paint style;
@@ -1822,25 +1825,30 @@
             position: absolute;
             inset: 0;
             background:
-                radial-gradient(circle at 20% 18%, rgba(255,255,255,.17), transparent 20%),
-                radial-gradient(circle at 70% 72%, color-mix(in srgb, var(--flux-accent, #38bdf8) 26%, transparent), transparent 20%);
-            opacity: 0.85;
+                radial-gradient(circle at 20% 18%, rgba(255,255,255,.24), transparent 18%),
+                radial-gradient(circle at 68% 72%, color-mix(in srgb, var(--flux-accent, #38bdf8) 32%, transparent), transparent 18%),
+                linear-gradient(135deg, rgba(255,255,255,.06), transparent 38%);
+            opacity: 0.96;
             pointer-events: none;
         }
         .fluxograma-root .flux-project-card::after {
             content: "";
             position: absolute;
             inset: 1px;
-            border-radius: 1.05rem;
+            border-radius: 1.78rem;
             pointer-events: none;
-            border: 1px solid rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.06);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.08),
+                inset 0 -1px 0 rgba(255,255,255,.03);
         }
         .fluxograma-root .flux-project-card:hover {
-            transform: translateY(-3px);
-            border-color: var(--flux-border-strong);
+            transform: translateY(-4px) scale(1.01);
+            border-color: color-mix(in srgb, var(--flux-accent, #38bdf8) 52%, rgba(255,255,255,.18));
             box-shadow:
-                0 24px 50px rgba(0,0,0,.38),
-                0 0 34px var(--flux-glow);
+                0 26px 60px rgba(0,0,0,.4),
+                0 0 44px color-mix(in srgb, var(--flux-accent, #38bdf8) 28%, transparent);
+            filter: saturate(1.05);
         }
         .fluxograma-root .flux-project-card > * {
             position: relative;
@@ -1851,59 +1859,80 @@
             align-items: center;
             text-align: center;
             min-height: 170px;
-            border-style: dashed;
+            border-style: solid;
             background:
-                radial-gradient(circle at 50% 16%, rgba(125, 211, 252, 0.16), transparent 24%),
-                linear-gradient(155deg, rgba(14, 22, 43, 0.88), rgba(8, 14, 28, 0.68));
+                radial-gradient(circle at 50% 16%, rgba(125, 211, 252, 0.24), transparent 22%),
+                radial-gradient(circle at 18% 82%, rgba(167, 139, 250, 0.16), transparent 20%),
+                linear-gradient(155deg, rgba(14, 22, 43, 0.92), rgba(8, 14, 28, 0.76));
         }
         .fluxograma-root .flux-project-card--new .flux-card-new-icon {
-            width: 2.9rem;
-            height: 2.9rem;
+            width: 3.2rem;
+            height: 3.2rem;
             border-radius: 999px;
             display: grid;
             place-items: center;
-            font-size: 1.6rem;
+            font-size: 1.7rem;
             line-height: 1;
             color: #03111f;
-            background: linear-gradient(135deg, #7dd3fc, #a78bfa);
-            box-shadow: 0 0 26px rgba(125, 211, 252, 0.42);
-            margin-bottom: 0.55rem;
+            background: linear-gradient(135deg, #7dd3fc, #a78bfa 55%, #38bdf8);
+            box-shadow:
+                0 0 0 6px rgba(125, 211, 252, 0.08),
+                0 0 28px rgba(125, 211, 252, 0.44);
+            margin-bottom: 0.6rem;
         }
         .fluxograma-root .flux-card-title {
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 1.02rem;
             color: var(--flux-text);
             width: 100%;
-            padding-right: 1.75rem;
+            padding-right: 2.5rem;
             line-height: 1.3;
+            text-shadow: 0 1px 0 rgba(0,0,0,.18);
         }
         .fluxograma-root .flux-card-meta {
             font-size: 0.8rem;
-            color: rgba(154, 168, 184, 0.9);
+            color: rgba(186, 199, 216, 0.9);
         }
         .fluxograma-root .flux-project-card .flux-card-del {
             position: absolute;
-            top: 0.55rem;
-            right: 0.55rem;
-            width: 32px;
-            height: 32px;
+            top: 0.7rem;
+            right: 0.7rem;
+            width: 34px;
+            height: 34px;
             border-radius: 999px;
             padding: 0;
-            font-size: 1.1rem;
+            font-size: 1rem;
             line-height: 1;
-            background: rgba(2, 6, 23, 0.48);
-            color: #cbd5e1;
-            border: 1px solid rgba(148, 163, 184, 0.2);
+            background:
+                linear-gradient(180deg, rgba(15, 23, 42, 0.84), rgba(2, 6, 23, 0.72));
+            color: #e2e8f0;
+            border: 1px solid rgba(148, 163, 184, 0.22);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(14px);
+            backdrop-filter: blur(16px) saturate(150%);
+            box-shadow:
+                0 8px 20px rgba(0,0,0,.22),
+                inset 0 1px 0 rgba(255,255,255,.08);
+            transition: transform .16s ease, box-shadow .16s ease, background .16s ease, color .16s ease, border-color .16s ease;
+        }
+        .fluxograma-root .flux-project-card .flux-card-del::before {
+            content: "×";
+            display: block;
+            transform: translateY(-0.02rem);
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1;
         }
         .fluxograma-root .flux-project-card .flux-card-del:hover {
-            background: rgba(239, 68, 68, 0.14);
-            color: #fecaca;
-            border-color: rgba(248, 113, 113, 0.35);
+            transform: scale(1.06);
+            background: linear-gradient(180deg, rgba(127, 29, 29, 0.92), rgba(127, 29, 29, 0.7));
+            color: #fff1f2;
+            border-color: rgba(251, 113, 133, 0.42);
+            box-shadow:
+                0 10px 24px rgba(239, 68, 68, 0.2),
+                0 0 18px rgba(239, 68, 68, 0.22);
         }
         .fluxograma-root .flux-editor-screen {
             padding: 0.9rem;
@@ -7599,10 +7628,8 @@
                         <div id="flux-hub-screen" class="flux-hub-screen">
                             <div class="flux-hub-shell">
                                 <div class="flux-hub-hero">
-                                    <div class="flux-hub-copy">
-                                        <span class="flux-hub-kicker">Command Center</span>
-                                        <h1>Fluxogramas</h1>
-                                        <p>Abra um projeto ou crie um novo. As alterações são salvas na nuvem automaticamente e o hall interno foi desenhado para navegação rápida, leve e mais imersiva.</p>
+                                                                        <div class="flux-hub-copy">
+                                        <h1>Fluxograma</h1>
                                     </div>
                                     <div class="flux-hub-hero-actions">
                                         <span id="flux-hub-status" class="flux-hub-status"></span>
@@ -7654,8 +7681,11 @@
                                     </div>
                                     <div class="flux-color-preview-item" title="Última cor usada">
                                         <span id="flux-activeColorSwatch" class="flux-color-preview-swatch"></span>
-                                        <span id="flux-activeColorText">#3B82F6</span>
+                                        <span id="flux-activeColorText">#D1D5DB</span>
                                     </div>
+                                    <button type="button" class="sec" style="width:100%;margin-top:0.6rem;" onclick="resetActiveColor()">
+                                        Resetar para cinza original
+                                    </button>
                                     <div id="flux-colorPalette" class="flux-color-palette" role="group" aria-label="Paleta de cores"></div>
                                 </div>
                             </div>
@@ -7693,7 +7723,7 @@
                                     </span>
                                     <span class="flux-color-preview-item" title="Última cor usada">
                                         <span id="flux-activeColorSwatch" class="flux-color-preview-swatch"></span>
-                                        <span id="flux-activeColorText">#3B82F6</span>
+                                        <span id="flux-activeColorText">#D1D5DB</span>
                                     </span>
                                 </div>
                                 <div class="flux-fc-stats">

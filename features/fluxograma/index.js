@@ -21,12 +21,12 @@ function fluxRoot() {
 }
 
 const FLUX_PALETTE = [
-    "#ffffff", "#d1d5db", "#fde68a", "#f59e0b",
+    "#d1d5db", "#fde68a", "#f59e0b",
     "#f97316", "#ef4444", "#ec4899", "#a855f7",
     "#6366f1", "#3b82f6", "#06b6d4", "#14b8a6",
     "#22c55e", "#84cc16", "#65a30d", "#1f2937"
 ];
-const DEFAULT_ACTIVE_COLOR = "#22c55e";
+const DEFAULT_ACTIVE_COLOR = "#d1d5db";
 
 function normalizeHexColor(value, fallback = "#000000") {
     const input = String(value || "").trim().toLowerCase();
@@ -100,6 +100,25 @@ function syncColorPaletteUI() {
         btn.classList.toggle("is-active", isActive);
         btn.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
+}
+
+function resetActiveColor() {
+    if (state.isViewMode) return;
+    state.activeColor = DEFAULT_ACTIVE_COLOR;
+    const selectedConn = getSelectedConnection();
+    if (selectedConn) {
+        selectedConn.color = "#22c55e";
+    } else {
+        const node = getSelectedNode();
+        if (node) node.color = DEFAULT_ACTIVE_COLOR;
+        const text = getSelectedText();
+        if (text) text.color = "#1a1f28";
+    }
+    saveToLocalStorage();
+    syncColorPaletteUI();
+    updateUI();
+    showStatus("Cor redefinida para o cinza original.", "success");
+    closeColorModal();
 }
 
 // --- UI Orchestration Functions ---
@@ -1155,6 +1174,7 @@ window.toggleViewMode = toggleViewMode;
 window.toggleDisconnectFromMenu = toggleDisconnectFromMenu;
 window.openColorModal = openColorModal;
 window.closeColorModal = closeColorModal;
+window.resetActiveColor = resetActiveColor;
 window.closeRenameModal = closeRenameModal;
 window.saveProjectName = saveProjectName;
 
