@@ -4,7 +4,7 @@ import {
     state, loadFromLocalStorage, saveToLocalStorage,
     NODE_MIN_WIDTH, NODE_MIN_HEIGHT, NODE_MAX_WIDTH_AUTO, NODE_MAX_WIDTH_MANUAL,
     NODE_MAX_HEIGHT_MANUAL, NODE_PADDING_X, NODE_PADDING_Y, NODE_LINE_HEIGHT,
-    NODE_HANDLE_SIZE, RULER_SIZE, RULER_STEP
+    NODE_HANDLE_SIZE
 } from './model/flowchartModel.js';
 
 import {
@@ -359,7 +359,7 @@ function startConnection() {
     showStatus("Arraste de um ponto do nó até outro nó.", "info");
 }
 
-function cancelConnection() {
+function cancelConnection(silent = false) {
     state.isConnecting = false;
     state.connectingFrom = null;
     state.connectingFromSide = null;
@@ -367,7 +367,7 @@ function cancelConnection() {
     state.connectionPointerY = 0;
     state.hoveredPort = null;
     updateUI();
-    showStatus("Conexão cancelada.", "info");
+    if (!silent) showStatus("Conexão cancelada.", "info");
 }
 
 function startDisconnect() {
@@ -426,7 +426,7 @@ function finishConnection(to, toSide = null) {
     saveToLocalStorage();
     updateUI();
     showStatus("Conexão criada.", "success");
-    cancelConnection();
+    cancelConnection(true);
 }
 
 function finishDisconnect(to) {
@@ -711,25 +711,6 @@ function drawCanvas(time = performance.now()) {
             ctx.restore();
         }
     });
-    ctx.save();
-    ctx.fillStyle = "rgba(255,255,255,.03)";
-    ctx.fillRect(0, 0, state.canvasWidth, RULER_SIZE);
-    ctx.fillRect(0, 0, RULER_SIZE, state.canvasHeight);
-    ctx.strokeStyle = "rgba(148,163,184,.2)";
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, RULER_SIZE + .5); ctx.lineTo(state.canvasWidth, RULER_SIZE + .5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(RULER_SIZE + .5, 0); ctx.lineTo(RULER_SIZE + .5, state.canvasHeight); ctx.stroke();
-    ctx.fillStyle = "rgba(125,211,252,.12)";
-    ctx.fillRect(0, 0, RULER_SIZE, RULER_SIZE);
-    ctx.font = "10px Segoe UI";
-    ctx.fillStyle = "rgba(209,213,219,.68)";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    const rulerStartX = -((state.cameraX % RULER_STEP) + RULER_STEP) % RULER_STEP;
-    for (let x = rulerStartX; x < state.canvasWidth; x += RULER_STEP) { if (x < RULER_SIZE) continue; const worldX = Math.round(state.cameraX + x); ctx.strokeStyle = "rgba(110,118,129,.35)"; ctx.beginPath(); ctx.moveTo(x + .5, RULER_SIZE); ctx.lineTo(x + .5, RULER_SIZE - 6); ctx.stroke(); ctx.fillText(String(worldX), x + 2, 2); }
-    const rulerStartY = -((state.cameraY % RULER_STEP) + RULER_STEP) % RULER_STEP;
-    for (let y = rulerStartY; y < state.canvasHeight; y += RULER_STEP) { if (y < RULER_SIZE) continue; const worldY = Math.round(state.cameraY + y); ctx.strokeStyle = "rgba(110,118,129,.35)"; ctx.beginPath(); ctx.moveTo(RULER_SIZE, y + .5); ctx.lineTo(RULER_SIZE - 6, y + .5); ctx.stroke(); ctx.save(); ctx.translate(2, y + 2); ctx.rotate(-Math.PI / 2); ctx.fillText(String(worldY), 0, 0); ctx.restore(); }
-    ctx.restore();
 }
 
 function renderReadOnlyView() {
