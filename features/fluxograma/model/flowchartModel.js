@@ -39,6 +39,7 @@ export const state = {
     viewportHeight: 700,
     cameraX: 0,
     cameraY: 0,
+    zoom: 1,
     activeColor: "#d1d5db",
     defaultConnectionType: "line",
     connectionPointerX: 0,
@@ -111,7 +112,8 @@ export function getGraphPayload() {
         projectName: state.projectName,
         activeColor: state.activeColor || "#d1d5db",
         cameraX: state.cameraX,
-        cameraY: state.cameraY
+        cameraY: state.cameraY,
+        zoom: Number(state.zoom) || 1
     };
 }
 
@@ -155,6 +157,7 @@ export function applyPersistedData(d) {
         : "#d1d5db";
     state.cameraX = Number(d.cameraX) || 0;
     state.cameraY = Number(d.cameraY) || 0;
+    state.zoom = Number(d.zoom) > 0 ? Number(d.zoom) : 1;
 }
 
 /** Novo rascunho vazio. */
@@ -168,6 +171,7 @@ export function resetGraphState() {
     state.activeColor = "#d1d5db";
     state.cameraX = 0;
     state.cameraY = 0;
+    state.zoom = 1;
     state.connectingFromSide = null;
     state.disconnectFromSide = null;
     state.hoveredPort = null;

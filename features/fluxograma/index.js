@@ -27,6 +27,9 @@ const FLUX_PALETTE = [
     "#22c55e", "#84cc16", "#65a30d", "#1f2937"
 ];
 const DEFAULT_ACTIVE_COLOR = "#d1d5db";
+const MIN_CANVAS_ZOOM = 0.65;
+const MAX_CANVAS_ZOOM = 1.85;
+const CANVAS_ZOOM_STEP = 0.12;
 const PORT_HOVER_RADIUS = 18;
 const PORT_MAGNET_RADIUS = 26;
 
@@ -44,6 +47,12 @@ function getNodeAccent(node) {
 
 function ensureActiveColor() {
     state.activeColor = normalizeHexColor(state.activeColor || DEFAULT_ACTIVE_COLOR, DEFAULT_ACTIVE_COLOR);
+}
+
+function normalizeCanvasZoom(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return 1;
+    return Math.max(MIN_CANVAS_ZOOM, Math.min(MAX_CANVAS_ZOOM, n));
 }
 
 function isPaletteColor(value) {
@@ -206,6 +215,9 @@ function applyCanvasSize() {
     r.style.height = `${state.viewportHeight}px`;
     wrap.style.width = `${state.viewportWidth}px`;
     wrap.style.height = `${state.viewportHeight}px`;
+    wrap.style.transformOrigin = "0 0";
+    wrap.style.transform = `scale(${normalizeCanvasZoom(state.zoom || 1)})`;
+    wrap.style.willChange = "transform";
 }
 
 function resizeCanvas(scale = true) {
@@ -559,7 +571,43 @@ function getConnectionAtPosition(x, y, threshold = 14) {
 function getCanvasPoint(e) {
     const r = el("canvas").getBoundingClientRect();
     const sx = e.clientX - r.left, sy = e.clientY - r.top;
-    return { x: sx + state.cameraX, y: sy + state.cameraY };
+    const zoom = normalizeCanvasZoom(state.zoom || 1);
+    return { x: sx / zoom + state.cameraX, y: sy / zoom + state.cameraY };
+}
+
+function setCanvasZoom(nextZoom, anchorClientX = null, anchorClientY = null) {
+    const canvas = el("canvas");
+    const currentZoom = normalizeCanvasZoom(state.zoom || 1);
+    const zoom = normalizeCanvasZoom(nextZoom);
+    if (!canvas || zoom === currentZoom) return;
+
+    if (Number.isFinite(anchorClientX) && Number.isFinite(anchorClientY)) {
+        const rect = canvas.getBoundingClientRect();
+        const anchorX = anchorClientX - rect.left;
+        const anchorY = anchorClientY - rect.top;
+        state.cameraX += (anchorX / currentZoom) - (anchorX / zoom);
+        state.cameraY += (anchorY / currentZoom) - (anchorY / zoom);
+    }
+
+    state.zoom = zoom;
+    applyCanvasSize();
+    saveToLocalStorage();
+    positionInlineEditor();
+    positionInlineTextEditor();
+    drawCanvas();
+    showStatus(`Zoom ajustado para ${Math.round(zoom * 100)}%.`, "info");
+}
+
+function onCanvasWheel(e) {
+    const canvasScroll = el("canvasScroll");
+    if (!canvasScroll || !canvasScroll.contains(e.target)) return;
+    const tag = String(e.target?.tagName || "").toUpperCase();
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    e.preventDefault();
+    const delta = Number(e.deltaY) || 0;
+    if (delta === 0) return;
+    const factor = delta > 0 ? 1 - CANVAS_ZOOM_STEP : 1 + CANVAS_ZOOM_STEP;
+    setCanvasZoom((state.zoom || 1) * factor, e.clientX, e.clientY);
 }
 
 function getResizeHandleAt(n, x, y) {
@@ -1326,6 +1374,13 @@ export function bootFluxograma(opts = {}) {
     if (root._fluxKeyDown) document.removeEventListener("keydown", root._fluxKeyDown);
     document.addEventListener("keydown", keyHandler);
     root._fluxKeyDown = keyHandler;
+    const canvasScroll = el("canvasScroll");
+    if (canvasScroll) {
+        if (root._fluxWheel) canvasScroll.removeEventListener("wheel", root._fluxWheel);
+        const wheelHandler = (e) => onCanvasWheel(e);
+        canvasScroll.addEventListener("wheel", wheelHandler, { passive: false });
+        root._fluxWheel = wheelHandler;
+    }
     root._fluxOnResize = onWindowResize;
     window.addEventListener("resize", root._fluxOnResize);
     startCanvasAnimationLoop(root);
