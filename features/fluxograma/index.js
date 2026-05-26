@@ -9,7 +9,7 @@ import {
 
 import {
     sanitizeFilename, getNodeWidth, getNodeHeight, updateNodeMetrics,
-    getConnectionGeometry, pointToSegmentDistance, pointToCubicDistance,
+    getConnectionGeometry, getConnectorPoint, pointToSegmentDistance, pointToCubicDistance,
     getTextColorByFill, drawNodeShape, drawArrowHead, drawLinesCentered,
     getNodeHandles
 } from './service/flowchartService.js';
@@ -25,7 +25,7 @@ const FLUX_PALETTE = [
     "#6366f1", "#3b82f6", "#06b6d4", "#14b8a6",
     "#22c55e", "#84cc16", "#65a30d", "#1f2937"
 ];
-const DEFAULT_ACTIVE_COLOR = "#3b82f6";
+const DEFAULT_ACTIVE_COLOR = "#22c55e";
 
 function normalizeHexColor(value, fallback = "#000000") {
     const input = String(value || "").trim().toLowerCase();
@@ -262,6 +262,7 @@ function setSelectedNodeColor(v) {
         saveToLocalStorage();
         updateUI();
         showStatus("Cor da conexão atualizada.", "success");
+        closeColorModal();
         return;
     }
     const t = getSelectedText();
@@ -270,17 +271,20 @@ function setSelectedNodeColor(v) {
         saveToLocalStorage();
         updateUI();
         showStatus("Cor do texto atualizada.", "success");
+        closeColorModal();
         return;
     }
     const n = getSelectedNode();
     if (!n) {
         syncColorPaletteUI();
+        closeColorModal();
         return;
     }
     n.color = nextColor;
     saveToLocalStorage();
     updateUI();
     showStatus("Cor do nó atualizada.", "success");
+    closeColorModal();
 }
 
 function setConnectionType(v) {
@@ -329,21 +333,26 @@ function deleteNode() {
 }
 
 function startConnection() {
-    if (state.isViewMode || state.selectedNode === null) return;
+    if (state.isViewMode) return;
     hideInlineEditor(true);
     state.selectedConnectionIndex = null;
     state.isDisconnecting = false;
     state.disconnectFrom = null;
     state.isConnecting = true;
     state.connectingFrom = state.selectedNode;
+    const sn = getSelectedNode();
+    state.connectionPointerX = sn ? sn.x + getNodeWidth(sn) / 2 : state.connectionPointerX;
+    state.connectionPointerY = sn ? sn.y + getNodeHeight(sn) / 2 : state.connectionPointerY;
     ensureActiveColor();
     updateUI();
-    showStatus("Selecione o nó de destino.", "info");
+    showStatus(state.connectingFrom !== null ? "Arraste até o nó de destino." : "Toque no nó de origem e arraste até outro nó.", "info");
 }
 
 function cancelConnection() {
     state.isConnecting = false;
     state.connectingFrom = null;
+    state.connectionPointerX = 0;
+    state.connectionPointerY = 0;
     updateUI();
     showStatus("Conexão cancelada.", "info");
 }
@@ -379,16 +388,19 @@ function cancelDisconnect() {
 function finishConnection(to) {
     if (!state.isConnecting || state.connectingFrom === null) return;
     if (state.connectingFrom === to) return showStatus("Não é possível conectar um nó a ele mesmo.", "error");
-    if (state.connections.some(c => c.from === state.connectingFrom && c.to === to && ((c.type || "arrow") === (el("connectionTypeSelect")?.value || "arrow")))) return showStatus("Essa conexão já existe.", "info");
+    const connectionType = state.defaultConnectionType || "line";
+    if (state.connections.some(c => c.from === state.connectingFrom && c.to === to && ((c.type || "line") === connectionType))) return showStatus("Essa conexão já existe.", "info");
     ensureActiveColor();
     state.connections.push({
         from: state.connectingFrom,
         to,
-        type: (el("connectionTypeSelect")?.value || "arrow"),
+        type: connectionType,
         color: state.activeColor
     });
     state.isConnecting = false;
     state.connectingFrom = null;
+    state.connectionPointerX = 0;
+    state.connectionPointerY = 0;
     saveToLocalStorage();
     updateUI();
     showStatus("Conexão criada.", "success");
@@ -511,6 +523,27 @@ function drawCanvas() {
         const endA = type === "curve" ? Math.atan2(ty - c2y, tx - c2x) : Math.atan2(ty - fy, tx - fx), startA = type === "curve" ? Math.atan2(c1y - fy, c1x - fx) : endA + Math.PI, s = 14;
         if (type === "arrow" || type === "both" || type === "curve") drawArrowHead(ctx, tx, ty, endA, s); if (type === "both") drawArrowHead(ctx, fx, fy, startA, s);
     });
+    if (state.isConnecting && state.connectingFrom !== null && Number.isFinite(state.connectionPointerX) && Number.isFinite(state.connectionPointerY)) {
+        const source = state.nodes.find(n => n.id === state.connectingFrom);
+        if (source) {
+            const tip = getConnectorPoint(source, state.connectionPointerX, state.connectionPointerY);
+            const sx = tip.x - state.cameraX;
+            const sy = tip.y - state.cameraY;
+            const tx = state.connectionPointerX - state.cameraX;
+            const ty = state.connectionPointerY - state.cameraY;
+            ctx.save();
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([8, 8]);
+            ctx.strokeStyle = "rgba(34, 197, 94, 0.9)";
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = "rgba(34, 197, 94, 0.35)";
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(tx, ty);
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
     state.texts.forEach(t => {
         const sx = t.x - state.cameraX, sy = t.y - state.cameraY, tw = Number(t.w) || 0, th = Number(t.h) || 0;
         if (sx + tw < 0 || sy + th < 0 || sx > state.canvasWidth || sy > state.canvasHeight) return;
@@ -651,16 +684,27 @@ function hideInlineTextEditor(commit = true) {
 
 function syncTopActions() {
     const back = el("back-hub");
-    if (back && back.dataset.fluxSynced !== "1") {
-        back.innerHTML = '<i class="fas fa-right-from-bracket" aria-hidden="true"></i><span>Sair</span>';
-        back.dataset.fluxSynced = "1";
-    }
     const viewBtn = el("viewModeBtn");
     if (viewBtn) {
         viewBtn.innerHTML = state.isViewMode
-            ? '<i class="fas fa-pen-to-square" aria-hidden="true"></i><span>Editar</span>'
-            : '<i class="fas fa-eye" aria-hidden="true"></i><span>Visualizar</span>';
+            ? '<i class="fas fa-pen-to-square" aria-hidden="true"></i>'
+            : '<i class="fas fa-eye" aria-hidden="true"></i>';
     }
+}
+
+function openColorModal() {
+    const modal = el("colorModal");
+    if (!modal) return;
+    modal.style.display = "flex";
+    modal.setAttribute("aria-hidden", "false");
+    syncColorPaletteUI();
+}
+
+function closeColorModal() {
+    const modal = el("colorModal");
+    if (!modal) return;
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
 }
 
 function updateUI() {
@@ -677,6 +721,7 @@ function toggleViewMode() {
     const root = fluxRoot();
     if (root) root.classList.toggle("view", state.isViewMode);
     if (state.isConnecting) cancelConnection(); if (state.isDisconnecting) cancelDisconnect();
+    closeColorModal();
     syncTopActions();
     updateUI();
     showStatus(state.isViewMode ? "Modo visualização ativo." : "Modo edição ativo.", "info");
@@ -718,7 +763,25 @@ function setupCanvasInteractions() {
         if (state.isViewMode) return;
         pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY }); const { x, y } = getCanvasPoint(e), n = getNodeAtPosition(x, y), t = n ? null : getTextAtPosition(x, y);
         startX = x; startY = y; downNodeId = n ? n.id : null; downTextId = t ? t.id : null; wasSelectedOnDown = !!n && state.selectedNode === n.id; wasTextSelectedOnDown = !!t && state.selectedTextId === t.id;
-        if (state.isConnecting) { if (n) finishConnection(n.id); else showStatus("Toque em um nó para conectar.", "info"); return; }
+        if (state.isConnecting) {
+            if (state.connectingFrom === null) {
+                if (n) {
+                    state.connectingFrom = n.id;
+                    state.connectionPointerX = x;
+                    state.connectionPointerY = y;
+                } else {
+                    showStatus("Toque em um nó para iniciar a conexão.", "info");
+                    return;
+                }
+            }
+            activePointerId = e.pointerId;
+            c.setPointerCapture(e.pointerId);
+            state.connectionPointerX = x;
+            state.connectionPointerY = y;
+            c.style.cursor = "grabbing";
+            drawCanvas();
+            return;
+        }
         if (state.isDisconnecting) { if (n) finishDisconnect(n.id); else showStatus("Toque em um nó para desconectar.", "info"); return; }
         if (pointerMap.size === 2 && state.selectedNode !== null) {
             const sn = state.nodes.find(v => v.id === state.selectedNode);
@@ -766,6 +829,13 @@ function setupCanvasInteractions() {
     c.addEventListener("pointermove", e => {
         const r = c.getBoundingClientRect(); if (pointerMap.has(e.pointerId)) pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (state.isViewMode) return;
+        if (state.isConnecting && state.connectingFrom !== null && activePointerId === e.pointerId) {
+            const p = getCanvasPoint(e);
+            state.connectionPointerX = p.x;
+            state.connectionPointerY = p.y;
+            drawCanvas();
+            return;
+        }
         if (isPinching && pinchNodeId !== null && pointerMap.size >= 2) {
             const pts = [...pointerMap.values()]; const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1; const scale = dist / pinchStartDist;
             const n = state.nodes.find(v => v.id === pinchNodeId); if (!n) return;
@@ -800,6 +870,20 @@ function setupCanvasInteractions() {
     const endPointer = (e) => {
         pointerMap.delete(e.pointerId); if (isPinching && pointerMap.size < 2) { isPinching = false; pinchNodeId = null; saveToLocalStorage(); drawCanvas(); return; }
         if (activePointerId !== e.pointerId) return;
+        if (state.isConnecting && state.connectingFrom !== null) {
+            const p = getCanvasPoint(e);
+            const targetNode = getNodeAtPosition(p.x, p.y);
+            if (targetNode && targetNode.id !== state.connectingFrom) finishConnection(targetNode.id);
+            else cancelConnection();
+            activePointerId = null;
+            downNodeId = null;
+            downTextId = null;
+            downConnectionIndex = null;
+            wasSelectedOnDown = false;
+            wasTextSelectedOnDown = false;
+            c.style.cursor = "crosshair";
+            return;
+        }
         if (isPanning) { isPanning = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; c.style.cursor = "crosshair"; return; }
         if (isResizing) { isResizing = false; resizeNodeId = null; resizeHandle = null; activePointerId = null; saveToLocalStorage(); drawCanvas(); c.style.cursor = "crosshair"; return; }
         const p = getCanvasPoint(e), moved = Math.hypot(p.x - startX, p.y - startY) > 6; if ((state.draggingNodeId !== null || state.draggingTextId !== null) && state.hasDragged) saveToLocalStorage();
@@ -826,6 +910,8 @@ window.exportToPNG = exportToPNG;
 window.renameProject = renameProject;
 window.toggleViewMode = toggleViewMode;
 window.toggleDisconnectFromMenu = toggleDisconnectFromMenu;
+window.openColorModal = openColorModal;
+window.closeColorModal = closeColorModal;
 window.closeRenameModal = closeRenameModal;
 window.saveProjectName = saveProjectName;
 
@@ -873,6 +959,15 @@ export function bootFluxograma(opts = {}) {
         };
         renameModal.addEventListener("click", onRenameBackdrop);
         root._fluxRenameClick = onRenameBackdrop;
+    }
+    const colorModal = el("colorModal");
+    if (colorModal) {
+        if (root._fluxColorClick) colorModal.removeEventListener("click", root._fluxColorClick);
+        const onColorBackdrop = (e) => {
+            if (e.target === colorModal) closeColorModal();
+        };
+        colorModal.addEventListener("click", onColorBackdrop);
+        root._fluxColorClick = onColorBackdrop;
     }
     root._fluxOnResize = onWindowResize;
     window.addEventListener("resize", root._fluxOnResize);

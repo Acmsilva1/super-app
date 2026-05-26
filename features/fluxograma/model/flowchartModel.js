@@ -37,7 +37,10 @@ export const state = {
     viewportHeight: 700,
     cameraX: 0,
     cameraY: 0,
-    activeColor: "#2563eb",
+    activeColor: "#22c55e",
+    defaultConnectionType: "line",
+    connectionPointerX: 0,
+    connectionPointerY: 0,
     inlineEditNodeId: null,
     inlineEditTextId: null,
     draggingTextId: null
