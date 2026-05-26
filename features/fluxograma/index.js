@@ -263,10 +263,10 @@ function setSelectedNodeColor(v) {
     state.activeColor = nextColor;
     const selectedConn = getSelectedConnection();
     if (selectedConn) {
-        selectedConn.color = nextColor;
+        selectedConn.color = "#22c55e";
         saveToLocalStorage();
         updateUI();
-        showStatus("Cor da conexão atualizada.", "success");
+        showStatus("Conexões permanecem em verde no padrão low-code.", "info");
         closeColorModal();
         return;
     }
@@ -425,7 +425,7 @@ function finishConnection(to, toSide = null) {
         from: state.connectingFrom,
         to,
         type: connectionType,
-        color: state.activeColor,
+        color: "#22c55e",
         fromSide: resolvedFromSide,
         toSide: resolvedToSide
     });
@@ -497,7 +497,7 @@ function getResizeHandleAt(n, x, y) {
     return null;
 }
 
-function getPortAtPosition(n, x, y, threshold = 9) {
+function getPortAtPosition(n, x, y, threshold = 16) {
     for (const port of getNodePorts(n)) {
         const dx = x - port.px;
         const dy = y - port.py;
@@ -748,7 +748,13 @@ function renderReadOnlyView() {
     box.innerHTML = ""; const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
     svg.setAttribute("viewBox", `0 0 ${state.viewportWidth} ${state.viewportHeight}`); svg.setAttribute("width", "100%"); svg.setAttribute("height", "100%");
     const defs = document.createElementNS(ns, "defs"), marker = document.createElementNS(ns, "marker"), markerStart = document.createElementNS(ns, "marker"), path = document.createElementNS(ns, "path"), pathStart = document.createElementNS(ns, "path");
+    const style = document.createElementNS(ns, "style");
+    style.textContent = `
+        @keyframes fluxDashMove { to { stroke-dashoffset: -64; } }
+        .flux-conn-flow { animation: fluxDashMove 1.15s linear infinite; }
+    `;
     marker.setAttribute("id", "arrow"); marker.setAttribute("markerWidth", "12"); marker.setAttribute("markerHeight", "9"); marker.setAttribute("refX", "12"); marker.setAttribute("refY", "4.5"); marker.setAttribute("orient", "auto"); marker.setAttribute("markerUnits", "strokeWidth"); path.setAttribute("d", "M0,0 L12,4.5 L0,9 z"); path.setAttribute("fill", "context-stroke"); marker.appendChild(path); markerStart.setAttribute("id", "arrowStart"); markerStart.setAttribute("markerWidth", "12"); markerStart.setAttribute("markerHeight", "9"); markerStart.setAttribute("refX", "0"); markerStart.setAttribute("refY", "4.5"); markerStart.setAttribute("orient", "auto"); markerStart.setAttribute("markerUnits", "strokeWidth"); pathStart.setAttribute("d", "M12,0 L0,4.5 L12,9 z"); pathStart.setAttribute("fill", "context-stroke"); markerStart.appendChild(pathStart); defs.appendChild(marker); defs.appendChild(markerStart); svg.appendChild(defs);
+    svg.appendChild(style);
     state.nodes.forEach(n => updateNodeMetrics(ctx, n));
     state.texts.forEach(t => updateTextMetrics(ctx, t));
     state.nodes.forEach(n => {
@@ -818,7 +824,8 @@ function renderReadOnlyView() {
         edge.setAttribute("stroke-width", "2.5");
         edge.setAttribute("stroke-linecap", "round");
         edge.setAttribute("stroke-linejoin", "round");
-        if (type === "line") edge.setAttribute("stroke-dasharray", "3 10");
+        edge.setAttribute("stroke-dasharray", "3 10");
+        edge.setAttribute("class", "flux-conn-flow");
         if (type === "arrow" || type === "both" || type === "curve") edge.setAttribute("marker-end", "url(#arrow)"); if (type === "both") edge.setAttribute("marker-start", "url(#arrowStart)");
         svg.appendChild(edge);
     });

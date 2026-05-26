@@ -103,7 +103,7 @@ export function getGraphPayload() {
             from: c.from,
             to: c.to,
             type: c.type || "arrow",
-            color: c.color || "#000000",
+            color: "#22c55e",
             fromSide: typeof c.fromSide === "string" ? c.fromSide : null,
             toSide: typeof c.toSide === "string" ? c.toSide : null
         })),
@@ -142,7 +142,7 @@ export function applyPersistedData(d) {
         from: c.from,
         to: c.to,
         type: typeof c.type === "string" ? c.type : "arrow",
-        color: typeof c.color === "string" ? c.color : "#000000",
+        color: "#22c55e",
         fromSide: typeof c.fromSide === "string" ? c.fromSide : null,
         toSide: typeof c.toSide === "string" ? c.toSide : null
     })) : [];

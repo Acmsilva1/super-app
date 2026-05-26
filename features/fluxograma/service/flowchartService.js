@@ -218,7 +218,7 @@ export function getNodePorts(n) {
     const w = getNodeWidth(n), h = getNodeHeight(n);
     const cx = n.x + w / 2;
     const cy = n.y + h / 2;
-    const size = 12;
+    const size = 16;
     const half = size / 2;
     return [
         { key: "top", x: cx - half, y: n.y - half, w: size, h: size, px: cx, py: n.y },
