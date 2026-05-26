@@ -411,15 +411,9 @@ function finishConnection(to, toSide = null) {
     const resolvedFromSide = state.connectingFromSide;
     const resolvedToSide = toSide;
     if (!resolvedFromSide || !resolvedToSide) return showStatus("Escolha os pontos de saída e entrada nos nós.", "info");
-    if (state.connections.some(c => c.from === state.connectingFrom)) return showStatus("Esse nó já possui uma saída.", "info");
-    if (state.connections.some(c => c.to === to)) return showStatus("Esse nó já possui uma entrada.", "info");
-    if (state.connections.some(c =>
-        c.from === state.connectingFrom &&
-        c.to === to &&
-        ((c.type || "line") === connectionType) &&
-        (c.fromSide || null) === resolvedFromSide &&
-        (c.toSide || null) === resolvedToSide
-    )) return showStatus("Essa conexão já existe.", "info");
+    if (state.connections.some(c => c.from === state.connectingFrom && c.to === to)) {
+        return showStatus("Essa conexão já existe.", "info");
+    }
     ensureActiveColor();
     state.connections.push({
         from: state.connectingFrom,
@@ -429,15 +423,10 @@ function finishConnection(to, toSide = null) {
         fromSide: resolvedFromSide,
         toSide: resolvedToSide
     });
-    state.isConnecting = false;
-    state.connectingFrom = null;
-    state.connectingFromSide = null;
-    state.connectionPointerX = 0;
-    state.connectionPointerY = 0;
-    state.hoveredPort = null;
     saveToLocalStorage();
     updateUI();
     showStatus("Conexão criada.", "success");
+    cancelConnection();
 }
 
 function finishDisconnect(to) {
