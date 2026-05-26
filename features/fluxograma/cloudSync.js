@@ -9,6 +9,7 @@
 
 const LS_REMOTE_ID = "superapp_fluxograma_remote_id";
 const AUTOSAVE_MS = 900;
+const DEFAULT_PROJECT_NAME = "Novo Fluxograma";
 
 let autoSaveTimer = null;
 let savingCloud = false;
@@ -45,17 +46,87 @@ function setAutosaveStatus(text, isErr) {
     else el.style.color = "#6b7280";
 }
 
+function askProjectName({
+    title = "Nome do projeto",
+    message = "Digite um nome para começar.",
+    initialValue = "",
+    confirmLabel = "Salvar",
+    placeholder = "Nome do projeto"
+} = {}) {
+    return new Promise((resolve) => {
+        const safeInitialValue = String(initialValue || "")
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/</g, "&lt;");
+        const overlay = document.createElement("div");
+        overlay.className = "app-modal-overlay flux-project-name-overlay";
+        overlay.innerHTML = `
+            <div class="app-modal flux-project-name-modal" role="dialog" aria-modal="true" aria-labelledby="flux-project-name-title">
+                <div class="flux-project-name-head">
+                    <div class="flux-project-name-icon" aria-hidden="true">
+                        <i class="fas fa-pen-to-square"></i>
+                    </div>
+                    <div class="flux-project-name-head-copy">
+                        <span class="flux-project-name-kicker">Fluxograma</span>
+                        <h4 id="flux-project-name-title">${title}</h4>
+                        <p class="flux-project-name-copy">${message}</p>
+                    </div>
+                </div>
+                <div class="app-form">
+                    <label for="flux-project-name-input" style="position:absolute;left:-9999px;">${title}</label>
+                    <input
+                        id="flux-project-name-input"
+                        type="text"
+                        maxlength="80"
+                        placeholder="${placeholder}"
+                        value="${safeInitialValue}"
+                        autocomplete="off"
+                        spellcheck="false"
+                    />
+                </div>
+                <div class="app-modal-actions">
+                    <button type="button" class="app-btn app-btn-secondary" data-action="cancel">Cancelar</button>
+                    <button type="button" class="app-btn" data-action="confirm">${confirmLabel}</button>
+                </div>
+            </div>
+        `;
+
+        const close = (value) => {
+            overlay.remove();
+            resolve(value);
+        };
+
+        const input = overlay.querySelector("#flux-project-name-input");
+        overlay.querySelector('[data-action="cancel"]').onclick = () => close(null);
+        overlay.querySelector('[data-action="confirm"]').onclick = () => close(String(input.value || "").trim());
+        overlay.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                close(null);
+            }
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                close(String(input.value || "").trim());
+            }
+        });
+        overlay.onclick = (e) => {
+            if (e.target === overlay) close(null);
+        };
+
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => {
+            input?.focus();
+            if (typeof input?.select === "function") input.select();
+        });
+    });
+}
+
 async function performCloudSave() {
     if (savingCloud) return;
     const id = localStorage.getItem(LS_REMOTE_ID);
-    const nome = (state.projectName || "").trim() || "Novo Fluxograma";
+    const nome = (state.projectName || "").trim() || DEFAULT_PROJECT_NAME;
     const dados = getGraphPayload();
     dados.projectName = nome;
-    const hasContent = state.nodes.length > 0 || state.connections.length > 0;
-    if (!id && !hasContent) {
-        setAutosaveStatus("");
-        return;
-    }
     savingCloud = true;
     setAutosaveStatus("Salvando na nuvem...");
     try {
@@ -150,11 +221,19 @@ export async function initFluxogramaApp(mod) {
     }
 
     async function openNewProject() {
+        const enteredName = await askProjectName({
+            title: "Novo projeto",
+            message: "Escolha o nome do projeto antes de abrir o editor.",
+            initialValue: DEFAULT_PROJECT_NAME,
+            confirmLabel: "Criar"
+        });
+        if (enteredName === null) return;
         resetGraphState();
         localStorage.removeItem(LS_REMOTE_ID);
+        state.projectName = enteredName || DEFAULT_PROJECT_NAME;
         saveToLocalStorage();
         await enterEditor();
-        setAutosaveStatus("Alterações serão salvas na nuvem automaticamente");
+        await performCloudSave();
     }
 
     async function openExistingProject(pid) {
@@ -171,6 +250,35 @@ export async function initFluxogramaApp(mod) {
             saveToLocalStorage();
             await enterEditor();
             setAutosaveStatus("");
+        } catch (e) {
+            if (errEl) errEl.textContent = e.message || String(e);
+        }
+    }
+
+    async function renameProject(pid, currentName = "") {
+        const nextName = await askProjectName({
+            title: "Editar nome",
+            message: "Atualize o nome do projeto selecionado.",
+            initialValue: currentName || DEFAULT_PROJECT_NAME,
+            confirmLabel: "Salvar"
+        });
+        if (nextName === null) return;
+        const nome = nextName || currentName || DEFAULT_PROJECT_NAME;
+        const errEl = document.getElementById("flux-hub-error");
+        try {
+            await fetchJson("/api/fluxograma", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: pid,
+                    nome,
+                })
+            });
+            if (localStorage.getItem(LS_REMOTE_ID) === pid) {
+                state.projectName = nome;
+                saveToLocalStorage();
+            }
+            await renderHub();
         } catch (e) {
             if (errEl) errEl.textContent = e.message || String(e);
         }
@@ -201,9 +309,10 @@ export async function initFluxogramaApp(mod) {
             : `${projects.length}/${cachedProjects.length} projeto(s)`;
         const palette = ["#38bdf8", "#a78bfa", "#22c55e", "#f97316", "#f43f5e", "#60a5fa"];
         projects.forEach((p, idx) => {
-            const card = document.createElement("button");
-            card.type = "button";
+            const card = document.createElement("div");
             card.className = "flux-project-card";
+            card.setAttribute("role", "button");
+            card.setAttribute("tabindex", "0");
             card.style.setProperty("--flux-accent", palette[idx % palette.length]);
             const title = document.createElement("span");
             title.className = "flux-card-title";
@@ -213,18 +322,39 @@ export async function initFluxogramaApp(mod) {
             meta.textContent = p.updated_at
                 ? "Atualizado " + new Date(p.updated_at).toLocaleString("pt-BR")
                 : "Sem atualização recente";
+            const actions = document.createElement("div");
+            actions.className = "flux-card-actions";
+            const edit = document.createElement("button");
+            edit.type = "button";
+            edit.className = "flux-card-action flux-card-action--edit";
+            edit.setAttribute("aria-label", "Editar nome");
+            edit.title = "Editar nome";
+            edit.innerHTML = '<i class="fas fa-pen" aria-hidden="true"></i>';
+            edit.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                renameProject(p.id, p.nome || "");
+            });
             const del = document.createElement("button");
             del.type = "button";
-            del.className = "flux-card-del";
+            del.className = "flux-card-action flux-card-action--delete";
             del.setAttribute("aria-label", "Excluir");
-            del.textContent = "";
+            del.title = "Excluir";
+            del.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i>';
             del.addEventListener("click", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 deleteProject(p.id);
             });
-            card.append(title, meta, del);
+            actions.append(edit, del);
+            card.append(title, meta, actions);
             card.addEventListener("click", () => openExistingProject(p.id));
+            card.addEventListener("keydown", (e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                if (e.target !== card) return;
+                e.preventDefault();
+                openExistingProject(p.id);
+            });
             cardsWrap.appendChild(card);
         });
         if (term && projects.length === 0) {
