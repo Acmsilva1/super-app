@@ -12,7 +12,7 @@ import {
     getConnectionGeometry, getNodeConnectionPoint,
     pointToSegmentDistance, pointToCubicDistance,
     getTextColorByFill, drawNodeShape, drawArrowHead, drawLinesCentered,
-    getNodeHandles, getNodePorts
+    getNodeHandles, getNodePorts, getNearestNodePort
 } from './service/flowchartService.js';
 
 const el = id => document.getElementById("flux-" + id);
@@ -27,6 +27,8 @@ const FLUX_PALETTE = [
     "#22c55e", "#84cc16", "#65a30d", "#1f2937"
 ];
 const DEFAULT_ACTIVE_COLOR = "#d1d5db";
+const PORT_HOVER_RADIUS = 18;
+const PORT_MAGNET_RADIUS = 26;
 
 function normalizeHexColor(value, fallback = "#000000") {
     const input = String(value || "").trim().toLowerCase();
@@ -62,6 +64,68 @@ function getSelectionColor() {
     if (n) return normalizeHexColor(n.color || "#ffffff", "#ffffff");
     if (state.isConnecting) return normalizeHexColor(state.activeColor || DEFAULT_ACTIVE_COLOR, DEFAULT_ACTIVE_COLOR);
     return null;
+}
+
+function setCanvasCursor(c, value) {
+    if (c && c.style.cursor !== value) {
+        c.style.cursor = value;
+    }
+}
+
+function drawStartNodeBadge(ctx, port, cameraX, cameraY) {
+    const px = port.px - cameraX;
+    const py = port.py - cameraY;
+    const offset = 17;
+    const badgeSize = 18;
+    let bx = px;
+    let by = py;
+
+    if (port.key === "left") bx -= offset + badgeSize * 0.5;
+    else if (port.key === "right") bx += offset - badgeSize * 0.5;
+    else if (port.key === "top") by -= offset + badgeSize * 0.5;
+    else if (port.key === "bottom") by += offset - badgeSize * 0.5;
+
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = "rgba(125, 211, 252, 0.35)";
+    ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+    ctx.strokeStyle = "rgba(125, 211, 252, 0.92)";
+    ctx.lineWidth = 1.5;
+    if (typeof ctx.roundRect === "function") {
+        ctx.beginPath();
+        ctx.roundRect(-badgeSize / 2, -badgeSize / 2, badgeSize, badgeSize, 7);
+        ctx.fill();
+        ctx.stroke();
+    } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, badgeSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#7dd3fc";
+    ctx.beginPath();
+    if (port.key === "left") {
+        ctx.moveTo(-3, 0);
+        ctx.lineTo(3, -4);
+        ctx.lineTo(3, 4);
+    } else if (port.key === "right") {
+        ctx.moveTo(3, 0);
+        ctx.lineTo(-3, -4);
+        ctx.lineTo(-3, 4);
+    } else if (port.key === "top") {
+        ctx.moveTo(0, -3);
+        ctx.lineTo(-4, 3);
+        ctx.lineTo(4, 3);
+    } else {
+        ctx.moveTo(0, 3);
+        ctx.lineTo(-4, -3);
+        ctx.lineTo(4, -3);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
 }
 
 function renderColorPalette() {
@@ -514,6 +578,10 @@ function getPortAtPosition(n, x, y, threshold = 16) {
     return null;
 }
 
+function getMagnetPortAtPosition(x, y, ignoreNodeId = null, threshold = PORT_HOVER_RADIUS) {
+    return getNearestNodePort(state.nodes, x, y, { threshold, ignoreNodeId });
+}
+
 function drawCanvas(time = performance.now()) {
     const c = el("canvas"), ctx = c.getContext("2d");
     ctx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
@@ -686,6 +754,9 @@ function drawCanvas(time = performance.now()) {
             ctx.strokeStyle = "rgba(2, 6, 23, 0.78)";
             ctx.stroke();
             ctx.restore();
+            if (isHover && !isSource) {
+                drawStartNodeBadge(ctx, port, state.cameraX, state.cameraY);
+            }
         });
     });
     if (state.isConnecting && state.connectingFrom !== null && Number.isFinite(state.connectionPointerX) && Number.isFinite(state.connectionPointerY)) {
@@ -990,16 +1061,16 @@ function setupCanvasInteractions() {
     c.addEventListener("pointerdown", e => {
         if (state.isViewMode) return;
         pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY }); const { x, y } = getCanvasPoint(e), n = getNodeAtPosition(x, y), t = n ? null : getTextAtPosition(x, y);
-        const port = n ? getPortAtPosition(n, x, y) : null;
+        const portMatch = getMagnetPortAtPosition(x, y);
         startX = x; startY = y; downNodeId = n ? n.id : null; downTextId = t ? t.id : null; wasSelectedOnDown = !!n && state.selectedNode === n.id; wasTextSelectedOnDown = !!t && state.selectedTextId === t.id;
         if (state.isConnecting) {
             if (state.connectingFrom === null) {
-                if (port && n) {
-                    state.connectingFrom = n.id;
-                    state.connectingFromSide = port.key;
+                if (portMatch) {
+                    state.connectingFrom = portMatch.nodeId;
+                    state.connectingFromSide = portMatch.side;
                     state.connectionPointerX = x;
                     state.connectionPointerY = y;
-                    state.hoveredPort = { nodeId: n.id, side: port.key };
+                    state.hoveredPort = { nodeId: portMatch.nodeId, side: portMatch.side };
                 } else {
                     showStatus("Escolha um ponto de saída para começar.", "info");
                     return;
@@ -1009,26 +1080,26 @@ function setupCanvasInteractions() {
             c.setPointerCapture(e.pointerId);
             state.connectionPointerX = x;
             state.connectionPointerY = y;
-            c.style.cursor = "grabbing";
+            setCanvasCursor(c, "grabbing");
             drawCanvas();
             return;
         }
-        if (port && n) {
+        if (portMatch) {
             hideInlineEditor(true);
             hideInlineTextEditor(true);
-            state.selectedNode = n.id;
+            state.selectedNode = portMatch.nodeId;
             state.selectedTextId = null;
             state.selectedConnectionIndex = null;
             state.isConnecting = true;
-            state.connectingFrom = n.id;
-            state.connectingFromSide = port.key;
+            state.connectingFrom = portMatch.nodeId;
+            state.connectingFromSide = portMatch.side;
             state.connectionPointerX = x;
             state.connectionPointerY = y;
-            state.hoveredPort = { nodeId: n.id, side: port.key };
+            state.hoveredPort = { nodeId: portMatch.nodeId, side: portMatch.side };
             ensureActiveColor();
             activePointerId = e.pointerId;
             c.setPointerCapture(e.pointerId);
-            c.style.cursor = "grabbing";
+            setCanvasCursor(c, "grabbing");
             updateUI();
             return;
         }
@@ -1042,13 +1113,13 @@ function setupCanvasInteractions() {
                 const w = getNodeWidth(sn), h = getNodeHeight(sn);
                 const in1 = p1.x >= sn.x && p1.x <= sn.x + w && p1.y >= sn.y && p1.y <= sn.y + h;
                 const in2 = p2.x >= sn.x && p2.x <= sn.x + w && p2.y >= sn.y && p2.y <= sn.y + h;
-                if (in1 && in2) { isPinching = true; pinchNodeId = sn.id; pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1; pinchStart = { w: w, h: h, x: sn.x, y: sn.y }; sn.manualSize = true; c.style.cursor = "grabbing"; return; }
+                if (in1 && in2) { isPinching = true; pinchNodeId = sn.id; pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1; pinchStart = { w: w, h: h, x: sn.x, y: sn.y }; sn.manualSize = true; setCanvasCursor(c, "grabbing"); return; }
             }
         }
         if (!n && !t) {
             downConnectionIndex = getConnectionAtPosition(x, y); activePointerId = e.pointerId; panStartClientX = e.clientX; panStartClientY = e.clientY; panStartCameraX = state.cameraX; panStartCameraY = state.cameraY; c.setPointerCapture(e.pointerId);
-            if (downConnectionIndex !== null) { c.style.cursor = "pointer"; return; }
-            state.selectedNode = null; state.selectedTextId = null; state.selectedConnectionIndex = null; hideInlineEditor(true); hideInlineTextEditor(true); updateUI(); isPanning = true; c.style.cursor = "grabbing"; return;
+            if (downConnectionIndex !== null) { setCanvasCursor(c, "grab"); return; }
+            state.selectedNode = null; state.selectedTextId = null; state.selectedConnectionIndex = null; hideInlineEditor(true); hideInlineTextEditor(true); updateUI(); isPanning = true; setCanvasCursor(c, "grabbing"); return;
         }
         if (t) {
             if (state.inlineEditTextId !== t.id) hideInlineTextEditor(true);
@@ -1062,7 +1133,7 @@ function setupCanvasInteractions() {
             state.hasDragged = false;
             activePointerId = e.pointerId;
             c.setPointerCapture(e.pointerId);
-            c.style.cursor = "grabbing";
+            setCanvasCursor(c, "grabbing");
             drawCanvas();
             return;
         }
@@ -1072,21 +1143,25 @@ function setupCanvasInteractions() {
         state.selectedTextId = null;
         if (state.selectedNode === n.id) {
             const handle = getResizeHandleAt(n, x, y);
-            if (handle) { isResizing = true; resizeNodeId = n.id; resizeHandle = handle; resizeStart = { x, y, w: getNodeWidth(n), h: getNodeHeight(n), nx: n.x, ny: n.y }; n.manualSize = true; activePointerId = e.pointerId; c.setPointerCapture(e.pointerId); c.style.cursor = "nwse-resize"; return; }
+            if (handle) { isResizing = true; resizeNodeId = n.id; resizeHandle = handle; resizeStart = { x, y, w: getNodeWidth(n), h: getNodeHeight(n), nx: n.x, ny: n.y }; n.manualSize = true; activePointerId = e.pointerId; c.setPointerCapture(e.pointerId); setCanvasCursor(c, "nwse-resize"); return; }
         }
-        state.draggingNodeId = n.id; state.dragOffsetX = x - n.x; state.dragOffsetY = y - n.y; state.hasDragged = false; activePointerId = e.pointerId; c.setPointerCapture(e.pointerId); c.style.cursor = "grabbing";
+        state.draggingNodeId = n.id; state.dragOffsetX = x - n.x; state.dragOffsetY = y - n.y; state.hasDragged = false; activePointerId = e.pointerId; c.setPointerCapture(e.pointerId); setCanvasCursor(c, "grabbing");
     });
     c.addEventListener("pointermove", e => {
         const r = c.getBoundingClientRect(); if (pointerMap.has(e.pointerId)) pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (state.isViewMode) return;
         const hoverPoint = getCanvasPoint(e);
-        const hoverNode = getNodeAtPosition(hoverPoint.x, hoverPoint.y);
-        const hoverPort = hoverNode ? getPortAtPosition(hoverNode, hoverPoint.x, hoverPoint.y) : null;
-        state.hoveredPort = hoverPort ? { nodeId: hoverNode.id, side: hoverPort.key } : null;
+        const hoverPortMatch = state.isConnecting
+            ? getMagnetPortAtPosition(hoverPoint.x, hoverPoint.y, state.connectingFrom, PORT_MAGNET_RADIUS)
+            : getMagnetPortAtPosition(hoverPoint.x, hoverPoint.y, null, PORT_HOVER_RADIUS);
+        state.hoveredPort = hoverPortMatch ? { nodeId: hoverPortMatch.nodeId, side: hoverPortMatch.side } : null;
+        if (!isPanning && !isResizing && state.draggingNodeId === null && state.draggingTextId === null) {
+            setCanvasCursor(c, hoverPortMatch ? "copy" : "grab");
+        }
         if (state.isConnecting && state.connectingFrom !== null && activePointerId === e.pointerId) {
             state.connectionPointerX = hoverPoint.x;
             state.connectionPointerY = hoverPoint.y;
-            c.style.cursor = hoverPort ? "copy" : "grabbing";
+            setCanvasCursor(c, hoverPortMatch ? "copy" : "grabbing");
             drawCanvas();
             return;
         }
@@ -1099,7 +1174,7 @@ function setupCanvasInteractions() {
             n.w = nw; n.h = nh; n.x = cx - nw / 2; n.y = cy - nh / 2; updateNodeMetrics(el("canvas").getContext("2d"), n); positionInlineEditor(); drawCanvas(); return;
         }
         if (activePointerId !== e.pointerId) return;
-        if (!isPanning && downConnectionIndex !== null) { const moved = Math.hypot(e.clientX - panStartClientX, e.clientY - panStartClientY) > 6; if (moved) { isPanning = true; c.style.cursor = "grabbing"; } }
+        if (!isPanning && downConnectionIndex !== null) { const moved = Math.hypot(e.clientX - panStartClientX, e.clientY - panStartClientY) > 6; if (moved) { isPanning = true; setCanvasCursor(c, "grabbing"); } }
         if (isPanning) { const dx = e.clientX - panStartClientX, dy = e.clientY - panStartClientY; state.cameraX = panStartCameraX - dx; state.cameraY = panStartCameraY - dy; positionInlineEditor(); positionInlineTextEditor(); drawCanvas(); return; }
         if (isResizing && resizeNodeId !== null) {
             const n = state.nodes.find(v => v.id === resizeNodeId); if (!n) return;
@@ -1126,15 +1201,9 @@ function setupCanvasInteractions() {
         if (activePointerId !== e.pointerId) return;
         if (state.isConnecting && state.connectingFrom !== null) {
             const p = getCanvasPoint(e);
-            const targetNode = getNodeAtPosition(p.x, p.y);
-            const targetPort = targetNode ? getPortAtPosition(targetNode, p.x, p.y, 12) : null;
-            if (targetNode && targetNode.id !== state.connectingFrom) {
-                if (!targetPort) {
-                    showStatus("Solte o fio em um ponto de entrada.", "info");
-                    cancelConnection();
-                } else {
-                    finishConnection(targetNode.id, targetPort.key);
-                }
+            const targetPort = getMagnetPortAtPosition(p.x, p.y, state.connectingFrom, PORT_MAGNET_RADIUS);
+            if (targetPort) {
+                finishConnection(targetPort.nodeId, targetPort.side);
             }
             else cancelConnection();
             activePointerId = null;
@@ -1143,11 +1212,11 @@ function setupCanvasInteractions() {
             downConnectionIndex = null;
             wasSelectedOnDown = false;
             wasTextSelectedOnDown = false;
-            c.style.cursor = "crosshair";
+            setCanvasCursor(c, "grab");
             return;
         }
-        if (isPanning) { isPanning = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; c.style.cursor = "crosshair"; return; }
-        if (isResizing) { isResizing = false; resizeNodeId = null; resizeHandle = null; activePointerId = null; saveToLocalStorage(); drawCanvas(); c.style.cursor = "crosshair"; return; }
+        if (isPanning) { isPanning = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; setCanvasCursor(c, "grab"); return; }
+        if (isResizing) { isResizing = false; resizeNodeId = null; resizeHandle = null; activePointerId = null; saveToLocalStorage(); drawCanvas(); setCanvasCursor(c, "grab"); return; }
         const p = getCanvasPoint(e), moved = Math.hypot(p.x - startX, p.y - startY) > 6; if ((state.draggingNodeId !== null || state.draggingTextId !== null) && state.hasDragged) saveToLocalStorage();
         if (!moved && downConnectionIndex !== null && !state.isViewMode && !state.isConnecting) {
             hideInlineEditor(false); hideInlineTextEditor(false); state.selectedNode = null; state.selectedTextId = null; state.selectedConnectionIndex = downConnectionIndex; updateUI();
@@ -1156,10 +1225,10 @@ function setupCanvasInteractions() {
         } else if (!moved && downNodeId !== null && !state.isViewMode && !state.isConnecting) {
             if (wasSelectedOnDown) { startInlineEdit(downNodeId); } else { hideInlineEditor(false); hideInlineTextEditor(false); state.selectedNode = downNodeId; state.selectedTextId = null; state.selectedConnectionIndex = null; updateUI(); }
         }
-        state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; c.style.cursor = "crosshair";
+        state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; setCanvasCursor(c, "grab");
     };
     c.addEventListener("pointerup", endPointer); c.addEventListener("pointercancel", endPointer);
-    c.addEventListener("lostpointercapture", () => { state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; isPanning = false; isResizing = false; isPinching = false; resizeNodeId = null; resizeHandle = null; pinchNodeId = null; pointerMap.clear(); c.style.cursor = "crosshair"; });
+    c.addEventListener("lostpointercapture", () => { state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; isPanning = false; isResizing = false; isPinching = false; resizeNodeId = null; resizeHandle = null; pinchNodeId = null; pointerMap.clear(); setCanvasCursor(c, "grab"); });
 }
 
 // Global Exports for HTML

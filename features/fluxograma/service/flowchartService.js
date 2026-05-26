@@ -228,3 +228,24 @@ export function getNodePorts(n) {
     ];
 }
 
+export function getNearestNodePort(nodes, x, y, { threshold = 18, ignoreNodeId = null } = {}) {
+    let best = null;
+    for (const node of nodes || []) {
+        if (ignoreNodeId !== null && node.id === ignoreNodeId) continue;
+        for (const port of getNodePorts(node)) {
+            const distance = Math.hypot(x - port.px, y - port.py);
+            if (distance > threshold) continue;
+            if (!best || distance < best.distance) {
+                best = {
+                    nodeId: node.id,
+                    node,
+                    side: port.key,
+                    port,
+                    distance
+                };
+            }
+        }
+    }
+    return best;
+}
+
