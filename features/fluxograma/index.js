@@ -35,6 +35,10 @@ function normalizeHexColor(value, fallback = "#000000") {
     return hex;
 }
 
+function getNodeAccent(node) {
+    return normalizeHexColor(node?.color || state.activeColor || DEFAULT_ACTIVE_COLOR, DEFAULT_ACTIVE_COLOR);
+}
+
 function ensureActiveColor() {
     state.activeColor = normalizeHexColor(state.activeColor || DEFAULT_ACTIVE_COLOR, DEFAULT_ACTIVE_COLOR);
 }
@@ -140,7 +144,7 @@ function addNode() {
         h: NODE_MIN_HEIGHT,
         manualSize: false,
         shape: "rect",
-        color: "#ffffff"
+        color: state.activeColor || DEFAULT_ACTIVE_COLOR
     };
     state.nodes.push(n);
     state.nextId++;
@@ -466,62 +470,155 @@ function drawCanvas() {
     const c = el("canvas"), ctx = c.getContext("2d");
     ctx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
     const bg = ctx.createLinearGradient(0, 0, state.canvasWidth, state.canvasHeight);
-    bg.addColorStop(0, "#040816");
-    bg.addColorStop(1, "#071424");
+    bg.addColorStop(0, "#020816");
+    bg.addColorStop(0.55, "#050d1f");
+    bg.addColorStop(1, "#081528");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
-    const glowA = ctx.createRadialGradient(state.canvasWidth * 0.18, state.canvasHeight * 0.18, 0, state.canvasWidth * 0.18, state.canvasHeight * 0.18, Math.max(state.canvasWidth, state.canvasHeight) * 0.55);
-    glowA.addColorStop(0, "rgba(56, 189, 248, .11)");
+    const glowA = ctx.createRadialGradient(state.canvasWidth * 0.14, state.canvasHeight * 0.16, 0, state.canvasWidth * 0.14, state.canvasHeight * 0.16, Math.max(state.canvasWidth, state.canvasHeight) * 0.56);
+    glowA.addColorStop(0, "rgba(56, 189, 248, .14)");
+    glowA.addColorStop(0.4, "rgba(56, 189, 248, .04)");
     glowA.addColorStop(1, "rgba(56, 189, 248, 0)");
     ctx.fillStyle = glowA;
     ctx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
-    const glowB = ctx.createRadialGradient(state.canvasWidth * 0.82, state.canvasHeight * 0.18, 0, state.canvasWidth * 0.82, state.canvasHeight * 0.18, Math.max(state.canvasWidth, state.canvasHeight) * 0.48);
-    glowB.addColorStop(0, "rgba(168, 85, 247, .08)");
-    glowB.addColorStop(1, "rgba(168, 85, 247, 0)");
+    const glowB = ctx.createRadialGradient(state.canvasWidth * 0.88, state.canvasHeight * 0.2, 0, state.canvasWidth * 0.88, state.canvasHeight * 0.2, Math.max(state.canvasWidth, state.canvasHeight) * 0.5);
+    glowB.addColorStop(0, "rgba(34, 197, 94, .08)");
+    glowB.addColorStop(0.45, "rgba(34, 197, 94, .03)");
+    glowB.addColorStop(1, "rgba(34, 197, 94, 0)");
     ctx.fillStyle = glowB;
     ctx.fillRect(0, 0, state.canvasWidth, state.canvasHeight);
-    ctx.strokeStyle = "rgba(125, 211, 252, 0.09)";
+    ctx.save();
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
     ctx.lineWidth = 1;
-    const grid = 50, startX = -((state.cameraX % grid) + grid) % grid, startY = -((state.cameraY % grid) + grid) % grid;
-    for (let x = startX; x < state.canvasWidth; x += grid) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, state.canvasHeight); ctx.stroke(); }
-    for (let y = startY; y < state.canvasHeight; y += grid) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(state.canvasWidth, y); ctx.stroke(); }
+    const grid = 52, startX = -((state.cameraX % grid) + grid) % grid, startY = -((state.cameraY % grid) + grid) % grid;
+    for (let x = startX; x < state.canvasWidth; x += grid) {
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, state.canvasHeight);
+        ctx.stroke();
+    }
+    for (let y = startY; y < state.canvasHeight; y += grid) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + 0.5);
+        ctx.lineTo(state.canvasWidth, y + 0.5);
+        ctx.stroke();
+    }
+    ctx.strokeStyle = "rgba(125, 211, 252, 0.06)";
+    ctx.lineWidth = 1.5;
+    for (let x = startX; x < state.canvasWidth; x += grid * 5) {
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, state.canvasHeight);
+        ctx.stroke();
+    }
+    for (let y = startY; y < state.canvasHeight; y += grid * 5) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + 0.5);
+        ctx.lineTo(state.canvasWidth, y + 0.5);
+        ctx.stroke();
+    }
+    ctx.restore();
     state.nodes.forEach(n => updateNodeMetrics(ctx, n));
     state.texts.forEach(t => updateTextMetrics(ctx, t));
-    state.nodes.forEach(n => {
-        const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
-        if (sx + nw < 0 || sy + nh < 0 || sx > state.canvasWidth || sy > state.canvasHeight) return;
-        const sel = n.id === state.selectedNode, from = n.id === state.connectingFrom, fill = n.color || "#ffffff";
-        ctx.save();
-        ctx.shadowBlur = sel ? 24 : from ? 20 : 16;
-        ctx.shadowColor = sel ? "rgba(56, 189, 248, .42)" : from ? "rgba(34, 197, 94, .32)" : "rgba(56, 189, 248, .16)";
-        ctx.fillStyle = sel ? "#1d4ed8" : from ? "#16a34a" : fill;
-        ctx.strokeStyle = sel ? "#7dd3fc" : from ? "#86efac" : "rgba(148, 163, 184, 0.42)";
-        ctx.lineWidth = 2.5; drawNodeShape(ctx, n.shape || "rect", sx, sy, nw, nh);
-        ctx.restore();
-        ctx.fillStyle = sel || from ? "#fff" : getTextColorByFill(fill);
-        ctx.font = "600 16px Segoe UI"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; drawLinesCentered(ctx, n._lines, sx + nw / 2, sy + nh / 2, NODE_LINE_HEIGHT);
-        if (sel && !state.isViewMode) { const hs = NODE_HANDLE_SIZE; ctx.fillStyle = "#e0f2fe"; ctx.strokeStyle = "#7dd3fc"; ctx.lineWidth = 1.5; for (const h of getNodeHandles(n)) { const hx = h.x - state.cameraX, hy = h.y - state.cameraY; ctx.fillRect(hx, hy, hs, hs); ctx.strokeRect(hx, hy, hs, hs); } }
-    });
-    state.connections.forEach((cn, idx) => {
+    state.connections.forEach((cn) => {
         const g = getConnectionGeometry(state, cn);
         if (!g) return;
         const fx = g.x1 - state.cameraX, fy = g.y1 - state.cameraY, tx = g.x2 - state.cameraX, ty = g.y2 - state.cameraY, c1x = g.c1x - state.cameraX, c1y = g.c1y - state.cameraY, c2x = g.c2x - state.cameraX, c2y = g.c2y - state.cameraY;
-        const sel = idx === state.selectedConnectionIndex, type = cn.type || "arrow", base = cn.color || "#000000";
+        const type = cn.type || "line";
+        const base = getNodeAccent({ color: cn.color });
         ctx.save();
-        ctx.shadowBlur = sel ? 18 : 10;
-        ctx.shadowColor = sel ? "rgba(245, 158, 11, .32)" : "rgba(56, 189, 248, .18)";
-        ctx.strokeStyle = sel ? "#f59e0b" : base;
-        ctx.fillStyle = sel ? "#f59e0b" : base;
-        ctx.lineWidth = sel ? 4 : 2.5;
-        ctx.setLineDash(type === "line" ? [10, 6] : []);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "rgba(34, 197, 94, 0.16)";
+        ctx.lineWidth = 8;
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = "rgba(34, 197, 94, 0.22)";
+        ctx.setLineDash(type === "line" ? [6, 10] : [8, 8]);
+        ctx.beginPath();
+        ctx.moveTo(fx, fy);
+        if (type === "curve") ctx.bezierCurveTo(c1x, c1y, c2x, c2y, tx, ty); else ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.strokeStyle = base;
+        ctx.lineWidth = 2.8;
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = "rgba(34, 197, 94, 0.5)";
         ctx.beginPath();
         ctx.moveTo(fx, fy);
         if (type === "curve") ctx.bezierCurveTo(c1x, c1y, c2x, c2y, tx, ty); else ctx.lineTo(tx, ty);
         ctx.stroke();
         ctx.setLineDash([]);
+        ctx.fillStyle = base;
+        const endA = type === "curve" ? Math.atan2(ty - c2y, tx - c2x) : Math.atan2(ty - fy, tx - fx), startA = type === "curve" ? Math.atan2(c1y - fy, c1x - fx) : endA + Math.PI;
+        if (type === "arrow" || type === "both" || type === "curve") drawArrowHead(ctx, tx, ty, endA, 12);
+        if (type === "both") drawArrowHead(ctx, fx, fy, startA, 12);
         ctx.restore();
-        const endA = type === "curve" ? Math.atan2(ty - c2y, tx - c2x) : Math.atan2(ty - fy, tx - fx), startA = type === "curve" ? Math.atan2(c1y - fy, c1x - fx) : endA + Math.PI, s = 14;
-        if (type === "arrow" || type === "both" || type === "curve") drawArrowHead(ctx, tx, ty, endA, s); if (type === "both") drawArrowHead(ctx, fx, fy, startA, s);
+    });
+    state.nodes.forEach(n => {
+        const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
+        if (sx + nw < 0 || sy + nh < 0 || sx > state.canvasWidth || sy > state.canvasHeight) return;
+        const sel = n.id === state.selectedNode, from = n.id === state.connectingFrom, accent = getNodeAccent(n);
+        const glow = sel ? "rgba(125, 211, 252, 0.34)" : from ? "rgba(34, 197, 94, 0.34)" : `${accent}55`;
+        const body = ctx.createLinearGradient(sx, sy, sx + nw, sy + nh);
+        body.addColorStop(0, "rgba(255,255,255,0.11)");
+        body.addColorStop(0.2, "rgba(255,255,255,0.06)");
+        body.addColorStop(1, "rgba(4, 10, 24, 0.9)");
+        ctx.save();
+        ctx.shadowBlur = sel ? 30 : from ? 24 : 18;
+        ctx.shadowColor = glow;
+        ctx.fillStyle = body;
+        ctx.strokeStyle = sel ? "#93c5fd" : from ? "#86efac" : accent;
+        ctx.lineWidth = sel ? 2.6 : 2;
+        drawNodeShape(ctx, n.shape || "rect", sx, sy, nw, nh);
+        ctx.save();
+        ctx.clip();
+        const sheen = ctx.createLinearGradient(sx, sy, sx + nw, sy + nh);
+        sheen.addColorStop(0, "rgba(255,255,255,0.18)");
+        sheen.addColorStop(0.35, "rgba(255,255,255,0.05)");
+        sheen.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = sheen;
+        ctx.fillRect(sx, sy, nw, nh);
+        ctx.restore();
+        ctx.save();
+        ctx.globalAlpha = 0.92;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255,255,255,0.1)";
+        drawNodeShape(ctx, n.shape || "rect", sx + 1.1, sy + 1.1, nw - 2.2, nh - 2.2);
+        ctx.restore();
+        ctx.save();
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = accent;
+        const accentBandH = Math.max(8, Math.min(14, Math.round(nh * 0.1)));
+        if (n.shape === "ellipse") {
+            ctx.beginPath();
+            ctx.arc(sx + nw * 0.33, sy + nh * 0.32, Math.max(10, Math.min(nw, nh) * 0.12), 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.beginPath();
+            if (typeof ctx.roundRect === "function") {
+                ctx.roundRect(sx + 10, sy + 10, Math.max(18, nw * 0.22), accentBandH, accentBandH / 2);
+            } else {
+                ctx.rect(sx + 10, sy + 10, Math.max(18, nw * 0.22), accentBandH);
+            }
+            ctx.fill();
+        }
+        ctx.restore();
+        ctx.fillStyle = "#f8fbff";
+        ctx.font = "700 16px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.shadowBlur = 0;
+        drawLinesCentered(ctx, n._lines, sx + nw / 2, sy + nh / 2, NODE_LINE_HEIGHT);
+        if (sel && !state.isViewMode) {
+            const hs = NODE_HANDLE_SIZE;
+            ctx.fillStyle = "#e0f2fe";
+            ctx.strokeStyle = "#7dd3fc";
+            ctx.lineWidth = 1.5;
+            for (const h of getNodeHandles(n)) {
+                const hx = h.x - state.cameraX, hy = h.y - state.cameraY;
+                ctx.fillRect(hx, hy, hs, hs);
+                ctx.strokeRect(hx, hy, hs, hs);
+            }
+        }
     });
     if (state.isConnecting && state.connectingFrom !== null && Number.isFinite(state.connectionPointerX) && Number.isFinite(state.connectionPointerY)) {
         const source = state.nodes.find(n => n.id === state.connectingFrom);
@@ -532,11 +629,12 @@ function drawCanvas() {
             const tx = state.connectionPointerX - state.cameraX;
             const ty = state.connectionPointerY - state.cameraY;
             ctx.save();
-            ctx.lineWidth = 2.5;
-            ctx.setLineDash([8, 8]);
-            ctx.strokeStyle = "rgba(34, 197, 94, 0.9)";
-            ctx.shadowBlur = 14;
-            ctx.shadowColor = "rgba(34, 197, 94, 0.35)";
+            ctx.lineWidth = 3;
+            ctx.setLineDash([6, 10]);
+            ctx.strokeStyle = "rgba(34, 197, 94, 0.95)";
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "rgba(34, 197, 94, 0.4)";
+            ctx.lineCap = "round";
             ctx.beginPath();
             ctx.moveTo(sx, sy);
             ctx.lineTo(tx, ty);
@@ -560,11 +658,25 @@ function drawCanvas() {
             ctx.restore();
         }
     });
-    ctx.fillStyle = "rgba(247,248,250,.92)"; ctx.fillRect(0, 0, state.canvasWidth, RULER_SIZE); ctx.fillRect(0, 0, RULER_SIZE, state.canvasHeight); ctx.strokeStyle = "rgba(110,118,129,.35)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, RULER_SIZE + .5); ctx.lineTo(state.canvasWidth, RULER_SIZE + .5); ctx.stroke(); ctx.beginPath(); ctx.moveTo(RULER_SIZE + .5, 0); ctx.lineTo(RULER_SIZE + .5, state.canvasHeight); ctx.stroke(); ctx.fillStyle = "#dfe3e9"; ctx.fillRect(0, 0, RULER_SIZE, RULER_SIZE); ctx.font = "10px Segoe UI"; ctx.fillStyle = "#6b7280"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,.03)";
+    ctx.fillRect(0, 0, state.canvasWidth, RULER_SIZE);
+    ctx.fillRect(0, 0, RULER_SIZE, state.canvasHeight);
+    ctx.strokeStyle = "rgba(148,163,184,.2)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, RULER_SIZE + .5); ctx.lineTo(state.canvasWidth, RULER_SIZE + .5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(RULER_SIZE + .5, 0); ctx.lineTo(RULER_SIZE + .5, state.canvasHeight); ctx.stroke();
+    ctx.fillStyle = "rgba(125,211,252,.12)";
+    ctx.fillRect(0, 0, RULER_SIZE, RULER_SIZE);
+    ctx.font = "10px Segoe UI";
+    ctx.fillStyle = "rgba(209,213,219,.68)";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
     const rulerStartX = -((state.cameraX % RULER_STEP) + RULER_STEP) % RULER_STEP;
     for (let x = rulerStartX; x < state.canvasWidth; x += RULER_STEP) { if (x < RULER_SIZE) continue; const worldX = Math.round(state.cameraX + x); ctx.strokeStyle = "rgba(110,118,129,.35)"; ctx.beginPath(); ctx.moveTo(x + .5, RULER_SIZE); ctx.lineTo(x + .5, RULER_SIZE - 6); ctx.stroke(); ctx.fillText(String(worldX), x + 2, 2); }
     const rulerStartY = -((state.cameraY % RULER_STEP) + RULER_STEP) % RULER_STEP;
     for (let y = rulerStartY; y < state.canvasHeight; y += RULER_STEP) { if (y < RULER_SIZE) continue; const worldY = Math.round(state.cameraY + y); ctx.strokeStyle = "rgba(110,118,129,.35)"; ctx.beginPath(); ctx.moveTo(RULER_SIZE, y + .5); ctx.lineTo(RULER_SIZE - 6, y + .5); ctx.stroke(); ctx.save(); ctx.translate(2, y + 2); ctx.rotate(-Math.PI / 2); ctx.fillText(String(worldY), 0, 0); ctx.restore(); }
+    ctx.restore();
 }
 
 function renderReadOnlyView() {
@@ -578,17 +690,73 @@ function renderReadOnlyView() {
     state.nodes.forEach(n => {
         const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
         if (sx + nw < 0 || sy + nh < 0 || sx > state.viewportWidth || sy > state.viewportHeight) return;
-        const g = document.createElementNS(ns, "g"), t = document.createElementNS(ns, "text"), lines = (n._lines && n._lines.length) ? n._lines : ["Nó sem texto"], shape = (n.shape || "rect");
-        let shp; if (shape === "ellipse") { shp = document.createElementNS(ns, "ellipse"); shp.setAttribute("cx", String(sx + nw / 2)); shp.setAttribute("cy", String(sy + nh / 2)); shp.setAttribute("rx", String(nw / 2)); shp.setAttribute("ry", String(nh / 2)); } else if (shape === "diamond") { shp = document.createElementNS(ns, "polygon"); shp.setAttribute("points", `${sx + nw / 2},${sy} ${sx + nw},${sy + nh / 2} ${sx + nw / 2},${sy + nh} ${sx},${sy + nh / 2}`); } else if (shape === "hexagon") { const d = Math.min(nw * 0.22, 44); shp = document.createElementNS(ns, "polygon"); shp.setAttribute("points", `${sx + d},${sy} ${sx + nw - d},${sy} ${sx + nw},${sy + nh / 2} ${sx + nw - d},${sy + nh} ${sx + d},${sy + nh} ${sx},${sy + nh / 2}`); } else { shp = document.createElementNS(ns, "rect"); shp.setAttribute("x", String(sx)); shp.setAttribute("y", String(sy)); shp.setAttribute("width", String(nw)); shp.setAttribute("height", String(nh)); shp.setAttribute("rx", "8"); }
-        shp.setAttribute("fill", n.color || "#ffffff"); shp.setAttribute("stroke", "#cfd6e2"); shp.setAttribute("stroke-width", "2"); t.setAttribute("x", String(sx + nw / 2)); t.setAttribute("text-anchor", "middle"); t.setAttribute("fill", getTextColorByFill(n.color || "#ffffff")); t.setAttribute("font-size", "16"); t.setAttribute("font-family", "Segoe UI, sans-serif");
-        const startY = sy + (nh - (lines.length * NODE_LINE_HEIGHT)) / 2 + 14; for (let idx = 0; idx < lines.length; idx++) { const sp = document.createElementNS(ns, "tspan"); sp.setAttribute("x", String(sx + nw / 2)); sp.setAttribute("y", String(startY + idx * NODE_LINE_HEIGHT)); sp.textContent = lines[idx] || " "; t.appendChild(sp); } g.appendChild(shp); g.appendChild(t); svg.appendChild(g);
+        const g = document.createElementNS(ns, "g"), t = document.createElementNS(ns, "text"), lines = (n._lines && n._lines.length) ? n._lines : ["Nó sem texto"], shape = (n.shape || "rect"), accent = getNodeAccent(n);
+        let shp;
+        if (shape === "ellipse") {
+            shp = document.createElementNS(ns, "ellipse");
+            shp.setAttribute("cx", String(sx + nw / 2));
+            shp.setAttribute("cy", String(sy + nh / 2));
+            shp.setAttribute("rx", String(nw / 2));
+            shp.setAttribute("ry", String(nh / 2));
+        } else if (shape === "diamond") {
+            shp = document.createElementNS(ns, "polygon");
+            shp.setAttribute("points", `${sx + nw / 2},${sy} ${sx + nw},${sy + nh / 2} ${sx + nw / 2},${sy + nh} ${sx},${sy + nh / 2}`);
+        } else if (shape === "hexagon") {
+            const d = Math.min(nw * 0.22, 44);
+            shp = document.createElementNS(ns, "polygon");
+            shp.setAttribute("points", `${sx + d},${sy} ${sx + nw - d},${sy} ${sx + nw},${sy + nh / 2} ${sx + nw - d},${sy + nh} ${sx + d},${sy + nh} ${sx},${sy + nh / 2}`);
+        } else {
+            shp = document.createElementNS(ns, "rect");
+            shp.setAttribute("x", String(sx));
+            shp.setAttribute("y", String(sy));
+            shp.setAttribute("width", String(nw));
+            shp.setAttribute("height", String(nh));
+            shp.setAttribute("rx", "14");
+        }
+        shp.setAttribute("fill", "rgba(4, 10, 24, 0.9)");
+        shp.setAttribute("stroke", accent);
+        shp.setAttribute("stroke-width", "2.2");
+        shp.setAttribute("opacity", "0.96");
+        const accentMark = document.createElementNS(ns, "rect");
+        accentMark.setAttribute("x", String(sx + 10));
+        accentMark.setAttribute("y", String(sy + 10));
+        accentMark.setAttribute("width", String(Math.max(18, nw * 0.22)));
+        accentMark.setAttribute("height", String(Math.max(8, Math.min(14, Math.round(nh * 0.1)))));
+        accentMark.setAttribute("rx", "999");
+        accentMark.setAttribute("fill", accent);
+        accentMark.setAttribute("opacity", "0.95");
+        t.setAttribute("x", String(sx + nw / 2));
+        t.setAttribute("text-anchor", "middle");
+        t.setAttribute("fill", "#f8fbff");
+        t.setAttribute("font-size", "16");
+        t.setAttribute("font-weight", "700");
+        t.setAttribute("font-family", "Segoe UI, sans-serif");
+        const startY = sy + (nh - (lines.length * NODE_LINE_HEIGHT)) / 2 + 14;
+        for (let idx = 0; idx < lines.length; idx++) {
+            const sp = document.createElementNS(ns, "tspan");
+            sp.setAttribute("x", String(sx + nw / 2));
+            sp.setAttribute("y", String(startY + idx * NODE_LINE_HEIGHT));
+            sp.textContent = lines[idx] || " ";
+            t.appendChild(sp);
+        }
+        g.appendChild(shp);
+        if (shape === "rect") g.appendChild(accentMark);
+        g.appendChild(t);
+        svg.appendChild(g);
     });
     state.connections.forEach(cn => {
         const g = getConnectionGeometry(state, cn);
         if (!g) return;
         const type = cn.type || "arrow", base = cn.color || "#000000";
         let edge; if (type === "curve") { edge = document.createElementNS(ns, "path"); edge.setAttribute("d", `M ${g.x1 - state.cameraX} ${g.y1 - state.cameraY} C ${g.c1x - state.cameraX} ${g.c1y - state.cameraY}, ${g.c2x - state.cameraX} ${g.c2y - state.cameraY}, ${g.x2 - state.cameraX} ${g.y2 - state.cameraY}`); } else { edge = document.createElementNS(ns, "line"); edge.setAttribute("x1", String(g.x1 - state.cameraX)); edge.setAttribute("y1", String(g.y1 - state.cameraY)); edge.setAttribute("x2", String(g.x2 - state.cameraX)); edge.setAttribute("y2", String(g.y2 - state.cameraY)); }
-        edge.setAttribute("fill", "none"); edge.setAttribute("stroke", base); edge.setAttribute("stroke-width", "2.5"); if (type === "line") edge.setAttribute("stroke-dasharray", "10 6"); if (type === "arrow" || type === "both" || type === "curve") edge.setAttribute("marker-end", "url(#arrow)"); if (type === "both") edge.setAttribute("marker-start", "url(#arrowStart)"); svg.appendChild(edge);
+        edge.setAttribute("fill", "none");
+        edge.setAttribute("stroke", base);
+        edge.setAttribute("stroke-width", "2.5");
+        edge.setAttribute("stroke-linecap", "round");
+        edge.setAttribute("stroke-linejoin", "round");
+        if (type === "line") edge.setAttribute("stroke-dasharray", "6 10");
+        if (type === "arrow" || type === "both" || type === "curve") edge.setAttribute("marker-end", "url(#arrow)"); if (type === "both") edge.setAttribute("marker-start", "url(#arrowStart)");
+        svg.appendChild(edge);
     });
     state.texts.forEach(t => {
         const sx = t.x - state.cameraX, sy = t.y - state.cameraY;

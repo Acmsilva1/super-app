@@ -101,7 +101,7 @@ export function getGraphPayload() {
         })),
         nextId: state.nextId,
         projectName: state.projectName,
-        activeColor: state.activeColor || "#2563eb",
+        activeColor: state.activeColor || "#22c55e",
         cameraX: state.cameraX,
         cameraY: state.cameraY
     };
@@ -142,7 +142,7 @@ export function applyPersistedData(d) {
         : "Novo Fluxograma";
     state.activeColor = typeof d.activeColor === "string" && d.activeColor.trim()
         ? d.activeColor.trim()
-        : "#2563eb";
+        : "#22c55e";
     state.cameraX = Number(d.cameraX) || 0;
     state.cameraY = Number(d.cameraY) || 0;
 }
@@ -155,7 +155,7 @@ export function resetGraphState() {
     state.connections = [];
     state.nextId = 1;
     state.projectName = "Novo Fluxograma";
-    state.activeColor = "#2563eb";
+    state.activeColor = "#22c55e";
     state.cameraX = 0;
     state.cameraY = 0;
 }
