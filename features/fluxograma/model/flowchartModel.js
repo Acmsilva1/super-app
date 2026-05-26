@@ -22,8 +22,10 @@ export const state = {
     nextId: 1,
     isConnecting: false,
     connectingFrom: null,
+    connectingFromSide: null,
     isDisconnecting: false,
     disconnectFrom: null,
+    disconnectFromSide: null,
     isViewMode: false,
     projectName: "Novo Fluxograma",
     draggingNodeId: null,
@@ -41,6 +43,7 @@ export const state = {
     defaultConnectionType: "line",
     connectionPointerX: 0,
     connectionPointerY: 0,
+    hoveredPort: null,
     inlineEditNodeId: null,
     inlineEditTextId: null,
     draggingTextId: null
@@ -62,13 +65,16 @@ function clearInteractionState() {
     state.selectedConnectionIndex = null;
     state.isConnecting = false;
     state.connectingFrom = null;
+    state.connectingFromSide = null;
     state.isDisconnecting = false;
     state.disconnectFrom = null;
+    state.disconnectFromSide = null;
     state.inlineEditNodeId = null;
     state.inlineEditTextId = null;
     state.draggingNodeId = null;
     state.draggingTextId = null;
     state.hasDragged = false;
+    state.hoveredPort = null;
 }
 
 /** Snapshot do grafo (localStorage / coluna dados no Supabase). */
@@ -97,7 +103,9 @@ export function getGraphPayload() {
             from: c.from,
             to: c.to,
             type: c.type || "arrow",
-            color: c.color || "#000000"
+            color: c.color || "#000000",
+            fromSide: typeof c.fromSide === "string" ? c.fromSide : null,
+            toSide: typeof c.toSide === "string" ? c.toSide : null
         })),
         nextId: state.nextId,
         projectName: state.projectName,
@@ -134,7 +142,9 @@ export function applyPersistedData(d) {
         from: c.from,
         to: c.to,
         type: typeof c.type === "string" ? c.type : "arrow",
-        color: typeof c.color === "string" ? c.color : "#000000"
+        color: typeof c.color === "string" ? c.color : "#000000",
+        fromSide: typeof c.fromSide === "string" ? c.fromSide : null,
+        toSide: typeof c.toSide === "string" ? c.toSide : null
     })) : [];
     state.nextId = Number.isInteger(d.nextId) ? d.nextId : 1;
     state.projectName = typeof d.projectName === "string" && d.projectName.trim()
@@ -158,6 +168,9 @@ export function resetGraphState() {
     state.activeColor = "#22c55e";
     state.cameraX = 0;
     state.cameraY = 0;
+    state.connectingFromSide = null;
+    state.disconnectFromSide = null;
+    state.hoveredPort = null;
 }
 
 export function saveToLocalStorage() {

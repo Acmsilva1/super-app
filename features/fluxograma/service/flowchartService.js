@@ -79,11 +79,48 @@ export function getConnectorPoint(node, targetX, targetY) {
     return { x: cx + dx * s, y: cy + dy * s };
 }
 
+export function getNodeConnectionPoint(node, side) {
+    const w = getNodeWidth(node), h = getNodeHeight(node);
+    const cx = node.x + w / 2;
+    const cy = node.y + h / 2;
+    const inset = 0;
+    const lookup = {
+        top: { x: cx, y: node.y - inset },
+        right: { x: node.x + w + inset, y: cy },
+        bottom: { x: cx, y: node.y + h + inset },
+        left: { x: node.x - inset, y: cy }
+    };
+    return lookup[side] || { x: cx, y: cy };
+}
+
+export function getNodeConnectionSides(node, targetNode) {
+    const w = getNodeWidth(node), h = getNodeHeight(node);
+    const cx = node.x + w / 2, cy = node.y + h / 2;
+    const tx = targetNode.x + getNodeWidth(targetNode) / 2;
+    const ty = targetNode.y + getNodeHeight(targetNode) / 2;
+    const dx = tx - cx;
+    const dy = ty - cy;
+    if (Math.abs(dx) >= Math.abs(dy)) {
+        return {
+            fromSide: dx >= 0 ? "right" : "left",
+            toSide: dx >= 0 ? "left" : "right"
+        };
+    }
+    return {
+        fromSide: dy >= 0 ? "bottom" : "top",
+        toSide: dy >= 0 ? "top" : "bottom"
+    };
+}
+
 export function getConnectionGeometry(state, cn) {
     const f = state.nodes.find(n => n.id === cn.from), t = state.nodes.find(n => n.id === cn.to);
     if (!f || !t) return null;
     const fc = { x: f.x + getNodeWidth(f) / 2, y: f.y + getNodeHeight(f) / 2 }, tc = { x: t.x + getNodeWidth(t) / 2, y: t.y + getNodeHeight(t) / 2 };
-    const sp = getConnectorPoint(f, tc.x, tc.y), ep = getConnectorPoint(t, fc.x, fc.y), dx = ep.x - sp.x, dy = ep.y - sp.y;
+    const fromSide = cn.fromSide || null;
+    const toSide = cn.toSide || null;
+    const sp = fromSide ? getNodeConnectionPoint(f, fromSide) : getConnectorPoint(f, tc.x, tc.y);
+    const ep = toSide ? getNodeConnectionPoint(t, toSide) : getConnectorPoint(t, fc.x, fc.y);
+    const dx = ep.x - sp.x, dy = ep.y - sp.y;
     let c1x = sp.x, c1y = sp.y, c2x = ep.x, c2y = ep.y;
     if (Math.abs(dx) >= Math.abs(dy)) {
         const sgn = dx >= 0 ? 1 : -1, b = Math.max(60, Math.min(220, Math.abs(dx) * 0.35 + Math.abs(dy) * 0.15));
@@ -174,6 +211,20 @@ export function getNodeHandles(n) {
         { key: "ne", x: x + w - r, y: y - r, w: s, h: s },
         { key: "sw", x: x - r, y: y + h - r, w: s, h: s },
         { key: "se", x: x + w - r, y: y + h - r, w: s, h: s }
+    ];
+}
+
+export function getNodePorts(n) {
+    const w = getNodeWidth(n), h = getNodeHeight(n);
+    const cx = n.x + w / 2;
+    const cy = n.y + h / 2;
+    const size = 12;
+    const half = size / 2;
+    return [
+        { key: "top", x: cx - half, y: n.y - half, w: size, h: size, px: cx, py: n.y },
+        { key: "right", x: n.x + w - half, y: cy - half, w: size, h: size, px: n.x + w, py: cy },
+        { key: "bottom", x: cx - half, y: n.y + h - half, w: size, h: size, px: cx, py: n.y + h },
+        { key: "left", x: n.x - half, y: cy - half, w: size, h: size, px: n.x, py: cy }
     ];
 }
 
