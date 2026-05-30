@@ -20,8 +20,12 @@ import {
   payloadInsertFinanceiro,
   payloadUpdateFinanceiro,
   inferTipoRegistro,
-  parcelCopyPlanFromPreviousMonthRow,
-  getBrazilTodayIso,
+  buildReplicationSlotsFromStart,
+  seriesDefinitionsFromYearRows,
+  slotsNeededForMonth,
+  rowMatchesReplicationSlot,
+  buildInsertPayloadFromSlot,
+  createdAtForMesAno,
 } from '../features/financeiro/index.js';
 
 function getBody(req) {
@@ -59,109 +63,74 @@ function resolveTipoRegistroFinanceiro(row, fallback = TIPO_REGISTRO_GASTO_VARIA
   return fallback;
 }
 
-function getMesAnoAnterior(mesAno) {
-  const [y, m] = mesAno.split('-').map(Number);
-  const prevYear = m === 1 ? y - 1 : y;
-  const prevMonth = m === 1 ? 12 : m - 1;
-  return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
+function replicationOptionsFromPayload(payload = {}) {
+  const contaFixa = payload.conta_fixa === true;
+  const pt = Number(payload.parcela_total);
+  const pa = Number(payload.parcela_atual);
+  const hasParcelas = Number.isFinite(pt) && Number.isFinite(pa) && pt >= 1 && pa >= 1;
+  return {
+    contaFixa,
+    parcelaAtual: hasParcelas ? pa : null,
+    parcelaTotal: hasParcelas ? pt : null,
+  };
 }
 
-function isLastDayMes(mesAno, todayIso) {
-  if (!mesAno || !/^\d{4}-\d{2}$/.test(mesAno)) return false;
-  const [y, m] = mesAno.split('-').map(Number);
-  const lastDay = new Date(y, m, 0).getDate();
-  const [ty, tm, td] = String(todayIso || '').split('-').map(Number);
-  return ty === y && tm === m && td === lastDay;
+function buildDespesaFixaInsertPayloads(basePayload, mesAno) {
+  const slots = buildReplicationSlotsFromStart(mesAno, replicationOptionsFromPayload(basePayload));
+  return slots.map((slot) => ({
+    descricao: basePayload.descricao,
+    valor: basePayload.valor,
+    status: basePayload.status || 'pendente',
+    conta_fixa: slot.conta_fixa === true,
+    parcela_atual: slot.parcela_atual,
+    parcela_total: slot.parcela_total,
+    created_at: createdAtForMesAno(slot.mes_ano),
+  }));
 }
 
-export async function verificarECopiarDespesasFixas(mesAnoSource) {
-  if (!mesAnoSource || !/^\d{4}-\d{2}$/.test(mesAnoSource)) return;
-  const [y, m] = mesAnoSource.split('-').map(Number);
-  const targetYear = m === 12 ? y + 1 : y;
-  const targetMonth = m === 12 ? 1 : m + 1;
-  const mesAnoTarget = `${targetYear}-${String(targetMonth).padStart(2, '0')}`;
+export async function materializeDespesasFixasMes(mesAno) {
+  if (!mesAno || !/^\d{4}-\d{2}$/.test(mesAno)) return;
+  const { ano, mes } = parseMesAno(mesAno);
+  const yearStart = new Date(ano, 0, 1).toISOString();
+  const yearEnd = new Date(ano, 11, 31, 23, 59, 59, 999).toISOString();
 
-  const { start: srcStart, end: srcEnd } = rangeMes(y, m);
-  const { data: srcRows, error: srcErr } = await supabase
+  const { data: yearRows, error: yearErr } = await supabase
     .from(TABLE_DESPESAS_FIXAS)
     .select('*')
-    .gte('created_at', srcStart)
-    .lte('created_at', srcEnd);
+    .gte('created_at', yearStart)
+    .lte('created_at', yearEnd);
 
-  if (srcErr || !srcRows || srcRows.length === 0) return;
+  if (yearErr || !yearRows?.length) return;
 
-  const { start: tgtStart, end: tgtEnd } = rangeMes(targetYear, targetMonth);
-  const { data: tgtRows, error: tgtErr } = await supabase
+  const series = seriesDefinitionsFromYearRows(yearRows);
+  if (!series.length) return;
+
+  const { start, end } = rangeMes(ano, mes);
+  const { data: monthRows, error: monthErr } = await supabase
     .from(TABLE_DESPESAS_FIXAS)
     .select('*')
-    .gte('created_at', tgtStart)
-    .lte('created_at', tgtEnd);
+    .gte('created_at', start)
+    .lte('created_at', end);
 
-  if (tgtErr) return;
-  const targetRows = tgtRows || [];
+  if (monthErr) return;
+  const existing = monthRows || [];
 
-  const inseridos = [];
-  for (const srcRow of srcRows) {
-    const plan = parcelCopyPlanFromPreviousMonthRow(srcRow);
-    if (plan.skip) continue;
-
-    const descNormal = String(srcRow.descricao || '').trim().toLowerCase();
-    const existe = targetRows.some(
-      (r) => String(r.descricao || '').trim().toLowerCase() === descNormal
-    );
-    if (existe) continue;
-
-    const newCreatedAt = new Date(targetYear, targetMonth - 1, 1, 12, 0, 0, 0).toISOString();
-    const payload = {
-      descricao: srcRow.descricao,
-      valor: srcRow.valor,
-      status: 'pendente',
-      conta_fixa: plan.conta_fixa === true,
-      parcela_atual: plan.parcela_atual,
-      parcela_total: plan.parcela_total,
-      created_at: newCreatedAt,
-    };
-
-    const { data: inserted, error: insErr } = await supabase
-      .from(TABLE_DESPESAS_FIXAS)
-      .insert(payload)
-      .select()
-      .single();
-
-    if (!insErr && inserted) {
-      inseridos.push(inserted);
+  const toInsert = [];
+  for (const item of series) {
+    const needed = slotsNeededForMonth(item, mesAno);
+    for (const slot of needed) {
+      const alreadyExists = existing.some((row) => rowMatchesReplicationSlot(row, slot, item.descricao));
+      if (alreadyExists) continue;
+      toInsert.push(buildInsertPayloadFromSlot(item, slot));
     }
   }
-  return inseridos;
+
+  if (!toInsert.length) return;
+  await supabase.from(TABLE_DESPESAS_FIXAS).insert(toInsert);
 }
 
 export async function garantirDespesasFixasMes(mesAno) {
-  if (!mesAno || !/^\d{4}-\d{2}$/.test(mesAno)) return;
-  const [y, m] = mesAno.split('-').map(Number);
-  const { start, end } = rangeMes(y, m);
-
-  const { data: rows, error } = await supabase
-    .from(TABLE_DESPESAS_FIXAS)
-    .select('id')
-    .gte('created_at', start)
-    .lte('created_at', end)
-    .limit(1);
-
-  if (error) return;
-
-  const prevMesAno = getMesAnoAnterior(mesAno);
-  const todayStr = getBrazilTodayIso();
-
-  if (!rows || rows.length === 0) {
-    // Só permite "entrar" automático no mês alvo após o fechamento do mês anterior.
-    if (isLastDayMes(prevMesAno, todayStr)) {
-      await verificarECopiarDespesasFixas(prevMesAno);
-    }
-  }
-
-  if (isLastDayMes(mesAno, todayStr)) {
-    await verificarECopiarDespesasFixas(mesAno);
-  }
+  await materializeDespesasFixasMes(mesAno);
 }
 
 export async function obterFinanceiroMes(query = {}) {
@@ -296,9 +265,18 @@ export async function criarRegistroFinanceiro(req) {
         ? TABLE_POUPANCA_METAS
         : TABLE_FINANCAS;
   const payload = { ...parsed.payload };
+
   if (parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA && body.mes_ano && /^\d{4}-\d{2}$/.test(String(body.mes_ano))) {
-    const { ano, mes } = parseMesAno(String(body.mes_ano));
-    payload.created_at = new Date(ano, mes - 1, 1, 12, 0, 0, 0).toISOString();
+    const mesAno = String(body.mes_ano);
+    const insertPayloads = buildDespesaFixaInsertPayloads(payload, mesAno);
+    const { data, error } = await supabase
+      .from(table)
+      .insert(insertPayloads)
+      .select();
+    if (error) return { status: 500, data: { error: error.message } };
+    const rows = Array.isArray(data) ? data : (data ? [data] : []);
+    const row = rows.find((item) => String(item?.created_at || '').slice(0, 7) === mesAno) || rows[0] || null;
+    return { status: 201, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
   }
 
   if (parsed.tipo_registro === TIPO_REGISTRO_META_POUPANCA) {
@@ -314,17 +292,6 @@ export async function criarRegistroFinanceiro(req) {
   const { data, error } = await supabase.from(table).insert(payload).select().single();
   if (error) return { status: 500, data: { error: error.message } };
   const row = rowOrFirst(data);
-
-  if (parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA) {
-    const mesAno = body.mes_ano || (row?.created_at && String(row.created_at).slice(0, 7));
-    if (mesAno && /^\d{4}-\d{2}$/.test(mesAno)) {
-      const todayStr = getBrazilTodayIso();
-      if (isLastDayMes(mesAno, todayStr)) {
-        await verificarECopiarDespesasFixas(mesAno);
-      }
-    }
-  }
-
   return { status: 201, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
 }
 
@@ -343,17 +310,6 @@ export async function atualizarRegistroFinanceiro(req) {
   const { data, error } = await supabase.from(table).update(parsed.payload).eq('id', parsed.id).select().single();
   if (error) return { status: 500, data: { error: error.message } };
   const row = rowOrFirst(data);
-
-  if (parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA) {
-    const mesAno = body.mes_ano || (row?.created_at && String(row.created_at).slice(0, 7));
-    if (mesAno && /^\d{4}-\d{2}$/.test(mesAno)) {
-      const todayStr = getBrazilTodayIso();
-      if (isLastDayMes(mesAno, todayStr)) {
-        await verificarECopiarDespesasFixas(mesAno);
-      }
-    }
-  }
-
   return { status: 200, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
 }
 

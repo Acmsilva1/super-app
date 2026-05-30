@@ -6643,9 +6643,9 @@
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="despesas_fixas" id="financeiro-section-despesas-fixas" data-fixas-empty="${fixasEmpty ? '1' : '0'}">
                                 <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.8rem;">Despesas fixas</p>
                                 ${fixasEmpty ? `
-                                <div id="financeiro-import-fixas-callout" class="finance-import-fixas-callout ${showImportFixasCallout ? '' : 'hidden'}" role="region" aria-label="Importar despesas fixas">
-                                    <p class="finance-import-fixas-callout__text">Este mês ainda não tem despesas fixas. Copie do mês anterior; lançamentos com parcelas passam para a próxima parcela (itens já na última parcela não são copiados).</p>
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-import-fixas-prev-month">Importar do mês anterior</button>
+                                <div id="financeiro-import-fixas-callout" class="finance-import-fixas-callout ${showImportFixasCallout ? '' : 'hidden'}" role="region" aria-label="Preencher despesas fixas">
+                                    <p class="finance-import-fixas-callout__text">Este mês ainda não tem despesas fixas. Contas fixas e parcelas já lançadas no ano são replicadas automaticamente — toque abaixo para preencher agora.</p>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-import-fixas-prev-month">Preencher mês automaticamente</button>
                                 </div>` : ''}
                                 <div class="finance-despesas-fixas-grid">
                                     <details class="finance-despesas-col" ${detailsAttr}>
@@ -7656,83 +7656,18 @@
                 }
             }
 
-            /**
-             * Plano de cópia de uma despesa fixa do mês anterior para o mês atual (parcelas).
-             * Sem parcelamento válido: copia descrição e valor, sem parcelas no destino.
-             * Com parcelas (atual e total válidos): se atual igual a total, não copia (última parcela).
-             * Caso contrário (atual menor que total): copia com parcela atual incrementada em 1.
-             */
-            _parcelCopyPlanFromPreviousMonthRow(r) {
-                const isContaFixa = r?.conta_fixa === true || r?.conta_fixa === 'true';
-                const pt = Number(r?.parcela_total);
-                const pa = Number(r?.parcela_atual);
-                const hasParcelas = Number.isFinite(pt) && Number.isFinite(pa) && pt >= 1 && pa >= 1;
-
-                if (isContaFixa) {
-                    return { skip: false, conta_fixa: true, parcelas: false, parcela_atual: null, parcela_total: null };
-                }
-                if (hasParcelas) {
-                    if (pa > pt) return { skip: true, reason: 'invalid' };
-                    if (pa >= pt) return { skip: true, reason: 'last' };
-                    return { skip: false, conta_fixa: false, parcelas: true, parcela_atual: pa + 1, parcela_total: pt };
-                }
-                return { skip: true, reason: 'not_recurring' };
-            }
-
             async importFinanceiroFixasFromPreviousMonth(el) {
                 const mesAtual = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                const mesAnterior = this.getMesAnoAnterior(mesAtual);
-                const labelAnt = this.formatMesAnoLabel(mesAnterior);
                 const labelAtual = this.formatMesAnoLabel(mesAtual);
                 const okConfirm = await this.showConfirm(
-                    'Importar despesas fixas',
-                    `Os dados de ${labelAnt} serão copiados para ${labelAtual}. Itens na última parcela (ex.: Parcela 5 de 5) não serão copiados. Deseja continuar?`
+                    'Preencher despesas fixas',
+                    `Contas fixas e parcelas já cadastradas no ano serão geradas para ${labelAtual}, com a parcela correta de cada mês. Deseja continuar?`
                 );
                 if (!okConfirm) return;
-                let res;
                 try {
-                    res = await fetch(`/api/financeiro?bi=1&mes_ano=${encodeURIComponent(mesAnterior)}`);
-                    if (!res.ok) throw new Error('Não foi possível ler o mês anterior.');
-                    const data = await res.json();
-                    const rows = data?.tabelas?.despesas_fixas || [];
-                    if (!rows.length) {
-                        alert('Não há despesas fixas no mês anterior para importar.');
-                        return;
-                    }
-                    let copied = 0;
-                    let skippedUltima = 0;
-                    for (const r of rows) {
-                        const plan = this._parcelCopyPlanFromPreviousMonthRow(r);
-                        if (plan.skip) {
-                            if (plan.reason === 'last') skippedUltima += 1;
-                            continue;
-                        }
-                        const descricao = String(r.descricao || '').trim();
-                        if (!descricao) continue;
-                        const payload = {
-                            editId: '',
-                            tipo_registro: 'despesa_fixa',
-                            descricao,
-                            valor: Number(r.valor || 0),
-                            mesAno: mesAtual,
-                            conta_fixa: plan.conta_fixa === true,
-                            parcelas: plan.parcelas === true,
-                            parcela_atual: plan.parcela_atual ?? null,
-                            parcela_total: plan.parcela_total ?? null,
-                        };
-                        const saved = await this.submitFinanceiroSave(el, payload, { skipRefresh: true });
-                        if (saved) copied += 1;
-                    }
                     await this.refreshAppContent('financeiro');
-                    if (copied === 0) {
-                        alert(
-                            skippedUltima > 0
-                                ? 'Nenhum lançamento foi copiado: todos estavam na última parcela (N de N) ou não havia linhas válidas.'
-                                : 'Nenhum lançamento foi copiado.'
-                        );
-                    }
                 } catch (e) {
-                    alert(e.message || 'Erro ao importar.');
+                    alert(e.message || 'Erro ao preencher o mês.');
                 }
             }
 

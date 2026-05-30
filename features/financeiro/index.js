@@ -18,8 +18,13 @@ export {
 
 
 export {
-  parcelCopyPlanFromPreviousMonthRow,
-} from './service/parcelCopyPlan.js';
+  buildReplicationSlotsFromStart,
+  seriesDefinitionsFromYearRows,
+  slotsNeededForMonth,
+  rowMatchesReplicationSlot,
+  buildInsertPayloadFromSlot,
+  createdAtForMesAno,
+} from './service/despesaFixaReplication.js';
 
 export {
   inferTipoRegistro,
