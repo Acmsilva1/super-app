@@ -6430,7 +6430,7 @@
                 if (el._financeiroChartCategoria) { try { el._financeiroChartCategoria.dispose(); } catch (_) {} el._financeiroChartCategoria = null; }
                 if (el._financeiroChartStatus) { try { el._financeiroChartStatus.dispose(); } catch (_) {} el._financeiroChartStatus = null; }
                 const tabRaw = (el.getAttribute('data-active-tab') || '').toLowerCase();
-                const activeTab = ['summary', 'data', 'poupanca'].includes(tabRaw) ? tabRaw : 'summary';
+                const activeTab = ['summary', 'data', 'poupanca'].includes(tabRaw) ? tabRaw : 'data';
                 const dataFilterRaw = String(el.getAttribute('data-active-data-filter') || '').toLowerCase();
                 const activeDataFilter = ['despesas_fixas', 'gastos_variados', 'receitas'].includes(dataFilterRaw) ? dataFilterRaw : '';
                 el.setAttribute('data-active-tab', activeTab);
@@ -6597,8 +6597,8 @@
                                 <select id="financeiro-ano">${anos.map((a) => `<option value="${a}" ${(a === ano) ? 'selected' : ''}>${a}</option>`).join('')}</select>
                             </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
-                                <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Resumo</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Dashboards</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupança</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
@@ -7105,7 +7105,7 @@
 
                 el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
                     btn.onclick = () => {
-                        const t = btn.dataset.tab || 'summary';
+                        const t = btn.dataset.tab || 'data';
                         setTab(t);
                         if (t === 'data') applyFinanceDataFilter(el.getAttribute('data-active-data-filter') || '');
                     };
@@ -7148,7 +7148,7 @@
                 }
 
                 el.querySelector('[data-action="financeiro-open-modal"]').onclick = () => {
-                    const currentTab = String(el.getAttribute('data-active-tab') || 'summary');
+                    const currentTab = String(el.getAttribute('data-active-tab') || 'data');
                     const defaultTipo = currentTab === 'poupanca' ? 'poupanca' : 'gasto_variado';
                     this.openFinanceiroModal(el, { defaultTipo });
                 };
