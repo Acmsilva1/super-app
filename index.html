@@ -6439,7 +6439,6 @@
                 const tabelas = data.tabelas || {};
                 const despesasFixas = tabelas.despesas_fixas || [];
                 const gastosVariados = tabelas.gastos_variados || [];
-                const comprasVariadas = tabelas.compras_variadas || [];
                 const receitas = tabelas.receitas || [];
                 const poupancaLogs = (data.poupanca && data.poupanca.logs) || tabelas.poupanca || [];
                 const poupancaTotal = Number((data.poupanca && data.poupanca.total) || 0);
@@ -6527,26 +6526,6 @@
                         </td>
                     </tr>`;
                 };
-                const mkRowCompra = (r) => {
-                    const hora = fmtHoraBrasilia(r.created_at);
-                    const pagoLabel = String(r.metodo_pagamento || '').toUpperCase() || '--';
-                    const metodoBadge = pagoLabel === '--'
-                        ? ''
-                        : `<span class="finance-parcela-tag">${escapeHtml(pagoLabel)}</span>`;
-                    return `<tr>
-                        <td><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong>${metodoBadge}</td>
-                        <td>${escapeHtml(r.local || '--')}</td>
-                        <td style="color:#ef4444">${this.formatMoneyBr(Number(r.valor || 0))}</td>
-                        <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
-                        <td class="col-actions">
-                            <div class="app-list-actions">
-                                <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="compra_variada">Editar</button>
-                                <button type="button" data-action="financeiro-delete" data-id="${r.id}" data-tipo-registro="compra_variada">Excluir</button>
-                            </div>
-                        </td>
-                    </tr>`;
-                };
-
                 const resumoFinanceiro = data?.dashboard || {};
                 const receitasVal = Number(resumoFinanceiro.receitas) || 0;
                 const despesasFixasVal = Number(resumoFinanceiro.despesas_fixas) || 0;
@@ -6578,9 +6557,7 @@
                 const isMobileFixas = typeof window !== 'undefined' && window.innerWidth <= 900;
                 const detailsAttr = isMobileFixas ? '' : 'open';
                 const totalGastosVariados = gastosVariados.reduce((sum, r) => sum + Number(r.valor || 0), 0);
-                const totalComprasVariadas = comprasVariadas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                 const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
-                const rowsComprasHtml = comprasVariadas.length ? comprasVariadas.map(mkRowCompra).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma compra variada neste mês.</td></tr>';
                 const rowsReceitasHtml = receitas.length ? receitas.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mês.</td></tr>';
                 const rowsPoupancaHtml = poupancaLogs.length
                     ? poupancaLogs.map((r) => {
@@ -6702,43 +6679,23 @@
                                 </div>
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
-                                <div class="finance-despesas-fixas-grid">
-                                    <details class="finance-despesas-col" ${detailsAttr}>
-                                        <summary class="finance-despesas-col-header" style="color: #ef4444;">
-                                            <span>Débito / pix<i class="fas fa-chevron-down finance-col-chevron"></i></span>
-                                            <span>${this.formatMoneyBr(totalGastosVariados)}</span>
-                                        </summary>
-                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; padding: 0.25rem;">
-                                            <p style="font-size:0.75rem;font-weight:600;margin:0;">Débito / pix</p>
-                                            ${gastosVariados.length > 0 ? `
-                                            <select id="financeiro-filter-categoria-gastos" style="font-size:0.72rem; padding:0.15rem 0.35rem; border-radius:0.4rem; background:transparent; border:1px solid rgba(148, 163, 184, 0.4); color:inherit; outline:none; cursor:pointer;">
-                                                <option value="">Todas as categorias</option>
-                                                ${[...new Set(gastosVariados.map(g => g.categoria || 'Sem categoria'))].sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
-                                            </select>
-                                            ` : ''}
-                                        </div>
-                                        <div class="finance-table-scroll">
-                                            <table class="module-table">
-                                                <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
-                                                <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
-                                            </table>
-                                        </div>
-                                    </details>
-                                    <details class="finance-despesas-col" ${detailsAttr}>
-                                        <summary class="finance-despesas-col-header" style="color: #3b82f6;">
-                                            <span>Compras Variadas<i class="fas fa-chevron-down finance-col-chevron"></i></span>
-                                            <span>${this.formatMoneyBr(totalComprasVariadas)}</span>
-                                        </summary>
-                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; padding: 0.25rem;">
-                                            <p style="font-size:0.75rem;font-weight:600;margin:0;">Compras</p>
-                                        </div>
-                                        <div class="finance-table-scroll">
-                                            <table class="module-table">
-                                                <thead><tr><th>Descrição</th><th>Local</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
-                                                <tbody id="financeiro-table-compras">${rowsComprasHtml}</tbody>
-                                            </table>
-                                        </div>
-                                    </details>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; gap:0.5rem; flex-wrap:wrap;">
+                                    <div class="finance-despesas-col-header" style="color:#ef4444;margin:0;">
+                                        <span style="font-size:0.875rem;font-weight:600;">Débito / pix</span>
+                                        <span>${this.formatMoneyBr(totalGastosVariados)}</span>
+                                    </div>
+                                    ${gastosVariados.length > 0 ? `
+                                    <select id="financeiro-filter-categoria-gastos" style="font-size:0.72rem; padding:0.15rem 0.35rem; border-radius:0.4rem; background:transparent; border:1px solid rgba(148, 163, 184, 0.4); color:inherit; outline:none; cursor:pointer;">
+                                        <option value="">Todas as categorias</option>
+                                        ${[...new Set(gastosVariados.map(g => g.categoria || 'Sem categoria'))].sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
+                                    </select>
+                                    ` : ''}
+                                </div>
+                                <div class="finance-table-scroll">
+                                    <table class="module-table">
+                                        <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                                        <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
+                                    </table>
                                 </div>
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="receitas" id="financeiro-section-receitas" style="margin-top:0.85rem;">
@@ -6812,7 +6769,6 @@
                 const itemMap = new Map();
                 despesasFixas.forEach((r) => itemMap.set(`despesa_fixa:${r.id}`, r));
                 gastosVariados.forEach((r) => itemMap.set(`gasto_variado:${r.id}`, r));
-                comprasVariadas.forEach((r) => itemMap.set(`compra_variada:${r.id}`, r));
                 receitas.forEach((r) => itemMap.set(`receita:${r.id}`, r));
                 poupancaLogs.forEach((r) => itemMap.set(`poupanca:${r.id}`, r));
 
@@ -7396,7 +7352,6 @@
                                     <select id="financeiro-modal-tipo">
                                         <option value="despesa_fixa" ${tipoRegistro === 'despesa_fixa' ? 'selected' : ''}>Despesa fixa</option>
                                         <option value="gasto_variado" ${tipoRegistro === 'gasto_variado' ? 'selected' : ''}>Débito / pix</option>
-                                        <option value="compra_variada" ${tipoRegistro === 'compra_variada' ? 'selected' : ''}>Compras variadas</option>
                                         <option value="receita" ${tipoRegistro === 'receita' ? 'selected' : ''}>Receita</option>
                                         <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>Poupança</option>
                                     </select>
@@ -7412,17 +7367,6 @@
                                 </div>
                                 <div class="field" id="financeiro-parcela-atual-field" style="display:none;"><label>Parcela atual</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-atual" value="${parcelasCheckedInit ? String(parcelaAtualInit) : ''}" placeholder="Ex.: 1" /></div>
                                 <div class="field" id="financeiro-parcela-total-field" style="display:none;"><label>Total de parcelas</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-total" value="${parcelasCheckedInit ? String(parcelaTotalInit) : ''}" placeholder="Ex.: 12" /></div>
-                                <div class="field" id="financeiro-local-wrap" style="display:none;">
-                                    <label>Local (Onde comprou)</label>
-                                    <input type="text" id="financeiro-modal-local" value="${escapeHtml(item?.local || '')}" placeholder="Ex.: Magazine Luiza" />
-                                </div>
-                                <div class="field" id="financeiro-metodo-pagamento-wrap" style="display:none;">
-                                    <label style="display:block; margin-bottom:0.4rem;">Forma de pagamento</label>
-                                    <div style="display:flex; gap:1rem; align-items:center;">
-                                        <label class="finance-conta-fixa-check"><input type="checkbox" id="financeiro-modal-debito" ${item?.metodo_pagamento === 'debito' ? 'checked' : ''} /> DÉBITO</label>
-                                        <label class="finance-parcelas-check"><input type="checkbox" id="financeiro-modal-credito" ${(item?.metodo_pagamento === 'credito' || (!item && tipoRegistro === 'compra_variada')) ? 'checked' : ''} /> CRÉDITO</label>
-                                    </div>
-                                </div>
                                 <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
                                 <div class="field" id="financeiro-data-wrap"><label>Data do lançamento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" /></div>
                             </div>
@@ -7452,10 +7396,6 @@
                 const parcelaAtualField = overlay.querySelector('#financeiro-parcela-atual-field');
                 const parcelaTotalField = overlay.querySelector('#financeiro-parcela-total-field');
                 const parcelasCb = overlay.querySelector('#financeiro-modal-parcelas');
-                const localWrap = overlay.querySelector('#financeiro-local-wrap');
-                const metodoPagamentoWrap = overlay.querySelector('#financeiro-metodo-pagamento-wrap');
-                const debitoCb = overlay.querySelector('#financeiro-modal-debito');
-                const creditoCb = overlay.querySelector('#financeiro-modal-credito');
                 
                 const syncParcelasUI = () => {
                     const t = tipoEl.value;
@@ -7487,20 +7427,6 @@
                         syncParcelasUI();
                     });
                 }
-                if (debitoCb) {
-                    debitoCb.addEventListener('change', () => {
-                        if (debitoCb.checked && creditoCb) {
-                            creditoCb.checked = false;
-                        }
-                    });
-                }
-                if (creditoCb) {
-                    creditoCb.addEventListener('change', () => {
-                        if (creditoCb.checked && debitoCb) {
-                            debitoCb.checked = false;
-                        }
-                    });
-                }
                 const mesForBounds = () => {
                     const v = mesRefEl && mesRefEl.value ? mesRefEl.value.trim() : '';
                     if (v && /^\d{4}-\d{2}$/.test(v)) return v;
@@ -7520,8 +7446,6 @@
                         if (mesRefWrap) mesRefWrap.style.display = '';
                         catWrap.style.display = 'none';
                         dataWrap.style.display = 'none';
-                        if (localWrap) localWrap.style.display = 'none';
-                        if (metodoPagamentoWrap) metodoPagamentoWrap.style.display = 'none';
                         applyDateBoundsFromMes(mesForBounds());
                         catEl.innerHTML = '<option value="">--</option>';
                         const mr = mesForBounds();
@@ -7537,24 +7461,7 @@
                         }
                         catWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
-                        if (localWrap) localWrap.style.display = 'none';
-                        if (metodoPagamentoWrap) metodoPagamentoWrap.style.display = 'none';
                         if (contextoEl) contextoEl.textContent = 'Registro de poupança (sem filtro mensal).';
-                    } else if (tipo === 'compra_variada') {
-                        if (descricaoWrap) descricaoWrap.style.display = '';
-                        if (mesRefWrap) mesRefWrap.style.display = 'none';
-                        dataWrap.style.display = '';
-                        if (dataEl) {
-                            dataEl.removeAttribute('min');
-                            dataEl.removeAttribute('max');
-                        }
-                        catWrap.style.display = '';
-                        if (localWrap) localWrap.style.display = '';
-                        if (metodoPagamentoWrap) metodoPagamentoWrap.style.display = '';
-                        const compraCategorias = ['eletro', 'vestuário', 'casa', 'outro'];
-                        catEl.innerHTML = `<option value="">--</option>${compraCategorias.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
-                        if (item?.categoria) catEl.value = item.categoria;
-                        if (contextoEl) contextoEl.innerHTML = 'Escolha <strong>qualquer data</strong>: o lançamento de compra aparece no mês correspondente.';
                     } else {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
@@ -7564,8 +7471,6 @@
                             dataEl.removeAttribute('max');
                         }
                         catWrap.style.display = '';
-                        if (localWrap) localWrap.style.display = 'none';
-                        if (metodoPagamentoWrap) metodoPagamentoWrap.style.display = 'none';
                         const categories = tipo === 'receita' ? receitaCategorias : gastoCategorias;
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
                         if (item?.categoria) catEl.value = item.categoria;
@@ -7590,7 +7495,7 @@
                             return;
                         }
                         mesAnoPayload = v;
-                    } else if (tipoVal === 'gasto_variado' || tipoVal === 'receita' || tipoVal === 'compra_variada') {
+                    } else if (tipoVal === 'gasto_variado' || tipoVal === 'receita') {
                         const dl = String(overlay.querySelector('#financeiro-modal-data')?.value || '').trim();
                         if (!/^\d{4}-\d{2}-\d{2}$/.test(dl)) {
                             alert('Informe a data do lançamento.');
@@ -7605,7 +7510,7 @@
                         descricao: overlay.querySelector('#financeiro-modal-descricao').value.trim(),
                         valor: Number(overlay.querySelector('#financeiro-modal-valor').value || 0),
                         categoria: catEl.value || null,
-                        data_lancamento: (tipoVal === 'gasto_variado' || tipoVal === 'receita' || tipoVal === 'compra_variada')
+                        data_lancamento: (tipoVal === 'gasto_variado' || tipoVal === 'receita')
                             ? dataValRaw
                             : (dataValRaw || todayIso),
                         mesAno: mesAnoPayload,
@@ -7628,18 +7533,6 @@
                             payload.parcela_total = pt;
                         }
                     }
-                    if (tipoVal === 'compra_variada') {
-                        const localEl = overlay.querySelector('#financeiro-modal-local');
-                        payload.local = localEl ? localEl.value.trim() : '';
-                        
-                        const debitoChecked = debitoCb && debitoCb.checked;
-                        const creditoChecked = creditoCb && creditoCb.checked;
-                        if (!debitoChecked && !creditoChecked) {
-                            alert('Selecione o método de pagamento (Débito ou Crédito).');
-                            return;
-                        }
-                        payload.metodo_pagamento = debitoChecked ? 'debito' : 'credito';
-                    }
                     const ok = await this.submitFinanceiroSave(el, payload);
                     if (ok) close();
                 };
@@ -7655,7 +7548,7 @@
                 const categoria = payload?.categoria || null;
                 const dataLanc = String(payload?.data_lancamento || '');
                 const mesAno = payload?.mesAno || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca', 'compra_variada'].includes(tipoRegistro)) { alert('Tipo de registro inválido'); return false; }
+                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro inválido'); return false; }
                 if (tipoRegistro !== 'poupanca' && !descricao) { alert('Descrição é obrigatória'); return false; }
                 if (tipoRegistro !== 'despesa_fixa' && tipoRegistro !== 'poupanca') {
                     const [yy, mm] = mesAno.split('-').map(Number);
@@ -7677,10 +7570,6 @@
                 } else if (tipoRegistro !== 'despesa_fixa') {
                     requestBody.categoria = categoria;
                     requestBody.data_lancamento = dataLanc;
-                }
-                if (tipoRegistro === 'compra_variada') {
-                    requestBody.local = payload?.local || null;
-                    requestBody.metodo_pagamento = payload?.metodo_pagamento || null;
                 }
                 if (tipoRegistro === 'despesa_fixa') {
                     requestBody.conta_fixa = !!payload?.conta_fixa;

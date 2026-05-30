@@ -6,7 +6,6 @@ import {
   TABLE_POUPANCA,
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
-  TIPO_REGISTRO_COMPRA_VARIADA,
   TIPO_REGISTRO_META_POUPANCA,
   TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
@@ -56,8 +55,6 @@ function normalizeDate(dateLike) {
 }
 
 function resolveTipoRegistroFinanceiro(row, fallback = TIPO_REGISTRO_GASTO_VARIADO) {
-  const tipoGasto = String(row?.tipo_gasto || '').toLowerCase();
-  if (tipoGasto === 'compra_variada') return TIPO_REGISTRO_COMPRA_VARIADA;
   const tipo = String(row?.tipo || '').toLowerCase();
   if (tipo === 'receita') return TIPO_REGISTRO_RECEITA;
   return fallback;
@@ -190,12 +187,11 @@ export async function obterFinanceiroMes(query = {}) {
   }
 
   const financasMes = filtrarFinancasPorMes(allFinancasRows || [], ano, mes);
-  const { receitas, gastosVariados, comprasVariadas } = classificarFinancas(financasMes);
+  const { receitas, gastosVariados } = classificarFinancas(financasMes);
 
   const receitasTabela = montarTabelaFinanceiroRows(receitas, TIPO_REGISTRO_RECEITA);
   const gastosVariadosTabela = montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO)
     .map((r) => ({ ...r, tipo_registro: resolveTipoRegistroFinanceiro(r, TIPO_REGISTRO_GASTO_VARIADO) }));
-  const comprasVariadasTabela = montarTabelaFinanceiroRows(comprasVariadas, TIPO_REGISTRO_COMPRA_VARIADA);
   const despesasFixasTabela = montarTabelaFinanceiroRows(despesasFixasRowsRaw || [], TIPO_REGISTRO_DESPESA_FIXA);
   const poupancaTabela = montarTabelaFinanceiroRows(poupancaRowsRaw || [], TIPO_REGISTRO_POUPANCA);
 
@@ -229,7 +225,6 @@ export async function obterFinanceiroMes(query = {}) {
       tabelas: {
         despesas_fixas: despesasFixasTabela,
         gastos_variados: gastosVariadosTabela,
-        compras_variadas: comprasVariadasTabela,
         receitas: receitasTabela,
         poupanca: poupancaTabela,
       },
@@ -325,9 +320,7 @@ export async function removerRegistroFinanceiro(req) {
     if (errFin) return { status: 500, data: { error: errFin.message } };
     if (Array.isArray(inFin) && inFin.length > 0) {
       const row = inFin[0];
-      if (row.tipo_gasto === 'compra_variada') {
-        tipoRegistro = TIPO_REGISTRO_COMPRA_VARIADA;
-      } else if (row.tipo === 'receita') {
+      if (row.tipo === 'receita') {
         tipoRegistro = TIPO_REGISTRO_RECEITA;
       } else {
         tipoRegistro = TIPO_REGISTRO_GASTO_VARIADO;
@@ -354,7 +347,6 @@ export async function removerRegistroFinanceiro(req) {
   if (![
     TIPO_REGISTRO_DESPESA_FIXA,
     TIPO_REGISTRO_GASTO_VARIADO,
-    TIPO_REGISTRO_COMPRA_VARIADA,
     TIPO_REGISTRO_RECEITA,
     TIPO_REGISTRO_POUPANCA,
     TIPO_REGISTRO_META_POUPANCA,
