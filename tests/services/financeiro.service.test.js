@@ -4,8 +4,10 @@ import {
   calcularDashboard,
   classificarFinancas,
   inferTipoRegistro,
+  montarTabelaFinanceiroRows,
   payloadInsertFinanceiro,
   payloadUpdateFinanceiro,
+  sortByValorDesc,
 } from '../../features/financeiro/service/financeiroService.js';
 
 describe('financeiroService', () => {
@@ -22,6 +24,20 @@ describe('financeiroService', () => {
     ]);
     expect(receitas).toHaveLength(1);
     expect(gastosVariados).toHaveLength(1);
+  });
+
+  it('ordena tabelas do maior para o menor valor', () => {
+    const sorted = sortByValorDesc([
+      { valor: 10, descricao: 'A' },
+      { valor: 50, descricao: 'B' },
+      { valor: 25, descricao: 'C' },
+    ]);
+    expect(sorted.map((r) => r.valor)).toEqual([50, 25, 10]);
+    const tabela = montarTabelaFinanceiroRows([
+      { valor: 15, descricao: 'X' },
+      { valor: 80, descricao: 'Y' },
+    ], 'receita');
+    expect(tabela.map((r) => r.valor)).toEqual([80, 15]);
   });
 
   it('calcula dashboard consolidado', () => {

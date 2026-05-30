@@ -6547,8 +6547,13 @@
                 const despesasFixasPendentes = despesasFixas.filter(r => String(r.status || 'pendente').toLowerCase() !== 'pago');
                 const despesasFixasPagas = despesasFixas.filter(r => String(r.status || 'pendente').toLowerCase() === 'pago');
                 
-                despesasFixasPendentes.sort((a, b) => stampFixa(b).localeCompare(stampFixa(a)));
-                despesasFixasPagas.sort((a, b) => stampFixa(b).localeCompare(stampFixa(a)));
+                const sortByValorDesc = (rows) => [...rows].sort((a, b) => {
+                    const diff = Number(b.valor || 0) - Number(a.valor || 0);
+                    if (diff !== 0) return diff;
+                    return stampFixa(b).localeCompare(stampFixa(a));
+                });
+                sortByValorDesc(despesasFixasPendentes);
+                sortByValorDesc(despesasFixasPagas);
 
                 const totalPendenteFixas = despesasFixasPendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                 const totalPagoFixas = despesasFixasPagas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
@@ -6635,7 +6640,7 @@
                         </div>
                         <div class="module-tab-panel ${activeTab === 'data' ? '' : 'hidden'}" data-tab-panel="data">
                             <div class="module-data-toolbar" id="financeiro-data-toolbar-hint">
-                                <p class="app-form-note" style="margin:0;">Toque num filtro acima para abrir uma tabela. Fixas: pendentes primeiro; débito / pix e receitas por data.</p>
+                                <p class="app-form-note" style="margin:0;">Toque num filtro acima para abrir uma tabela. Fixas: pendentes primeiro; demais listas ordenadas do maior para o menor valor.</p>
                             </div>
                             <div id="financeiro-data-empty" class="finance-data-empty-state">
                                 Nenhuma tabela aberta. Escolha <strong>Despesas fixas</strong>, <strong>Débito / pix</strong> ou <strong>Receitas</strong>.

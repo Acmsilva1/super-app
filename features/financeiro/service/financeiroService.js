@@ -72,6 +72,17 @@ export function sortCronologiaDesc(rows) {
   });
 }
 
+export function sortByValorDesc(rows) {
+  return [...(rows || [])].sort((a, b) => {
+    const diff = (Number(b?.valor) || 0) - (Number(a?.valor) || 0);
+    if (diff !== 0) return diff;
+    const da = dataLanc(a);
+    const db = dataLanc(b);
+    if (da !== db) return db.localeCompare(da);
+    return stamp(b).localeCompare(stamp(a));
+  });
+}
+
 export function sortCronologiaAsc(rows) {
   return [...(rows || [])].sort((a, b) => {
     const da = dataLanc(a);
@@ -149,7 +160,7 @@ export function calcularGraficos({ gastosRows, despesasFixasRows }) {
 }
 
 export function montarTabelaFinanceiroRows(rows, tipoRegistro) {
-  return sortCronologiaDesc(rows).map((r) => ({
+  return sortByValorDesc(rows).map((r) => ({
     ...r,
     tipo_registro: tipoRegistro,
   }));
