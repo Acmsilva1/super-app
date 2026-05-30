@@ -6468,6 +6468,21 @@
                 };
                 const lancDate = (r) => String((r && (r.data_lancamento || (r.created_at && String(r.created_at).slice(0, 10)))) || '').slice(0, 10);
 
+                const fixaCategoriaKey = (r) => {
+                    const isContaFixa = r?.conta_fixa === true || r?.conta_fixa === 'true';
+                    const pt = Number(r?.parcela_total ?? 0);
+                    const pa = Number(r?.parcela_atual ?? 0);
+                    const hasParcelas = Number.isFinite(pt) && Number.isFinite(pa) && pt > 0 && pa > 0 && pa <= pt;
+                    if (isContaFixa) return 'conta_fixa';
+                    if (hasParcelas) return 'parcelas';
+                    return 'neutro';
+                };
+                const fixaCategoriaLabel = (key) => ({
+                    conta_fixa: 'Conta fixa',
+                    parcelas: 'Parcelas',
+                    neutro: 'neutro',
+                }[key] || 'neutro');
+
                 const mkRowFixa = (r) => {
                     const statusRaw = String(r.status || 'pendente').toLowerCase();
                     const statusLabel = statusRaw === 'pago' ? 'Pago' : 'Pendente';
@@ -6475,20 +6490,18 @@
                     const hora = fmtHoraBrasilia(r.created_at);
                     const pt = Number(r.parcela_total ?? 0);
                     const pa = Number(r.parcela_atual ?? 0);
-                    // Identifica se e uma conta fixa para exibir o marcador visual
-                    const isContaFixa = r.conta_fixa === true || r.conta_fixa === 'true';
-                    const contaFixaHtml = isContaFixa
-                        ? `<span class="finance-parcela-tag">Conta fixa</span>`
-                        : '';
-                    const parcelaHtml = (Number.isFinite(pt) && Number.isFinite(pa) && pt > 0 && pa > 0 && pa <= pt)
+                    const categoriaKey = fixaCategoriaKey(r);
+                    const hasParcelas = categoriaKey === 'parcelas';
+                    const parcelaHtml = hasParcelas
                         ? `<span class="finance-parcela-tag">Parcela ${escapeHtml(String(pa))} de ${escapeHtml(String(pt))}</span>`
                         : '';
                     const dateSub = `${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` às ${escapeHtml(hora)}` : ''}`;
                     return `<tr>
                         <td>
-                            <strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong>${contaFixaHtml}${parcelaHtml}
+                            <strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong>${parcelaHtml}
                             <div style="font-size:0.72rem;color:#9ca3af;margin-top:0.15rem;">${dateSub}</div>
                         </td>
+                        <td>${escapeHtml(fixaCategoriaLabel(categoriaKey))}</td>
                         <td><button type="button" class="finance-status-toggle ${badgeClass}" data-action="financeiro-toggle-status" data-id="${r.id}" data-status-atual="${statusRaw}" title="Clique para alternar status">${statusLabel}</button></td>
                         <td style="color:${statusRaw === 'pago' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td class="col-actions">
@@ -6558,8 +6571,8 @@
                 const totalPendenteFixas = despesasFixasPendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                 const totalPagoFixas = despesasFixasPagas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
 
-                const rowsFixasPendentesHtml = despesasFixasPendentes.length ? despesasFixasPendentes.map(mkRowFixa).join('') : '<tr><td colspan="4" class="module-table-empty">Nenhuma despesa pendente.</td></tr>';
-                const rowsFixasPagasHtml = despesasFixasPagas.length ? despesasFixasPagas.map(mkRowFixa).join('') : '<tr><td colspan="4" class="module-table-empty">Nenhuma despesa paga.</td></tr>';
+                const rowsFixasPendentesHtml = despesasFixasPendentes.length ? despesasFixasPendentes.map(mkRowFixa).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma despesa pendente.</td></tr>';
+                const rowsFixasPagasHtml = despesasFixasPagas.length ? despesasFixasPagas.map(mkRowFixa).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma despesa paga.</td></tr>';
                 const fixasEmpty = despesasFixas.length === 0;
                 const showImportFixasCallout = fixasEmpty && activeDataFilter === 'despesas_fixas';
                 const isMobileFixas = typeof window !== 'undefined' && window.innerWidth <= 900;
@@ -6646,7 +6659,16 @@
                                 Nenhuma tabela aberta. Escolha <strong>Despesas fixas</strong>, <strong>Débito / pix</strong> ou <strong>Receitas</strong>.
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="despesas_fixas" id="financeiro-section-despesas-fixas" data-fixas-empty="${fixasEmpty ? '1' : '0'}">
-                                <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.8rem;">Despesas fixas</p>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem; gap:0.5rem; flex-wrap:wrap;">
+                                    <p style="font-size:0.875rem;font-weight:600;margin:0;">Despesas fixas</p>
+                                    ${despesasFixas.length > 0 ? `
+                                    <select id="financeiro-filter-categoria-fixas" style="font-size:0.72rem; padding:0.15rem 0.35rem; border-radius:0.4rem; background:transparent; border:1px solid rgba(148, 163, 184, 0.4); color:inherit; outline:none; cursor:pointer;">
+                                        <option value="">Todas as categorias</option>
+                                        <option value="conta_fixa">Conta fixa</option>
+                                        <option value="parcelas">Parcelas</option>
+                                        <option value="neutro">neutro</option>
+                                    </select>` : ''}
+                                </div>
                                 ${fixasEmpty ? `
                                 <div id="financeiro-import-fixas-callout" class="finance-import-fixas-callout ${showImportFixasCallout ? '' : 'hidden'}" role="region" aria-label="Preencher despesas fixas">
                                     <p class="finance-import-fixas-callout__text">Este mês ainda não tem despesas fixas. Contas fixas e parcelas já lançadas no ano são replicadas automaticamente — toque abaixo para preencher agora.</p>
@@ -6660,7 +6682,7 @@
                                         </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
-                                                <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
+                                                <thead><tr><th>Descrição</th><th>Categoria</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
                                                 <tbody id="financeiro-table-fixas-pendentes">${rowsFixasPendentesHtml}</tbody>
                                             </table>
                                         </div>
@@ -6672,7 +6694,7 @@
                                         </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
-                                                <thead><tr><th>Descrição</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
+                                                <thead><tr><th>Descrição</th><th>Categoria</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
                                                 <tbody id="financeiro-table-fixas-pagas">${rowsFixasPagasHtml}</tbody>
                                             </table>
                                         </div>
@@ -7135,6 +7157,29 @@
                 };
                 el.querySelector('#financeiro-mes').onchange = refreshMesAno;
                 el.querySelector('#financeiro-ano').onchange = refreshMesAno;
+
+                const applyFixasCategoriaFilter = (selected) => {
+                    const filterRow = (r) => !selected || fixaCategoriaKey(r) === selected;
+                    const pendentes = despesasFixasPendentes.filter(filterRow);
+                    const pagas = despesasFixasPagas.filter(filterRow);
+                    const tbodyPendentes = el.querySelector('#financeiro-table-fixas-pendentes');
+                    const tbodyPagas = el.querySelector('#financeiro-table-fixas-pagas');
+                    if (tbodyPendentes) {
+                        tbodyPendentes.innerHTML = pendentes.length
+                            ? pendentes.map(mkRowFixa).join('')
+                            : `<tr><td colspan="5" class="module-table-empty">${selected ? 'Nenhuma despesa pendente nesta categoria.' : 'Nenhuma despesa pendente.'}</td></tr>`;
+                    }
+                    if (tbodyPagas) {
+                        tbodyPagas.innerHTML = pagas.length
+                            ? pagas.map(mkRowFixa).join('')
+                            : `<tr><td colspan="5" class="module-table-empty">${selected ? 'Nenhuma despesa paga nesta categoria.' : 'Nenhuma despesa paga.'}</td></tr>`;
+                    }
+                };
+
+                const categoriaFixasSelect = el.querySelector('#financeiro-filter-categoria-fixas');
+                if (categoriaFixasSelect) {
+                    categoriaFixasSelect.onchange = () => applyFixasCategoriaFilter(categoriaFixasSelect.value);
+                }
 
                 const categoriaSelect = el.querySelector('#financeiro-filter-categoria-gastos');
                 if (categoriaSelect) {
