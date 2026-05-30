@@ -6742,7 +6742,10 @@
                                 </div>
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="receitas" id="financeiro-section-receitas" style="margin-top:0.85rem;">
-                                <p style="font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;">Receitas</p>
+                                <div class="finance-despesas-col-header" style="color:#22c55e;margin-bottom:0.4rem;">
+                                    <span style="font-size:0.875rem;font-weight:600;">Receitas</span>
+                                    <span>${this.formatMoneyBr(receitasVal)}</span>
+                                </div>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
                                         <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
