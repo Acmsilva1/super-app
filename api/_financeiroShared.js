@@ -364,6 +364,16 @@ export async function criarRegistroFinanceiro(req) {
     if (error) return { status: 500, data: { error: error.message } };
     const rows = Array.isArray(data) ? data : (data ? [data] : []);
     const row = rows.find((item) => String(item?.created_at || '').slice(0, 7) === mesAno) || rows[0] || null;
+    for (const insertedRow of rows) {
+      const balanceDelta = saldoContaCorrenteDeltaFromRow({
+        tipo_registro: insertedRow?.tipo_registro || parsed.tipo_registro,
+        status: insertedRow?.status || payload.status,
+        tipo: insertedRow?.tipo,
+        metodo_pagamento: insertedRow?.metodo_pagamento || payload.metodo_pagamento,
+        valor: insertedRow?.valor ?? payload.valor,
+      });
+      if (balanceDelta) await applySaldoContaCorrenteDelta(balanceDelta);
+    }
     return { status: 201, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
   }
 
