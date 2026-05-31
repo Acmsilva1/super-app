@@ -4,9 +4,41 @@ import {
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
   TIPO_REGISTRO_META_POUPANCA,
+  TIPO_REGISTRO_SALDO_CONTA_CORRENTE,
   TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
 } from '../model/financeiro.js';
+
+export function normalizeFinanceiroMetodoPagamento(value) {
+  const raw = String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '');
+  if (!raw) return '';
+  if (raw.includes('credito')) return 'credito';
+  if (raw.includes('debito') || raw.includes('pix')) return 'debito_pix';
+  return raw;
+}
+
+export function isSaldoContaCorrenteAffectingRow(row = {}) {
+  const tipo = String(row?.tipo_registro || row?.tipo || '').toLowerCase().trim();
+  if (tipo !== TIPO_REGISTRO_GASTO_VARIADO && tipo !== 'despesa') return false;
+  return normalizeFinanceiroMetodoPagamento(row?.metodo_pagamento) === 'debito_pix';
+}
+
+export function saldoContaCorrenteDeltaFromRow(row = {}) {
+  if (!isSaldoContaCorrenteAffectingRow(row)) return 0;
+  const value = Math.abs(Number(row?.valor || 0));
+  return Math.round(-value * 100) / 100;
+}
+
+export function saldoContaCorrenteValueFromBody(body = {}) {
+  const absolute = Math.abs(Number(body.valor ?? body.saldo ?? 0));
+  if (!Number.isFinite(absolute)) return null;
+  const negative = body.negativo === true || body.negativo === 'true';
+  return Math.round((negative ? -absolute : absolute) * 100) / 100;
+}
 
 export function inferTipoRegistro(body = {}) {
   const explicit = String(body.tipo_registro || '').trim();
@@ -209,6 +241,9 @@ export function payloadInsertFinanceiro(body = {}) {
       categoria: body.categoria || null,
       data_lancamento: body.data_lancamento || getBrazilTodayIso(),
     };
+    if (tipoRegistro === TIPO_REGISTRO_GASTO_VARIADO) {
+      payload.metodo_pagamento = String(body.metodo_pagamento || 'debito_pix').trim() || 'debito_pix';
+    }
     return {
       tipo_registro: tipoRegistro,
       payload,
@@ -240,6 +275,20 @@ export function payloadInsertFinanceiro(body = {}) {
         valor_meta: valorMeta,
         data_inicio: dataInicio,
         ativa: true,
+      },
+    };
+  }
+
+  if (tipoRegistro === TIPO_REGISTRO_SALDO_CONTA_CORRENTE) {
+    const signedValue = saldoContaCorrenteValueFromBody(body);
+    if (signedValue === null) return { error: 'valor obrigatorio' };
+    return {
+      tipo_registro: tipoRegistro,
+      payload: {
+        id: 1,
+        valor: signedValue,
+        negativo: signedValue < 0,
+        updated_at: new Date().toISOString(),
       },
     };
   }
@@ -292,6 +341,9 @@ export function payloadUpdateFinanceiro(body = {}) {
     if (body.categoria !== undefined) out.categoria = body.categoria || null;
     if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
     out.tipo = tipoRegistro === TIPO_REGISTRO_RECEITA ? 'receita' : 'despesa';
+    if (tipoRegistro === TIPO_REGISTRO_GASTO_VARIADO && body.metodo_pagamento !== undefined) {
+      out.metodo_pagamento = String(body.metodo_pagamento || 'debito_pix').trim() || 'debito_pix';
+    }
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }
@@ -322,6 +374,20 @@ export function payloadUpdateFinanceiro(body = {}) {
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }
 
+  if (tipoRegistro === TIPO_REGISTRO_SALDO_CONTA_CORRENTE) {
+    const signedValue = saldoContaCorrenteValueFromBody(body);
+    if (signedValue === null) return { error: 'valor obrigatorio' };
+    return {
+      tipo_registro: tipoRegistro,
+      id: body.id || 1,
+      payload: {
+        id: Number(body.id || 1) || 1,
+        valor: signedValue,
+        negativo: signedValue < 0,
+        updated_at: new Date().toISOString(),
+      },
+    };
+  }
+
   return { error: 'tipo_registro invalido' };
 }
-

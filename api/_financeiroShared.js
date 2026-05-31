@@ -4,9 +4,11 @@ import {
   TABLE_FINANCAS,
   TABLE_POUPANCA_METAS,
   TABLE_POUPANCA,
+  TABLE_SALDO_CONTA_CORRENTE,
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
   TIPO_REGISTRO_META_POUPANCA,
+  TIPO_REGISTRO_SALDO_CONTA_CORRENTE,
   TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
   parseMesAno,
@@ -19,6 +21,9 @@ import {
   payloadInsertFinanceiro,
   payloadUpdateFinanceiro,
   inferTipoRegistro,
+  isSaldoContaCorrenteAffectingRow,
+  saldoContaCorrenteDeltaFromRow,
+  saldoContaCorrenteValueFromBody,
   buildReplicationSlotsFromStart,
   seriesDefinitionsFromYearRows,
   slotsNeededForMonth,
@@ -52,6 +57,71 @@ function isMissingTableError(error) {
 function normalizeDate(dateLike) {
   const s = String(dateLike || '').slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
+
+function serializeSaldoContaCorrenteRow(row) {
+  const valor = Number(row?.valor || 0);
+  const negativo = row?.negativo === true || row?.negativo === 'true' || valor < 0;
+  const signedValor = Math.round((negativo ? -Math.abs(valor) : Math.abs(valor)) * 100) / 100;
+  return {
+    definido: true,
+    id: Number(row?.id || 1) || 1,
+    valor: Math.abs(Number(row?.valor || 0)),
+    negativo,
+    updated_at: String(row?.updated_at || ''),
+    signed_valor: signedValor,
+  };
+}
+
+async function fetchSaldoContaCorrente() {
+  const { data, error } = await supabase
+    .from(TABLE_SALDO_CONTA_CORRENTE)
+    .select('*')
+    .eq('id', 1)
+    .limit(1);
+  if (error) {
+    if (isMissingTableError(error)) return { configurada: false, data: null };
+    throw error;
+  }
+  return { configurada: true, data: rowOrFirst(data) };
+}
+
+async function saveSaldoContaCorrentePayload(payload = {}) {
+  const signed = saldoContaCorrenteValueFromBody(payload);
+  if (signed === null) return { error: 'valor obrigatorio', status: 400 };
+  const rowPayload = {
+    id: 1,
+    valor: Math.abs(signed),
+    negativo: signed < 0,
+    updated_at: new Date().toISOString(),
+  };
+  const { data, error } = await supabase
+    .from(TABLE_SALDO_CONTA_CORRENTE)
+    .upsert(rowPayload, { onConflict: 'id' })
+    .select()
+    .single();
+  if (error) return { error: error.message, status: 500 };
+  return { data: serializeSaldoContaCorrenteRow(data) };
+}
+
+async function applySaldoContaCorrenteDelta(delta) {
+  const signedDelta = Math.round(Number(delta || 0) * 100) / 100;
+  if (!signedDelta) return { ok: true };
+  const current = await fetchSaldoContaCorrente();
+  if (!current.configurada) return { ok: true };
+  const currentValue = Number(current.data?.signed_valor || 0);
+  const nextSigned = Math.round((currentValue + signedDelta) * 100) / 100;
+  const rowPayload = {
+    id: 1,
+    valor: Math.abs(nextSigned),
+    negativo: nextSigned < 0,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await supabase
+    .from(TABLE_SALDO_CONTA_CORRENTE)
+    .upsert(rowPayload, { onConflict: 'id' });
+  if (error) return { error: error.message, status: 500 };
+  return { ok: true };
 }
 
 function resolveTipoRegistroFinanceiro(row, fallback = TIPO_REGISTRO_GASTO_VARIADO) {
@@ -186,6 +256,28 @@ export async function obterFinanceiroMes(query = {}) {
     poupancaMetaAtiva = Array.isArray(metaRows) && metaRows.length > 0 ? metaRows[0] : null;
   }
 
+  let saldoContaCorrente = { configurada: true, definido: false, id: 1, valor: 0, negativo: false, updated_at: '', signed_valor: 0 };
+  try {
+    const saldo = await fetchSaldoContaCorrente();
+    saldoContaCorrente.configurada = saldo.configurada;
+    if (saldo.data) {
+      saldoContaCorrente = serializeSaldoContaCorrenteRow(saldo.data);
+      saldoContaCorrente.configurada = saldo.configurada;
+    } else {
+      saldoContaCorrente = {
+        configurada: saldo.configurada,
+        definido: false,
+        id: 1,
+        valor: 0,
+        negativo: false,
+        updated_at: '',
+        signed_valor: 0,
+      };
+    }
+  } catch (saldoErr) {
+    return { error: saldoErr.message, status: 500 };
+  }
+
   const financasMes = filtrarFinancasPorMes(allFinancasRows || [], ano, mes);
   const { receitas, gastosVariados } = classificarFinancas(financasMes);
 
@@ -244,6 +336,7 @@ export async function obterFinanceiroMes(query = {}) {
             }
           : null,
       },
+      saldo_conta_corrente: saldoContaCorrente,
     },
   };
 }
@@ -284,9 +377,24 @@ export async function criarRegistroFinanceiro(req) {
     }
   }
 
+  if (parsed.tipo_registro === TIPO_REGISTRO_SALDO_CONTA_CORRENTE) {
+    const saved = await saveSaldoContaCorrentePayload(parsed.payload);
+    if (saved.error) return { status: saved.status || 500, data: { error: saved.error } };
+    return { status: 201, data: { ...(saved.data || {}), tipo_registro: parsed.tipo_registro } };
+  }
+
   const { data, error } = await supabase.from(table).insert(payload).select().single();
   if (error) return { status: 500, data: { error: error.message } };
   const row = rowOrFirst(data);
+  if (table === TABLE_FINANCAS) {
+    const balanceDelta = saldoContaCorrenteDeltaFromRow({
+      tipo_registro: row?.tipo_registro || parsed.tipo_registro,
+      tipo: row?.tipo,
+      metodo_pagamento: row?.metodo_pagamento || payload.metodo_pagamento,
+      valor: row?.valor ?? payload.valor,
+    });
+    if (balanceDelta) await applySaldoContaCorrenteDelta(balanceDelta);
+  }
   return { status: 201, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
 }
 
@@ -295,6 +403,12 @@ export async function atualizarRegistroFinanceiro(req) {
   const parsed = payloadUpdateFinanceiro(body);
   if (parsed.error) return { status: 400, data: { error: parsed.error } };
 
+  if (parsed.tipo_registro === TIPO_REGISTRO_SALDO_CONTA_CORRENTE) {
+    const saved = await saveSaldoContaCorrentePayload(parsed.payload);
+    if (saved.error) return { status: saved.status || 500, data: { error: saved.error } };
+    return { status: 200, data: { ...(saved.data || {}), tipo_registro: parsed.tipo_registro } };
+  }
+
   const table = parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA
     ? TABLE_DESPESAS_FIXAS
     : parsed.tipo_registro === TIPO_REGISTRO_POUPANCA
@@ -302,9 +416,35 @@ export async function atualizarRegistroFinanceiro(req) {
       : parsed.tipo_registro === TIPO_REGISTRO_META_POUPANCA
         ? TABLE_POUPANCA_METAS
       : TABLE_FINANCAS;
+  let previousRow = null;
+  if (table === TABLE_FINANCAS) {
+    const { data: prevData, error: prevErr } = await supabase
+      .from(TABLE_FINANCAS)
+      .select('*')
+      .eq('id', parsed.id)
+      .limit(1);
+    if (prevErr) return { status: 500, data: { error: prevErr.message } };
+    previousRow = rowOrFirst(prevData);
+  }
   const { data, error } = await supabase.from(table).update(parsed.payload).eq('id', parsed.id).select().single();
   if (error) return { status: 500, data: { error: error.message } };
   const row = rowOrFirst(data);
+  if (table === TABLE_FINANCAS) {
+    const previousDelta = saldoContaCorrenteDeltaFromRow({
+      tipo_registro: previousRow?.tipo_registro,
+      tipo: previousRow?.tipo,
+      metodo_pagamento: previousRow?.metodo_pagamento,
+      valor: previousRow?.valor,
+    });
+    const nextDelta = saldoContaCorrenteDeltaFromRow({
+      tipo_registro: row?.tipo_registro,
+      tipo: row?.tipo,
+      metodo_pagamento: row?.metodo_pagamento,
+      valor: row?.valor,
+    });
+    const balanceDelta = Math.round((nextDelta - previousDelta) * 100) / 100;
+    if (balanceDelta) await applySaldoContaCorrenteDelta(balanceDelta);
+  }
   return { status: 200, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
 }
 
@@ -314,6 +454,10 @@ export async function removerRegistroFinanceiro(req) {
   if (!tipoRegistro) tipoRegistro = inferTipoRegistro({ ...req.query, ...body });
   const id = body.id ?? req.query?.id;
   if (!id) return { status: 400, data: { error: 'id obrigatorio' } };
+
+  if (tipoRegistro === TIPO_REGISTRO_SALDO_CONTA_CORRENTE) {
+    return { status: 400, data: { error: 'saldo_conta_corrente nao pode ser excluido' } };
+  }
 
   if (!tipoRegistro) {
     const { data: inFin, error: errFin } = await supabase.from(TABLE_FINANCAS).select('id, tipo_gasto, tipo').eq('id', id).limit(1);
@@ -350,6 +494,7 @@ export async function removerRegistroFinanceiro(req) {
     TIPO_REGISTRO_RECEITA,
     TIPO_REGISTRO_POUPANCA,
     TIPO_REGISTRO_META_POUPANCA,
+    TIPO_REGISTRO_SALDO_CONTA_CORRENTE,
   ].includes(tipoRegistro)) {
     return { status: 400, data: { error: 'tipo_registro invalido' } };
   }
@@ -360,8 +505,26 @@ export async function removerRegistroFinanceiro(req) {
       : tipoRegistro === TIPO_REGISTRO_META_POUPANCA
         ? TABLE_POUPANCA_METAS
       : TABLE_FINANCAS;
+  let previousRow = null;
+  if (table === TABLE_FINANCAS) {
+    const { data: prevData, error: prevErr } = await supabase
+      .from(TABLE_FINANCAS)
+      .select('*')
+      .eq('id', id)
+      .limit(1);
+    if (prevErr) return { status: 500, data: { error: prevErr.message } };
+    previousRow = rowOrFirst(prevData);
+  }
   const { error } = await supabase.from(table).delete().eq('id', id);
   if (error) return { status: 500, data: { error: error.message } };
+  if (table === TABLE_FINANCAS && previousRow) {
+    const balanceDelta = Math.round((0 - saldoContaCorrenteDeltaFromRow({
+      tipo_registro: previousRow?.tipo_registro,
+      tipo: previousRow?.tipo,
+      metodo_pagamento: previousRow.metodo_pagamento,
+      valor: previousRow.valor,
+    })) * 100) / 100;
+    if (balanceDelta) await applySaldoContaCorrenteDelta(balanceDelta);
+  }
   return { status: 200, data: { ok: true } };
 }
-

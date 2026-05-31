@@ -4,9 +4,12 @@ import {
   calcularDashboard,
   classificarFinancas,
   inferTipoRegistro,
+  isSaldoContaCorrenteAffectingRow,
   montarTabelaFinanceiroRows,
   payloadInsertFinanceiro,
   payloadUpdateFinanceiro,
+  saldoContaCorrenteDeltaFromRow,
+  saldoContaCorrenteValueFromBody,
   sortByValorDesc,
 } from '../../features/financeiro/service/financeiroService.js';
 
@@ -118,6 +121,25 @@ describe('financeiroService', () => {
     expect(upd.payload.conta_fixa).toBe(false);
   });
 
+  it('grava metodo_pagamento em gasto variavel no insert e no update', () => {
+    const ins = payloadInsertFinanceiro({
+      tipo_registro: 'gasto_variado',
+      descricao: 'Mercado',
+      valor: 120,
+      metodo_pagamento: 'credito',
+    });
+    expect(ins.error).toBeUndefined();
+    expect(ins.payload.metodo_pagamento).toBe('credito');
+
+    const upd = payloadUpdateFinanceiro({
+      id: 'm1',
+      tipo_registro: 'gasto_variado',
+      metodo_pagamento: 'debito_pix',
+    });
+    expect(upd.error).toBeUndefined();
+    expect(upd.payload.metodo_pagamento).toBe('debito_pix');
+  });
+
   it('rejeita conta_fixa e parcelas simultaneamente no insert', () => {
     const out = payloadInsertFinanceiro({
       tipo_registro: 'despesa_fixa',
@@ -162,5 +184,32 @@ describe('financeiroService', () => {
     });
     expect(out.error).toBe('tipo_registro invalido');
   });
-});
 
+  it('prepara e calcula saldo de conta corrente', () => {
+    expect(saldoContaCorrenteValueFromBody({ valor: 1000, negativo: false })).toBe(1000);
+    expect(saldoContaCorrenteValueFromBody({ valor: 1000, negativo: true })).toBe(-1000);
+    expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'gasto_variado', metodo_pagamento: 'pix' })).toBe(true);
+    expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'gasto_variado', metodo_pagamento: 'credito' })).toBe(false);
+    expect(saldoContaCorrenteDeltaFromRow({ tipo_registro: 'gasto_variado', metodo_pagamento: 'debito_pix', valor: 200 })).toBe(-200);
+
+    const ins = payloadInsertFinanceiro({
+      tipo_registro: 'saldo_conta_corrente',
+      valor: 800,
+      negativo: true,
+    });
+    expect(ins.error).toBeUndefined();
+    expect(ins.payload.id).toBe(1);
+    expect(ins.payload.valor).toBe(-800);
+    expect(ins.payload.negativo).toBe(true);
+
+    const upd = payloadUpdateFinanceiro({
+      tipo_registro: 'saldo_conta_corrente',
+      id: 1,
+      valor: 250,
+      negativo: false,
+    });
+    expect(upd.error).toBeUndefined();
+    expect(upd.payload.valor).toBe(250);
+    expect(upd.payload.negativo).toBe(false);
+  });
+});

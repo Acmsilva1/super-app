@@ -3410,6 +3410,186 @@
         .app-totais .totais-card--despesas-variadas .val { color: #b45309; }
         .app-totais .totais-card--pago .val { color: #22c55e; }
         .app-totais .totais-card--pendente .val { color: #ef4444; }
+        .finance-balance-strip {
+            margin-bottom: 1rem;
+        }
+        .finance-balance-card {
+            position: relative;
+            width: 100%;
+            appearance: none;
+            -webkit-appearance: none;
+            border: 1px solid rgba(96, 165, 250, 0.34);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.35rem;
+            padding: 1rem 1.05rem;
+            border-radius: 1rem;
+            background: radial-gradient(circle at top left, rgba(96, 165, 250, 0.24), rgba(15, 23, 42, 0.94) 62%);
+            box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.2), 0 18px 42px rgba(15, 23, 42, 0.42), 0 0 28px rgba(59, 130, 246, 0.22);
+            color: #eff6ff;
+            cursor: pointer;
+            font: inherit;
+            overflow: hidden;
+            text-align: left;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, filter 0.22s ease;
+        }
+        .finance-balance-card::before,
+        .finance-balance-card::after {
+            content: '';
+            position: absolute;
+            pointer-events: none;
+            border-radius: 999px;
+            filter: blur(4px);
+        }
+        .finance-balance-card::before {
+            inset: -42% auto auto -12%;
+            width: 240px;
+            height: 240px;
+            background: radial-gradient(circle, rgba(125, 211, 252, 0.34), rgba(125, 211, 252, 0) 68%);
+        }
+        .finance-balance-card::after {
+            inset: auto -12% -50% auto;
+            width: 260px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.24), rgba(59, 130, 246, 0) 70%);
+        }
+        .finance-balance-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(125, 211, 252, 0.58);
+            box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.34), 0 22px 50px rgba(15, 23, 42, 0.54), 0 0 38px rgba(56, 189, 248, 0.34);
+        }
+        .finance-balance-card:focus-visible {
+            outline: 2px solid #7dd3fc;
+            outline-offset: 3px;
+        }
+        .finance-balance-card.is-empty {
+            border-style: dashed;
+            background: linear-gradient(160deg, rgba(15, 23, 42, 0.78), rgba(8, 15, 30, 0.9));
+        }
+        .finance-balance-card.is-positive {
+            border-color: rgba(34, 197, 94, 0.38);
+            box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.18), 0 18px 42px rgba(15, 23, 42, 0.42), 0 0 28px rgba(34, 197, 94, 0.22);
+        }
+        .finance-balance-card.is-negative {
+            border-color: rgba(248, 113, 113, 0.42);
+            background: radial-gradient(circle at top left, rgba(248, 113, 113, 0.2), rgba(44, 11, 16, 0.96) 60%);
+            box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.22), 0 18px 42px rgba(15, 23, 42, 0.42), 0 0 28px rgba(248, 113, 113, 0.24);
+        }
+        .finance-balance-card__tag {
+            position: relative;
+            z-index: 1;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #bae6fd;
+            opacity: 0.92;
+        }
+        .finance-balance-card__value {
+            position: relative;
+            z-index: 1;
+            font-size: 1.7rem;
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: 0.01em;
+            text-shadow: 0 0 18px rgba(125, 211, 252, 0.5);
+        }
+        .finance-balance-card.is-positive .finance-balance-card__value {
+            color: #86efac;
+        }
+        .finance-balance-card.is-negative .finance-balance-card__value {
+            color: #fca5a5;
+            text-shadow: 0 0 18px rgba(248, 113, 113, 0.58);
+        }
+        .finance-balance-card__meta {
+            position: relative;
+            z-index: 1;
+            max-width: 42rem;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+        }
+        [data-theme="light"] .finance-balance-card {
+            color: #0f172a;
+            background: radial-gradient(circle at top left, rgba(191, 219, 254, 0.92), rgba(224, 242, 254, 0.92) 52%, rgba(255, 255, 255, 0.98) 100%);
+            border-color: rgba(96, 165, 250, 0.28);
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12), 0 0 22px rgba(59, 130, 246, 0.15);
+        }
+        [data-theme="light"] .finance-balance-card.is-positive {
+            border-color: rgba(34, 197, 94, 0.28);
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12), 0 0 22px rgba(34, 197, 94, 0.12);
+        }
+        [data-theme="light"] .finance-balance-card.is-negative {
+            border-color: rgba(248, 113, 113, 0.3);
+            background: radial-gradient(circle at top left, rgba(254, 202, 202, 0.94), rgba(255, 255, 255, 0.98) 62%);
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12), 0 0 22px rgba(248, 113, 113, 0.16);
+        }
+        [data-theme="light"] .finance-balance-card__tag { color: #2563eb; }
+        [data-theme="light"] .finance-balance-card__value { text-shadow: none; color: #0f172a; }
+        [data-theme="light"] .finance-balance-card.is-positive .finance-balance-card__value { color: #16a34a; }
+        [data-theme="light"] .finance-balance-card.is-negative .finance-balance-card__value { color: #dc2626; }
+        [data-theme="light"] .finance-balance-card__meta { color: #475569; }
+        [data-theme="light"] .finance-balance-card.is-empty {
+            background: linear-gradient(160deg, rgba(241, 245, 249, 0.95), rgba(255, 255, 255, 0.98));
+        }
+        .finance-balance-modal {
+            width: min(520px, calc(100vw - 2rem));
+        }
+        .finance-balance-modal__summary {
+            display: grid;
+            gap: 0.35rem;
+            margin-top: 0.6rem;
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(96, 165, 250, 0.24);
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.55), rgba(8, 15, 30, 0.78));
+        }
+        .finance-balance-modal__summary span {
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #93c5fd;
+        }
+        .finance-balance-modal__summary strong {
+            font-size: 1.7rem;
+            line-height: 1.05;
+            font-weight: 900;
+            color: #eff6ff;
+        }
+        .finance-balance-modal__summary small {
+            color: #cbd5e1;
+            font-size: 0.8rem;
+        }
+        [data-theme="light"] .finance-balance-modal__summary {
+            background: linear-gradient(180deg, rgba(239, 246, 255, 0.92), rgba(255, 255, 255, 0.98));
+            border-color: rgba(96, 165, 250, 0.18);
+        }
+        [data-theme="light"] .finance-balance-modal__summary span { color: #2563eb; }
+        [data-theme="light"] .finance-balance-modal__summary strong { color: #0f172a; }
+        [data-theme="light"] .finance-balance-modal__summary small { color: #475569; }
+        .finance-balance-modal__flag {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            margin-top: 0.9rem;
+            padding: 0.75rem 0.9rem;
+            border-radius: 0.85rem;
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            background: rgba(15, 23, 42, 0.36);
+            color: #dbeafe;
+            font-size: 0.9rem;
+        }
+        .finance-balance-modal__flag input {
+            width: 1rem;
+            height: 1rem;
+            accent-color: #60a5fa;
+        }
+        [data-theme="light"] .finance-balance-modal__flag {
+            background: rgba(241, 245, 249, 0.92);
+            border-color: rgba(96, 165, 250, 0.18);
+            color: #0f172a;
+        }
         .app-totais .totais-card .val {
             font-weight: 800;
             font-size: 1.45rem;
@@ -5094,6 +5274,7 @@
                 this.notificationTimer = null;
                 this.notificationDismissed = { targetDate: '', keys: [] };
                 this.NOTIFICATION_DISMISS_KEY = 'superapp_notifications_dismissed_v1';
+                this.financeiroSaldoStorePromise = null;
                 this.init();
             }
 
@@ -5210,6 +5391,40 @@
                     this.vizLibrariesLoading = null;
                 }
             }
+
+            normalizeFinanceiroSaldoValue(value) {
+                if (value === null || value === undefined) return null;
+                const raw = String(value).trim().replace(/\s+/g, '');
+                if (!raw) return null;
+                const sanitized = raw.replace(/[^\d,.-]/g, '');
+                if (!sanitized || sanitized === '-' || sanitized === ',' || sanitized === '.') return null;
+                const lastComma = sanitized.lastIndexOf(',');
+                const lastDot = sanitized.lastIndexOf('.');
+                let normalized = sanitized;
+                if (lastComma !== -1 && lastDot !== -1) {
+                    normalized = lastComma > lastDot
+                        ? sanitized.replace(/\./g, '').replace(',', '.')
+                        : sanitized.replace(/,/g, '');
+                } else if (lastComma !== -1) {
+                    normalized = sanitized.replace(/\./g, '').replace(',', '.');
+                } else {
+                    normalized = sanitized.replace(/,/g, '');
+                }
+                const parsed = Number(normalized);
+                if (!Number.isFinite(parsed)) return null;
+                return Math.round(parsed * 100) / 100;
+            }
+
+            saldoContaCorrenteSignedValue(record = null) {
+                if (!record || record.definido === false) return null;
+                const signedValue = Number(record?.signed_valor);
+                if (Number.isFinite(signedValue)) return Math.round(signedValue * 100) / 100;
+                const rawValue = Number(record?.valor);
+                if (!Number.isFinite(rawValue)) return null;
+                const isNegative = record?.negativo === true || record?.negativo === 'true';
+                return Math.round((isNegative ? -Math.abs(rawValue) : Math.abs(rawValue)) * 100) / 100;
+            }
+
             setupEventListeners() {
                 const navApps = document.getElementById('navApps');
                 if (navApps) {
@@ -6445,6 +6660,14 @@
                 const poupancaConfigurada = data.poupanca ? data.poupanca.configurada !== false : true;
                 const poupancaMetaConfigurada = data.poupanca ? data.poupanca.meta_configurada !== false : true;
                 const poupancaMetaAtiva = (data.poupanca && data.poupanca.meta_ativa) || null;
+                const saldoContaCorrenteRaw = data.saldo_conta_corrente || null;
+                const saldoContaCorrenteValor = this.saldoContaCorrenteSignedValue(saldoContaCorrenteRaw);
+                const saldoContaCorrenteTemValor = Number.isFinite(saldoContaCorrenteValor);
+                const saldoContaCorrenteClass = saldoContaCorrenteTemValor
+                    ? (saldoContaCorrenteValor < 0 ? 'is-negative' : 'is-positive')
+                    : 'is-empty';
+                const saldoContaCorrenteAtualizadoEm = String(saldoContaCorrenteRaw?.updated_at || '').slice(0, 10);
+                el._financeiroSaldoContaCorrente = saldoContaCorrenteRaw;
                 const pagosPendentes = graficos.pagos_pendentes || {};
                 const categoriasGastos = graficos.categorias_gastos || [];
 
@@ -6610,6 +6833,17 @@
                                     <span class="finance-filter-chip-title">Receitas</span>
                                 </button>
                             </div>
+                        </div>
+                        <div class="finance-balance-strip">
+                            <button type="button" class="finance-balance-card ${saldoContaCorrenteClass}" data-action="financeiro-saldo-open" aria-label="Editar saldo de conta corrente">
+                                <span class="finance-balance-card__tag">Saldo de conta corrente</span>
+                                <strong class="finance-balance-card__value">${saldoContaCorrenteRaw?.definido === false || !saldoContaCorrenteTemValor ? 'Definir saldo' : this.formatMoneyBr(saldoContaCorrenteValor)}</strong>
+                                <span class="finance-balance-card__meta">
+                                    ${saldoContaCorrenteRaw?.definido === false || !saldoContaCorrenteTemValor
+                                        ? 'Clique no card para registrar manualmente o saldo atual.'
+                                        : `${saldoContaCorrenteValor < 0 ? 'Saldo negativo ativo. ' : 'Saldo positivo ativo. '}Valor manual e independente dos lançamentos futuros.${saldoContaCorrenteAtualizadoEm ? ` Atualizado em ${escapeHtml(this.formatDateBr(saldoContaCorrenteAtualizadoEm))}.` : ''}`}
+                                </span>
+                            </button>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
                             <div class="app-totais app-totais--financeiro">
@@ -7161,6 +7395,10 @@
                     const defaultTipo = currentTab === 'poupanca' ? 'poupanca' : 'gasto_variado';
                     this.openFinanceiroModal(el, { defaultTipo });
                 };
+                const saldoCard = el.querySelector('[data-action="financeiro-saldo-open"]');
+                if (saldoCard) {
+                    saldoCard.onclick = () => this.openFinanceiroSaldoModal(el);
+                }
                 el.querySelectorAll('[data-action="financeiro-edit"]').forEach((btn) => {
                     btn.onclick = () => {
                         const tipo = btn.dataset.tipoRegistro || 'gasto_variado';
@@ -7169,7 +7407,10 @@
                     };
                 });
                 el.querySelectorAll('[data-action="financeiro-delete"]').forEach((btn) => {
-                    btn.onclick = () => this.submitFinanceiroDelete(btn.dataset.id, btn.dataset.tipoRegistro || 'gasto_variado', el);
+                    btn.onclick = () => {
+                        const tipo = btn.dataset.tipoRegistro || 'gasto_variado';
+                        this.submitFinanceiroDelete(btn.dataset.id, tipo, el);
+                    };
                 });
                 el.querySelectorAll('[data-action="financeiro-toggle-status"]').forEach((btn) => {
                     btn.onclick = () => this.submitFinanceiroToggleStatus(btn.dataset.id, btn.dataset.statusAtual || 'pendente', el);
@@ -7320,6 +7561,90 @@
                 document.body.appendChild(overlay);
             }
 
+            openFinanceiroSaldoModal(el) {
+                const current = el._financeiroSaldoContaCorrente || null;
+                const currentValue = this.saldoContaCorrenteSignedValue(current);
+                const hasValue = Number.isFinite(currentValue);
+                const isNegative = hasValue && currentValue < 0;
+                const currentUpdatedAt = String(current?.updated_at || '').slice(0, 10);
+                const overlay = document.createElement('div');
+                overlay.className = 'app-modal-overlay';
+                overlay.innerHTML = `
+                    <div class="app-modal finance-balance-modal">
+                        <h4>Saldo de conta corrente</h4>
+                        <p class="app-form-note">Esse valor é manual, não entra no cálculo de receitas e serve para espelhar o saldo real da conta.</p>
+                        <div class="app-modal-body">
+                            <div class="finance-balance-modal__summary">
+                                <span>Valor atual</span>
+                                <strong>${hasValue ? this.formatMoneyBr(currentValue) : 'Saldo não definido'}</strong>
+                                ${hasValue && currentUpdatedAt ? `<small>Atualizado em ${escapeHtml(this.formatDateBr(currentUpdatedAt))}</small>` : '<small>Clique em editar para informar o saldo.</small>'}
+                            </div>
+                        </div>
+                        <div class="app-modal-actions">
+                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-close">Fechar</button>
+                            <button type="button" class="app-btn" data-action="saldo-edit">Editar valor</button>
+                        </div>
+                    </div>
+                `;
+
+                const close = () => overlay.remove();
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) close();
+                };
+                overlay.querySelector('[data-action="modal-close"]').onclick = close;
+                overlay.querySelector('[data-action="saldo-edit"]').onclick = () => {
+                    overlay.innerHTML = `
+                        <div class="app-modal finance-balance-modal">
+                            <h4>Editar saldo de conta corrente</h4>
+                            <p class="app-form-note">Defina o valor manualmente. Depois de salvar, o card volta para o modo de visualização.</p>
+                            <div class="app-form">
+                                <div class="app-form-row">
+                                    <div class="field">
+                                        <label for="financeiro-saldo-modal-valor">Valor (R$)</label>
+                                        <input type="number" step="0.01" id="financeiro-saldo-modal-valor" value="${hasValue ? Math.abs(Number(currentValue)).toFixed(2) : ''}" placeholder="Ex: 1250,90" />
+                                    </div>
+                                </div>
+                                <label class="finance-balance-modal__flag">
+                                    <input type="checkbox" id="financeiro-saldo-modal-negativo" ${isNegative ? 'checked' : ''} />
+                                    <span>Negativo</span>
+                                </label>
+                            </div>
+                            <div class="app-modal-actions">
+                                <button type="button" class="app-btn app-btn-secondary" data-action="saldo-cancel">Cancelar</button>
+                                <button type="button" class="app-btn" data-action="saldo-save">Salvar valor</button>
+                            </div>
+                        </div>
+                    `;
+                    overlay.querySelector('[data-action="saldo-cancel"]').onclick = close;
+                    overlay.querySelector('[data-action="saldo-save"]').onclick = async () => {
+                        const inputValue = overlay.querySelector('#financeiro-saldo-modal-valor')?.value;
+                        const isNegativeSelected = Boolean(overlay.querySelector('#financeiro-saldo-modal-negativo')?.checked);
+                        try {
+                            const normalized = this.normalizeFinanceiroSaldoValue(inputValue);
+                            if (normalized === null) throw new Error('Saldo manual inválido');
+                            const signed = isNegativeSelected ? -Math.abs(normalized) : Math.abs(normalized);
+                            const res = await fetch('/api/financeiro', {
+                                method: !current || current.definido === false ? 'POST' : 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    tipo_registro: 'saldo_conta_corrente',
+                                    id: 1,
+                                    valor: Math.abs(signed),
+                                    negativo: signed < 0,
+                                }),
+                            });
+                            if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Nao foi possivel salvar o saldo manual.'));
+                            close();
+                            await this.refreshAppContent('financeiro');
+                        } catch (err) {
+                            alert(err?.message || 'Nao foi possivel salvar o saldo manual.');
+                        }
+                    };
+                };
+
+                document.body.appendChild(overlay);
+            }
+
             openFinanceiroModal(el, { item = null, defaultTipo = 'gasto_variado' } = {}) {
                 const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 let initialMesRef = mesAno;
@@ -7335,6 +7660,9 @@
                 const gastoCategorias = ['Alimentacao','Habitacao','Transporte','Lazer','Saude','Ticket','Compras','Contas','Outros'];
                 const receitaCategorias = ['Salário','Benefício','Ticket','Outro'];
                 const tipoRegistro = item?.tipo_registro || defaultTipo || 'gasto_variado';
+                const metodoPagamentoInit = tipoRegistro === 'gasto_variado'
+                    ? (String(item?.metodo_pagamento || '').trim() || (item ? 'credito' : 'debito_pix'))
+                    : 'credito';
                 const parcelaTotalInit = Math.max(0, Math.round(Number(item?.parcela_total ?? 0)));
                 const parcelaAtualInit = Math.max(0, Math.round(Number(item?.parcela_atual ?? 0)));
                 const parcelasCheckedInit = parcelaTotalInit > 0 && parcelaAtualInit > 0 && parcelaAtualInit <= parcelaTotalInit;
@@ -7359,6 +7687,13 @@
                                 <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">Mês de competência</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
                                 <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
                                 <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
+                                <div class="field" id="financeiro-metodo-wrap" style="display:none;">
+                                    <label>Método de pagamento</label>
+                                    <select id="financeiro-modal-metodo">
+                                        <option value="debito_pix" ${metodoPagamentoInit === 'debito_pix' ? 'selected' : ''}>Débito / pix</option>
+                                        <option value="credito" ${metodoPagamentoInit === 'credito' ? 'selected' : ''}>Crédito</option>
+                                    </select>
+                                </div>
                                 <div class="field" id="financeiro-conta-fixa-wrap" style="display:none;">
                                     <label class="finance-conta-fixa-check"><input type="checkbox" id="financeiro-modal-conta-fixa" ${item?.conta_fixa ? 'checked' : ''} /> Conta fixa</label>
                                 </div>
@@ -7390,6 +7725,8 @@
                 const contextoEl = overlay.querySelector('#financeiro-modal-contexto');
                 const mesRefWrap = overlay.querySelector('#financeiro-mes-ref-wrap');
                 const mesRefEl = overlay.querySelector('#financeiro-modal-mes-ref');
+                const metodoWrap = overlay.querySelector('#financeiro-metodo-wrap');
+                const metodoEl = overlay.querySelector('#financeiro-modal-metodo');
                 const contaFixaWrap = overlay.querySelector('#financeiro-conta-fixa-wrap');
                 const contaFixaCb = overlay.querySelector('#financeiro-modal-conta-fixa');
                 const parcelasWrap = overlay.querySelector('#financeiro-parcelas-wrap');
@@ -7444,6 +7781,7 @@
                     if (tipo === 'despesa_fixa') {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = '';
+                        if (metodoWrap) metodoWrap.style.display = 'none';
                         catWrap.style.display = 'none';
                         dataWrap.style.display = 'none';
                         applyDateBoundsFromMes(mesForBounds());
@@ -7453,6 +7791,8 @@
                     } else if (tipo === 'poupanca') {
                         if (descricaoWrap) descricaoWrap.style.display = 'none';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
+                        if (metodoWrap) metodoWrap.style.display = tipo === 'gasto_variado' ? '' : 'none';
+                        if (metodoWrap) metodoWrap.style.display = 'none';
                         if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'Poupança';
                         dataWrap.style.display = '';
                         if (dataEl) {
@@ -7474,7 +7814,9 @@
                         const categories = tipo === 'receita' ? receitaCategorias : gastoCategorias;
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
                         if (item?.categoria) catEl.value = item.categoria;
-                        if (contextoEl) contextoEl.innerHTML = 'Escolha <strong>qualquer data</strong>: o lançamento aparece no mês correspondente a essa data.';
+                        if (contextoEl) contextoEl.innerHTML = tipo === 'gasto_variado'
+                            ? 'Registros em <strong>débito / pix</strong> reduzem o saldo manual. Crédito não altera o saldo.'
+                            : 'Escolha <strong>qualquer data</strong>: o lançamento aparece no mês correspondente a essa data.';
                     }
                     syncParcelasUI();
                 };
@@ -7509,6 +7851,7 @@
                         tipo_registro: tipoVal,
                         descricao: overlay.querySelector('#financeiro-modal-descricao').value.trim(),
                         valor: Number(overlay.querySelector('#financeiro-modal-valor').value || 0),
+                        metodo_pagamento: tipoVal === 'gasto_variado' ? String(metodoEl?.value || 'debito_pix') : null,
                         categoria: catEl.value || null,
                         data_lancamento: (tipoVal === 'gasto_variado' || tipoVal === 'receita')
                             ? dataValRaw
@@ -7532,6 +7875,9 @@
                             payload.parcela_atual = pa;
                             payload.parcela_total = pt;
                         }
+                    }
+                    if (tipoVal === 'gasto_variado' && metodoEl && !metodoEl.value) {
+                        metodoEl.value = 'debito_pix';
                     }
                     const ok = await this.submitFinanceiroSave(el, payload);
                     if (ok) close();
@@ -7578,6 +7924,8 @@
                         requestBody.parcela_atual = payload.parcela_atual;
                         requestBody.parcela_total = payload.parcela_total;
                     }
+                } else if (tipoRegistro === 'gasto_variado') {
+                    requestBody.metodo_pagamento = String(payload?.metodo_pagamento || 'debito_pix').trim() || 'debito_pix';
                 }
                 if (editId) requestBody.id = editId;
                 try {
