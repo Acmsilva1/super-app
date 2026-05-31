@@ -386,9 +386,10 @@ export async function criarRegistroFinanceiro(req) {
   const { data, error } = await supabase.from(table).insert(payload).select().single();
   if (error) return { status: 500, data: { error: error.message } };
   const row = rowOrFirst(data);
-  if (table === TABLE_FINANCAS) {
+  if (table === TABLE_FINANCAS || table === TABLE_DESPESAS_FIXAS) {
     const balanceDelta = saldoContaCorrenteDeltaFromRow({
       tipo_registro: row?.tipo_registro || parsed.tipo_registro,
+      status: row?.status || payload.status,
       tipo: row?.tipo,
       metodo_pagamento: row?.metodo_pagamento || payload.metodo_pagamento,
       valor: row?.valor ?? payload.valor,
@@ -417,9 +418,9 @@ export async function atualizarRegistroFinanceiro(req) {
         ? TABLE_POUPANCA_METAS
       : TABLE_FINANCAS;
   let previousRow = null;
-  if (table === TABLE_FINANCAS) {
+  if (table === TABLE_FINANCAS || table === TABLE_DESPESAS_FIXAS) {
     const { data: prevData, error: prevErr } = await supabase
-      .from(TABLE_FINANCAS)
+      .from(table)
       .select('*')
       .eq('id', parsed.id)
       .limit(1);
@@ -429,15 +430,17 @@ export async function atualizarRegistroFinanceiro(req) {
   const { data, error } = await supabase.from(table).update(parsed.payload).eq('id', parsed.id).select().single();
   if (error) return { status: 500, data: { error: error.message } };
   const row = rowOrFirst(data);
-  if (table === TABLE_FINANCAS) {
+  if (table === TABLE_FINANCAS || table === TABLE_DESPESAS_FIXAS) {
     const previousDelta = saldoContaCorrenteDeltaFromRow({
       tipo_registro: previousRow?.tipo_registro,
+      status: previousRow?.status,
       tipo: previousRow?.tipo,
       metodo_pagamento: previousRow?.metodo_pagamento,
       valor: previousRow?.valor,
     });
     const nextDelta = saldoContaCorrenteDeltaFromRow({
       tipo_registro: row?.tipo_registro,
+      status: row?.status,
       tipo: row?.tipo,
       metodo_pagamento: row?.metodo_pagamento,
       valor: row?.valor,
@@ -517,9 +520,10 @@ export async function removerRegistroFinanceiro(req) {
   }
   const { error } = await supabase.from(table).delete().eq('id', id);
   if (error) return { status: 500, data: { error: error.message } };
-  if (table === TABLE_FINANCAS && previousRow) {
+  if ((table === TABLE_FINANCAS || table === TABLE_DESPESAS_FIXAS) && previousRow) {
     const balanceDelta = Math.round((0 - saldoContaCorrenteDeltaFromRow({
       tipo_registro: previousRow?.tipo_registro,
+      status: previousRow?.status,
       tipo: previousRow?.tipo,
       metodo_pagamento: previousRow.metodo_pagamento,
       valor: previousRow.valor,

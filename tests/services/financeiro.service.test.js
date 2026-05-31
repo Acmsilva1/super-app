@@ -188,6 +188,9 @@ describe('financeiroService', () => {
   it('prepara e calcula saldo de conta corrente', () => {
     expect(saldoContaCorrenteValueFromBody({ valor: 1000, negativo: false })).toBe(1000);
     expect(saldoContaCorrenteValueFromBody({ valor: 1000, negativo: true })).toBe(-1000);
+    expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'despesa_fixa', status: 'pago', valor: 150 })).toBe(true);
+    expect(saldoContaCorrenteDeltaFromRow({ tipo_registro: 'despesa_fixa', status: 'pago', valor: 150 })).toBe(-150);
+    expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'despesa_fixa', status: 'pendente', valor: 150 })).toBe(false);
     expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'gasto_variado', metodo_pagamento: 'pix' })).toBe(true);
     expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'gasto_variado', metodo_pagamento: 'credito' })).toBe(false);
     expect(saldoContaCorrenteDeltaFromRow({ tipo_registro: 'gasto_variado', metodo_pagamento: 'debito_pix', valor: 200 })).toBe(-200);

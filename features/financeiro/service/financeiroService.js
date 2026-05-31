@@ -23,6 +23,9 @@ export function normalizeFinanceiroMetodoPagamento(value) {
 
 export function isSaldoContaCorrenteAffectingRow(row = {}) {
   const tipo = String(row?.tipo_registro || row?.tipo || '').toLowerCase().trim();
+  if (tipo === TIPO_REGISTRO_DESPESA_FIXA) {
+    return String(row?.status || '').toLowerCase().trim() === STATUS_PAGO;
+  }
   if (tipo !== TIPO_REGISTRO_GASTO_VARIADO && tipo !== 'despesa') return false;
   return normalizeFinanceiroMetodoPagamento(row?.metodo_pagamento) === 'debito_pix';
 }
