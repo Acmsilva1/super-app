@@ -2875,6 +2875,9 @@
             flex-direction: column;
             overflow: visible;
             min-height: 0;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
         }
         .module-table-wrap.finance-poupanca-table-wrap {
             display: flex;
@@ -2892,6 +2895,8 @@
         .finance-table-scroll {
             flex: 1 1 auto;
             min-height: 0;
+            width: 100%;
+            max-width: 100%;
             max-height: calc((10 * 2.45rem) + 2.3rem);
             overflow-x: auto;
             overflow-y: auto;
@@ -5274,12 +5279,48 @@
             border: 1px solid rgba(89, 132, 194, 0.22);
             background: rgba(8, 17, 33, 0.35);
         }
-        .finance-despesas-col .module-table {
+        .finance-despesas-col .module-table,
+        .finance-table-scroll .module-table {
             min-width: 100%;
         }
         @media (max-width: 900px) {
             .finance-despesas-col {
                 flex: 1 1 100%;
+            }
+        }
+        @media (max-width: 768px) {
+            .finance-module-shell,
+            .finance-module-shell .module-tab-panel {
+                min-width: 0;
+                max-width: 100%;
+            }
+            .finance-data-section-head {
+                flex-wrap: wrap;
+            }
+            .finance-table-scroll .module-table {
+                min-width: 0;
+                width: 100%;
+                table-layout: fixed;
+            }
+            .finance-table-scroll .module-table th,
+            .finance-table-scroll .module-table td {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .finance-table-scroll .module-table .col-actions {
+                white-space: normal;
+            }
+            .finance-table-scroll .module-table .col-actions .app-list-actions {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.25rem;
+            }
+            .finance-table-scroll .module-table .col-actions .app-list-actions button {
+                width: 100%;
+                text-align: center;
+            }
+            .finance-table-scroll .finance-desc-text {
+                max-width: 100%;
             }
         }
         .finance-desc-text {
