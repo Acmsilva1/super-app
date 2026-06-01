@@ -2,7 +2,6 @@ export const TABLE_FINANCAS = 'tb_financas';
 export const TABLE_DESPESAS_FIXAS = 'tb_despesas_fixas';
 export const TABLE_POUPANCA = 'tb_poupanca';
 export const TABLE_POUPANCA_METAS = 'tb_poupanca_metas';
-export const TABLE_SALDO_CONTA_CORRENTE = 'tb_saldo_conta_corrente';
 export const TABLE_SALDO_CONTA_CORRENTE_MOVIMENTOS = 'tb_saldo_conta_corrente_movimentos';
 
 export const TIPO_REGISTRO_DESPESA_FIXA = 'despesa_fixa';

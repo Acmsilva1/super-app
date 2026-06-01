@@ -80,23 +80,6 @@ describe('API do financeiro', () => {
           insert: movementInsert,
         };
       }
-      if (table === 'tb_saldo_conta_corrente') {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              limit: vi.fn().mockResolvedValue({
-                data: [{
-                  id: 1,
-                  valor: 1000,
-                  negativo: false,
-                  updated_at: '2026-05-31T12:00:00.000Z',
-                }],
-                error: null,
-              }),
-            })),
-          })),
-        };
-      }
       if (table === 'tb_financas') {
         return {
           insert: financeInsert,
@@ -161,18 +144,6 @@ describe('API do financeiro', () => {
         return {
           select: movementSelect,
           insert: movementInsert,
-        };
-      }
-      if (table === 'tb_saldo_conta_corrente') {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              limit: vi.fn().mockResolvedValue({
-                data: [],
-                error: null,
-              }),
-            })),
-          })),
         };
       }
       throw new Error(`Tabela inesperada: ${table}`);
@@ -263,23 +234,6 @@ describe('API do financeiro', () => {
         return {
           select: movementSelect,
           insert: movementInsert,
-        };
-      }
-      if (table === 'tb_saldo_conta_corrente') {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              limit: vi.fn().mockResolvedValue({
-                data: [{
-                  id: 1,
-                  valor: 999,
-                  negativo: false,
-                  updated_at: '2026-05-31T12:01:00.000Z',
-                }],
-                error: null,
-              }),
-            })),
-          })),
         };
       }
       if (table === 'tb_financas') {
