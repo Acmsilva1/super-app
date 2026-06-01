@@ -2870,7 +2870,12 @@
         .finance-poupanca-table-wrap {
             scroll-margin-top: 7.5rem;
         }
-        .module-table-wrap.finance-data-section.finance-data-table-limited,
+        .module-table-wrap.finance-data-section.finance-data-table-limited {
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+            min-height: 0;
+        }
         .module-table-wrap.finance-poupanca-table-wrap {
             display: flex;
             flex-direction: column;
@@ -2895,6 +2900,29 @@
             overscroll-behavior: contain;
             touch-action: pan-x pan-y;
             border-radius: 0 0 0.75rem 0.75rem;
+        }
+        .finance-data-section-head {
+            position: sticky;
+            top: var(--finance-sticky-offset, 0px);
+            z-index: 24;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.4rem;
+            padding: 0.35rem 0.25rem 0.45rem;
+            background: linear-gradient(180deg, rgba(8, 17, 33, 0.98), rgba(8, 17, 33, 0.9));
+            backdrop-filter: blur(6px);
+        }
+        .finance-data-section-head .finance-despesas-col-header {
+            margin: 0;
+            width: 100%;
+        }
+        .finance-data-section-head--variadas {
+            border-bottom: 1px solid rgba(239, 68, 68, 0.18);
+        }
+        .finance-data-section-head--receitas {
+            border-bottom: 1px solid rgba(34, 197, 94, 0.18);
         }
         .finance-parcela-tag {
             color: #facc15;
@@ -7018,7 +7046,7 @@
                                 </div>
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; gap:0.5rem; flex-wrap:wrap;">
+                                <div class="finance-data-section-head finance-data-section-head--variadas">
                                     <div class="finance-despesas-col-header" style="color:#ef4444;margin:0;">
                                         <span style="font-size:0.875rem;font-weight:600;">Débito / pix</span>
                                         <span>${this.formatMoneyBr(totalGastosVariados)}</span>
@@ -7038,9 +7066,11 @@
                                 </div>
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="receitas" id="financeiro-section-receitas" style="margin-top:0.85rem;">
-                                <div class="finance-despesas-col-header" style="color:#22c55e;margin-bottom:0.4rem;">
-                                    <span style="font-size:0.875rem;font-weight:600;">Receitas</span>
-                                    <span>${this.formatMoneyBr(receitasVal)}</span>
+                                <div class="finance-data-section-head finance-data-section-head--receitas">
+                                    <div class="finance-despesas-col-header" style="color:#22c55e;margin-bottom:0.4rem;">
+                                        <span style="font-size:0.875rem;font-weight:600;">Receitas</span>
+                                        <span>${this.formatMoneyBr(receitasVal)}</span>
+                                    </div>
                                 </div>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
@@ -7105,6 +7135,11 @@
                         <button type="button" class="finance-fab finance-fab-pulse" data-action="financeiro-open-modal" aria-label="Adicionar registro financeiro">+</button>
                     </div>
                 `;
+                const financeStickyHead = el.querySelector('.finance-sticky-head');
+                if (financeStickyHead) {
+                    const stickyOffset = Math.ceil((financeStickyHead.offsetHeight || 0) + 8);
+                    el.style.setProperty('--finance-sticky-offset', `${stickyOffset}px`);
+                }
                 const itemMap = new Map();
                 despesasFixas.forEach((r) => itemMap.set(`despesa_fixa:${r.id}`, r));
                 gastosVariados.forEach((r) => itemMap.set(`gasto_variado:${r.id}`, r));
