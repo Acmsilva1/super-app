@@ -38,10 +38,29 @@ describe('API do financeiro', () => {
         }),
       })),
     }));
-    const snapshotUpsert = vi.fn().mockResolvedValue({
-      data: null,
-      error: null,
-    });
+    const movementSelect = vi.fn(() => ({
+      order: vi.fn(() => ({
+        order: vi.fn(() => ({
+          limit: vi.fn().mockResolvedValue({
+            data: [{
+              id: 1,
+              saldo_anterior: 0,
+              delta: 1000,
+              saldo_atual: 1000,
+              valor: 1000,
+              negativo: false,
+              tipo_movimento: 'manual',
+              origem_tipo: 'saldo_conta_corrente',
+              origem_id: '1',
+              descricao: 'Saldo inicial',
+              created_at: '2026-05-31T12:00:00.000Z',
+              updated_at: '2026-05-31T12:00:00.000Z',
+            }],
+            error: null,
+          }),
+        })),
+      })),
+    }));
     const financeInsert = vi.fn((payload) => ({
       select: vi.fn(() => ({
         single: vi.fn().mockResolvedValue({
@@ -55,6 +74,12 @@ describe('API do financeiro', () => {
     }));
 
     fromMock.mockImplementation((table) => {
+      if (table === 'tb_saldo_conta_corrente_movimentos') {
+        return {
+          select: movementSelect,
+          insert: movementInsert,
+        };
+      }
       if (table === 'tb_saldo_conta_corrente') {
         return {
           select: vi.fn(() => ({
@@ -70,12 +95,6 @@ describe('API do financeiro', () => {
               }),
             })),
           })),
-          upsert: snapshotUpsert,
-        };
-      }
-      if (table === 'tb_saldo_conta_corrente_movimentos') {
-        return {
-          insert: movementInsert,
         };
       }
       if (table === 'tb_financas') {
@@ -111,11 +130,72 @@ describe('API do financeiro', () => {
       origem_tipo: 'gasto_variado',
       descricao: 'Mercado',
     }));
-    expect(snapshotUpsert).toHaveBeenCalledWith(expect.objectContaining({
-      id: 1,
-      valor: 800,
-      negativo: false,
-    }), expect.objectContaining({ onConflict: 'id' }));
     expect(res.body.tipo_registro).toBe('gasto_variado');
+  });
+
+  it('grava o saldo inicial na linha 1 e nao cria movimento duplicado no primeiro cadastro', async () => {
+    const snapshotInsert = vi.fn((payload) => ({
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 1,
+            ...payload,
+          },
+          error: null,
+        }),
+      })),
+    }));
+    const movementInsert = vi.fn();
+    const movementSelect = vi.fn(() => ({
+      order: vi.fn(() => ({
+        order: vi.fn(() => ({
+          limit: vi.fn().mockResolvedValue({
+            data: [],
+            error: null,
+          }),
+        })),
+      })),
+    }));
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_saldo_conta_corrente_movimentos') {
+        return {
+          select: movementSelect,
+          insert: movementInsert,
+        };
+      }
+      if (table === 'tb_saldo_conta_corrente') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              limit: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            })),
+          })),
+          insert: snapshotInsert,
+        };
+      }
+      throw new Error(`Tabela inesperada: ${table}`);
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .post('/api/test')
+      .send({
+        tipo_registro: 'saldo_conta_corrente',
+        valor: 1000,
+        negativo: false,
+      });
+
+    expect(res.status).toBe(201);
+    expect(snapshotInsert).toHaveBeenCalledWith(expect.objectContaining({
+      id: 1,
+      valor: 1000,
+      negativo: false,
+    }));
+    expect(movementInsert).not.toHaveBeenCalled();
+    expect(res.body.tipo_registro).toBe('saldo_conta_corrente');
   });
 });
