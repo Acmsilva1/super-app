@@ -3275,6 +3275,12 @@
             }
         }
         @media (max-width: 540px) {
+            .finance-sticky-head .app-mes-ano {
+                gap: 0.33rem;
+            }
+            .finance-sticky-head .app-mes-ano label {
+                font-size: 0.78rem;
+            }
             .module-data-actions {
                 display: grid;
                 grid-template-columns: 1fr;
@@ -3295,18 +3301,27 @@
             /* Filtros da aba Dados: mais compactos em telas estreitas */
             .finance-data-jump-bar {
                 display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 0.4rem;
-                padding: 0.2rem 0 0.45rem;
+                grid-auto-flow: column;
+                grid-auto-columns: minmax(7.2rem, 1fr);
+                gap: 0.45rem;
+                padding: 0.15rem 0 0.4rem;
                 align-items: stretch;
+                overflow-x: auto;
+                scroll-snap-type: x proximity;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            .finance-data-jump-bar::-webkit-scrollbar {
+                display: none;
             }
             .finance-filter-chip {
                 min-height: 0;
-                padding: 0.42rem 0.35rem;
+                padding: 0.5rem 0.45rem;
                 border-radius: 0.68rem;
-                font-size: 0.62rem;
+                font-size: 0.68rem;
                 letter-spacing: 0.03em;
                 box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2), 0 6px 14px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                scroll-snap-align: start;
             }
             .finance-filter-chip:hover {
                 transform: none;
@@ -3318,7 +3333,7 @@
                 display: none;
             }
             .finance-filter-chip-title {
-                font-size: 0.74rem;
+                font-size: 0.72rem;
                 font-weight: 800;
                 letter-spacing: 0.01em;
                 text-transform: none;
@@ -3623,10 +3638,35 @@
         }
         @media (max-width: 900px) {
             .finance-sticky-head {
-                grid-template-columns: 1fr;
+                display: flex;
+                flex-direction: column;
+                gap: 0.55rem;
             }
-            .finance-sticky-head__top {
-                align-items: stretch;
+            .finance-sticky-head .app-mes-ano,
+            .finance-sticky-head > .finance-balance-strip,
+            .finance-sticky-head > .module-tabbar,
+            .finance-sticky-head > .finance-data-jump-bar {
+                width: 100%;
+            }
+            .finance-sticky-head .app-mes-ano {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.4rem;
+                align-items: center;
+                order: 1;
+                margin-bottom: 0;
+            }
+            .finance-sticky-head .app-mes-ano label {
+                grid-column: 1 / -1;
+                margin-bottom: 0;
+            }
+            .finance-sticky-head .app-mes-ano select {
+                width: 100%;
+                min-width: 0;
+            }
+            .finance-sticky-head > .finance-balance-strip {
+                order: 2;
+                justify-content: stretch;
             }
             .finance-balance-strip {
                 width: 100%;
@@ -3635,6 +3675,14 @@
             .finance-balance-card {
                 width: 100%;
                 min-width: 0;
+            }
+            .finance-sticky-head > .module-tabbar {
+                order: 3;
+                display: flex;
+                width: 100%;
+            }
+            .finance-sticky-head > .finance-data-jump-bar {
+                order: 4;
             }
         }
         .app-totais .totais-card .val {
