@@ -2866,6 +2866,10 @@
             display: none;
         }
         /* Scroll apenas dentro da grelha (≈10 linhas); cabeçalho da tabela colado ao topo deste bloco — não herda o scroll da janela no mobile */
+        .finance-data-section,
+        .finance-poupanca-table-wrap {
+            scroll-margin-top: 7.5rem;
+        }
         .module-table-wrap.finance-data-section.finance-data-table-limited,
         .module-table-wrap.finance-poupanca-table-wrap {
             display: flex;
@@ -3106,13 +3110,17 @@
         .module-table th {
             position: sticky;
             top: 0;
-            z-index: 1;
+            z-index: 4;
             background: linear-gradient(180deg, rgba(15, 27, 48, 0.95), rgba(12, 23, 42, 0.95));
             color: #d7e9ff;
             text-transform: uppercase;
             letter-spacing: 0.04em;
             font-size: 0.72rem;
             font-weight: 800;
+        }
+        .finance-table-scroll .module-table th {
+            box-shadow: 0 1px 0 rgba(148, 163, 184, 0.12), 0 8px 14px rgba(2, 6, 23, 0.16);
+            background-clip: padding-box;
         }
         .module-table tr:hover td {
             background: rgba(30, 58, 105, 0.2);
@@ -3275,6 +3283,10 @@
             }
         }
         @media (max-width: 540px) {
+            .finance-data-section,
+            .finance-poupanca-table-wrap {
+                scroll-margin-top: 10rem;
+            }
             .finance-sticky-head .app-mes-ano {
                 gap: 0.33rem;
             }
