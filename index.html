@@ -2868,7 +2868,7 @@
         /* Scroll apenas dentro da grelha (≈10 linhas); cabeçalho da tabela colado ao topo deste bloco — não herda o scroll da janela no mobile */
         .finance-data-section,
         .finance-poupanca-table-wrap {
-            scroll-margin-top: 7.5rem;
+            scroll-margin-top: calc(var(--finance-sticky-offset, 7.5rem) + 0.35rem);
         }
         .module-table-wrap.finance-data-section.finance-data-table-limited {
             display: flex;
@@ -2907,17 +2907,16 @@
             border-radius: 0 0 0.75rem 0.75rem;
         }
         .finance-data-section-head {
-            position: sticky;
-            top: var(--finance-sticky-offset, 0px);
-            z-index: 24;
+            position: relative;
+            z-index: 1;
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 0.5rem;
+            flex-wrap: wrap;
             margin-bottom: 0.4rem;
             padding: 0.35rem 0.25rem 0.45rem;
-            background: linear-gradient(180deg, rgba(8, 17, 33, 0.98), rgba(8, 17, 33, 0.9));
-            backdrop-filter: blur(6px);
+            flex-shrink: 0;
         }
         .finance-data-section-head .finance-despesas-col-header {
             margin: 0;
@@ -3276,6 +3275,60 @@
             .finance-module-shell {
                 padding-bottom: 5.4rem;
             }
+            /* Aba Dados com filtro ativo: tela fixa — menu no topo, tabela preenche o restante */
+            .window-content[data-active-tab="data"][data-active-data-filter]:not([data-active-data-filter=""]) {
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+            }
+            .window-content[data-active-tab="data"][data-active-data-filter]:not([data-active-data-filter=""]) .finance-module-shell {
+                flex: 1 1 auto;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 0;
+                padding-bottom: 4.75rem;
+            }
+            .window-content[data-active-tab="data"][data-active-data-filter]:not([data-active-data-filter=""]) .finance-sticky-head {
+                flex-shrink: 0;
+            }
+            .window-content[data-active-tab="data"][data-active-data-filter]:not([data-active-data-filter=""]) .module-tab-panel[data-tab-panel="data"] {
+                flex: 1 1 auto;
+                min-height: 0;
+                display: flex !important;
+                flex-direction: column;
+                overflow: hidden;
+                gap: 0;
+            }
+            .window-content[data-active-tab="data"][data-active-data-filter]:not([data-active-data-filter=""]) .module-tab-panel[data-tab-panel="data"] .finance-data-section:not(.hidden-by-filter) {
+                flex: 1 1 auto;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                margin-top: 0 !important;
+            }
+            .window-content[data-active-tab="data"][data-active-data-filter]:not([data-active-data-filter=""]) .finance-data-section-head,
+            .window-content[data-active-tab="data"][data-active-data-filter]:not([data-active-data-filter=""]) .module-tab-panel[data-tab-panel="data"] .finance-data-section:not(.hidden-by-filter) > div:first-child {
+                flex-shrink: 0;
+            }
+            .window-content[data-active-tab="data"][data-active-data-filter]:not([data-active-data-filter=""]) .finance-import-fixas-callout {
+                flex-shrink: 0;
+            }
+            .window-content[data-active-tab="data"][data-active-data-filter="despesas_fixas"] .finance-despesas-fixas-grid {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+            }
+            .window-content[data-active-tab="data"][data-active-data-filter="gastos_variados"] .finance-table-scroll,
+            .window-content[data-active-tab="data"][data-active-data-filter="receitas"] .finance-table-scroll {
+                flex: 1 1 auto;
+                min-height: 0;
+                max-height: none;
+            }
             .module-tabbar {
                 width: 100%;
                 justify-content: space-between;
@@ -3316,10 +3369,6 @@
             }
         }
         @media (max-width: 540px) {
-            .finance-data-section,
-            .finance-poupanca-table-wrap {
-                scroll-margin-top: 10rem;
-            }
             .finance-sticky-head .app-mes-ano {
                 gap: 0.33rem;
             }
@@ -7176,11 +7225,34 @@
                         <button type="button" class="finance-fab finance-fab-pulse" data-action="financeiro-open-modal" aria-label="Adicionar registro financeiro">+</button>
                     </div>
                 `;
-                const financeStickyHead = el.querySelector('.finance-sticky-head');
-                if (financeStickyHead) {
-                    const stickyOffset = Math.ceil((financeStickyHead.offsetHeight || 0) + 8);
+                const syncFinanceStickyOffset = () => {
+                    const stickyHead = el.querySelector('.finance-sticky-head');
+                    if (!stickyHead) return;
+                    const stickyOffset = Math.ceil(stickyHead.getBoundingClientRect().height + 8);
                     el.style.setProperty('--finance-sticky-offset', `${stickyOffset}px`);
+                };
+                const snapFinanceDataPane = () => {
+                    if (window.innerWidth > 768) return;
+                    if (!el.getAttribute('data-active-data-filter')) return;
+                    el.scrollTop = 0;
+                };
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    syncFinanceStickyOffset();
+                    snapFinanceDataPane();
+                }));
+                const stickyHeadNode = el.querySelector('.finance-sticky-head');
+                if (stickyHeadNode) {
+                    if (el._financeStickyOffsetObserver) {
+                        el._financeStickyOffsetObserver.disconnect();
+                    }
+                    el._financeStickyOffsetObserver = new ResizeObserver(() => syncFinanceStickyOffset());
+                    el._financeStickyOffsetObserver.observe(stickyHeadNode);
                 }
+                if (!el._financeStickyOffsetResizeBound) {
+                    el._financeStickyOffsetResizeBound = true;
+                    window.addEventListener('resize', syncFinanceStickyOffset, { passive: true });
+                }
+                el._syncFinanceStickyOffset = syncFinanceStickyOffset;
                 const itemMap = new Map();
                 despesasFixas.forEach((r) => itemMap.set(`despesa_fixa:${r.id}`, r));
                 gastosVariados.forEach((r) => itemMap.set(`gasto_variado:${r.id}`, r));
@@ -7480,6 +7552,11 @@
                     }
                     if (emptyEl) emptyEl.style.display = normalizedTarget ? 'none' : '';
                     if (hintBar) hintBar.style.display = normalizedTarget ? 'none' : '';
+                    el._syncFinanceStickyOffset?.();
+                    requestAnimationFrame(() => {
+                        el._syncFinanceStickyOffset?.();
+                        if (window.innerWidth <= 768 && normalizedTarget) el.scrollTop = 0;
+                    });
                 };
 
                 const setTab = (tab) => {
@@ -7494,6 +7571,7 @@
                     });
                     const dataJumpBar = el.querySelector('.finance-data-jump-bar');
                     if (dataJumpBar) dataJumpBar.style.display = tab === 'data' ? '' : 'none';
+                    el._syncFinanceStickyOffset?.();
                     const mesAnoBar = el.querySelector('.finance-sticky-head .app-mes-ano');
                     if (mesAnoBar) mesAnoBar.style.display = tab === 'poupanca' ? 'none' : '';
                     if (tab !== 'summary' && el._financeiroResumoGlowTimer) {
@@ -7518,8 +7596,6 @@
                     btn.onclick = () => {
                         setTab('data');
                         applyFinanceDataFilter(btn.dataset.target || '');
-                        const section = el.querySelector(`[data-table-section="${btn.dataset.target || ''}"]`);
-                        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     };
                 });
 
