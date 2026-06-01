@@ -261,7 +261,6 @@ export async function obterFinanceiroMes(query = {}) {
   const { data: poupaData, error: errPoupa } = await supabase
     .from(TABLE_POUPANCA)
     .select('*')
-    .order('data_lancamento', { ascending: false })
     .order('created_at', { ascending: false });
   if (errPoupa) {
     if (isMissingTableError(errPoupa)) {
