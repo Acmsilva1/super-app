@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "build": "echo Build complete",
-    "test": "vitest run"
+    "test": "npm run test:ux && vitest run --pool threads",
+    "test:ux": "node scripts/ux-component-analyst.cjs --path index.html --path api --path features --path lib"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
