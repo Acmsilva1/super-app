@@ -167,15 +167,8 @@ async function appendSaldoContaCorrenteMovement({
 async function saveSaldoContaCorrentePayload(payload = {}) {
   const signed = saldoContaCorrenteValueFromBody(payload);
   if (signed === null) return { error: 'valor obrigatorio', status: 400 };
-  const snapshot = await fetchSaldoContaCorrenteSnapshot();
   const current = await fetchSaldoContaCorrente();
-  const currentSigned = saldoContaCorrenteSignedValueFromRow(current.data || {});
   const nextSigned = Math.round(signed * 100) / 100;
-  if (!snapshot.data && !current.data) {
-    const anchor = await ensureSaldoContaCorrenteSnapshot(nextSigned);
-    if (anchor.error) return { error: anchor.error, status: anchor.status || 500 };
-    return { data: serializeSaldoContaCorrenteRow(anchor.data || { ...payload, valor: Math.abs(nextSigned), negativo: nextSigned < 0, updated_at: new Date().toISOString() }) };
-  }
   const history = await appendSaldoContaCorrenteMovement({
     currentRow: current.data || {},
     nextSigned,
@@ -185,10 +178,6 @@ async function saveSaldoContaCorrentePayload(payload = {}) {
     descricao: 'Saldo manual atualizado',
   });
   if (history.error) return { error: history.error, status: history.status || 500 };
-  if (!snapshot.data) {
-    const anchor = await ensureSaldoContaCorrenteSnapshot(current.data ? currentSigned : nextSigned);
-    if (anchor.error) return { error: anchor.error, status: anchor.status || 500 };
-  }
   return { data: serializeSaldoContaCorrenteRow(history.data || { ...current.data, ...payload, saldo_atual: nextSigned }) };
 }
 

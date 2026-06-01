@@ -134,7 +134,7 @@ describe('API do financeiro', () => {
   });
 
   it('grava o saldo inicial na linha 1 e nao cria movimento duplicado no primeiro cadastro', async () => {
-    const snapshotInsert = vi.fn((payload) => ({
+    const movementInsert = vi.fn((payload) => ({
       select: vi.fn(() => ({
         single: vi.fn().mockResolvedValue({
           data: {
@@ -145,7 +145,6 @@ describe('API do financeiro', () => {
         }),
       })),
     }));
-    const movementInsert = vi.fn();
     const movementSelect = vi.fn(() => ({
       order: vi.fn(() => ({
         order: vi.fn(() => ({
@@ -174,7 +173,6 @@ describe('API do financeiro', () => {
               }),
             })),
           })),
-          insert: snapshotInsert,
         };
       }
       throw new Error(`Tabela inesperada: ${table}`);
@@ -190,12 +188,15 @@ describe('API do financeiro', () => {
       });
 
     expect(res.status).toBe(201);
-    expect(snapshotInsert).toHaveBeenCalledWith(expect.objectContaining({
-      id: 1,
+    expect(movementInsert).toHaveBeenCalledWith(expect.objectContaining({
+      saldo_anterior: 0,
+      delta: 1000,
+      saldo_atual: 1000,
       valor: 1000,
       negativo: false,
+      tipo_movimento: 'manual',
+      origem_tipo: 'saldo_conta_corrente',
     }));
-    expect(movementInsert).not.toHaveBeenCalled();
     expect(res.body.tipo_registro).toBe('saldo_conta_corrente');
   });
 });
