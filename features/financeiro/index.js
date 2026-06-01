@@ -10,6 +10,7 @@ export {
   TABLE_POUPANCA,
   TABLE_POUPANCA_METAS,
   TABLE_SALDO_CONTA_CORRENTE,
+  TABLE_SALDO_CONTA_CORRENTE_MOVIMENTOS,
   STATUS_PAGO,
   STATUS_PENDENTE,
   CATEGORIAS_GASTO_VARIADO,
@@ -42,4 +43,6 @@ export {
   isSaldoContaCorrenteAffectingRow,
   saldoContaCorrenteDeltaFromRow,
   saldoContaCorrenteValueFromBody,
+  saldoContaCorrenteSignedValueFromRow,
+  buildSaldoContaCorrenteMovementRow,
 } from './service/financeiroService.js';

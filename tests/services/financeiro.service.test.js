@@ -10,6 +10,8 @@ import {
   payloadUpdateFinanceiro,
   saldoContaCorrenteDeltaFromRow,
   saldoContaCorrenteValueFromBody,
+  saldoContaCorrenteSignedValueFromRow,
+  buildSaldoContaCorrenteMovementRow,
   sortCronologiaDesc,
 } from '../../features/financeiro/service/financeiroService.js';
 
@@ -192,6 +194,29 @@ describe('financeiroService', () => {
   it('prepara e calcula saldo de conta corrente', () => {
     expect(saldoContaCorrenteValueFromBody({ valor: 1000, negativo: false })).toBe(1000);
     expect(saldoContaCorrenteValueFromBody({ valor: 1000, negativo: true })).toBe(-1000);
+    expect(saldoContaCorrenteSignedValueFromRow({ valor: 1000, negativo: false })).toBe(1000);
+    expect(saldoContaCorrenteSignedValueFromRow({ saldo_atual: 800, negativo: false })).toBe(800);
+    expect(buildSaldoContaCorrenteMovementRow({
+      currentRow: { valor: 1000, negativo: false },
+      nextSigned: 800,
+      tipoMovimento: 'automatica',
+      origemTipo: 'gasto_variado',
+      origemId: 10,
+      descricao: 'Mercado',
+      createdAt: '2026-05-31T12:00:00.000Z',
+    })).toEqual(expect.objectContaining({
+      saldo_anterior: 1000,
+      delta: -200,
+      saldo_atual: 800,
+      valor: 800,
+      negativo: false,
+      tipo_movimento: 'automatica',
+      origem_tipo: 'gasto_variado',
+      origem_id: '10',
+      descricao: 'Mercado',
+      created_at: '2026-05-31T12:00:00.000Z',
+      updated_at: '2026-05-31T12:00:00.000Z',
+    }));
     expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'despesa_fixa', status: 'pago', valor: 150 })).toBe(true);
     expect(saldoContaCorrenteDeltaFromRow({ tipo_registro: 'despesa_fixa', status: 'pago', valor: 150 })).toBe(-150);
     expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'despesa_fixa', status: 'pendente', valor: 150 })).toBe(false);

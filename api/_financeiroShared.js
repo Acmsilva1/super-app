@@ -5,6 +5,7 @@ import {
   TABLE_POUPANCA_METAS,
   TABLE_POUPANCA,
   TABLE_SALDO_CONTA_CORRENTE,
+  TABLE_SALDO_CONTA_CORRENTE_MOVIMENTOS,
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
   TIPO_REGISTRO_META_POUPANCA,
@@ -24,6 +25,8 @@ import {
   isSaldoContaCorrenteAffectingRow,
   saldoContaCorrenteDeltaFromRow,
   saldoContaCorrenteValueFromBody,
+  saldoContaCorrenteSignedValueFromRow,
+  buildSaldoContaCorrenteMovementRow,
   buildReplicationSlotsFromStart,
   seriesDefinitionsFromYearRows,
   slotsNeededForMonth,
@@ -60,20 +63,39 @@ function normalizeDate(dateLike) {
 }
 
 function serializeSaldoContaCorrenteRow(row) {
-  const valor = Number(row?.valor || 0);
-  const negativo = row?.negativo === true || row?.negativo === 'true' || valor < 0;
-  const signedValor = Math.round((negativo ? -Math.abs(valor) : Math.abs(valor)) * 100) / 100;
+  const signedValor = saldoContaCorrenteSignedValueFromRow(row);
   return {
     definido: true,
     id: Number(row?.id || 1) || 1,
-    valor: Math.abs(Number(row?.valor || 0)),
-    negativo,
+    valor: Math.abs(signedValor),
+    negativo: signedValor < 0,
     updated_at: String(row?.updated_at || ''),
+    created_at: String(row?.created_at || ''),
+    saldo_anterior: Number(row?.saldo_anterior ?? 0),
+    delta: Number(row?.delta ?? 0),
+    tipo_movimento: String(row?.tipo_movimento || ''),
+    origem_tipo: String(row?.origem_tipo || ''),
+    origem_id: String(row?.origem_id || ''),
+    descricao: String(row?.descricao || ''),
     signed_valor: signedValor,
   };
 }
 
-async function fetchSaldoContaCorrente() {
+async function fetchSaldoContaCorrenteMovimentoLatest() {
+  const { data, error } = await supabase
+    .from(TABLE_SALDO_CONTA_CORRENTE_MOVIMENTOS)
+    .select('*')
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(1);
+  if (error) {
+    if (isMissingTableError(error)) return { configurada: false, data: null };
+    throw error;
+  }
+  return { configurada: true, data: rowOrFirst(data) };
+}
+
+async function fetchSaldoContaCorrenteSnapshot() {
   const { data, error } = await supabase
     .from(TABLE_SALDO_CONTA_CORRENTE)
     .select('*')
@@ -86,41 +108,99 @@ async function fetchSaldoContaCorrente() {
   return { configurada: true, data: rowOrFirst(data) };
 }
 
-async function saveSaldoContaCorrentePayload(payload = {}) {
-  const signed = saldoContaCorrenteValueFromBody(payload);
-  if (signed === null) return { error: 'valor obrigatorio', status: 400 };
-  const rowPayload = {
-    id: 1,
-    valor: Math.abs(signed),
-    negativo: signed < 0,
-    updated_at: new Date().toISOString(),
-  };
-  const { data, error } = await supabase
-    .from(TABLE_SALDO_CONTA_CORRENTE)
-    .upsert(rowPayload, { onConflict: 'id' })
-    .select()
-    .single();
-  if (error) return { error: error.message, status: 500 };
-  return { data: serializeSaldoContaCorrenteRow(data) };
+async function fetchSaldoContaCorrente() {
+  const snapshot = await fetchSaldoContaCorrenteSnapshot();
+  if (snapshot.data) return snapshot;
+  const latestMovement = await fetchSaldoContaCorrenteMovimentoLatest();
+  if (latestMovement.data) return latestMovement;
+  return snapshot.configurada ? snapshot : latestMovement;
 }
 
-async function applySaldoContaCorrenteDelta(delta) {
-  const signedDelta = Math.round(Number(delta || 0) * 100) / 100;
-  if (!signedDelta) return { ok: true };
-  const current = await fetchSaldoContaCorrente();
-  if (!current.configurada) return { ok: true };
-  const currentValue = Number(current.data?.signed_valor || 0);
-  const nextSigned = Math.round((currentValue + signedDelta) * 100) / 100;
+async function persistSaldoContaCorrenteSnapshot(nextSigned) {
+  const timestamp = new Date().toISOString();
   const rowPayload = {
     id: 1,
     valor: Math.abs(nextSigned),
     negativo: nextSigned < 0,
-    updated_at: new Date().toISOString(),
+    updated_at: timestamp,
+    created_at: timestamp,
   };
   const { error } = await supabase
     .from(TABLE_SALDO_CONTA_CORRENTE)
     .upsert(rowPayload, { onConflict: 'id' });
   if (error) return { error: error.message, status: 500 };
+  return { ok: true };
+}
+
+async function appendSaldoContaCorrenteMovement({
+  currentRow = {},
+  nextSigned = 0,
+  tipoMovimento = 'manual',
+  origemTipo = null,
+  origemId = null,
+  descricao = null,
+} = {}) {
+  const movementPayload = buildSaldoContaCorrenteMovementRow({
+    currentRow,
+    nextSigned,
+    tipoMovimento,
+    origemTipo,
+    origemId,
+    descricao,
+  });
+  const { data, error } = await supabase
+    .from(TABLE_SALDO_CONTA_CORRENTE_MOVIMENTOS)
+    .insert(movementPayload)
+    .select()
+    .single();
+  if (error) {
+    if (isMissingTableError(error)) return { configurada: false, data: null };
+    return { error: error.message, status: 500 };
+  }
+  return { configurada: true, data: rowOrFirst(data) };
+}
+
+async function saveSaldoContaCorrentePayload(payload = {}) {
+  const signed = saldoContaCorrenteValueFromBody(payload);
+  if (signed === null) return { error: 'valor obrigatorio', status: 400 };
+  const current = await fetchSaldoContaCorrente();
+  const currentSigned = saldoContaCorrenteSignedValueFromRow(current.data || {});
+  const nextSigned = Math.round(signed * 100) / 100;
+  if (currentSigned === nextSigned && current.data) {
+    return { data: serializeSaldoContaCorrenteRow(current.data) };
+  }
+  const history = await appendSaldoContaCorrenteMovement({
+    currentRow: current.data || {},
+    nextSigned,
+    tipoMovimento: 'manual',
+    origemTipo: 'saldo_conta_corrente',
+    origemId: payload.id || 1,
+    descricao: 'Saldo manual atualizado',
+  });
+  if (history.error) return { error: history.error, status: history.status || 500 };
+  const snapshot = await persistSaldoContaCorrenteSnapshot(nextSigned);
+  if (snapshot.error) return { error: snapshot.error, status: snapshot.status || 500 };
+  return { data: serializeSaldoContaCorrenteRow(history.data || { ...current.data, ...payload, saldo_atual: nextSigned }) };
+}
+
+async function applySaldoContaCorrenteDelta(delta, meta = {}) {
+  const signedDelta = Math.round(Number(delta || 0) * 100) / 100;
+  if (!signedDelta) return { ok: true };
+  const current = await fetchSaldoContaCorrente();
+  if (!current.configurada && !current.data) return { ok: true };
+  const currentValue = saldoContaCorrenteSignedValueFromRow(current.data || {});
+  const nextSigned = Math.round((currentValue + signedDelta) * 100) / 100;
+  const history = await appendSaldoContaCorrenteMovement({
+    currentRow: current.data || {},
+    nextSigned,
+    tipoMovimento: meta.tipo_movimento || 'automatica',
+    origemTipo: meta.origem_tipo || null,
+    origemId: meta.origem_id || null,
+    descricao: meta.descricao || null,
+  });
+  if (history.error) return { error: history.error, status: history.status || 500 };
+  const snapshot = await persistSaldoContaCorrenteSnapshot(nextSigned);
+  if (snapshot.error) return { error: snapshot.error, status: snapshot.status || 500 };
   return { ok: true };
 }
 
@@ -372,7 +452,14 @@ export async function criarRegistroFinanceiro(req) {
         metodo_pagamento: insertedRow?.metodo_pagamento || payload.metodo_pagamento,
         valor: insertedRow?.valor ?? payload.valor,
       });
-      if (balanceDelta) await applySaldoContaCorrenteDelta(balanceDelta);
+      if (balanceDelta) {
+        await applySaldoContaCorrenteDelta(balanceDelta, {
+          tipo_movimento: 'insercao',
+          origem_tipo: parsed.tipo_registro,
+          origem_id: insertedRow?.id || null,
+          descricao: insertedRow?.descricao || payload.descricao || null,
+        });
+      }
     }
     return { status: 201, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
   }
@@ -404,7 +491,14 @@ export async function criarRegistroFinanceiro(req) {
       metodo_pagamento: row?.metodo_pagamento || payload.metodo_pagamento,
       valor: row?.valor ?? payload.valor,
     });
-    if (balanceDelta) await applySaldoContaCorrenteDelta(balanceDelta);
+    if (balanceDelta) {
+      await applySaldoContaCorrenteDelta(balanceDelta, {
+        tipo_movimento: 'insercao',
+        origem_tipo: parsed.tipo_registro,
+        origem_id: row?.id || null,
+        descricao: row?.descricao || payload.descricao || null,
+      });
+    }
   }
   return { status: 201, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
 }
@@ -456,7 +550,14 @@ export async function atualizarRegistroFinanceiro(req) {
       valor: row?.valor,
     });
     const balanceDelta = Math.round((nextDelta - previousDelta) * 100) / 100;
-    if (balanceDelta) await applySaldoContaCorrenteDelta(balanceDelta);
+    if (balanceDelta) {
+      await applySaldoContaCorrenteDelta(balanceDelta, {
+        tipo_movimento: 'atualizacao',
+        origem_tipo: parsed.tipo_registro,
+        origem_id: row?.id || parsed.id || null,
+        descricao: row?.descricao || previousRow?.descricao || null,
+      });
+    }
   }
   return { status: 200, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
 }
@@ -519,9 +620,9 @@ export async function removerRegistroFinanceiro(req) {
         ? TABLE_POUPANCA_METAS
       : TABLE_FINANCAS;
   let previousRow = null;
-  if (table === TABLE_FINANCAS) {
+  if (table === TABLE_FINANCAS || table === TABLE_DESPESAS_FIXAS) {
     const { data: prevData, error: prevErr } = await supabase
-      .from(TABLE_FINANCAS)
+      .from(table)
       .select('*')
       .eq('id', id)
       .limit(1);
@@ -538,7 +639,14 @@ export async function removerRegistroFinanceiro(req) {
       metodo_pagamento: previousRow.metodo_pagamento,
       valor: previousRow.valor,
     })) * 100) / 100;
-    if (balanceDelta) await applySaldoContaCorrenteDelta(balanceDelta);
+    if (balanceDelta) {
+      await applySaldoContaCorrenteDelta(balanceDelta, {
+        tipo_movimento: 'exclusao',
+        origem_tipo: tipoRegistro,
+        origem_id: id,
+        descricao: previousRow?.descricao || null,
+      });
+    }
   }
   return { status: 200, data: { ok: true } };
 }
