@@ -7713,7 +7713,7 @@
                 const parcelasCheckedInit = parcelaTotalInit > 0 && parcelaAtualInit > 0 && parcelaAtualInit <= parcelaTotalInit;
                 const overlay = document.createElement('div');
                 overlay.className = 'app-modal-overlay';
-                const initialDateTime = this.getFinanceiroDateTimeLocalValue(item?.created_at || item?.data_lancamento || this.getBrazilNowDateTime());
+                const initialDateTime = this.getFinanceiroDateTimeLocalValue(item?.created_at || item?.data_lancamento || null);
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
                         <h4>${item ? 'Editar registro financeiro' : 'Novo registro financeiro'}</h4>
@@ -7826,14 +7826,6 @@
                     if (v && /^\d{4}-\d{2}$/.test(v)) return v;
                     return mesAno;
                 };
-                const applyDateBoundsFromMes = (maStr) => {
-                    if (!dataEl || !maStr || !/^\d{4}-\d{2}$/.test(maStr)) return;
-                    const [aa, mm] = maStr.split('-').map(Number);
-                    const fd = `${aa}-${pad(mm)}-01T00:00`;
-                    const ld = `${aa}-${pad(mm)}-${pad(new Date(aa, mm, 0).getDate())}T23:59`;
-                    dataEl.setAttribute('min', fd);
-                    dataEl.setAttribute('max', ld);
-                };
                 const setTipoUI = (tipo) => {
                     if (tipo === 'despesa_fixa') {
                         if (descricaoWrap) descricaoWrap.style.display = '';
@@ -7841,7 +7833,6 @@
                         if (metodoWrap) metodoWrap.style.display = 'none';
                         catWrap.style.display = 'none';
                         dataWrap.style.display = '';
-                        applyDateBoundsFromMes(mesForBounds());
                         catEl.innerHTML = '<option value="">--</option>';
                         const mr = mesForBounds();
                         if (contextoEl) contextoEl.innerHTML = `A despesa fixa vale para o mês em <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
@@ -7852,10 +7843,6 @@
                         if (metodoWrap) metodoWrap.style.display = 'none';
                         if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'Poupança';
                         dataWrap.style.display = '';
-                        if (dataEl) {
-                            dataEl.removeAttribute('min');
-                            dataEl.removeAttribute('max');
-                        }
                         catWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
                         if (contextoEl) contextoEl.textContent = 'Registro de poupança (sem filtro mensal).';
@@ -7863,10 +7850,6 @@
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
                         dataWrap.style.display = '';
-                        if (dataEl) {
-                            dataEl.removeAttribute('min');
-                            dataEl.removeAttribute('max');
-                        }
                         catWrap.style.display = '';
                         const categories = tipo === 'receita' ? receitaCategorias : gastoCategorias;
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
@@ -7907,10 +7890,7 @@
                         return;
                     }
                     const dataDate = dataHoraRaw.slice(0, 10);
-                    if (tipoVal !== 'poupanca' && dataDate.slice(0, 7) !== mesAnoPayload) {
-                        alert('A data do lançamento precisa estar dentro do mês selecionado.');
-                        return;
-                    }
+                    mesAnoPayload = dataDate.slice(0, 7);
                     const payload = {
                         editId: item?.id || '',
                         tipo_registro: tipoVal,
