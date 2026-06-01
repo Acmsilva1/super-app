@@ -6806,16 +6806,14 @@
 
                 const stampFixa = (r) => String(r?.created_at || r?.data_lancamento || '');
                 
-                const despesasFixasPendentes = despesasFixas.filter(r => String(r.status || 'pendente').toLowerCase() !== 'pago');
-                const despesasFixasPagas = despesasFixas.filter(r => String(r.status || 'pendente').toLowerCase() === 'pago');
-                
                 const sortByValorDesc = (rows) => [...rows].sort((a, b) => {
-                    const diff = Number(b.valor || 0) - Number(a.valor || 0);
-                    if (diff !== 0) return diff;
-                    return stampFixa(b).localeCompare(stampFixa(a));
+                    const da = stampFixa(a);
+                    const db = stampFixa(b);
+                    if (da !== db) return db.localeCompare(da);
+                    return Number(b.valor || 0) - Number(a.valor || 0);
                 });
-                sortByValorDesc(despesasFixasPendentes);
-                sortByValorDesc(despesasFixasPagas);
+                const despesasFixasPendentes = sortByValorDesc(despesasFixas.filter(r => String(r.status || 'pendente').toLowerCase() !== 'pago'));
+                const despesasFixasPagas = sortByValorDesc(despesasFixas.filter(r => String(r.status || 'pendente').toLowerCase() === 'pago'));
 
                 const totalPendenteFixas = despesasFixasPendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                 const totalPagoFixas = despesasFixasPagas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
@@ -7715,8 +7713,7 @@
                 const parcelasCheckedInit = parcelaTotalInit > 0 && parcelaAtualInit > 0 && parcelaAtualInit <= parcelaTotalInit;
                 const overlay = document.createElement('div');
                 overlay.className = 'app-modal-overlay';
-                const todayIso = this.getBrazilDateIsoFrom(new Date());
-                const initialDate = item?.data_lancamento ? String(item.data_lancamento).slice(0, 10) : todayIso;
+                const initialDateTime = this.getFinanceiroDateTimeLocalValue(item?.created_at || item?.data_lancamento || this.getBrazilNowDateTime());
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
                         <h4>${item ? 'Editar registro financeiro' : 'Novo registro financeiro'}</h4>
@@ -7750,7 +7747,7 @@
                                 <div class="field" id="financeiro-parcela-atual-field" style="display:none;"><label>Parcela atual</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-atual" value="${parcelasCheckedInit ? String(parcelaAtualInit) : ''}" placeholder="Ex.: 1" /></div>
                                 <div class="field" id="financeiro-parcela-total-field" style="display:none;"><label>Total de parcelas</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-total" value="${parcelasCheckedInit ? String(parcelaTotalInit) : ''}" placeholder="Ex.: 12" /></div>
                                 <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
-                                <div class="field" id="financeiro-data-wrap"><label>Data do lançamento</label><input type="date" id="financeiro-modal-data" value="${escapeHtml(initialDate)}" /></div>
+                                <div class="field" id="financeiro-data-wrap"><label>Data e hora do lançamento</label><input type="datetime-local" id="financeiro-modal-data" value="${escapeHtml(initialDateTime)}" /></div>
                             </div>
                         </div>
                         <div class="app-modal-actions finance-modal-actions">
@@ -7819,8 +7816,8 @@
                 const applyDateBoundsFromMes = (maStr) => {
                     if (!dataEl || !maStr || !/^\d{4}-\d{2}$/.test(maStr)) return;
                     const [aa, mm] = maStr.split('-').map(Number);
-                    const fd = `${aa}-${pad(mm)}-01`;
-                    const ld = `${aa}-${pad(mm)}-${pad(new Date(aa, mm, 0).getDate())}`;
+                    const fd = `${aa}-${pad(mm)}-01T00:00`;
+                    const ld = `${aa}-${pad(mm)}-${pad(new Date(aa, mm, 0).getDate())}T23:59`;
                     dataEl.setAttribute('min', fd);
                     dataEl.setAttribute('max', ld);
                 };
@@ -7830,7 +7827,7 @@
                         if (mesRefWrap) mesRefWrap.style.display = '';
                         if (metodoWrap) metodoWrap.style.display = 'none';
                         catWrap.style.display = 'none';
-                        dataWrap.style.display = 'none';
+                        dataWrap.style.display = '';
                         applyDateBoundsFromMes(mesForBounds());
                         catEl.innerHTML = '<option value="">--</option>';
                         const mr = mesForBounds();
@@ -7884,15 +7881,22 @@
                             return;
                         }
                         mesAnoPayload = v;
-                    } else if (tipoVal === 'gasto_variado' || tipoVal === 'receita') {
-                        const dl = String(overlay.querySelector('#financeiro-modal-data')?.value || '').trim();
-                        if (!/^\d{4}-\d{2}-\d{2}$/.test(dl)) {
-                            alert('Informe a data do lançamento.');
-                            return;
-                        }
-                        mesAnoPayload = dl.slice(0, 7);
                     }
-                    const dataValRaw = String(overlay.querySelector('#financeiro-modal-data')?.value || '').trim();
+                    const dataHoraRaw = String(overlay.querySelector('#financeiro-modal-data')?.value || '').trim();
+                    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(dataHoraRaw)) {
+                        alert('Informe a data e hora do lançamento.');
+                        return;
+                    }
+                    const dataIso = this.getFinanceiroIsoFromDateTimeLocal(dataHoraRaw);
+                    if (!dataIso) {
+                        alert('Data e hora inválidas.');
+                        return;
+                    }
+                    const dataDate = dataHoraRaw.slice(0, 10);
+                    if (tipoVal !== 'poupanca' && dataDate.slice(0, 7) !== mesAnoPayload) {
+                        alert('A data do lançamento precisa estar dentro do mês selecionado.');
+                        return;
+                    }
                     const payload = {
                         editId: item?.id || '',
                         tipo_registro: tipoVal,
@@ -7900,9 +7904,8 @@
                         valor: Number(overlay.querySelector('#financeiro-modal-valor').value || 0),
                         metodo_pagamento: tipoVal === 'gasto_variado' ? String(metodoEl?.value || 'debito_pix') : null,
                         categoria: catEl.value || null,
-                        data_lancamento: (tipoVal === 'gasto_variado' || tipoVal === 'receita')
-                            ? dataValRaw
-                            : (dataValRaw || todayIso),
+                        data_lancamento: dataDate,
+                        created_at: dataIso,
                         mesAno: mesAnoPayload,
                         conta_fixa: false,
                         parcelas: false,
@@ -7951,12 +7954,13 @@
                         return false;
                     }
                 }
-                const requestBody = {
-                    tipo_registro: tipoRegistro,
-                    descricao: tipoRegistro === 'poupanca' ? (descricao || 'Poupança') : descricao,
-                    valor,
-                    mes_ano: mesAno,
-                };
+                    const requestBody = {
+                        tipo_registro: tipoRegistro,
+                        descricao: tipoRegistro === 'poupanca' ? (descricao || 'Poupança') : descricao,
+                        valor,
+                        mes_ano: mesAno,
+                        created_at: payload?.created_at || dataIso,
+                    };
                 if (tipoRegistro === 'despesa_fixa' && !editId) requestBody.status = 'pendente';
                 else if (tipoRegistro === 'poupanca') {
                     requestBody.data_lancamento = dataLanc;
@@ -8685,6 +8689,55 @@
                     date: `${map.year}-${map.month}-${map.day}`,
                     time: `${map.hour}:${map.minute}`
                 };
+            }
+            getFinanceiroDateTimeLocalValue(dateInput) {
+                if (!dateInput) {
+                    const now = this.getBrazilNowDateTime();
+                    return `${now.date}T${now.time}`;
+                }
+                const raw = String(dateInput).trim();
+                if (!raw) {
+                    const now = this.getBrazilNowDateTime();
+                    return `${now.date}T${now.time}`;
+                }
+                if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw)) {
+                    return raw.slice(0, 16);
+                }
+                if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                    return `${raw}T12:00`;
+                }
+                const date = new Date(raw);
+                if (Number.isNaN(date.getTime())) {
+                    const now = this.getBrazilNowDateTime();
+                    return `${now.date}T${now.time}`;
+                }
+                const fmt = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                });
+                const parts = fmt.formatToParts(date);
+                const map = {};
+                parts.forEach((p) => { map[p.type] = p.value; });
+                return `${map.year}-${map.month}-${map.day}T${map.hour}:${map.minute}`;
+            }
+            getFinanceiroIsoFromDateTimeLocal(value) {
+                const raw = String(value || '').trim();
+                const m = raw.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+                if (!m) return null;
+                const year = Number(m[1].slice(0, 4));
+                const month = Number(m[1].slice(5, 7));
+                const day = Number(m[1].slice(8, 10));
+                const hour = Number(m[2]);
+                const minute = Number(m[3]);
+                const second = Number(m[4] || 0);
+                const utc = new Date(Date.UTC(year, month - 1, day, hour + 3, minute, second, 0));
+                if (Number.isNaN(utc.getTime())) return null;
+                return utc.toISOString();
             }
             addDaysToIso(isoDate, amount) {
                 const m = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);

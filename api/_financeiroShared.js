@@ -151,7 +151,7 @@ function buildDespesaFixaInsertPayloads(basePayload, mesAno) {
     conta_fixa: slot.conta_fixa === true,
     parcela_atual: slot.parcela_atual,
     parcela_total: slot.parcela_total,
-    created_at: createdAtForMesAno(slot.mes_ano),
+    created_at: createdAtForMesAno(slot.mes_ano, basePayload.created_at || null),
   }));
 }
 

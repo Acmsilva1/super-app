@@ -185,7 +185,7 @@ export function calcularGraficos({ gastosRows, despesasFixasRows }) {
 }
 
 export function montarTabelaFinanceiroRows(rows, tipoRegistro) {
-  return sortByValorDesc(rows).map((r) => ({
+  return sortCronologiaDesc(rows).map((r) => ({
     ...r,
     tipo_registro: tipoRegistro,
   }));
@@ -230,6 +230,7 @@ export function payloadInsertFinanceiro(body = {}) {
         parcela_atual: par.parcela_atual,
         parcela_total: par.parcela_total,
         conta_fixa: exclusividade.contaFixa,
+        ...(body.created_at !== undefined ? { created_at: String(body.created_at || '').trim() || null } : {}),
       },
     };
   }
@@ -243,6 +244,7 @@ export function payloadInsertFinanceiro(body = {}) {
       tipo,
       categoria: body.categoria || null,
       data_lancamento: body.data_lancamento || getBrazilTodayIso(),
+      ...(body.created_at !== undefined ? { created_at: String(body.created_at || '').trim() || null } : {}),
     };
     if (tipoRegistro === TIPO_REGISTRO_GASTO_VARIADO) {
       payload.metodo_pagamento = String(body.metodo_pagamento || 'debito_pix').trim() || 'debito_pix';
@@ -260,6 +262,7 @@ export function payloadInsertFinanceiro(body = {}) {
         descricao: String(body.descricao || 'Poupança').trim() || 'Poupança',
         valor: Math.round((Number(body.valor) || 0) * 100) / 100,
         data_lancamento: body.data_lancamento || getBrazilTodayIso(),
+        ...(body.created_at !== undefined ? { created_at: String(body.created_at || '').trim() || null } : {}),
       },
     };
   }
@@ -315,7 +318,9 @@ export function payloadUpdateFinanceiro(body = {}) {
       const ma = String(body.mes_ano || '').trim();
       if (ma && /^\d{4}-\d{2}$/.test(ma)) {
         const { ano, mes } = parseMesAno(ma);
-        out.created_at = new Date(ano, mes - 1, 1, 12, 0, 0, 0).toISOString();
+        out.created_at = body.created_at !== undefined
+          ? String(body.created_at || '').trim() || null
+          : new Date(ano, mes - 1, 1, 12, 0, 0, 0).toISOString();
       }
     }
     if (body.parcelas !== undefined) {
@@ -333,6 +338,9 @@ export function payloadUpdateFinanceiro(body = {}) {
     if (body.conta_fixa !== undefined) {
       out.conta_fixa = exclusividade.contaFixa;
     }
+    if (body.created_at !== undefined && out.created_at === undefined) {
+      out.created_at = String(body.created_at || '').trim() || null;
+    }
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }
@@ -343,6 +351,7 @@ export function payloadUpdateFinanceiro(body = {}) {
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
     if (body.categoria !== undefined) out.categoria = body.categoria || null;
     if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
+    if (body.created_at !== undefined) out.created_at = String(body.created_at || '').trim() || null;
     out.tipo = tipoRegistro === TIPO_REGISTRO_RECEITA ? 'receita' : 'despesa';
     if (tipoRegistro === TIPO_REGISTRO_GASTO_VARIADO && body.metodo_pagamento !== undefined) {
       out.metodo_pagamento = String(body.metodo_pagamento || 'debito_pix').trim() || 'debito_pix';
@@ -356,6 +365,7 @@ export function payloadUpdateFinanceiro(body = {}) {
     if (body.descricao !== undefined) out.descricao = String(body.descricao || 'Poupança').trim() || 'Poupança';
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
     if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
+    if (body.created_at !== undefined) out.created_at = String(body.created_at || '').trim() || null;
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }
@@ -373,6 +383,7 @@ export function payloadUpdateFinanceiro(body = {}) {
     }
     if (body.data_inicio !== undefined) out.data_inicio = body.data_inicio || null;
     if (body.ativa !== undefined) out.ativa = Boolean(body.ativa);
+    if (body.created_at !== undefined) out.created_at = String(body.created_at || '').trim() || null;
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }

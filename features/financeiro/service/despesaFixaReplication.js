@@ -17,6 +17,33 @@ function mesAnoFromMonthIndex(idx) {
   return `${ano}-${String(mes).padStart(2, '0')}`;
 }
 
+function extractBrazilDateTimeParts(dateLike) {
+  if (!dateLike) return null;
+  const d = new Date(dateLike);
+  if (Number.isNaN(d.getTime())) return null;
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(d);
+  const map = {};
+  parts.forEach((p) => { map[p.type] = p.value; });
+  return {
+    year: Number(map.year),
+    month: Number(map.month),
+    day: Number(map.day),
+    hour: Number(map.hour),
+    minute: Number(map.minute),
+    second: Number(map.second),
+  };
+}
+
 /**
  * Gera os meses em que um lançamento deve existir a partir do mês de criação.
  * - conta fixa: do mês informado até dezembro do mesmo ano
@@ -73,7 +100,7 @@ export function buildReplicationSlotsFromStart(mesAno, options = {}) {
  * @param {Array<Record<string, unknown>>} rows
  */
 export function seriesDefinitionsFromYearRows(rows = []) {
-  /** @type {Map<string, { type: 'conta_fixa'|'parcelas', descricao: string, valor: number, startMesAno: string, parcelaAtual?: number, parcelaTotal?: number }>} */
+  /** @type {Map<string, { type: 'conta_fixa'|'parcelas', descricao: string, valor: number, startMesAno: string, startCreatedAt?: string, parcelaAtual?: number, parcelaTotal?: number }>} */
   const series = new Map();
 
   for (const row of rows) {
@@ -93,7 +120,7 @@ export function seriesDefinitionsFromYearRows(rows = []) {
       const key = `cf:${descNorm}`;
       const existing = series.get(key);
       if (!existing || startMesAno < existing.startMesAno) {
-        series.set(key, { type: 'conta_fixa', descricao, valor, startMesAno });
+        series.set(key, { type: 'conta_fixa', descricao, valor, startMesAno, startCreatedAt: String(row?.created_at || '') });
       }
       continue;
     }
@@ -111,6 +138,7 @@ export function seriesDefinitionsFromYearRows(rows = []) {
           descricao,
           valor,
           startMesAno,
+          startCreatedAt: String(row?.created_at || ''),
           parcelaAtual: pa,
           parcelaTotal: pt,
         });
@@ -151,8 +179,22 @@ export function rowMatchesReplicationSlot(row, slot, descricao) {
   return true;
 }
 
-export function createdAtForMesAno(mesAno) {
+export function createdAtForMesAno(mesAno, templateCreatedAt = null) {
   const { ano, mes } = parseMesAno(mesAno);
+  const template = extractBrazilDateTimeParts(templateCreatedAt);
+  if (template) {
+    const maxDay = new Date(ano, mes, 0).getDate();
+    const day = Math.min(template.day || 1, maxDay);
+    return new Date(Date.UTC(
+      ano,
+      mes - 1,
+      day,
+      (template.hour || 0) + 3,
+      template.minute || 0,
+      template.second || 0,
+      0,
+    )).toISOString();
+  }
   return new Date(ano, mes - 1, 1, 12, 0, 0, 0).toISOString();
 }
 
@@ -164,6 +206,6 @@ export function buildInsertPayloadFromSlot(series, slot, status = 'pendente') {
     conta_fixa: slot.conta_fixa === true,
     parcela_atual: slot.parcela_atual,
     parcela_total: slot.parcela_total,
-    created_at: createdAtForMesAno(slot.mes_ano),
+    created_at: createdAtForMesAno(slot.mes_ano, series.startCreatedAt || null),
   };
 }

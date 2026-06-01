@@ -10,7 +10,7 @@ import {
   payloadUpdateFinanceiro,
   saldoContaCorrenteDeltaFromRow,
   saldoContaCorrenteValueFromBody,
-  sortByValorDesc,
+  sortCronologiaDesc,
 } from '../../features/financeiro/service/financeiroService.js';
 
 describe('financeiroService', () => {
@@ -29,18 +29,18 @@ describe('financeiroService', () => {
     expect(gastosVariados).toHaveLength(1);
   });
 
-  it('ordena tabelas do maior para o menor valor', () => {
-    const sorted = sortByValorDesc([
-      { valor: 10, descricao: 'A' },
-      { valor: 50, descricao: 'B' },
-      { valor: 25, descricao: 'C' },
+  it('ordena tabelas em ordem cronologica', () => {
+    const sorted = sortCronologiaDesc([
+      { valor: 10, descricao: 'A', created_at: '2026-05-01T09:00:00.000Z' },
+      { valor: 50, descricao: 'B', created_at: '2026-05-03T09:00:00.000Z' },
+      { valor: 25, descricao: 'C', created_at: '2026-05-02T09:00:00.000Z' },
     ]);
-    expect(sorted.map((r) => r.valor)).toEqual([50, 25, 10]);
+    expect(sorted.map((r) => r.descricao)).toEqual(['B', 'C', 'A']);
     const tabela = montarTabelaFinanceiroRows([
-      { valor: 15, descricao: 'X' },
-      { valor: 80, descricao: 'Y' },
+      { valor: 15, descricao: 'X', created_at: '2026-05-02T10:00:00.000Z' },
+      { valor: 80, descricao: 'Y', created_at: '2026-05-03T10:00:00.000Z' },
     ], 'receita');
-    expect(tabela.map((r) => r.valor)).toEqual([80, 15]);
+    expect(tabela.map((r) => r.descricao)).toEqual(['Y', 'X']);
   });
 
   it('calcula dashboard consolidado', () => {
@@ -108,17 +108,21 @@ describe('financeiroService', () => {
       descricao: 'Internet',
       valor: 99.90,
       conta_fixa: true,
+      created_at: '2026-05-28T14:30:00.000Z',
     });
     expect(ins.error).toBeUndefined();
     expect(ins.payload.conta_fixa).toBe(true);
+    expect(ins.payload.created_at).toBe('2026-05-28T14:30:00.000Z');
 
     const upd = payloadUpdateFinanceiro({
       id: 'y',
       tipo_registro: 'despesa_fixa',
       conta_fixa: false,
+      created_at: '2026-05-29T08:15:00.000Z',
     });
     expect(upd.error).toBeUndefined();
     expect(upd.payload.conta_fixa).toBe(false);
+    expect(upd.payload.created_at).toBe('2026-05-29T08:15:00.000Z');
   });
 
   it('grava metodo_pagamento em gasto variavel no insert e no update', () => {
