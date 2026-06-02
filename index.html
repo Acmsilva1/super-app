@@ -3441,9 +3441,11 @@
             .window-content[data-active-tab="data"][data-active-data-filter="despesas_fixas"] .finance-despesas-col .finance-table-scroll {
                 flex: 1 1 auto;
                 min-height: 0;
-                max-height: min(92dvh, calc((20 * 2.15rem) + 2.5rem));
+                max-height: calc(100dvh - 1rem);
                 overflow-y: auto;
                 overscroll-behavior: contain;
+                padding-bottom: 1.25rem;
+                scroll-padding-bottom: 1.25rem;
             }
             .window-content[data-active-tab="data"][data-active-data-filter="gastos_variados"] .finance-table-scroll,
             .window-content[data-active-tab="data"][data-active-data-filter="receitas"] .finance-table-scroll {
