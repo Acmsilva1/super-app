@@ -3429,9 +3429,10 @@
             .window-content[data-active-tab="data"][data-active-data-filter="despesas_fixas"] .finance-despesas-fixas-grid {
                 flex: 1 1 auto;
                 min-height: 0;
-                overflow-y: auto;
+                overflow-y: visible;
                 -webkit-overflow-scrolling: touch;
-                overscroll-behavior: contain;
+                overscroll-behavior: auto;
+                padding-bottom: 0.75rem;
             }
             .window-content[data-active-tab="data"][data-active-data-filter="gastos_variados"] .finance-table-scroll,
             .window-content[data-active-tab="data"][data-active-data-filter="receitas"] .finance-table-scroll {
