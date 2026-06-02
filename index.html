@@ -3429,19 +3429,20 @@
             .window-content[data-active-tab="data"][data-active-data-filter="despesas_fixas"] .finance-despesas-fixas-grid {
                 flex: 1 1 auto;
                 min-height: 0;
-                overflow-y: visible;
+                overflow: visible;
                 -webkit-overflow-scrolling: touch;
-                overscroll-behavior: auto;
                 padding-bottom: 0.75rem;
             }
-            .window-content[data-active-tab="data"][data-active-data-filter="despesas_fixas"] .module-tab-panel[data-tab-panel="data"] .finance-data-section:not(.hidden-by-filter) {
-                overflow: visible;
-            }
             .window-content[data-active-tab="data"][data-active-data-filter="despesas_fixas"] .finance-despesas-col {
+                flex: 1 1 auto;
                 min-height: 0;
+                overflow: hidden;
             }
             .window-content[data-active-tab="data"][data-active-data-filter="despesas_fixas"] .finance-despesas-col .finance-table-scroll {
+                flex: 1 1 auto;
+                min-height: 0;
                 max-height: none;
+                overflow-y: auto;
             }
             .window-content[data-active-tab="data"][data-active-data-filter="gastos_variados"] .finance-table-scroll,
             .window-content[data-active-tab="data"][data-active-data-filter="receitas"] .finance-table-scroll {
