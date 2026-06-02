@@ -3436,13 +3436,14 @@
             .window-content[data-active-tab="data"][data-active-data-filter="despesas_fixas"] .finance-despesas-col {
                 flex: 1 1 auto;
                 min-height: 0;
-                overflow: hidden;
+                overflow: visible;
             }
             .window-content[data-active-tab="data"][data-active-data-filter="despesas_fixas"] .finance-despesas-col .finance-table-scroll {
                 flex: 1 1 auto;
                 min-height: 0;
-                max-height: none;
+                max-height: min(78dvh, calc((14 * 2.35rem) + 2rem));
                 overflow-y: auto;
+                overscroll-behavior: contain;
             }
             .window-content[data-active-tab="data"][data-active-data-filter="gastos_variados"] .finance-table-scroll,
             .window-content[data-active-tab="data"][data-active-data-filter="receitas"] .finance-table-scroll {
