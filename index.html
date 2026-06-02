@@ -2897,7 +2897,7 @@
             min-height: 0;
             width: 100%;
             max-width: 100%;
-            max-height: calc((10 * 2.45rem) + 2.3rem);
+            max-height: min(72dvh, calc((13 * 2.45rem) + 2.3rem));
             overflow-x: auto;
             overflow-y: auto;
             scrollbar-gutter: stable;
@@ -5456,6 +5456,9 @@
                 min-width: 640px;
                 width: max-content;
                 table-layout: auto;
+            }
+            .finance-table-scroll {
+                max-height: min(78dvh, calc((14 * 2.35rem) + 2rem));
             }
             .finance-table-scroll .module-table th,
             .finance-table-scroll .module-table td {
