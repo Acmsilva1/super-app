@@ -5452,6 +5452,76 @@
             border: 1px solid rgba(89, 132, 194, 0.22);
             background: rgba(8, 17, 33, 0.35);
         }
+        .finance-despesas-fixas-mobile-actions {
+            display: none;
+            gap: 0.65rem;
+            margin: 0.25rem 0 0.85rem;
+        }
+        .finance-despesas-fixas-mobile-actions .finance-fixas-mobile-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.15rem;
+            padding: 0.8rem 0.9rem;
+            border-radius: 0.85rem;
+            border: 1px solid rgba(89, 132, 194, 0.24);
+            background: linear-gradient(145deg, rgba(12, 24, 46, 0.92), rgba(8, 17, 33, 0.92));
+            color: #e2e8f0;
+            text-align: left;
+            cursor: pointer;
+            box-shadow: 0 10px 24px rgba(2, 8, 23, 0.18);
+        }
+        .finance-despesas-fixas-mobile-actions .finance-fixas-mobile-btn strong {
+            font-size: 0.98rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .finance-despesas-fixas-mobile-actions .finance-fixas-mobile-btn span {
+            font-size: 0.74rem;
+            color: #93c5fd;
+            font-weight: 700;
+        }
+        .finance-fixas-list-modal {
+            width: min(760px, calc(100vw - 1rem));
+            max-height: min(88vh, 760px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding-bottom: 0.85rem;
+        }
+        .finance-fixas-list-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-bottom: 0.85rem;
+        }
+        .finance-fixas-list-head h4 {
+            margin: 0;
+        }
+        .finance-fixas-list-meta {
+            margin: 0.2rem 0 0;
+            font-size: 0.8rem;
+            color: #9fb5d8;
+        }
+        .finance-fixas-list-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: auto;
+            border: 1px solid rgba(89, 132, 194, 0.22);
+            border-radius: 0.7rem;
+            background: rgba(8, 17, 33, 0.35);
+        }
+        .finance-fixas-list-scroll .module-table {
+            width: 100%;
+            min-width: 640px;
+            table-layout: auto;
+        }
+        .finance-fixas-list-scroll .module-table th,
+        .finance-fixas-list-scroll .module-table td {
+            white-space: nowrap;
+        }
         @media (max-width: 900px) {
             .finance-despesas-col {
                 flex: 1 1 100%;
@@ -5465,6 +5535,13 @@
             }
             .finance-data-section-head {
                 flex-wrap: wrap;
+            }
+            .finance-despesas-fixas-mobile-actions {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .finance-despesas-fixas-grid {
+                display: none;
             }
             .finance-table-scroll .module-table {
                 min-width: 640px;
@@ -7232,6 +7309,16 @@
                                     <p class="finance-import-fixas-callout__text">Este mês ainda não tem despesas fixas. Contas fixas e parcelas já lançadas no ano são replicadas automaticamente — toque abaixo para preencher agora.</p>
                                     <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-import-fixas-prev-month">Preencher mês automaticamente</button>
                                 </div>` : ''}
+                                <div class="finance-despesas-fixas-mobile-actions">
+                                    <button type="button" class="finance-fixas-mobile-btn" data-action="financeiro-open-fixas-modal" data-target="pendentes">
+                                        <strong>Pendentes</strong>
+                                        <span>${despesasFixasPendentes.length} item(ns) • ${this.formatMoneyBr(totalPendenteFixas)}</span>
+                                    </button>
+                                    <button type="button" class="finance-fixas-mobile-btn" data-action="financeiro-open-fixas-modal" data-target="pagas">
+                                        <strong>Pagas</strong>
+                                        <span>${despesasFixasPagas.length} item(ns) • ${this.formatMoneyBr(totalPagoFixas)}</span>
+                                    </button>
+                                </div>
                                 <div class="finance-despesas-fixas-grid">
                                     <details class="finance-despesas-col" ${detailsAttr}>
                                         <summary class="finance-despesas-col-header" style="color: #ef4444;">
@@ -7754,6 +7841,18 @@
                 if (categoriaFixasSelect) {
                     categoriaFixasSelect.onchange = () => applyFixasCategoriaFilter(categoriaFixasSelect.value);
                 }
+                el.querySelectorAll('[data-action="financeiro-open-fixas-modal"]').forEach((btn) => {
+                    btn.onclick = () => {
+                        const target = String(btn.dataset.target || 'pendentes');
+                        const isPaid = target === 'pagas';
+                        this.openFinanceiroFixasListModal(el, {
+                            status: isPaid ? 'pago' : 'pendente',
+                            rows: isPaid ? despesasFixasPagas : despesasFixasPendentes,
+                            total: isPaid ? totalPagoFixas : totalPendenteFixas,
+                            itemMap,
+                        });
+                    };
+                });
 
                 const categoriaSelect = el.querySelector('#financeiro-filter-categoria-gastos');
                 if (categoriaSelect) {
@@ -8023,6 +8122,61 @@
                     };
                 };
 
+                document.body.appendChild(overlay);
+            }
+
+            openFinanceiroFixasListModal(el, { status = 'pendente', rows = [], total = 0, itemMap = new Map() } = {}) {
+                const isPaid = String(status || '').toLowerCase() === 'pago';
+                const title = isPaid ? 'Despesas fixas pagas' : 'Despesas fixas pendentes';
+                const emptyMessage = isPaid ? 'Nenhuma despesa fixa paga neste mês.' : 'Nenhuma despesa fixa pendente neste mês.';
+                const overlay = document.createElement('div');
+                overlay.className = 'app-modal-overlay';
+                overlay.innerHTML = `
+                    <div class="app-modal finance-fixas-list-modal" role="dialog" aria-modal="true" aria-labelledby="finance-fixas-list-title">
+                        <div class="finance-fixas-list-head">
+                            <div>
+                                <h4 id="finance-fixas-list-title">${title}</h4>
+                                <p class="finance-fixas-list-meta">${rows.length} item(ns) • Total ${this.formatMoneyBr(total)}</p>
+                            </div>
+                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-close">Fechar</button>
+                        </div>
+                        <div class="finance-fixas-list-scroll">
+                            <table class="module-table">
+                                <thead>
+                                    <tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${rows.length ? rows.map(mkRowFixa).join('') : `<tr><td colspan="5" class="module-table-empty">${emptyMessage}</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                const close = () => overlay.remove();
+                overlay.querySelector('[data-action="modal-close"]').onclick = close;
+                overlay.onclick = (e) => { if (e.target === overlay) close(); };
+                overlay.querySelectorAll('[data-action="financeiro-edit"]').forEach((btn) => {
+                    btn.onclick = async () => {
+                        const item = itemMap.get(`despesa_fixa:${btn.dataset.id}`);
+                        close();
+                        this.openFinanceiroModal(el, { item, defaultTipo: 'despesa_fixa' });
+                    };
+                });
+                overlay.querySelectorAll('[data-action="financeiro-delete"]').forEach((btn) => {
+                    btn.onclick = async () => {
+                        const itemId = btn.dataset.id;
+                        close();
+                        await this.submitFinanceiroDelete(itemId, 'despesa_fixa', el);
+                    };
+                });
+                overlay.querySelectorAll('[data-action="financeiro-toggle-status"]').forEach((btn) => {
+                    btn.onclick = async () => {
+                        const itemId = btn.dataset.id;
+                        const current = btn.dataset.statusAtual || 'pendente';
+                        close();
+                        await this.submitFinanceiroToggleStatus(itemId, current, el);
+                    };
+                });
                 document.body.appendChild(overlay);
             }
 
