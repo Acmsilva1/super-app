@@ -7848,6 +7848,7 @@
                         this.openFinanceiroFixasListModal(el, {
                             status: isPaid ? 'pago' : 'pendente',
                             rows: isPaid ? despesasFixasPagas : despesasFixasPendentes,
+                            rowsHtml: isPaid ? rowsFixasPagasHtml : rowsFixasPendentesHtml,
                             total: isPaid ? totalPagoFixas : totalPendenteFixas,
                             itemMap,
                         });
@@ -8125,7 +8126,7 @@
                 document.body.appendChild(overlay);
             }
 
-            openFinanceiroFixasListModal(el, { status = 'pendente', rows = [], total = 0, itemMap = new Map() } = {}) {
+            openFinanceiroFixasListModal(el, { status = 'pendente', rows = [], rowsHtml = '', total = 0, itemMap = new Map() } = {}) {
                 const isPaid = String(status || '').toLowerCase() === 'pago';
                 const title = isPaid ? 'Despesas fixas pagas' : 'Despesas fixas pendentes';
                 const emptyMessage = isPaid ? 'Nenhuma despesa fixa paga neste mês.' : 'Nenhuma despesa fixa pendente neste mês.';
@@ -8146,7 +8147,7 @@
                                     <tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr>
                                 </thead>
                                 <tbody>
-                                    ${rows.length ? rows.map(mkRowFixa).join('') : `<tr><td colspan="5" class="module-table-empty">${emptyMessage}</td></tr>`}
+                                    ${rowsHtml || `<tr><td colspan="5" class="module-table-empty">${emptyMessage}</td></tr>`}
                                 </tbody>
                             </table>
                         </div>
