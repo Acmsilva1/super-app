@@ -2906,6 +2906,31 @@
             touch-action: pan-x pan-y;
             border-radius: 0 0 0.75rem 0.75rem;
         }
+        .finance-table-scroll .module-table {
+            width: 100%;
+            min-width: 760px;
+            table-layout: auto;
+        }
+        .finance-table-scroll .module-table th,
+        .finance-table-scroll .module-table td {
+            white-space: nowrap;
+        }
+        .finance-table-scroll .module-table .col-desc {
+            width: 42%;
+            white-space: normal;
+        }
+        .finance-table-scroll .module-table .col-status {
+            width: 15%;
+        }
+        .finance-table-scroll .module-table .col-valor {
+            width: 14%;
+        }
+        .finance-table-scroll .module-table .col-categoria {
+            width: 15%;
+        }
+        .finance-table-scroll .module-table .col-actions {
+            width: 14%;
+        }
         .finance-data-section-head {
             position: relative;
             z-index: 1;
@@ -5413,10 +5438,6 @@
             border: 1px solid rgba(89, 132, 194, 0.22);
             background: rgba(8, 17, 33, 0.35);
         }
-        .finance-despesas-col .module-table,
-        .finance-table-scroll .module-table {
-            min-width: 100%;
-        }
         @media (max-width: 900px) {
             .finance-despesas-col {
                 flex: 1 1 100%;
@@ -5432,17 +5453,17 @@
                 flex-wrap: wrap;
             }
             .finance-table-scroll .module-table {
-                min-width: 0;
-                width: 100%;
-                table-layout: fixed;
+                min-width: 760px;
+                width: max-content;
+                table-layout: auto;
             }
             .finance-table-scroll .module-table th,
             .finance-table-scroll .module-table td {
-                overflow: hidden;
-                text-overflow: ellipsis;
+                overflow: visible;
+                text-overflow: clip;
             }
             .finance-table-scroll .module-table .col-actions {
-                white-space: normal;
+                white-space: nowrap;
             }
             .finance-table-scroll .module-table .col-actions .app-list-actions {
                 flex-direction: column;
@@ -5454,7 +5475,7 @@
                 text-align: center;
             }
             .finance-table-scroll .finance-desc-text {
-                max-width: 100%;
+                max-width: none;
             }
         }
         .finance-desc-text {
@@ -5464,13 +5485,14 @@
             user-select: none;
             -webkit-user-select: none;
             -webkit-touch-callout: none;
+            font-size: 0.96rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
         }
         @media (max-width: 768px) {
             .finance-desc-text {
-                max-width: 38vw;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                max-width: none;
             }
         }
 
@@ -7029,13 +7051,13 @@
                         : '';
                     const dateSub = `${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` às ${escapeHtml(hora)}` : ''}`;
                     return `<tr>
-                        <td>
+                        <td class="col-desc">
                             <strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong>${parcelaHtml}
                             <div style="font-size:0.72rem;color:#9ca3af;margin-top:0.15rem;">${dateSub}</div>
                         </td>
-                        <td>${escapeHtml(fixaCategoriaLabel(categoriaKey))}</td>
-                        <td><button type="button" class="finance-status-toggle ${badgeClass}" data-action="financeiro-toggle-status" data-id="${r.id}" data-status-atual="${statusRaw}" title="Clique para alternar status">${statusLabel}</button></td>
-                        <td style="color:${statusRaw === 'pago' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
+                        <td class="col-status"><button type="button" class="finance-status-toggle ${badgeClass}" data-action="financeiro-toggle-status" data-id="${r.id}" data-status-atual="${statusRaw}" title="Clique para alternar status">${statusLabel}</button></td>
+                        <td class="col-valor" style="color:${statusRaw === 'pago' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
+                        <td class="col-categoria">${escapeHtml(fixaCategoriaLabel(categoriaKey))}</td>
                         <td class="col-actions">
                             <div class="app-list-actions">
                                 <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="despesa_fixa">Editar</button>
@@ -7047,10 +7069,10 @@
                 const mkRowFin = (r) => {
                     const hora = fmtHoraBrasilia(r.created_at);
                     return `<tr>
-                        <td><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong></td>
-                        <td>${escapeHtml(r.categoria || '--')}</td>
-                        <td style="color:${String(r.tipo_registro) === 'receita' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
-                        <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
+                        <td class="col-desc"><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong><div style="font-size:0.72rem;color:#9ca3af;margin-top:0.15rem;">${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` às ${escapeHtml(hora)}` : ''}</div></td>
+                        <td class="col-status"><span class="finance-status-toggle ${String(r.tipo_registro) === 'receita' ? 'is-paid' : 'is-pending'}" aria-label="${String(r.tipo_registro) === 'receita' ? 'Receita' : 'Despesa'}">${String(r.tipo_registro) === 'receita' ? 'Receita' : 'Despesa'}</span></td>
+                        <td class="col-valor" style="color:${String(r.tipo_registro) === 'receita' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
+                        <td class="col-categoria">${escapeHtml(r.categoria || '--')}</td>
                         <td class="col-actions">
                             <div class="app-list-actions">
                                 <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="${escapeHtml(r.tipo_registro || 'gasto_variado')}">Editar</button>
@@ -7201,7 +7223,7 @@
                                         </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
-                                                <thead><tr><th>Descrição</th><th>Categoria</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
+                                                <thead><tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr></thead>
                                                 <tbody id="financeiro-table-fixas-pendentes">${rowsFixasPendentesHtml}</tbody>
                                             </table>
                                         </div>
@@ -7213,7 +7235,7 @@
                                         </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
-                                                <thead><tr><th>Descrição</th><th>Categoria</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
+                                                <thead><tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr></thead>
                                                 <tbody id="financeiro-table-fixas-pagas">${rowsFixasPagasHtml}</tbody>
                                             </table>
                                         </div>
@@ -7235,7 +7257,7 @@
                                 </div>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                                        <thead><tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr></thead>
                                         <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
                                     </table>
                                 </div>
@@ -7249,7 +7271,7 @@
                                 </div>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                                        <thead><tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr></thead>
                                         <tbody id="financeiro-table-receitas">${rowsReceitasHtml}</tbody>
                                     </table>
                                 </div>
