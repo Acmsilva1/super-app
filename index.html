@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -5818,39 +5818,6 @@
                 }
             }
 
-            normalizeFinanceiroSaldoValue(value) {
-                if (value === null || value === undefined) return null;
-                const raw = String(value).trim().replace(/\s+/g, '');
-                if (!raw) return null;
-                const sanitized = raw.replace(/[^\d,.-]/g, '');
-                if (!sanitized || sanitized === '-' || sanitized === ',' || sanitized === '.') return null;
-                const lastComma = sanitized.lastIndexOf(',');
-                const lastDot = sanitized.lastIndexOf('.');
-                let normalized = sanitized;
-                if (lastComma !== -1 && lastDot !== -1) {
-                    normalized = lastComma > lastDot
-                        ? sanitized.replace(/\./g, '').replace(',', '.')
-                        : sanitized.replace(/,/g, '');
-                } else if (lastComma !== -1) {
-                    normalized = sanitized.replace(/\./g, '').replace(',', '.');
-                } else {
-                    normalized = sanitized.replace(/,/g, '');
-                }
-                const parsed = Number(normalized);
-                if (!Number.isFinite(parsed)) return null;
-                return Math.round(parsed * 100) / 100;
-            }
-
-            saldoContaCorrenteSignedValue(record = null) {
-                if (!record || record.definido === false) return null;
-                const signedValue = Number(record?.signed_valor);
-                if (Number.isFinite(signedValue)) return Math.round(signedValue * 100) / 100;
-                const rawValue = Number(record?.valor);
-                if (!Number.isFinite(rawValue)) return null;
-                const isNegative = record?.negativo === true || record?.negativo === 'true';
-                return Math.round((isNegative ? -Math.abs(rawValue) : Math.abs(rawValue)) * 100) / 100;
-            }
-
             setupEventListeners() {
                 const navApps = document.getElementById('navApps');
                 if (navApps) {
@@ -7086,14 +7053,6 @@
                 const poupancaConfigurada = data.poupanca ? data.poupanca.configurada !== false : true;
                 const poupancaMetaConfigurada = data.poupanca ? data.poupanca.meta_configurada !== false : true;
                 const poupancaMetaAtiva = (data.poupanca && data.poupanca.meta_ativa) || null;
-                const saldoContaCorrenteRaw = data.saldo_conta_corrente || null;
-                const saldoContaCorrenteValor = this.saldoContaCorrenteSignedValue(saldoContaCorrenteRaw);
-                const saldoContaCorrenteTemValor = Number.isFinite(saldoContaCorrenteValor);
-                const saldoContaCorrenteClass = saldoContaCorrenteTemValor
-                    ? (saldoContaCorrenteValor < 0 ? 'is-negative' : 'is-positive')
-                    : 'is-empty';
-                const saldoContaCorrenteAtualizadoEm = String(saldoContaCorrenteRaw?.updated_at || '').slice(0, 10);
-                el._financeiroSaldoContaCorrente = saldoContaCorrenteRaw;
                 const pagosPendentes = graficos.pagos_pendentes || {};
                 const categoriasGastos = graficos.categorias_gastos || [];
 
@@ -7233,17 +7192,6 @@
                 el.innerHTML = `
                     <div class="finance-module-shell">
                         <div class="finance-sticky-head">
-                            <div class="finance-balance-strip">
-                                <button type="button" class="finance-balance-card ${saldoContaCorrenteClass}" data-action="financeiro-saldo-open" aria-label="Editar saldo de conta corrente">
-                                    <span class="finance-balance-card__tag">Saldo</span>
-                                    <strong class="finance-balance-card__value">${saldoContaCorrenteRaw?.definido === false || !saldoContaCorrenteTemValor ? 'Definir' : this.formatMoneyBr(saldoContaCorrenteValor)}</strong>
-                                    <span class="finance-balance-card__meta">
-                                        ${saldoContaCorrenteRaw?.definido === false || !saldoContaCorrenteTemValor
-                                            ? 'Clique para editar'
-                                            : `${saldoContaCorrenteValor < 0 ? 'Negativo' : 'Positivo'}${saldoContaCorrenteAtualizadoEm ? ` · ${escapeHtml(this.formatDateBr(saldoContaCorrenteAtualizadoEm))}` : ''}`}
-                                    </span>
-                                </button>
-                            </div>
                             <div class="app-mes-ano">
                                 <label>Mês/Ano</label>
                                 <select id="financeiro-mes">${meses.map((m, i) => `<option value="${i + 1}" ${(i + 1 === mes) ? 'selected' : ''}>${m}</option>`).join('')}</select>
@@ -7876,10 +7824,6 @@
                     const defaultTipo = currentTab === 'poupanca' ? 'poupanca' : 'gasto_variado';
                     this.openFinanceiroModal(el, { defaultTipo });
                 };
-                const saldoCard = el.querySelector('[data-action="financeiro-saldo-open"]');
-                if (saldoCard) {
-                    saldoCard.onclick = () => this.openFinanceiroSaldoModal(el);
-                }
                 el.querySelectorAll('[data-action="financeiro-edit"]').forEach((btn) => {
                     btn.onclick = () => {
                         const tipo = btn.dataset.tipoRegistro || 'gasto_variado';
@@ -8041,91 +7985,6 @@
                 };
                 document.body.appendChild(overlay);
             }
-
-            openFinanceiroSaldoModal(el) {
-                const current = el._financeiroSaldoContaCorrente || null;
-                const currentValue = this.saldoContaCorrenteSignedValue(current);
-                const hasValue = Number.isFinite(currentValue);
-                const isNegative = hasValue && currentValue < 0;
-                const currentUpdatedAt = String(current?.updated_at || '').slice(0, 10);
-                const overlay = document.createElement('div');
-                overlay.className = 'app-modal-overlay';
-                overlay.innerHTML = `
-                    <div class="app-modal finance-balance-modal">
-                        <h4>Saldo de conta corrente</h4>
-                        <p class="app-form-note">Esse valor é manual, não entra no cálculo de receitas e serve para espelhar o saldo real da conta.</p>
-                        <div class="app-modal-body">
-                            <div class="finance-balance-modal__summary">
-                                <span>Valor atual</span>
-                                <strong>${hasValue ? this.formatMoneyBr(currentValue) : 'Saldo não definido'}</strong>
-                                ${hasValue && currentUpdatedAt ? `<small>Atualizado em ${escapeHtml(this.formatDateBr(currentUpdatedAt))}</small>` : '<small>Clique em editar para informar o saldo.</small>'}
-                            </div>
-                        </div>
-                        <div class="app-modal-actions">
-                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-close">Fechar</button>
-                            <button type="button" class="app-btn" data-action="saldo-edit">Editar valor</button>
-                        </div>
-                    </div>
-                `;
-
-                const close = () => overlay.remove();
-                overlay.onclick = (e) => {
-                    if (e.target === overlay) close();
-                };
-                overlay.querySelector('[data-action="modal-close"]').onclick = close;
-                overlay.querySelector('[data-action="saldo-edit"]').onclick = () => {
-                    overlay.innerHTML = `
-                        <div class="app-modal finance-balance-modal">
-                            <h4>Editar saldo de conta corrente</h4>
-                            <p class="app-form-note">Defina o valor manualmente. Depois de salvar, o card volta para o modo de visualização.</p>
-                            <div class="app-form">
-                                <div class="app-form-row">
-                                    <div class="field">
-                                        <label for="financeiro-saldo-modal-valor">Valor (R$)</label>
-                                        <input type="number" step="0.01" id="financeiro-saldo-modal-valor" value="${hasValue ? Math.abs(Number(currentValue)).toFixed(2) : ''}" placeholder="Ex: 1250,90" />
-                                    </div>
-                                </div>
-                                <label class="finance-balance-modal__flag">
-                                    <input type="checkbox" id="financeiro-saldo-modal-negativo" ${isNegative ? 'checked' : ''} />
-                                    <span>Negativo</span>
-                                </label>
-                            </div>
-                            <div class="app-modal-actions">
-                                <button type="button" class="app-btn app-btn-secondary" data-action="saldo-cancel">Cancelar</button>
-                                <button type="button" class="app-btn" data-action="saldo-save">Salvar valor</button>
-                            </div>
-                        </div>
-                    `;
-                    overlay.querySelector('[data-action="saldo-cancel"]').onclick = close;
-                    overlay.querySelector('[data-action="saldo-save"]').onclick = async () => {
-                        const inputValue = overlay.querySelector('#financeiro-saldo-modal-valor')?.value;
-                        const isNegativeSelected = Boolean(overlay.querySelector('#financeiro-saldo-modal-negativo')?.checked);
-                        try {
-                            const normalized = this.normalizeFinanceiroSaldoValue(inputValue);
-                            if (normalized === null) throw new Error('Saldo manual inválido');
-                            const signed = isNegativeSelected ? -Math.abs(normalized) : Math.abs(normalized);
-                            const res = await fetch('/api/financeiro', {
-                                method: !current || current.definido === false ? 'POST' : 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    tipo_registro: 'saldo_conta_corrente',
-                                    id: 1,
-                                    valor: Math.abs(signed),
-                                    negativo: signed < 0,
-                                }),
-                            });
-                            if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Nao foi possivel salvar o saldo manual.'));
-                            close();
-                            await this.refreshAppContent('financeiro');
-                        } catch (err) {
-                            alert(err?.message || 'Nao foi possivel salvar o saldo manual.');
-                        }
-                    };
-                };
-
-                document.body.appendChild(overlay);
-            }
-
             openFinanceiroFixasListModal(el, { status = 'pendente', rows = [], rowsHtml = '', total = 0, itemMap = new Map() } = {}) {
                 const isPaid = String(status || '').toLowerCase() === 'pago';
                 const title = isPaid ? 'Despesas fixas pagas' : 'Despesas fixas pendentes';
@@ -8346,7 +8205,7 @@
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
                         if (item?.categoria) catEl.value = item.categoria;
                         if (contextoEl) contextoEl.innerHTML = tipo === 'gasto_variado'
-                            ? 'Registros em <strong>débito / pix</strong> reduzem o saldo manual. Crédito não altera o saldo.'
+                            ? 'Registros em <strong>débito / pix</strong> entram como despesa no mês. Crédito continua sem esse vínculo.'
                             : 'Escolha <strong>qualquer data</strong>: o lançamento aparece no mês correspondente a essa data.';
                     }
                     syncParcelasUI();
@@ -9546,3 +9405,4 @@
     </script>
 </body>
 </html>
+

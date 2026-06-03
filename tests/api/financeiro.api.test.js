@@ -26,41 +26,7 @@ describe('API do financeiro', () => {
     fromMock.mockReset();
   });
 
-  it('aplica debito no saldo e grava uma nova linha de movimento', async () => {
-    const movementInsert = vi.fn((payload) => ({
-      select: vi.fn(() => ({
-        single: vi.fn().mockResolvedValue({
-          data: {
-            id: 2,
-            ...payload,
-          },
-          error: null,
-        }),
-      })),
-    }));
-    const movementSelect = vi.fn(() => ({
-      order: vi.fn(() => ({
-        order: vi.fn(() => ({
-          limit: vi.fn().mockResolvedValue({
-            data: [{
-              id: 1,
-              saldo_anterior: 0,
-              delta: 1000,
-              saldo_atual: 1000,
-              valor: 1000,
-              negativo: false,
-              tipo_movimento: 'manual',
-              origem_tipo: 'saldo_conta_corrente',
-              origem_id: '1',
-              descricao: 'Saldo inicial',
-              created_at: '2026-05-31T12:00:00.000Z',
-              updated_at: '2026-05-31T12:00:00.000Z',
-            }],
-            error: null,
-          }),
-        })),
-      })),
-    }));
+  it('cria um registro financeiro sem depender de ledger paralelo', async () => {
     const financeInsert = vi.fn((payload) => ({
       select: vi.fn(() => ({
         single: vi.fn().mockResolvedValue({
@@ -74,12 +40,6 @@ describe('API do financeiro', () => {
     }));
 
     fromMock.mockImplementation((table) => {
-      if (table === 'tb_saldo_conta_corrente_movimentos') {
-        return {
-          select: movementSelect,
-          insert: movementInsert,
-        };
-      }
       if (table === 'tb_financas') {
         return {
           insert: financeInsert,
@@ -99,40 +59,30 @@ describe('API do financeiro', () => {
         categoria: 'Compras',
         data_lancamento: '2026-05-31',
         created_at: '2026-05-31T12:00:00.000Z',
-        mes_ano: '2026-05',
       });
 
     expect(res.status).toBe(201);
-    expect(movementInsert).toHaveBeenCalledWith(expect.objectContaining({
-      saldo_anterior: 1000,
-      delta: -200,
-      saldo_atual: 800,
-      valor: 800,
-      negativo: false,
-      tipo_movimento: 'insercao',
-      origem_tipo: 'gasto_variado',
+    expect(financeInsert).toHaveBeenCalledWith(expect.objectContaining({
       descricao: 'Mercado',
+      valor: 200,
+      metodo_pagamento: 'debito_pix',
     }));
     expect(res.body.tipo_registro).toBe('gasto_variado');
   });
 
-  it('grava o saldo inicial na linha 1 e nao cria movimento duplicado no primeiro cadastro', async () => {
-    const movementInsert = vi.fn((payload) => ({
-      select: vi.fn(() => ({
-        single: vi.fn().mockResolvedValue({
-          data: {
-            id: 1,
-            ...payload,
-          },
-          error: null,
-        }),
-      })),
-    }));
-    const movementSelect = vi.fn(() => ({
-      order: vi.fn(() => ({
-        order: vi.fn(() => ({
-          limit: vi.fn().mockResolvedValue({
-            data: [],
+  it('atualiza um registro financeiro sem chamar a tabela de saldo', async () => {
+    const financeUpdate = vi.fn(() => ({
+      eq: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({
+            data: {
+              id: 99,
+              tipo_registro: 'receita',
+              tipo: 'receita',
+              descricao: 'Salario',
+              valor: 2500,
+              created_at: '2026-05-31T12:00:00.000Z',
+            },
             error: null,
           }),
         })),
@@ -140,10 +90,9 @@ describe('API do financeiro', () => {
     }));
 
     fromMock.mockImplementation((table) => {
-      if (table === 'tb_saldo_conta_corrente_movimentos') {
+      if (table === 'tb_financas') {
         return {
-          select: movementSelect,
-          insert: movementInsert,
+          update: financeUpdate,
         };
       }
       throw new Error(`Tabela inesperada: ${table}`);
@@ -151,61 +100,20 @@ describe('API do financeiro', () => {
 
     const app = createApp(financeiroHandler);
     const res = await request(app)
-      .post('/api/test')
+      .patch('/api/test')
       .send({
-        tipo_registro: 'saldo_conta_corrente',
-        valor: 1000,
-        negativo: false,
+        id: 99,
+        tipo_registro: 'receita',
+        descricao: 'Salario',
+        valor: 2500,
       });
 
-    expect(res.status).toBe(201);
-    expect(movementInsert).toHaveBeenCalledWith(expect.objectContaining({
-      saldo_anterior: 0,
-      delta: 1000,
-      saldo_atual: 1000,
-      valor: 1000,
-      negativo: false,
-      tipo_movimento: 'manual',
-      origem_tipo: 'saldo_conta_corrente',
-    }));
-    expect(res.body.tipo_registro).toBe('saldo_conta_corrente');
+    expect(res.status).toBe(200);
+    expect(financeUpdate).toHaveBeenCalled();
+    expect(res.body.tipo_registro).toBe('receita');
   });
 
-  it('restitui o saldo ao excluir um gasto que ja tinha debitado o valor', async () => {
-    const movementInsert = vi.fn((payload) => ({
-      select: vi.fn(() => ({
-        single: vi.fn().mockResolvedValue({
-          data: {
-            id: 2,
-            ...payload,
-          },
-          error: null,
-        }),
-      })),
-    }));
-    const movementSelect = vi.fn(() => ({
-      order: vi.fn(() => ({
-        order: vi.fn(() => ({
-          limit: vi.fn().mockResolvedValue({
-            data: [{
-              id: 1,
-              saldo_anterior: 0,
-              delta: 1000,
-              saldo_atual: 1000,
-              valor: 1000,
-              negativo: false,
-              tipo_movimento: 'manual',
-              origem_tipo: 'saldo_conta_corrente',
-              origem_id: '1',
-              descricao: 'Saldo inicial',
-              created_at: '2026-05-31T12:00:00.000Z',
-              updated_at: '2026-05-31T12:00:00.000Z',
-            }],
-            error: null,
-          }),
-        })),
-      })),
-    }));
+  it('remove um registro financeiro sem tocar no ledger paralelo', async () => {
     const financeSelect = vi.fn(() => ({
       eq: vi.fn(() => ({
         limit: vi.fn().mockResolvedValue({
@@ -213,7 +121,7 @@ describe('API do financeiro', () => {
             id: 99,
             tipo_registro: 'gasto_variado',
             tipo: 'despesa',
-            descricao: 'Café',
+            descricao: 'Cafe',
             valor: 1,
             metodo_pagamento: 'debito_pix',
             status: null,
@@ -230,12 +138,6 @@ describe('API do financeiro', () => {
     }));
 
     fromMock.mockImplementation((table) => {
-      if (table === 'tb_saldo_conta_corrente_movimentos') {
-        return {
-          select: movementSelect,
-          insert: movementInsert,
-        };
-      }
       if (table === 'tb_financas') {
         return {
           select: financeSelect,
@@ -255,16 +157,6 @@ describe('API do financeiro', () => {
 
     expect(res.status).toBe(200);
     expect(financeDelete).toHaveBeenCalled();
-    expect(movementInsert).toHaveBeenCalledWith(expect.objectContaining({
-      saldo_anterior: 1000,
-      delta: 1,
-      saldo_atual: 1001,
-      valor: 1001,
-      negativo: false,
-      tipo_movimento: 'exclusao',
-      origem_tipo: 'gasto_variado',
-      descricao: 'Café',
-    }));
     expect(res.body.ok).toBe(true);
   });
 });

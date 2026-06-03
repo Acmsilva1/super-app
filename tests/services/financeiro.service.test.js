@@ -4,14 +4,9 @@ import {
   calcularDashboard,
   classificarFinancas,
   inferTipoRegistro,
-  isSaldoContaCorrenteAffectingRow,
   montarTabelaFinanceiroRows,
   payloadInsertFinanceiro,
   payloadUpdateFinanceiro,
-  saldoContaCorrenteDeltaFromRow,
-  saldoContaCorrenteValueFromBody,
-  saldoContaCorrenteSignedValueFromRow,
-  buildSaldoContaCorrenteMovementRow,
   sortCronologiaDesc,
 } from '../../features/financeiro/service/financeiroService.js';
 
@@ -191,57 +186,20 @@ describe('financeiroService', () => {
     expect(out.error).toBe('tipo_registro invalido');
   });
 
-  it('prepara e calcula saldo de conta corrente', () => {
-    expect(saldoContaCorrenteValueFromBody({ valor: 1000, negativo: false })).toBe(1000);
-    expect(saldoContaCorrenteValueFromBody({ valor: 1000, negativo: true })).toBe(-1000);
-    expect(saldoContaCorrenteSignedValueFromRow({ valor: 1000, negativo: false })).toBe(1000);
-    expect(saldoContaCorrenteSignedValueFromRow({ saldo_atual: 800, negativo: false })).toBe(800);
-    expect(buildSaldoContaCorrenteMovementRow({
-      currentRow: { valor: 1000, negativo: false },
-      nextSigned: 800,
-      tipoMovimento: 'automatica',
-      origemTipo: 'gasto_variado',
-      origemId: 10,
-      descricao: 'Mercado',
-      createdAt: '2026-05-31T12:00:00.000Z',
-    })).toEqual(expect.objectContaining({
-      saldo_anterior: 1000,
-      delta: -200,
-      saldo_atual: 800,
-      valor: 800,
-      negativo: false,
-      tipo_movimento: 'automatica',
-      origem_tipo: 'gasto_variado',
-      origem_id: '10',
-      descricao: 'Mercado',
-      created_at: '2026-05-31T12:00:00.000Z',
-      updated_at: '2026-05-31T12:00:00.000Z',
-    }));
-    expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'despesa_fixa', status: 'pago', valor: 150 })).toBe(true);
-    expect(saldoContaCorrenteDeltaFromRow({ tipo_registro: 'despesa_fixa', status: 'pago', valor: 150 })).toBe(-150);
-    expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'despesa_fixa', status: 'pendente', valor: 150 })).toBe(false);
-    expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'gasto_variado', metodo_pagamento: 'pix' })).toBe(true);
-    expect(isSaldoContaCorrenteAffectingRow({ tipo_registro: 'gasto_variado', metodo_pagamento: 'credito' })).toBe(false);
-    expect(saldoContaCorrenteDeltaFromRow({ tipo_registro: 'gasto_variado', metodo_pagamento: 'debito_pix', valor: 200 })).toBe(-200);
-
-    const ins = payloadInsertFinanceiro({
+  it('rejeita saldo de conta corrente como tipo invalido', () => {
+    const insert = payloadInsertFinanceiro({
       tipo_registro: 'saldo_conta_corrente',
       valor: 800,
       negativo: true,
     });
-    expect(ins.error).toBeUndefined();
-    expect(ins.payload.id).toBe(1);
-    expect(ins.payload.valor).toBe(-800);
-    expect(ins.payload.negativo).toBe(true);
+    expect(insert.error).toBe('tipo_registro invalido');
 
-    const upd = payloadUpdateFinanceiro({
+    const update = payloadUpdateFinanceiro({
       tipo_registro: 'saldo_conta_corrente',
       id: 1,
       valor: 250,
       negativo: false,
     });
-    expect(upd.error).toBeUndefined();
-    expect(upd.payload.valor).toBe(250);
-    expect(upd.payload.negativo).toBe(false);
+    expect(update.error).toBe('tipo_registro invalido');
   });
 });

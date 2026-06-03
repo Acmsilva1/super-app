@@ -4,7 +4,6 @@ import {
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
   TIPO_REGISTRO_META_POUPANCA,
-  TIPO_REGISTRO_SALDO_CONTA_CORRENTE,
   TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
 } from '../model/financeiro.js';
@@ -19,70 +18,6 @@ export function normalizeFinanceiroMetodoPagamento(value) {
   if (raw.includes('credito')) return 'credito';
   if (raw.includes('debito') || raw.includes('pix')) return 'debito_pix';
   return raw;
-}
-
-export function isSaldoContaCorrenteAffectingRow(row = {}) {
-  const tipo = String(row?.tipo_registro || row?.tipo || '').toLowerCase().trim();
-  if (tipo === TIPO_REGISTRO_DESPESA_FIXA) {
-    return String(row?.status || '').toLowerCase().trim() === STATUS_PAGO;
-  }
-  if (tipo !== TIPO_REGISTRO_GASTO_VARIADO && tipo !== 'despesa') return false;
-  return normalizeFinanceiroMetodoPagamento(row?.metodo_pagamento) === 'debito_pix';
-}
-
-export function saldoContaCorrenteDeltaFromRow(row = {}) {
-  if (!isSaldoContaCorrenteAffectingRow(row)) return 0;
-  const value = Math.abs(Number(row?.valor || 0));
-  return Math.round(-value * 100) / 100;
-}
-
-export function saldoContaCorrenteValueFromBody(body = {}) {
-  const absolute = Math.abs(Number(body.valor ?? body.saldo ?? 0));
-  if (!Number.isFinite(absolute)) return null;
-  const negative = body.negativo === true || body.negativo === 'true';
-  return Math.round((negative ? -absolute : absolute) * 100) / 100;
-}
-
-export function saldoContaCorrenteSignedValueFromRow(row = {}) {
-  if (row?.saldo_atual !== undefined && row?.saldo_atual !== null && row?.saldo_atual !== '') {
-    const signed = Number(row.saldo_atual);
-    return Number.isFinite(signed) ? Math.round(signed * 100) / 100 : 0;
-  }
-  if (row?.signed_valor !== undefined && row?.signed_valor !== null && row?.signed_valor !== '') {
-    const signed = Number(row.signed_valor);
-    return Number.isFinite(signed) ? Math.round(signed * 100) / 100 : 0;
-  }
-  const absolute = Math.abs(Number(row?.valor || 0));
-  const negative = row?.negativo === true || row?.negativo === 'true';
-  return Math.round((negative ? -absolute : absolute) * 100) / 100;
-}
-
-export function buildSaldoContaCorrenteMovementRow({
-  currentRow = {},
-  nextSigned = 0,
-  tipoMovimento = 'manual',
-  origemTipo = null,
-  origemId = null,
-  descricao = null,
-  createdAt = new Date().toISOString(),
-} = {}) {
-  const currentSigned = saldoContaCorrenteSignedValueFromRow(currentRow);
-  const signedNext = Math.round(Number(nextSigned || 0) * 100) / 100;
-  const delta = Math.round((signedNext - currentSigned) * 100) / 100;
-  const timestamp = String(createdAt || '').trim() || new Date().toISOString();
-  return {
-    saldo_anterior: currentSigned,
-    delta,
-    saldo_atual: signedNext,
-    valor: Math.abs(signedNext),
-    negativo: signedNext < 0,
-    tipo_movimento: String(tipoMovimento || 'manual').trim() || 'manual',
-    origem_tipo: origemTipo || null,
-    origem_id: origemId != null ? String(origemId) : null,
-    descricao: descricao != null ? String(descricao) : null,
-    created_at: timestamp,
-    updated_at: timestamp,
-  };
 }
 
 export function inferTipoRegistro(body = {}) {
@@ -327,20 +262,6 @@ export function payloadInsertFinanceiro(body = {}) {
     };
   }
 
-  if (tipoRegistro === TIPO_REGISTRO_SALDO_CONTA_CORRENTE) {
-    const signedValue = saldoContaCorrenteValueFromBody(body);
-    if (signedValue === null) return { error: 'valor obrigatorio' };
-    return {
-      tipo_registro: tipoRegistro,
-      payload: {
-        id: 1,
-        valor: signedValue,
-        negativo: signedValue < 0,
-        updated_at: new Date().toISOString(),
-      },
-    };
-  }
-
   return { error: 'tipo_registro invalido' };
 }
 
@@ -428,21 +349,6 @@ export function payloadUpdateFinanceiro(body = {}) {
     if (body.created_at !== undefined) out.created_at = String(body.created_at || '').trim() || null;
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
-  }
-
-  if (tipoRegistro === TIPO_REGISTRO_SALDO_CONTA_CORRENTE) {
-    const signedValue = saldoContaCorrenteValueFromBody(body);
-    if (signedValue === null) return { error: 'valor obrigatorio' };
-    return {
-      tipo_registro: tipoRegistro,
-      id: body.id || 1,
-      payload: {
-        id: Number(body.id || 1) || 1,
-        valor: signedValue,
-        negativo: signedValue < 0,
-        updated_at: new Date().toISOString(),
-      },
-    };
   }
 
   return { error: 'tipo_registro invalido' };
