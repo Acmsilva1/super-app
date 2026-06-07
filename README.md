@@ -146,6 +146,7 @@ Observacao:
 
 ### Vercel
 
+- URL oficial de producao: `https://super-app-zeta-virid.vercel.app/`
 - Build command: `npm run build`
 - Output directory: `.`
 - Framework: `null`
