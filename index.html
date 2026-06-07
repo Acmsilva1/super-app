@@ -7449,6 +7449,10 @@
                         const labels = categoriasGastos.map((x) => x.categoria);
                         const valores = categoriasGastos.map((x) => x.valor);
                         if (labels.length > 0) {
+                            const maiorValorCategoria = Math.max(...valores.map((v) => Number(v) || 0), 0);
+                            const eixoCategoriasMax = maiorValorCategoria > 0
+                                ? Math.ceil((maiorValorCategoria * 1.18) / 100) * 100
+                                : undefined;
                             let chart = el._financeiroChartCategoria;
                             if (!chart || chart.isDisposed?.()) {
                                 chart = echarts.init(chartCategoriasNode);
@@ -7475,9 +7479,10 @@
                             chart.setOption({
                                 animationDuration: 800,
                                 animationEasing: 'cubicOut',
-                                grid: { left: 10, right: 12, top: 8, bottom: 4, containLabel: true },
+                                grid: { left: 10, right: 86, top: 8, bottom: 4, containLabel: true },
                                 xAxis: {
                                     type: 'value',
+                                    max: eixoCategoriasMax,
                                     axisLabel: { color: '#94a3b8' },
                                     splitLine: { lineStyle: { color: 'rgba(148,163,184,0.16)' } }
                                 },
