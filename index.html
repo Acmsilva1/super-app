@@ -7041,6 +7041,7 @@
                 const activeTab = ['summary', 'data', 'poupanca'].includes(tabRaw) ? tabRaw : 'data';
                 const dataFilterRaw = String(el.getAttribute('data-active-data-filter') || '').toLowerCase();
                 const activeDataFilter = ['despesas_fixas', 'gastos_variados', 'receitas'].includes(dataFilterRaw) ? dataFilterRaw : '';
+                const activeGastosCategoriaRaw = String(el.getAttribute('data-active-gastos-categoria') || '').trim();
                 el.setAttribute('data-active-tab', activeTab);
 
                 const graficos = data.graficos || {};
@@ -7162,8 +7163,14 @@
                 const showImportFixasCallout = fixasEmpty && activeDataFilter === 'despesas_fixas';
                 const isMobileFixas = typeof window !== 'undefined' && window.innerWidth <= 900;
                 const detailsAttr = isMobileFixas ? '' : 'open';
-                const totalGastosVariados = gastosVariados.reduce((sum, r) => sum + Number(r.valor || 0), 0);
-                const rowsGastosHtml = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
+                const activeGastosCategoria = gastosVariados.some((g) => String(g.categoria || 'Sem categoria') === activeGastosCategoriaRaw)
+                    ? activeGastosCategoriaRaw
+                    : '';
+                const gastosVariadosFiltrados = activeGastosCategoria
+                    ? gastosVariados.filter((g) => String(g.categoria || 'Sem categoria') === activeGastosCategoria)
+                    : gastosVariados;
+                const totalGastosVariadosFiltrado = gastosVariadosFiltrados.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+                const rowsGastosHtml = gastosVariadosFiltrados.length ? gastosVariadosFiltrados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
                 const rowsReceitasHtml = receitas.length ? receitas.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mês.</td></tr>';
                 const rowsPoupancaHtml = poupancaLogs.length
                     ? poupancaLogs.map((r) => {
@@ -7298,12 +7305,12 @@
                                 <div class="finance-data-section-head finance-data-section-head--variadas">
                                     <div class="finance-despesas-col-header" style="color:#ef4444;margin:0;">
                                         <span style="font-size:0.875rem;font-weight:600;">Débito / pix</span>
-                                        <span>${this.formatMoneyBr(totalGastosVariados)}</span>
+                                        <span id="financeiro-total-gastos">${this.formatMoneyBr(totalGastosVariadosFiltrado)}</span>
                                     </div>
                                     ${gastosVariados.length > 0 ? `
                                     <select id="financeiro-filter-categoria-gastos" style="font-size:0.72rem; padding:0.15rem 0.35rem; border-radius:0.4rem; background:transparent; border:1px solid rgba(148, 163, 184, 0.4); color:inherit; outline:none; cursor:pointer;">
                                         <option value="">Todas as categorias</option>
-                                        ${[...new Set(gastosVariados.map(g => g.categoria || 'Sem categoria'))].sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
+                                        ${[...new Set(gastosVariados.map(g => g.categoria || 'Sem categoria'))].sort().map(c => `<option value="${escapeHtml(c)}" ${c === activeGastosCategoria ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
                                     </select>
                                     ` : ''}
                                 </div>
@@ -7805,14 +7812,23 @@
 
                 const categoriaSelect = el.querySelector('#financeiro-filter-categoria-gastos');
                 if (categoriaSelect) {
+                    categoriaSelect.value = activeGastosCategoria;
                     categoriaSelect.onchange = () => {
                         const selected = categoriaSelect.value;
+                        el.setAttribute('data-active-gastos-categoria', selected);
                         const tbody = el.querySelector('#financeiro-table-gastos');
+                        const totalNode = el.querySelector('#financeiro-total-gastos');
+                        const filtered = selected
+                            ? gastosVariados.filter(g => (g.categoria || 'Sem categoria') === selected)
+                            : gastosVariados;
+                        if (totalNode) {
+                            const total = filtered.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+                            totalNode.textContent = this.formatMoneyBr(total);
+                        }
                         if (tbody) {
                             if (!selected) {
                                 tbody.innerHTML = gastosVariados.length ? gastosVariados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
                             } else {
-                                const filtered = gastosVariados.filter(g => (g.categoria || 'Sem categoria') === selected);
                                 tbody.innerHTML = filtered.length ? filtered.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto nesta categoria.</td></tr>';
                             }
                         }
