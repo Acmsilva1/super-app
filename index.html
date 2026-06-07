@@ -7267,18 +7267,18 @@
                                 <div class="finance-despesas-fixas-mobile-actions">
                                     <button type="button" class="finance-fixas-mobile-btn" data-action="financeiro-open-fixas-modal" data-target="pendentes">
                                         <strong>Pendentes</strong>
-                                        <span>${despesasFixasPendentes.length} item(ns) • ${this.formatMoneyBr(totalPendenteFixas)}</span>
+                                        <span id="financeiro-fixas-mobile-pendentes-total">${despesasFixasPendentes.length} item(ns) • ${this.formatMoneyBr(totalPendenteFixas)}</span>
                                     </button>
                                     <button type="button" class="finance-fixas-mobile-btn" data-action="financeiro-open-fixas-modal" data-target="pagas">
                                         <strong>Pagas</strong>
-                                        <span>${despesasFixasPagas.length} item(ns) • ${this.formatMoneyBr(totalPagoFixas)}</span>
+                                        <span id="financeiro-fixas-mobile-pagas-total">${despesasFixasPagas.length} item(ns) • ${this.formatMoneyBr(totalPagoFixas)}</span>
                                     </button>
                                 </div>
                                 <div class="finance-despesas-fixas-grid">
                                     <details class="finance-despesas-col" ${detailsAttr}>
                                         <summary class="finance-despesas-col-header" style="color: #ef4444;">
                                             <span>Pendentes<i class="fas fa-chevron-down finance-col-chevron"></i></span>
-                                            <span>${this.formatMoneyBr(totalPendenteFixas)}</span>
+                                            <span id="financeiro-fixas-pendentes-total">${this.formatMoneyBr(totalPendenteFixas)}</span>
                                         </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
@@ -7290,7 +7290,7 @@
                                     <details class="finance-despesas-col" ${detailsAttr}>
                                         <summary class="finance-despesas-col-header" style="color: #22c55e;">
                                             <span>Pagas<i class="fas fa-chevron-down finance-col-chevron"></i></span>
-                                            <span>${this.formatMoneyBr(totalPagoFixas)}</span>
+                                            <span id="financeiro-fixas-pagas-total">${this.formatMoneyBr(totalPagoFixas)}</span>
                                         </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
@@ -7783,17 +7783,29 @@
                     const filterRow = (r) => !selected || fixaCategoriaKey(r) === selected;
                     const pendentes = despesasFixasPendentes.filter(filterRow);
                     const pagas = despesasFixasPagas.filter(filterRow);
+                    const totalPendentes = pendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+                    const totalPagas = pagas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                     const tbodyPendentes = el.querySelector('#financeiro-table-fixas-pendentes');
                     const tbodyPagas = el.querySelector('#financeiro-table-fixas-pagas');
+                    const totalPendentesEl = el.querySelector('#financeiro-fixas-pendentes-total');
+                    const totalPagasEl = el.querySelector('#financeiro-fixas-pagas-total');
+                    const mobilePendentesEl = el.querySelector('#financeiro-fixas-mobile-pendentes-total');
+                    const mobilePagasEl = el.querySelector('#financeiro-fixas-mobile-pagas-total');
+                    if (totalPendentesEl) totalPendentesEl.textContent = this.formatMoneyBr(totalPendentes);
+                    if (totalPagasEl) totalPagasEl.textContent = this.formatMoneyBr(totalPagas);
+                    if (mobilePendentesEl) mobilePendentesEl.textContent = `${pendentes.length} item(ns) • ${this.formatMoneyBr(totalPendentes)}`;
+                    if (mobilePagasEl) mobilePagasEl.textContent = `${pagas.length} item(ns) • ${this.formatMoneyBr(totalPagas)}`;
                     if (tbodyPendentes) {
                         tbodyPendentes.innerHTML = pendentes.length
                             ? pendentes.map(mkRowFixa).join('')
                             : `<tr><td colspan="5" class="module-table-empty">${selected ? 'Nenhuma despesa pendente nesta categoria.' : 'Nenhuma despesa pendente.'}</td></tr>`;
+                        bindFinanceiroRowActions(tbodyPendentes);
                     }
                     if (tbodyPagas) {
                         tbodyPagas.innerHTML = pagas.length
                             ? pagas.map(mkRowFixa).join('')
                             : `<tr><td colspan="5" class="module-table-empty">${selected ? 'Nenhuma despesa paga nesta categoria.' : 'Nenhuma despesa paga.'}</td></tr>`;
+                        bindFinanceiroRowActions(tbodyPagas);
                     }
                 };
 
@@ -7805,11 +7817,18 @@
                     btn.onclick = () => {
                         const target = String(btn.dataset.target || 'pendentes');
                         const isPaid = target === 'pagas';
+                        const selected = categoriaFixasSelect ? categoriaFixasSelect.value : '';
+                        const filterRow = (r) => !selected || fixaCategoriaKey(r) === selected;
+                        const modalRows = (isPaid ? despesasFixasPagas : despesasFixasPendentes).filter(filterRow);
+                        const modalRowsHtml = modalRows.length
+                            ? modalRows.map(mkRowFixa).join('')
+                            : `<tr><td colspan="5" class="module-table-empty">${isPaid ? 'Nenhuma despesa paga nesta categoria.' : 'Nenhuma despesa pendente nesta categoria.'}</td></tr>`;
+                        const modalTotal = modalRows.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                         this.openFinanceiroFixasListModal(el, {
                             status: isPaid ? 'pago' : 'pendente',
-                            rows: isPaid ? despesasFixasPagas : despesasFixasPendentes,
-                            rowsHtml: isPaid ? rowsFixasPagasHtml : rowsFixasPendentesHtml,
-                            total: isPaid ? totalPagoFixas : totalPendenteFixas,
+                            rows: modalRows,
+                            rowsHtml: selected ? modalRowsHtml : (isPaid ? rowsFixasPagasHtml : rowsFixasPendentesHtml),
+                            total: selected ? modalTotal : (isPaid ? totalPagoFixas : totalPendenteFixas),
                             itemMap,
                         });
                     };
