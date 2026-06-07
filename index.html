@@ -7831,6 +7831,7 @@
                             } else {
                                 tbody.innerHTML = filtered.length ? filtered.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto nesta categoria.</td></tr>';
                             }
+                            bindFinanceiroRowActions(tbody);
                         }
                     };
                 }
@@ -7840,22 +7841,25 @@
                     const defaultTipo = currentTab === 'poupanca' ? 'poupanca' : 'gasto_variado';
                     this.openFinanceiroModal(el, { defaultTipo });
                 };
-                el.querySelectorAll('[data-action="financeiro-edit"]').forEach((btn) => {
-                    btn.onclick = () => {
-                        const tipo = btn.dataset.tipoRegistro || 'gasto_variado';
-                        const item = itemMap.get(`${tipo}:${btn.dataset.id}`);
-                        this.openFinanceiroModal(el, { item, defaultTipo: tipo });
-                    };
-                });
-                el.querySelectorAll('[data-action="financeiro-delete"]').forEach((btn) => {
-                    btn.onclick = () => {
-                        const tipo = btn.dataset.tipoRegistro || 'gasto_variado';
-                        this.submitFinanceiroDelete(btn.dataset.id, tipo, el);
-                    };
-                });
-                el.querySelectorAll('[data-action="financeiro-toggle-status"]').forEach((btn) => {
-                    btn.onclick = () => this.submitFinanceiroToggleStatus(btn.dataset.id, btn.dataset.statusAtual || 'pendente', el);
-                });
+                const bindFinanceiroRowActions = (root = el) => {
+                    root.querySelectorAll('[data-action="financeiro-edit"]').forEach((btn) => {
+                        btn.onclick = () => {
+                            const tipo = btn.dataset.tipoRegistro || 'gasto_variado';
+                            const item = itemMap.get(`${tipo}:${btn.dataset.id}`);
+                            this.openFinanceiroModal(el, { item, defaultTipo: tipo });
+                        };
+                    });
+                    root.querySelectorAll('[data-action="financeiro-delete"]').forEach((btn) => {
+                        btn.onclick = () => {
+                            const tipo = btn.dataset.tipoRegistro || 'gasto_variado';
+                            this.submitFinanceiroDelete(btn.dataset.id, tipo, el);
+                        };
+                    });
+                    root.querySelectorAll('[data-action="financeiro-toggle-status"]').forEach((btn) => {
+                        btn.onclick = () => this.submitFinanceiroToggleStatus(btn.dataset.id, btn.dataset.statusAtual || 'pendente', el);
+                    });
+                };
+                bindFinanceiroRowActions();
                 const importFixasBtn = el.querySelector('[data-action="financeiro-import-fixas-prev-month"]');
                 if (importFixasBtn) {
                     importFixasBtn.onclick = () => this.importFinanceiroFixasFromPreviousMonth(el);
