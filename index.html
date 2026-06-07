@@ -6404,28 +6404,18 @@
                     }
                     return;
                 }
-                const apiMap = { financeiro: 'financeiro', lista_compras: 'lista-compras', vendas: 'vendas' };
+                const apiMap = { financeiro: 'financeiro', lista_compras: 'lista-compras' };
                 const path = apiMap[appId];
                 if (!path) return;
                 let mesAno = contentEl.getAttribute('data-mes-ano');
                 if (appId === 'financeiro' && !mesAno) mesAno = this.getMesAnoAtual();
                 try {
-                    if (appId === 'vendas') {
-                        const [recipesRes, historyRes] = await Promise.all([
-                            fetch('/api/vendas?type=receitas'),
-                            fetch('/api/vendas?type=historico')
-                        ]);
-                        const recipes = await this.readApiJsonOrThrow(recipesRes, 'Falha ao carregar receitas');
-                        const history = await this.readApiJsonOrThrow(historyRes, 'Falha ao carregar histórico');
-                        this.renderVendasContent(contentEl, { recipes, history });
-                    } else {
-                        let url = '/api/' + path;
+                    let url = '/api/' + path;
                     if (appId === 'financeiro') url = '/api/financeiro?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
                     const res = await fetch(url);
                     const data = await this.readApiJsonOrThrow(res, 'Falha ao carregar');
                     if (appId === 'financeiro') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinanceiroContent(contentEl, data); }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
-                    }
                     const savedScroll = Number(this.uiState.windowScrolls?.[appId]);
                     const scrollToRestore = Number.isFinite(savedScroll) ? savedScroll : previousScrollTop;
                     this.rememberWindowScroll(appId, scrollToRestore);

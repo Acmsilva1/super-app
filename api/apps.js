@@ -35,14 +35,6 @@ export const APPS = [
     description: 'Controle diario de missoes com progresso local, sem dependencia de API backend.',
     category: 'Saude',
   },
-  {
-    id: 'vendas',
-    icon: 'fa-chart-line',
-    status: 'active',
-    title: 'Vendas e Precificação',
-    description: 'Gerencie a precificação de seus bolos e acompanhe o histórico de vendas diário.',
-    category: 'Negócios',
-  },
 ];
 
 function json(res, status, data) {
