@@ -771,6 +771,22 @@
             background: rgba(131, 24, 67, 0.32);
             border-color: rgba(244, 114, 182, 0.42);
         }
+        .app-chip--status[data-api-status="checking"] {
+            color: #bfdbfe;
+            background: rgba(30, 64, 175, 0.34);
+            border-color: rgba(96, 165, 250, 0.42);
+        }
+        .app-chip--status[data-api-status="ok"] {
+            color: #86efac;
+            background: rgba(20, 83, 45, 0.38);
+            border-color: rgba(74, 222, 128, 0.45);
+        }
+        .app-chip--status[data-api-status="error"] {
+            color: #fecaca;
+            background: rgba(127, 29, 29, 0.42);
+            border-color: rgba(248, 113, 113, 0.58);
+            box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.12), 0 0 20px rgba(239, 68, 68, 0.24);
+        }
 
         .app-icon-box {
             width: 3.3rem;
@@ -5924,13 +5940,59 @@
                         <span class="app-title">${escapeHtml(app.title || 'Aplicacao')}</span>
                         <div class="app-meta-row">
                             <span class="app-chip">${escapeHtml(this.getAppCategoryLabel(app))}</span>
-                            <span class="app-chip app-chip--status">${escapeHtml(this.getAppStatusLabel(app))}</span>
+                            <span class="app-chip app-chip--status" data-app-status-id="${escapeHtml(app.id)}" data-api-status="checking">${escapeHtml(this.getAppStatusLabel(app))}</span>
                         </div>
                         <p class="app-desc">${escapeHtml(this.getAppPreviewDescription(app))}</p>
                         <span class="app-open-hint">Abrir modulo <i class="fas fa-arrow-right"></i></span>
                     </div>
                 `).join('');
                 this.animateAppCards();
+                this.refreshAppApiStatuses();
+            }
+
+            getAppHealthUrl(app) {
+                const explicit = String(app?.health_path || '').trim();
+                if (explicit) return explicit;
+                const map = {
+                    financeiro: '/api/financeiro?bi=1',
+                    lista_compras: '/api/lista-compras',
+                    fluxograma: '/api/fluxograma',
+                    missoes_treino: '/api/missoes-treino?health=1',
+                };
+                return map[String(app?.id || '')] || '';
+            }
+
+            async refreshAppApiStatuses() {
+                const checks = this.apps.map(async (app) => {
+                    const appId = String(app.id || '');
+                    const badge = Array.from(document.querySelectorAll('[data-app-status-id]'))
+                        .find((node) => node.dataset.appStatusId === appId);
+                    if (!badge) return;
+                    const url = this.getAppHealthUrl(app);
+                    if (!url) {
+                        badge.dataset.apiStatus = 'error';
+                        badge.textContent = 'API sem rota';
+                        badge.title = 'Nenhuma rota de API configurada para este app';
+                        return;
+                    }
+                    badge.dataset.apiStatus = 'checking';
+                    badge.textContent = 'Verificando API';
+                    try {
+                        const controller = new AbortController();
+                        const timer = setTimeout(() => controller.abort(), 8000);
+                        const res = await fetch(url, { method: 'GET', signal: controller.signal, cache: 'no-store' });
+                        clearTimeout(timer);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        badge.dataset.apiStatus = 'ok';
+                        badge.textContent = 'API conectada';
+                        badge.title = `Conectado: ${url}`;
+                    } catch (err) {
+                        badge.dataset.apiStatus = 'error';
+                        badge.textContent = 'API com falha';
+                        badge.title = `${url} - ${err?.message || 'falha ao conectar'}`;
+                    }
+                });
+                await Promise.allSettled(checks);
             }
 
             async quickAddFinanceiro(event) {
@@ -5997,7 +6059,7 @@
                 if (status === 'beta') return 'Beta';
                 if (status === 'open') return 'Aberto';
                 if (status === 'maintenance') return 'Manutencao';
-                return 'Ativo';
+                return 'Verificando API';
             }
 
             getAppPreviewDescription(app) {

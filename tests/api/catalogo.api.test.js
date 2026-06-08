@@ -21,6 +21,14 @@ describe('APIs de catalogo', () => {
     expect(res.body).toHaveLength(APPS.length);
   });
 
+  it('apps ativos declaram rota de health check', () => {
+    const activeApps = APPS.filter((app) => app.status === 'active');
+    expect(activeApps.length).toBeGreaterThan(0);
+    for (const app of activeApps) {
+      expect(app.health_path, app.id).toMatch(/^\/api\//);
+    }
+  });
+
   it('metodo invalido em /apps retorna 405', async () => {
     const app = createApp(appsHandler);
     const res = await request(app).post('/api/test');

@@ -10,6 +10,7 @@ export const APPS = [
     title: 'Financeiro',
     description: 'Dashboard financeiro completo com despesas fixas, gastos variaveis e receitas.',
     category: 'Financeiro',
+    health_path: '/api/financeiro?bi=1',
   },
   {
     id: 'lista_compras',
@@ -18,6 +19,7 @@ export const APPS = [
     title: 'Lista de Compras',
     description: 'Lista de compras com prioridade e controle do que ja foi comprado.',
     category: 'Produtividade',
+    health_path: '/api/lista-compras',
   },
   {
     id: 'fluxograma',
@@ -26,14 +28,16 @@ export const APPS = [
     title: 'Fluxograma',
     description: 'Crie fluxogramas com nos e conexoes; rascunho local e projetos salvos na nuvem (Supabase).',
     category: 'Produtividade',
+    health_path: '/api/fluxograma',
   },
   {
     id: 'missoes_treino',
     icon: 'fa-dumbbell',
     status: 'active',
     title: 'Missoes de Treino',
-    description: 'Controle diario de missoes com progresso local, sem dependencia de API backend.',
+    description: 'Controle diario de missoes com API de acompanhamento, progresso e historico.',
     category: 'Saude',
+    health_path: '/api/missoes-treino?health=1',
   },
 ];
 
