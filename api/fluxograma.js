@@ -15,6 +15,9 @@ function normalizeDados(raw) {
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
+    if (req.query?.health === '1') {
+      return json(res, 200, { ok: true, service: 'fluxograma' });
+    }
     const id = req.query?.id;
     if (id) {
       const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).maybeSingle();

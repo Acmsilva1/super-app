@@ -5954,9 +5954,9 @@
                 const explicit = String(app?.health_path || '').trim();
                 if (explicit) return explicit;
                 const map = {
-                    financeiro: '/api/financeiro?bi=1',
-                    lista_compras: '/api/lista-compras',
-                    fluxograma: '/api/fluxograma',
+                    financeiro: '/api/financeiro?health=1',
+                    lista_compras: '/api/lista-compras?health=1',
+                    fluxograma: '/api/fluxograma?health=1',
                     missoes_treino: '/api/missoes-treino?health=1',
                 };
                 return map[String(app?.id || '')] || '';

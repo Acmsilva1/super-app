@@ -26,6 +26,15 @@ describe('API do financeiro', () => {
     fromMock.mockReset();
   });
 
+  it('GET health retorna status sem consultar Supabase', async () => {
+    const app = createApp(financeiroHandler);
+    const res = await request(app).get('/api/test?health=1');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, service: 'financeiro' });
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
   it('cria um registro financeiro sem depender de ledger paralelo', async () => {
     const financeInsert = vi.fn((payload) => ({
       select: vi.fn(() => ({

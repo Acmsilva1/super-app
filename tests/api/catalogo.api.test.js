@@ -26,6 +26,7 @@ describe('APIs de catalogo', () => {
     expect(activeApps.length).toBeGreaterThan(0);
     for (const app of activeApps) {
       expect(app.health_path, app.id).toMatch(/^\/api\//);
+      expect(app.health_path, app.id).toContain('health=1');
     }
   });
 

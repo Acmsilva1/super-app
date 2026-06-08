@@ -26,6 +26,15 @@ describe('API do fluxograma', () => {
     fromMock.mockReset();
   });
 
+  it('GET health retorna status sem consultar Supabase', async () => {
+    const app = createApp(fluxogramaHandler);
+    const res = await request(app).get('/api/test?health=1');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, service: 'fluxograma' });
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
   it('POST cria projeto com nome e dados vazios', async () => {
     const insert = vi.fn(() => ({
       select: vi.fn(() => ({

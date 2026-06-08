@@ -10,7 +10,7 @@ export const APPS = [
     title: 'Financeiro',
     description: 'Dashboard financeiro completo com despesas fixas, gastos variaveis e receitas.',
     category: 'Financeiro',
-    health_path: '/api/financeiro?bi=1',
+    health_path: '/api/financeiro?health=1',
   },
   {
     id: 'lista_compras',
@@ -19,7 +19,7 @@ export const APPS = [
     title: 'Lista de Compras',
     description: 'Lista de compras com prioridade e controle do que ja foi comprado.',
     category: 'Produtividade',
-    health_path: '/api/lista-compras',
+    health_path: '/api/lista-compras?health=1',
   },
   {
     id: 'fluxograma',
@@ -28,7 +28,7 @@ export const APPS = [
     title: 'Fluxograma',
     description: 'Crie fluxogramas com nos e conexoes; rascunho local e projetos salvos na nuvem (Supabase).',
     category: 'Produtividade',
-    health_path: '/api/fluxograma',
+    health_path: '/api/fluxograma?health=1',
   },
   {
     id: 'missoes_treino',

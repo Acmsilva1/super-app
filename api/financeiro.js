@@ -13,6 +13,9 @@ function json(res, status, data) {
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
+      if (req.query?.health === '1') {
+        return json(res, 200, { ok: true, service: 'financeiro' });
+      }
       const result = await obterFinanceiroMes(req.query || {});
       return json(res, result.status, result.data || { error: result.error || 'Erro ao carregar financeiro' });
     }

@@ -16,6 +16,9 @@ function json(res, status, data) {
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
+    if (req.query?.health === '1') {
+      return json(res, 200, { ok: true, service: 'lista_compras' });
+    }
     const { data, error } = await supabase.from(TABLE_NAME).select('*').order('categoria').order('created_at', { ascending: false });
     if (error) return json(res, 500, { error: error.message });
     const ordenados = ordenarPorCategoria(data);
