@@ -920,6 +920,20 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        .app-card-title {
+            margin: 0;
+            padding-top: 0.45rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            line-height: 1.2;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: rgba(226, 236, 255, 0.9);
+            opacity: 0.92;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         .app-desc {
             margin: 0;
             font-size: 0.73rem;
@@ -965,6 +979,9 @@
             }
             .app-icon-box {
                 min-height: 112px;
+            }
+            .app-card-title {
+                font-size: 0.66rem;
             }
             .app-title {
                 font-size: 0.8rem;
@@ -5973,6 +5990,7 @@
                                 </div>
                             </div>
                         </div>
+                        <span class="app-card-title">${escapeHtml(app.title || 'Aplicacao')}</span>
                         <span class="app-open-hint">Abrir modulo <i class="fas fa-arrow-right"></i></span>
                     </div>
                 `).join('');
@@ -6097,7 +6115,7 @@
                 );
                 cards.forEach((card) => {
                     const icon = card.querySelector('.app-icon-box');
-                    const details = card.querySelectorAll('.app-open-hint');
+                    const details = card.querySelectorAll('.app-card-title, .app-open-hint');
                     if (icon) {
                         helpers.animate(
                             icon,
