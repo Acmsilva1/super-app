@@ -48,8 +48,8 @@
                 radial-gradient(900px 640px at 50% 84%, rgba(59, 130, 246, 0.08), transparent 62%),
                 url('/logo%20home.png');
             background-repeat: no-repeat, no-repeat, no-repeat;
-            background-position: center top, center center, center 2rem;
-            background-size: auto, auto, min(86vw, 820px);
+            background-position: center top, center center, center center;
+            background-size: auto, auto, cover;
             background-color: #030712;
             color: var(--text-dark);
             line-height: 1.6;
@@ -130,8 +130,8 @@
                 radial-gradient(1200px 760px at 50% 0%, rgba(59, 130, 246, 0.12), transparent 50%),
                 url('/logo%20home.png');
             background-repeat: no-repeat, no-repeat, no-repeat;
-            background-position: center top, center center, center 2rem;
-            background-size: auto, auto, min(86vw, 820px);
+            background-position: center top, center center, center 18%;
+            background-size: auto, auto, cover;
             background-color: #020617;
         }
 
@@ -165,8 +165,8 @@
                 radial-gradient(1100px 760px at 50% 0%, rgba(37, 99, 235, 0.12), transparent 50%),
                 url('/logo%20home.png');
             background-repeat: no-repeat, no-repeat, no-repeat;
-            background-position: center top, center center, center 2rem;
-            background-size: auto, auto, min(86vw, 820px);
+            background-position: center top, center center, center 14%;
+            background-size: auto, auto, cover;
             background-color: #eff6ff;
             color: #0f172a;
         }
@@ -348,18 +348,18 @@
             }
 
             body {
-                background-position: center top, center center, center 1rem;
-                background-size: auto, auto, min(132vw, 760px);
+                background-position: center top, center center, center 10%;
+                background-size: auto, auto, cover;
             }
 
             [data-theme="dark"] body {
-                background-size: auto, auto, min(128vw, 740px);
-                background-position: center top, center center, center 0.5rem;
+                background-size: auto, auto, cover;
+                background-position: center top, center center, center 8%;
             }
 
             [data-theme="light"] body {
-                background-size: auto, auto, min(138vw, 760px);
-                background-position: center top, center center, center 1.25rem;
+                background-size: auto, auto, cover;
+                background-position: center top, center center, center 12%;
             }
         }
 
@@ -1087,11 +1087,12 @@
 
         /* FOOTER */
         footer {
-            background: linear-gradient(180deg, rgba(6, 15, 32, 0.98), rgba(3, 9, 20, 0.98));
+            background: linear-gradient(180deg, rgba(6, 15, 32, 0.70), rgba(3, 9, 20, 0.82));
             border-top: 1px solid rgba(56, 189, 248, 0.22);
             color: white;
             padding: 2rem 1rem;
             text-align: center;
+            backdrop-filter: blur(10px);
         }
 
         footer p {
