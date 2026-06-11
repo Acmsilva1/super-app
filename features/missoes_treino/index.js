@@ -795,7 +795,12 @@ class MissoesTreinoApp {
     return `
       <div class="mt-root">
         <style>
-          .mt-root{--mt-bg:#050508;--mt-panel:rgba(10,15,25,.82);--mt-border:rgba(0,229,255,.34);--mt-accent:#00e5ff;--mt-danger:#ff003c;--mt-ok:#00d084;--mt-text:#d8f3ff;background:radial-gradient(circle at center,#0a0f19 0%,#050508 100%);border:1px solid rgba(20,80,98,.4);border-radius:14px;box-shadow:inset 0 0 18px rgba(0,229,255,.05),0 12px 26px rgba(1,8,14,.32);color:var(--mt-text);font-family:"Space Mono","Consolas","Courier New",monospace;padding:14px;position:relative;overflow:visible;isolation:isolate}
+          .mt-root{--mt-bg:#050508;--mt-panel:rgba(10,15,25,.82);--mt-border:rgba(0,229,255,.34);--mt-accent:#00e5ff;--mt-danger:#ff003c;--mt-ok:#00d084;--mt-text:#d8f3ff;background:
+            radial-gradient(900px 620px at 50% 0%, rgba(56, 189, 248, 0.18), transparent 44%),
+            radial-gradient(760px 540px at 50% 92%, rgba(59, 130, 246, 0.14), transparent 58%),
+            linear-gradient(180deg, rgba(6, 11, 26, 0.78), rgba(3, 7, 18, 0.95)),
+            url('/tela%20de%20fundo%20treino.png');
+            background-repeat:no-repeat,no-repeat,no-repeat,no-repeat;background-position:center top,center center,center center,center 42%;background-size:auto,auto,auto,cover;border:1px solid rgba(20,80,98,.4);border-radius:14px;box-shadow:inset 0 0 18px rgba(0,229,255,.05),0 12px 26px rgba(1,8,14,.32);color:var(--mt-text);font-family:"Space Mono","Consolas","Courier New",monospace;padding:14px;position:relative;overflow:visible;isolation:isolate}
           .mt-root *{box-sizing:border-box}
           .mt-root::before{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 50%,rgba(0,0,0,.14) 50%);background-size:100% 4px;pointer-events:none;opacity:.35}
           .mt-header-block{margin-bottom:16px;padding:16px;background:rgba(10,20,32,.6);border:1px solid var(--mt-border);border-radius:12px;box-shadow:inset 0 0 20px rgba(0,229,255,.05)}
@@ -933,7 +938,7 @@ class MissoesTreinoApp {
           @keyframes radarFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
           @keyframes trackShine{0%{transform:translateX(0)}100%{transform:translateX(420px)}}
           @media (max-width:1024px){.mt-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
-          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}.mt-performance-wrap{grid-template-columns:1fr}.mt-list{grid-template-columns:1fr}.mt-fab-floating{right:12px;bottom:12px;width:52px;height:52px}}
+          @media (max-width:720px){.mt-header{align-items:center}.mt-brand{min-width:0}.mt-title{font-size:.9rem}.mt-date{font-size:.64rem}.mt-row{grid-template-columns:1fr}.mt-card-actions{flex-wrap:wrap}.mt-fab-wrap{flex-wrap:wrap}.mt-performance-wrap{grid-template-columns:1fr}.mt-list{grid-template-columns:1fr}.mt-fab-floating{right:12px;bottom:12px;width:52px;height:52px}.mt-root{background-position:center top,center center,center center,center 52%}}
           @keyframes mt-title-pulse{0%,100%{text-shadow:0 0 5px rgba(0,229,255,.35),0 0 10px rgba(0,229,255,.2)}50%{text-shadow:0 0 8px rgba(0,229,255,.6),0 0 18px rgba(0,229,255,.35)}}
           @keyframes mt-chroma{0%,78%,100%{opacity:.1;transform:translateX(0)}80%{opacity:.25;transform:translateX(1px)}82%{opacity:.18;transform:translateX(-1px)}}
           @keyframes mt-today-pulse{0%,100%{transform:translateY(0) scale(1);box-shadow:0 0 0 1px rgba(255,95,31,.38),0 0 12px rgba(255,95,31,.3),inset 0 0 8px rgba(255,95,31,.14)}50%{transform:translateY(-2px) scale(1.008);box-shadow:0 0 0 1px rgba(255,95,31,.55),0 0 20px rgba(255,95,31,.5),inset 0 0 12px rgba(255,95,31,.2)}}
