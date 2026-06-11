@@ -5962,12 +5962,6 @@
                                 </div>
                             </div>
                         </div>
-                        <span class="app-title">${escapeHtml(app.title || 'Aplicacao')}</span>
-                        <div class="app-meta-row">
-                            <span class="app-chip">${escapeHtml(this.getAppCategoryLabel(app))}</span>
-                            <span class="app-chip app-chip--status" data-app-status-id="${escapeHtml(app.id)}" data-api-status="checking">${escapeHtml(this.getAppStatusLabel(app))}</span>
-                        </div>
-                        <p class="app-desc">${escapeHtml(this.getAppPreviewDescription(app))}</p>
                         <span class="app-open-hint">Abrir modulo <i class="fas fa-arrow-right"></i></span>
                     </div>
                 `).join('');
@@ -6091,7 +6085,7 @@
                     { duration: 0.55, delay: delayPattern, easing: 'cubic-bezier(.2,.8,.2,1)' }
                 );
                 cards.forEach((card) => {
-                    const details = card.querySelectorAll('.app-title, .app-meta-row, .app-desc, .app-open-hint');
+                    const details = card.querySelectorAll('.app-open-hint');
                     if (details.length) {
                         const detailsDelay = helpers.stagger ? helpers.stagger(0.03, { startDelay: 0.08 }) : 0.12;
                         helpers.animate(
