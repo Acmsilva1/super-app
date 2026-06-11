@@ -6089,7 +6089,15 @@
                     { duration: 0.55, delay: delayPattern, easing: 'cubic-bezier(.2,.8,.2,1)' }
                 );
                 cards.forEach((card) => {
+                    const icon = card.querySelector('.app-icon-box');
                     const details = card.querySelectorAll('.app-open-hint');
+                    if (icon) {
+                        helpers.animate(
+                            icon,
+                            { opacity: [0, 1], scale: [0.82, 1] },
+                            { duration: 0.4, delay: 0.05, easing: 'ease-out' }
+                        );
+                    }
                     if (details.length) {
                         const detailsDelay = helpers.stagger ? helpers.stagger(0.03, { startDelay: 0.08 }) : 0.12;
                         helpers.animate(
