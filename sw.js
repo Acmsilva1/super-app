@@ -2,13 +2,15 @@
  * Service Worker - SUPERAPP PWA
  * Incrementar CACHE_VERSION a cada deploy/commit para invalidar cache e forcar atualizacao.
  */
-const CACHE_VERSION = '2026-05-11-mt-tabs-scroll';
+const CACHE_VERSION = '2026-06-11-home-branding-reset';
 const CACHE_NAME = 'superapp-' + CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/components/home-branding.js',
+  '/logo%20home.png',
   '/icon-192.png',
   '/icon-512.png'
 ];

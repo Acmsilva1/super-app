@@ -38,6 +38,7 @@ function setAutosaveStatus(text, isErr) {
     const el = ce("autosave-status");
     if (!el) return;
     el.textContent = text || "";
+    el.dataset.state = text && /carreg|loading|salv/i.test(text) ? "loading" : "";
     if (isErr) {
         el.style.color = "#b91c1c";
         return;
@@ -73,7 +74,7 @@ function askProjectName({
                     </div>
                 </div>
                 <div class="app-form">
-                    <label for="flux-project-name-input" style="position:absolute;left:-9999px;">${title}</label>
+                    <label for="flux-project-name-input" style="width:1px;height:1px;margin:-1px;border:0;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;">${title}</label>
                     <input
                         id="flux-project-name-input"
                         type="text"
@@ -203,6 +204,14 @@ export async function initFluxogramaApp(mod) {
         editor.style.minHeight = "0";
     }
 
+    function setHubLoadingState(isLoading, message = "Carregando projetos...") {
+        if (!hubStatus) return;
+        hubStatus.dataset.state = isLoading ? "loading" : "";
+        hubStatus.innerHTML = isLoading
+            ? `<span class="flux-loading-chip"><i class="fas fa-spinner spinner" aria-hidden="true"></i><span>${message}</span></span>`
+            : "";
+    }
+
     async function enterEditor() {
         showEditor();
         await new Promise((resolve) => {
@@ -240,6 +249,7 @@ export async function initFluxogramaApp(mod) {
         const errEl = document.getElementById("flux-hub-error");
         if (errEl) errEl.textContent = "";
         try {
+            setHubLoadingState(true, "Carregando projeto...");
             const data = await fetchJson("/api/fluxograma?id=" + encodeURIComponent(pid));
             const p = data.project;
             if (!p) throw new Error("Projeto não encontrado");
@@ -252,6 +262,8 @@ export async function initFluxogramaApp(mod) {
             setAutosaveStatus("");
         } catch (e) {
             if (errEl) errEl.textContent = e.message || String(e);
+        } finally {
+            setHubLoadingState(false);
         }
     }
 
@@ -369,6 +381,7 @@ export async function initFluxogramaApp(mod) {
         const errEl = document.getElementById("flux-hub-error");
         if (errEl) errEl.textContent = "";
         try {
+            setHubLoadingState(true, "Carregando projetos...");
             if (forceRefresh || cachedProjects.length === 0) {
                 const data = await fetchJson("/api/fluxograma");
                 cachedProjects = data.projects || [];
@@ -377,6 +390,8 @@ export async function initFluxogramaApp(mod) {
         } catch (e) {
             if (hubStatus) hubStatus.textContent = "";
             if (errEl) errEl.textContent = "Não foi possível listar projetos: " + (e.message || String(e));
+        } finally {
+            setHubLoadingState(false);
         }
     }
 

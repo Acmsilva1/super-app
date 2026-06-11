@@ -557,7 +557,8 @@ class MissoesTreinoApp {
 
     if (this.isLoading) {
       this.listEl.innerHTML = `
-        <div class="mt-empty-card">
+        <div class="mt-empty-card mt-loading-state">
+          <i class="fas fa-spinner spinner" aria-hidden="true"></i>
           <p class="mt-empty-title">SINCRONIZANDO...</p>
           <p class="mt-empty-text">Aguarde enquanto carregamos do banco.</p>
         </div>
