@@ -48,8 +48,8 @@
                 radial-gradient(900px 640px at 50% 84%, rgba(59, 130, 246, 0.08), transparent 62%),
                 url('/logo%20home.png');
             background-repeat: no-repeat, no-repeat, no-repeat;
-            background-position: center top, center center, center center;
-            background-size: auto, auto, cover;
+            background-position: center top, center center, center 7%;
+            background-size: auto, auto, min(62vw, 640px);
             background-color: #030712;
             color: var(--text-dark);
             line-height: 1.6;
@@ -130,8 +130,8 @@
                 radial-gradient(1200px 760px at 50% 0%, rgba(59, 130, 246, 0.12), transparent 50%),
                 url('/logo%20home.png');
             background-repeat: no-repeat, no-repeat, no-repeat;
-            background-position: center top, center center, center 18%;
-            background-size: auto, auto, cover;
+            background-position: center top, center center, center 6%;
+            background-size: auto, auto, min(60vw, 620px);
             background-color: #020617;
         }
 
@@ -165,8 +165,8 @@
                 radial-gradient(1100px 760px at 50% 0%, rgba(37, 99, 235, 0.12), transparent 50%),
                 url('/logo%20home.png');
             background-repeat: no-repeat, no-repeat, no-repeat;
-            background-position: center top, center center, center 14%;
-            background-size: auto, auto, cover;
+            background-position: center top, center center, center 8%;
+            background-size: auto, auto, min(62vw, 640px);
             background-color: #eff6ff;
             color: #0f172a;
         }
@@ -360,6 +360,23 @@
             [data-theme="light"] body {
                 background-size: auto, auto, cover;
                 background-position: center top, center center, center 12%;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            body {
+                background-position: center top, center center, center 4%;
+                background-size: auto, auto, min(56vw, 560px);
+            }
+
+            [data-theme="dark"] body {
+                background-position: center top, center center, center 3%;
+                background-size: auto, auto, min(54vw, 540px);
+            }
+
+            [data-theme="light"] body {
+                background-position: center top, center center, center 4%;
+                background-size: auto, auto, min(56vw, 560px);
             }
         }
 
@@ -1083,24 +1100,6 @@
         .roadmap-empty-text {
             color: #dbeafe;
             font-weight: 600;
-        }
-
-        /* FOOTER */
-        footer {
-            background: linear-gradient(180deg, rgba(6, 15, 32, 0.70), rgba(3, 9, 20, 0.82));
-            border-top: 1px solid rgba(56, 189, 248, 0.22);
-            color: white;
-            padding: 2rem 1rem;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-
-        footer p {
-            margin-bottom: 0.5rem;
-        }
-
-        footer .heart {
-            color: #ef4444;
         }
 
         /* APP WINDOWS */
@@ -5692,12 +5691,6 @@
             </div>
         </div>
     </section>
-
-    <!-- FOOTER -->
-    <footer>
-        <p> 2026 SUPERAPP - Plataforma de Microservios</p>
-        <p>Desenvolvido para produtividade</p>
-    </footer>
 
     <!-- APP WINDOWS CONTAINER -->
     <div id="windowsContainer"></div>
