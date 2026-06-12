@@ -6080,8 +6080,9 @@
             }
             renderApps() {
                 const container = document.getElementById('appsContainer');
+                const apps = this.apps.filter((app) => !this.isRemovedLegacyApp(app?.id));
 
-                if (this.apps.length === 0) {
+                if (apps.length === 0) {
                     container.innerHTML = `
                         <div class="empty-state">
                             <div>
@@ -6096,7 +6097,7 @@
                     return;
                 }
 
-                container.innerHTML = this.apps.map((app, idx) => `
+                container.innerHTML = apps.map((app, idx) => `
                 <div class="app-card" data-tone="${this.getAppTone(app, idx)}" style="--card-i:${idx};" onclick="superApp.launchApp('${app.id}')">
                         <div class="app-header">
                             <div class="app-icon-wrap">
@@ -6113,6 +6114,11 @@
                 this.refreshAppApiStatuses();
             }
 
+            isRemovedLegacyApp(appId) {
+                const id = String(appId || '').toLowerCase();
+                return id === 'vendas' || id === 'saude';
+            }
+
             getAppHealthUrl(app) {
                 const explicit = String(app?.health_path || '').trim();
                 if (explicit) return explicit;
@@ -6126,7 +6132,7 @@
             }
 
             async refreshAppApiStatuses() {
-                const checks = this.apps.map(async (app) => {
+                const checks = this.apps.filter((app) => !this.isRemovedLegacyApp(app?.id)).map(async (app) => {
                     const appId = String(app.id || '');
                     const badge = Array.from(document.querySelectorAll('[data-app-status-id]'))
                         .find((node) => node.dataset.appStatusId === appId);
@@ -6514,6 +6520,10 @@
             }
 
             launchApp(appId) {
+                if (this.isRemovedLegacyApp(appId)) {
+                    console.warn(`O modulo legado "${appId}" foi removido do shell atual.`);
+                    return;
+                }
                 if (this.openWindows.has(appId)) {
                     return;
                 }
@@ -9505,7 +9515,9 @@
              * Exemplo: superApp.setApps(dataFromBackend)
              */
             setApps(apps) {
-                this.apps = apps;
+                this.apps = Array.isArray(apps)
+                    ? apps.filter((app) => !this.isRemovedLegacyApp(app?.id))
+                    : [];
                 this.renderApps();
             }
 
