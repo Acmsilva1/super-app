@@ -6656,6 +6656,7 @@
 
 
             renderVendasContent(el, data) {
+                return;
                 const recipes = data.recipes || [];
                 const history = data.history || [];
                 const activeTab = el.getAttribute('data-vendas-tab') || 'pricing';
@@ -6691,6 +6692,7 @@
             }
 
             renderVendasPricing(formEl, mainEl, recipes, rootEl) {
+                return;
                 const selectedId = rootEl._vendasSelectedRecipeId;
                 const selectedRecipe = recipes.find(r => r.id == selectedId);
                 let currentType = rootEl._vendasTempType || 'gramas';
@@ -6870,6 +6872,7 @@
             }
 
             openVendasRecipeModal(recipeId, recipes, isEdit = false) {
+                return;
                 const recipe = recipes.find(r => r.id == recipeId);
                 if (!recipe) return;
 
@@ -7004,6 +7007,7 @@
             }
 
             renderVendasSales(formEl, mainEl, history, recipes, rootEl) {
+                return;
                 const totalSales = history.length;
                 const revenue = history.reduce((sum, s) => sum + Number(s.valor), 0);
                 const avg = totalSales ? revenue / totalSales : 0;
@@ -9020,6 +9024,7 @@
                 return s.length >= 5 ? s.slice(0, 5) : s;
             }
             renderSaudeContent(el, data) {
+                return;
                 const rows = data.rows || data.registros || [];
                 const tipos = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
                 const LS_SAU = 'saude_colunas_collapsed';
@@ -9120,6 +9125,7 @@
             }
 
             openSaudeModal(el, { item = null } = {}) {
+                return;
                 const tiposStd = ['Vacina', 'Exame', 'Consulta', 'Medicamento'];
                 const saudeTipoOpts = tiposStd.map((t) => '<option value="' + t + '">' + t + '</option>').join('');
                 const editingId = item?.id != null ? String(item.id) : '';
@@ -9201,6 +9207,7 @@
             }
 
             async submitSaudePayload({ editingId = '', membro_familia, tipo_registro, detalhes, data_evento, hora_evento }) {
+                return false;
                 if (data_evento && !/^\d{4}-\d{2}-\d{2}$/.test(data_evento)) {
                     alert('Data inválida.');
                     return false;
@@ -9223,6 +9230,7 @@
                 }
             }
             async submitSaudeDelete(id, el) {
+                return;
                 if (!id) return;
                 if (!confirm('Excluir este registro? Não é possível desfazer.')) return;
                 try {
