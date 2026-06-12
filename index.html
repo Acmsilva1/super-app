@@ -6575,6 +6575,16 @@
                 const d = new Date(y, m - 2, 1);
                 return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             }
+            async callRemovedApi(moduleName) {
+                const message = `O modulo legado "${moduleName}" foi removido do shell atual.`;
+                console.warn(message);
+                return {
+                    ok: false,
+                    status: 410,
+                    text: async () => JSON.stringify({ error: message }),
+                    json: async () => ({ error: message }),
+                };
+            }
             async loadAppContent(appId, contentEl) {
                 if (contentEl && typeof contentEl._cleanup === 'function') {
                     contentEl._cleanup();
@@ -6802,11 +6812,7 @@
                     const preco_final = parseFloat(formEl.querySelector('#v_new_recipe_price').value) || 0;
                     const porcoes = parseInt(formEl.querySelector('#v_new_recipe_portions').value) || 1;
                     if (!nome) return;
-                    const res = await fetch('/api/vendas?type=receitas', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nome, ingredientes: [], custo_total: 0, margem_lucro: 0, preco_final, porcoes })
-                    });
+                    const res = await this.callRemovedApi('vendas');
                     if (res.ok) {
                         this.refreshAppContent('vendas');
                     } else {
@@ -6840,11 +6846,7 @@
                         const updatedIngs = [...(selectedRecipe.ingredientes || []), newIng];
                         const newTotal = updatedIngs.reduce((sum, ing) => sum + ((ing.volume / ing.recipe) * ing.unitPrice), 0);
 
-                        const res = await fetch('/api/vendas?type=receitas', {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: selectedId, ingredientes: updatedIngs, custo_total: newTotal, margem_lucro: 0, preco_final: newTotal })
-                        });
+                        const res = await this.callRemovedApi('vendas');
                         if (res.ok) {
                             this.refreshAppContent('vendas');
                         } else {
@@ -6861,10 +6863,7 @@
                 mainEl.querySelectorAll('.vendas-btn-del').forEach(btn => {
                     btn.onclick = async () => {
                         if (!confirm('Excluir esta receita permanentemente?')) return;
-                        const res = await fetch('/api/vendas?type=receitas', {
-                            method: 'DELETE',
-                            body: JSON.stringify({ id: btn.dataset.id })
-                        });
+                        const res = await this.callRemovedApi('vendas');
                         if (res.ok) this.refreshAppContent('vendas');
                     };
                 });
@@ -6983,11 +6982,7 @@
                             
                             const newCost = updatedIngs.reduce((sum, ing) => sum + ((ing.volume / ing.recipe) * ing.unitPrice), 0);
 
-                            const res = await fetch('/api/vendas?type=receitas', {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ id: recipe.id, ingredientes: updatedIngs, custo_total: newCost, preco_final: newPrice, porcoes: newPortions, margem_lucro: 0 })
-                            });
+                            const res = await this.callRemovedApi('vendas');
                             if (res.ok) {
                                 modal.remove();
                                 this.refreshAppContent('vendas');
@@ -7196,16 +7191,7 @@
                         const valorTotal = rootEl._vendasBasket.reduce((sum, i) => sum + i.valor, 0);
                         const qtdTotal = rootEl._vendasBasket.reduce((sum, i) => sum + i.quantidade, 0);
 
-                        const res = await fetch('/api/vendas?type=historico', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                cliente, 
-                                sabor: saborConsolidado, 
-                                valor: valorTotal, 
-                                quantidade: qtdTotal 
-                            })
-                        });
+                        const res = await this.callRemovedApi('vendas');
 
                         if (!res.ok) throw new Error('Erro no servidor');
                         
@@ -7225,10 +7211,7 @@
                 mainEl.querySelectorAll('.vendas-btn-del').forEach(btn => {
                     btn.onclick = async () => {
                         if (!confirm('Excluir esta venda do histórico?')) return;
-                        const res = await fetch('/api/vendas?type=historico', {
-                            method: 'DELETE',
-                            body: JSON.stringify({ id: btn.dataset.id })
-                        });
+                        const res = await this.callRemovedApi('vendas');
                         if (res.ok) this.refreshAppContent('vendas');
                     };
                 });
@@ -9225,10 +9208,10 @@
                 if (!String(membro_familia || '').trim()) { alert('Membro é obrigatório'); return false; }
                 try {
                     if (editingId) {
-                        const res = await fetch('/api/saude', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingId, membro_familia, tipo_registro, detalhes, data_evento, hora_evento }) });
+                        const res = await this.callRemovedApi('saude');
                         if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao atualizar'));
                     } else {
-                        const res = await fetch('/api/saude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membro_familia, tipo_registro, detalhes, data_evento, hora_evento: hora_evento || undefined }) });
+                        const res = await this.callRemovedApi('saude');
                         if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao salvar'));
                     }
                     await this.refreshAppContent('saude');
@@ -9243,7 +9226,7 @@
                 if (!id) return;
                 if (!confirm('Excluir este registro? Não é possível desfazer.')) return;
                 try {
-                    const res = await fetch('/api/saude', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+                    const res = await this.callRemovedApi('saude');
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir'));
                     delete el.dataset.saudeEditingId;
                     await this.refreshAppContent('saude');

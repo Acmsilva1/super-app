@@ -14,6 +14,12 @@ export {
   CATEGORIAS_RECEITA,
 } from './model/financeiro.js';
 
+export {
+  MAPA_CATEGORIAS,
+  CATEGORIAS_FORM,
+  LancamentoFinanca,
+} from '../financas/model/lancamento.js';
+
 
 
 export {
@@ -38,3 +44,12 @@ export {
   payloadUpdateFinanceiro,
   getBrazilTodayIso,
 } from './service/financeiroService.js';
+
+export {
+  payloadInsert as payloadInsertLancamento,
+  payloadUpdate as payloadUpdateLancamento,
+  categorizarBi,
+  processarBi,
+  renderizarExtratoTotais,
+  parseRowsSupabase as parseRowsLancamento,
+} from '../financas/service/financasService.js';
