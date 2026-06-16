@@ -6822,8 +6822,6 @@
                     const piorMesFinal = piorMes?.mes_ano ? piorMes : piorMesFallback;
                     const despesasReceitasPctMes = mensal.receitas > 0 ? (Number(mensal.despesas_totais || 0) / Number(mensal.receitas || 1)) * 100 : 0;
                     const despesasReceitasPctAno = yearSummary.receitas > 0 ? (Number(yearSummary.despesas_totais || 0) / Number(yearSummary.receitas || 1)) * 100 : 0;
-                    const fixasPctReceita = mensal.receitas > 0 ? (Number(mensal.despesas_fixas || 0) / Number(mensal.receitas || 1)) * 100 : 0;
-                    const variaveisPctReceita = mensal.receitas > 0 ? (Number(mensal.despesas_variadas || 0) / Number(mensal.receitas || 1)) * 100 : 0;
                     const formatPercent = (value) => `${Number(value || 0).toFixed(1)}%`;
                     const cardMonthLabel = String(periodo.mes_ano || mesAno);
                     const cardBestRef = melhorMesFinal?.mes_ano ? `Referência: ${String(melhorMesFinal.mes_ano)}` : 'Referência: sem histórico';
@@ -6900,9 +6898,9 @@
                                     <div class="finance-analista-card__value">${escapeHtml(cardVariableMonth)}</div>
                                 </article>
                                 <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">7 - Despesas sobre receitas</span>
-                                    <span class="finance-analista-card__ref">Referência: mês atual</span>
-                                    <div class="finance-analista-card__value">${escapeHtml(formatPercent(despesasReceitasPctMes))}</div>
+                                    <span class="finance-analista-card__label">7 - Despesas sobre receitas no ano</span>
+                                    <span class="finance-analista-card__ref">Referência: acumulado anual</span>
+                                    <div class="finance-analista-card__value">${escapeHtml(formatPercent(despesasReceitasPctAno))}</div>
                                 </article>
                             </div>
                             <section class="finance-analista-card">
