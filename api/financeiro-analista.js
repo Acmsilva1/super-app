@@ -259,7 +259,10 @@ export default async function handler(req, res) {
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erro interno no analista financeiro';
+    const message = error?.message
+      || error?.error?.message
+      || error?.details
+      || 'Erro interno no analista financeiro';
     return json(res, 500, { error: message });
   }
 }
