@@ -6769,6 +6769,12 @@
                         ? `${String(topCategoria.categoria)} lidera as despesas variáveis com ${this.formatMoneyBr(Number(topCategoria.valor || 0))}.`
                         : 'Ainda não há categoria suficiente para identificar o principal foco de gasto.';
                     const fixasRatio = Number(mensal?.fixas_ratio_receitas || 0);
+                    const pressaoFixasTexto = `As despesas fixas consomem ${fixasRatio.toFixed(1)}% da receita do mês.`;
+                    const pressaoFixasImpacto = fixasRatio >= 50
+                        ? 'Isso reduz a folga para variáveis e pode apertar o fechamento.'
+                        : fixasRatio >= 35
+                            ? 'É um nível moderado e ainda sob controle.'
+                            : 'É um nível saudável e deixa mais espaço para o restante do mês.';
                     const alivioMotivo = String(comparativos?.alivio_motivo || '');
                     const alivioTexto = alivioMotivo === 'despesas_fixas_controladas'
                         ? 'O mês aliviou porque as despesas fixas ficaram abaixo da média do ano.'
@@ -6796,6 +6802,9 @@
                         : comparativos?.alivio_motivo === 'receita_compensou'
                             ? 'O mês aliviou porque a receita compensou.'
                             : 'Sem alívio claro no período.';
+                    const mlLeituraResumo = historico.length
+                        ? `Leitura do ML: compara ${historico.length} mês(es) em receita e despesa lado a lado para destacar tendência, oscilação e fechamento mais apertado ou mais folgado.`
+                        : 'Leitura do ML: ainda não há histórico suficiente para um comparativo confiável.';
                     panel.innerHTML = `
                         <div class="finance-analista-bi">
                             <section class="finance-analista-card">
@@ -6810,14 +6819,14 @@
                                         <small>Previsão de gasto final do mês. ${escapeHtml(topCategoriaTexto)}</small>
                                     </div>
                                     <div class="finance-analista-kpi">
-                                        <span>Indicador rápido</span>
-                                        <strong>${fixasRatio.toFixed(1)}% fixas</strong>
-                                        <small>${escapeHtml(monthSummaryText)}</small>
+                                        <span>Pressão das fixas</span>
+                                        <strong>${fixasRatio.toFixed(1)}%</strong>
+                                        <small>${escapeHtml(pressaoFixasTexto)} ${escapeHtml(pressaoFixasImpacto)}</small>
                                     </div>
                                 </div>
                                 <div class="finance-analista-chart" style="margin-top:0.75rem; min-height:220px;">
                                     <h4>Projeção do mês</h4>
-                                    <div id="financeiro-analista-chart-month" style="width:100%;height:180px;"></div>
+                                    <div id="financeiro-analista-chart-month" style="width:100%;height:220px;"></div>
                                 </div>
                             </section>
                             <section class="finance-analista-card">
@@ -6826,7 +6835,8 @@
                                 <div class="finance-analista-card__meta">${escapeHtml(comparativeSub)} | ${escapeHtml(comparativoInsight)}</div>
                                 <div class="finance-analista-chart" style="margin-top:0.75rem; min-height:220px;">
                                     <h4>Meses anteriores</h4>
-                                    <div id="financeiro-analista-chart-comparativo" style="width:100%;height:180px;"></div>
+                                    <div id="financeiro-analista-chart-comparativo" style="width:100%;height:240px;"></div>
+                                    <div class="finance-analista-card__meta" style="margin-top:0.5rem;">${escapeHtml(mlLeituraResumo)}</div>
                                 </div>
                             </section>
                             <section class="finance-analista-card">
@@ -6912,18 +6922,25 @@
                                         ].join('<br/>');
                                     },
                                 },
-                                grid: { left: 8, right: 8, top: 18, bottom: 20, containLabel: true },
+                                grid: { left: 8, right: 8, top: 12, bottom: 12, containLabel: true },
                                 xAxis: {
                                     type: 'category',
                                     data: ['Receita', 'Despesa', 'Saldo'],
                                     axisLabel: { color: '#94a3b8' },
                                     axisTick: { show: false },
+                                    axisLine: { show: false },
                                 },
-                                yAxis: { type: 'value', axisLabel: { color: '#94a3b8' } },
+                                yAxis: {
+                                    type: 'value',
+                                    axisLabel: { color: '#94a3b8' },
+                                    splitLine: { show: false },
+                                    axisTick: { show: false },
+                                    axisLine: { show: false },
+                                },
                                 series: [{
                                     type: 'bar',
                                     data: monthBars,
-                                    barMaxWidth: 38,
+                                    barWidth: 48,
                                     label: {
                                         show: true,
                                         position: 'top',
@@ -6931,8 +6948,9 @@
                                         fontWeight: 700,
                                         formatter: (params) => formatMoney(params?.value),
                                     },
+                                    emphasis: { focus: 'series' },
                                     itemStyle: {
-                                        borderRadius: [8, 8, 0, 0],
+                                        borderRadius: [12, 12, 0, 0],
                                     },
                                 }],
                             });
@@ -6945,48 +6963,93 @@
                                 chart = echarts.init(chartComparativoNode);
                                 el._financeiroAnalistaChartComparativo = chart;
                             }
-                            const historicoComparativo = historicoOrdenado.slice(-5);
-                            const comparativoValores = historicoComparativo.map((item) => ({
+                            const historicoComparativo = historicoOrdenado.map((item) => ({
                                 ...item,
                                 saldo_real: Number.isFinite(item.saldo_real) ? item.saldo_real : Number(item.receitas_total || 0) - Number(item.despesas_totais || 0),
                             }));
+                            const labelsComparativo = historicoComparativo.map((item) => item.mes_ano);
+                            const receitasComparativo = historicoComparativo.map((item) => Number(item.receitas_total || 0));
+                            const despesasComparativo = historicoComparativo.map((item) => Number(item.despesas_totais || 0));
                             chart.setOption({
                                 animationDuration: 750,
+                                legend: {
+                                    show: true,
+                                    top: 0,
+                                    left: 0,
+                                    textStyle: { color: '#cbd5e1', fontSize: 11 },
+                                    itemWidth: 12,
+                                    itemHeight: 10,
+                                },
                                 tooltip: {
                                     trigger: 'axis',
                                     axisPointer: { type: 'shadow' },
                                     formatter: (items) => {
-                                        const i = items?.[0];
-                                        if (!i) return '';
-                                        return `${escapeHtml(String(i.name || ''))}<br/>Saldo: ${formatMoney(Number(i.value || 0))}`;
+                                        if (!items?.length) return '';
+                                        const month = String(items[0]?.axisValue || '');
+                                        const receita = items.find((item) => item.seriesName === 'Receita');
+                                        const despesa = items.find((item) => item.seriesName === 'Despesa');
+                                        const saldo = Number(receita?.value || 0) - Number(despesa?.value || 0);
+                                        return [
+                                            `<strong>${escapeHtml(month)}</strong>`,
+                                            `Receita: ${formatMoney(receita?.value)}`,
+                                            `Despesa: ${formatMoney(despesa?.value)}`,
+                                            `Saldo estimado: ${formatMoney(saldo)}`,
+                                        ].join('<br/>');
                                     },
                                 },
-                                grid: { left: 8, right: 8, top: 20, bottom: 18, containLabel: true },
+                                grid: { left: 8, right: 8, top: 34, bottom: 14, containLabel: true },
                                 xAxis: {
                                     type: 'category',
-                                    data: comparativoValores.map((item) => item.mes_ano),
+                                    data: labelsComparativo,
                                     axisLabel: { color: '#94a3b8', interval: 0 },
                                     axisTick: { show: false },
+                                    axisLine: { show: false },
                                 },
-                                yAxis: { type: 'value', axisLabel: { color: '#94a3b8' } },
-                                series: [{
-                                    type: 'bar',
-                                    data: comparativoValores.map((item) => ({
-                                        value: item.saldo_real,
-                                        itemStyle: { color: item.saldo_real >= 0 ? '#22c55e' : '#fb7185' },
-                                    })),
-                                    barMaxWidth: 28,
-                                    label: {
-                                        show: true,
-                                        position: 'top',
-                                        color: '#e2e8f0',
-                                        fontWeight: 700,
-                                        formatter: (params) => formatMoney(params?.value),
+                                yAxis: {
+                                    type: 'value',
+                                    axisLabel: { color: '#94a3b8' },
+                                    splitLine: { show: false },
+                                    axisTick: { show: false },
+                                    axisLine: { show: false },
+                                },
+                                series: [
+                                    {
+                                        name: 'Receita',
+                                        type: 'bar',
+                                        data: receitasComparativo,
+                                        barWidth: 18,
+                                        barGap: '28%',
+                                        barCategoryGap: '36%',
+                                        label: {
+                                            show: true,
+                                            position: 'top',
+                                            color: '#dcfce7',
+                                            fontWeight: 700,
+                                            formatter: (params) => formatMoney(params?.value),
+                                        },
+                                        itemStyle: {
+                                            color: '#22c55e',
+                                            borderRadius: [10, 10, 0, 0],
+                                        },
                                     },
-                                    itemStyle: {
-                                        borderRadius: [8, 8, 0, 0],
+                                    {
+                                        name: 'Despesa',
+                                        type: 'bar',
+                                        data: despesasComparativo,
+                                        barWidth: 18,
+                                        label: {
+                                            show: true,
+                                            position: 'top',
+                                            color: '#fee2e2',
+                                            fontWeight: 700,
+                                            formatter: (params) => formatMoney(params?.value),
+                                        },
+                                        itemStyle: {
+                                            color: '#fb7185',
+                                            borderRadius: [10, 10, 0, 0],
+                                        },
                                     },
-                                }],
+                                ],
                             });
                             chart.resize();
                         }
