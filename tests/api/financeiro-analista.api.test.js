@@ -124,7 +124,7 @@ describe('API do financeiro analista', () => {
     expect(res.body.analista.resumo_mensal.despesas_totais).toBe(1600);
     expect(res.body.analista.modelo.pesos).toBeTruthy();
     expect(res.body.aprendizado).toBeTruthy();
-    expect(res.body.aprendizado.percentual).toBeGreaterThan(0);
+    expect(res.body.aprendizado.percentual).toBe(0);
     expect(res.body.aprendizado.historico.length).toBeGreaterThanOrEqual(4);
     expect(res.body.aprendizado.feature_id).toBe(1001);
     expect(res.body.aprendizado.analysis_id).toBe(2001);

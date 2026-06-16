@@ -470,8 +470,19 @@ function identificarPossiveisErros({ features, projection, historico = [], previ
 function calcularNivelAprendizado({ historico = [], feedback = null, adaptiveWeights = null, learningHistory = [] } = {}) {
   const historicoSeguro = Array.isArray(historico) ? historico.filter(Boolean) : [];
   const learningSeguro = Array.isArray(learningHistory) ? learningHistory.filter(Boolean) : [];
+  const ciclosAprendizado = learningSeguro.length;
+  if (ciclosAprendizado === 0) {
+    return {
+      percentual: 0,
+      ciclos_processados: 0,
+      meses_analisados: historicoSeguro.length,
+      cobertura: 0,
+      consistencia: 0,
+      qualidade_erro: 0,
+      adaptacao: 0,
+    };
+  }
   const ciclosHistorico = Math.max(1, historicoSeguro.length);
-  const ciclosAprendizado = learningSeguro.length > 0 ? learningSeguro.length : ciclosHistorico;
   const coverage = clamp(ciclosAprendizado / 24, 0, 1);
   const recentScores = learningSeguro
     .slice(0, 6)
@@ -483,10 +494,8 @@ function calcularNivelAprendizado({ historico = [], feedback = null, adaptiveWei
   const errorQuality = feedback?.tem_feedback ? clamp(1 - Math.min(1, Math.abs(safeNumber(feedback?.saldo_erro_pct)) / 0.5), 0, 1) : 0.4;
   const adaptation = adaptiveWeights?.ajuste_motivos ? clamp(adaptiveWeights.ajuste_motivos.length / 10, 0, 1) : 0.25;
   const rawPercent = round2((coverage * 0.5 + consistency * 0.25 + errorQuality * 0.15 + adaptation * 0.1) * 100);
-  const floor = (learningSeguro.length > 0 || historicoSeguro.length > 0 || feedback?.tem_feedback || adaptiveWeights?.ajuste_motivos?.length) ? 15 : 8;
-  const percent = Math.max(floor, rawPercent);
   return {
-    percentual: clamp(percent, 0, 100),
+    percentual: clamp(rawPercent, 0, 100),
     ciclos_processados: ciclosAprendizado,
     meses_analisados: ciclosHistorico,
     cobertura: coverage,

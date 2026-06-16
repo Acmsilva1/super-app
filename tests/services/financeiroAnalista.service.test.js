@@ -80,7 +80,7 @@ describe('financeiroAnalistaService', () => {
     expect(out.modelo.pesos.despesas_fixas).toBeGreaterThan(baseline.despesas_fixas);
   });
 
-  it('mantem aprendizado acima de zero mesmo no primeiro ciclo', () => {
+  it('zera aprendizado quando ainda nao houve ciclo real', () => {
     const out = buildFinanceiroAnalise({
       mesAno: '2026-06',
       todayIso: '2026-06-16',
@@ -89,7 +89,7 @@ describe('financeiroAnalistaService', () => {
       despesasFixasMes: [{ valor: 500 }],
     });
 
-    expect(out.modelo.aprendizado.ciclos_processados).toBeGreaterThanOrEqual(1);
-    expect(out.modelo.aprendizado.percentual).toBeGreaterThan(0);
+    expect(out.modelo.aprendizado.ciclos_processados).toBe(0);
+    expect(out.modelo.aprendizado.percentual).toBe(0);
   });
 });
