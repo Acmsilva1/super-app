@@ -6918,6 +6918,13 @@
                         const chartMonthNode = panel.querySelector('#financeiro-analista-chart-month');
                         const chartComparativoReceitasNode = panel.querySelector('#financeiro-analista-chart-comparativo-receitas');
                         const chartComparativoDespesasNode = panel.querySelector('#financeiro-analista-chart-comparativo-despesas');
+                        const formatAxisMoney = (value) => {
+                            const num = Number(value || 0);
+                            if (!Number.isFinite(num)) return 'R$ 0';
+                            if (Math.abs(num) >= 1000000) return `R$ ${(num / 1000000).toFixed(1)}M`;
+                            if (Math.abs(num) >= 1000) return `R$ ${(num / 1000).toFixed(1)}k`;
+                            return `R$ ${num.toFixed(0)}`;
+                        };
 
                         const historicoOrdenado = historico
                             .map((item) => ({
@@ -7008,13 +7015,6 @@
                                 }
                             const labelsComparativo = historicoOrdenado.map((item) => item.mes_ano);
                             const receitasComparativo = historicoOrdenado.map((item) => Number(item.receitas_total || 0));
-                            const formatAxisMoney = (value) => {
-                                const num = Number(value || 0);
-                                if (!Number.isFinite(num)) return 'R$ 0';
-                                if (Math.abs(num) >= 1000000) return `R$ ${(num / 1000000).toFixed(1)}M`;
-                                if (Math.abs(num) >= 1000) return `R$ ${(num / 1000).toFixed(1)}k`;
-                                return `R$ ${num.toFixed(0)}`;
-                            };
                             chart.setOption({
                                 animationDuration: 750,
                                 legend: {
