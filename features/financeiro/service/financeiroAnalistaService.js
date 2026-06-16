@@ -398,11 +398,14 @@ function identificarPossiveisErros({ features, projection, historico = [], previ
 }
 
 function calcularNivelAprendizado({ historico = [], feedback = null, adaptiveWeights = null } = {}) {
-  const ciclos = historico.length;
+  const historicoSeguro = Array.isArray(historico) ? historico.filter(Boolean) : [];
+  const ciclos = Math.max(1, historicoSeguro.length);
   const coverage = clamp(ciclos / 12, 0, 1);
   const errorQuality = feedback?.tem_feedback ? clamp(1 - Math.min(1, Math.abs(safeNumber(feedback?.saldo_erro_pct)) / 0.75), 0, 1) : 0.35;
   const adaptation = adaptiveWeights?.ajuste_motivos ? clamp(adaptiveWeights.ajuste_motivos.length / 8, 0, 1) : 0.2;
-  const percent = round2((coverage * 0.45 + errorQuality * 0.35 + adaptation * 0.2) * 100);
+  const rawPercent = round2((coverage * 0.45 + errorQuality * 0.35 + adaptation * 0.2) * 100);
+  const floor = historicoSeguro.length > 0 || feedback?.tem_feedback || adaptiveWeights?.ajuste_motivos?.length ? 12 : 8;
+  const percent = Math.max(floor, rawPercent);
   return {
     percentual: clamp(percent, 0, 100),
     ciclos_processados: ciclos,
@@ -529,6 +532,7 @@ export function buildFinanceiroAnalise({
   todayIso = getBrazilTodayIso(),
   pesos = defaultFinanceiroPesos(),
   previousState = null,
+  allowLearning = true,
 } = {}) {
   const { ano, mes } = parseMesAno(mesAno);
   const monthKey = monthLabel(ano, mes);
@@ -614,7 +618,9 @@ export function buildFinanceiroAnalise({
     top_category: topCategory,
   });
   const feedback = construirFinanceiroFeedback({ previousState, features });
-  const adaptiveWeights = ajustarFinanceiroPesos(pesos, feedback, features);
+  const adaptiveWeights = allowLearning
+    ? ajustarFinanceiroPesos(pesos, feedback, features)
+    : normalizarFinanceiroPesos(pesos);
   const riskScore = calcularFinanceiroRiscoScore(features, adaptiveWeights);
   const oscilacaoHistorica = calcularOscilacaoHistorica(historico);
   const nivelAprendizado = calcularNivelAprendizado({ historico, feedback, adaptiveWeights });
@@ -690,6 +696,7 @@ export function buildFinanceiroAnalise({
       feedback,
       score_risco: riskScore,
       aprendizado: nivelAprendizado,
+      modo_aprendizado: allowLearning ? 'ativo' : 'somente_cron',
     },
     possiveis_erros: possiveisErros,
     metadados: {
@@ -697,6 +704,7 @@ export function buildFinanceiroAnalise({
       top_category: topCategory,
       generated_at: todayIso,
       previous_cycle: Boolean(previousState),
+      allow_learning: allowLearning,
     },
   };
 }

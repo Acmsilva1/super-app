@@ -79,4 +79,17 @@ describe('financeiroAnalistaService', () => {
     expect(out.modelo.feedback.saldo_erro).toBeLessThan(0);
     expect(out.modelo.pesos.despesas_fixas).toBeGreaterThan(baseline.despesas_fixas);
   });
+
+  it('mantem aprendizado acima de zero mesmo no primeiro ciclo', () => {
+    const out = buildFinanceiroAnalise({
+      mesAno: '2026-06',
+      todayIso: '2026-06-16',
+      receitasMes: [{ valor: 2000 }],
+      gastosMes: [{ valor: 700, categoria: 'Mercado' }],
+      despesasFixasMes: [{ valor: 500 }],
+    });
+
+    expect(out.modelo.aprendizado.ciclos_processados).toBeGreaterThanOrEqual(1);
+    expect(out.modelo.aprendizado.percentual).toBeGreaterThan(0);
+  });
 });

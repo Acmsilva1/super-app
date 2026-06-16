@@ -127,7 +127,7 @@ async function persistMonthlyRecord(table, payload, conflictKey = 'mes_ano') {
   throw insert.error;
 }
 
-async function getHistoricalFeatures(limit = 6) {
+async function getHistoricalFeatures(limit = 12) {
   const query = supabase.from(TABLE_FINANCEIRO_FEATURES_MENSAIS).select('*');
   if (query && typeof query.order === 'function' && typeof query.limit === 'function') {
     return query.order('created_at', { ascending: false }).limit(limit);
@@ -147,6 +147,7 @@ export default async function handler(req, res) {
     }
 
     const mesAno = String(req.query?.mes_ano || '').trim() || new Date().toISOString().slice(0, 7);
+    const allowLearning = String(req.query?.learn || '') === '1';
     const { ano, mes } = parseMesAno(mesAno);
     const { start, end } = rangeMes(ano, mes);
     const yearStart = new Date(ano, 0, 1).toISOString();
@@ -160,7 +161,7 @@ export default async function handler(req, res) {
       prevMes
         ? supabase.from(TABLE_FINANCEIRO_FEATURES_MENSAIS).select('*').eq('mes_ano', prevMes).limit(1)
         : Promise.resolve({ data: [], error: null }),
-      getHistoricalFeatures(6),
+      getHistoricalFeatures(12),
     ]);
 
     const yearFinancas = yearFinancasResult.data || [];
@@ -197,6 +198,7 @@ export default async function handler(req, res) {
       historico: historyRows,
       pesos: baseWeights,
       previousState,
+      allowLearning,
     });
 
     const featurePayload = buildFeaturePayload({
@@ -230,6 +232,7 @@ export default async function handler(req, res) {
         feature_id: featureRow?.id ?? null,
       },
       modelo_versao: analise.modelo?.versao || 'financeiro-adaptive-v1',
+      modo_aprendizado: analise.modelo?.modo_aprendizado || 'somente_cron',
     };
     const analysisRow = await persistMonthlyRecord(TABLE_FINANCEIRO_ANALISES, analysisPayload, 'mes_ano');
 
@@ -243,6 +246,7 @@ export default async function handler(req, res) {
       },
       analista: analise,
       aprendizado: {
+        ...(analise?.modelo?.aprendizado || {}),
         feature_id: featureRow?.id ?? null,
         analysis_id: analysisRow?.id ?? null,
         previous_cycle: Boolean(previousState),
