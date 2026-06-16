@@ -33,6 +33,7 @@ export {
   parseMesAno,
   rangeMes,
   normalizeFinanceiroCategoriaText,
+  canonicalFinanceiroCategoriaLabel,
   filtrarFinancasPorMes,
   classificarFinancas,
   calcularDashboard,

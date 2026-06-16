@@ -8,6 +8,7 @@ import {
   TABLE_FINANCEIRO_MODELO_ESTADO,
   buildFinanceiroAnalise,
   classificarFinancas,
+  canonicalFinanceiroCategoriaLabel,
   defaultFinanceiroPesos,
   getBrazilTodayIso,
   filtrarFinancasPorMes,
@@ -95,9 +96,9 @@ function buildHistoricoMensalAno({ financasRows = [], fixasRows = [] } = {}) {
       for (const gasto of item.gastos || []) {
         const categoria = String(gasto?.categoria || 'Sem categoria').trim() || 'Sem categoria';
         const key = normalizeFinanceiroCategoriaText(categoria);
-        const current = categoryTotals.get(key) || { categoria, valor: 0 };
+        const current = categoryTotals.get(key) || { categoria: canonicalFinanceiroCategoriaLabel(categoria), valor: 0 };
         const nextValue = Number(current.valor || 0) + Number(gasto?.valor || 0);
-        categoryTotals.set(key, { categoria: current.categoria || categoria, valor: Number(nextValue.toFixed(2)) });
+        categoryTotals.set(key, { categoria: current.categoria || canonicalFinanceiroCategoriaLabel(categoria), valor: Number(nextValue.toFixed(2)) });
       }
       const topCategoria = [...categoryTotals.values()]
         .sort((a, b) => b.valor - a.valor)[0] || null;

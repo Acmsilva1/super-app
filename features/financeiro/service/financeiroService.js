@@ -29,6 +29,25 @@ export function normalizeFinanceiroCategoriaText(value) {
     .replace(/\s+/g, ' ');
 }
 
+export function canonicalFinanceiroCategoriaLabel(value) {
+  const key = normalizeFinanceiroCategoriaText(value);
+  const map = {
+    alimentacao: 'Alimenta\u00e7\u00e3o',
+    habitacao: 'Habita\u00e7\u00e3o',
+    transporte: 'Transporte',
+    lazer: 'Lazer',
+    saude: 'Sa\u00fade',
+    ticket: 'Ticket',
+    compras: 'Compras',
+    contas: 'Contas',
+    outros: 'Outros',
+    outro: 'Outro',
+    salario: 'Sal\u00e1rio',
+    beneficio: 'Benef\u00edcio',
+  };
+  return map[key] || String(value || '').trim();
+}
+
 export function inferTipoRegistro(body = {}) {
   const explicit = String(body.tipo_registro || '').trim();
   if (explicit) return explicit;
@@ -148,9 +167,9 @@ export function calcularGraficos({ gastosRows, despesasFixasRows }) {
   for (const row of gastosRows || []) {
     const categoriaRaw = String(row?.categoria || 'Sem categoria').trim() || 'Sem categoria';
     const categoriaKey = normalizeFinanceiroCategoriaText(categoriaRaw);
-    const current = categoriaMap.get(categoriaKey) || { categoria: categoriaRaw, valor: 0 };
+    const current = categoriaMap.get(categoriaKey) || { categoria: canonicalFinanceiroCategoriaLabel(categoriaRaw), valor: 0 };
     categoriaMap.set(categoriaKey, {
-      categoria: current.categoria || categoriaRaw,
+      categoria: current.categoria || canonicalFinanceiroCategoriaLabel(categoriaRaw),
       valor: Math.round(((Number(current.valor) || 0) + (Number(row?.valor) || 0)) * 100) / 100,
     });
   }
@@ -232,7 +251,7 @@ export function payloadInsertFinanceiro(body = {}) {
       descricao: String(body.descricao || '').trim(),
       valor: Math.round((Number(body.valor) || 0) * 100) / 100,
       tipo,
-      categoria: body.categoria || null,
+      categoria: body.categoria ? canonicalFinanceiroCategoriaLabel(body.categoria) : null,
       data_lancamento: body.data_lancamento || getBrazilTodayIso(),
       ...(body.created_at !== undefined ? { created_at: String(body.created_at || '').trim() || null } : {}),
     };
@@ -325,7 +344,7 @@ export function payloadUpdateFinanceiro(body = {}) {
     const out = {};
     if (body.descricao !== undefined) out.descricao = String(body.descricao).trim();
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
-    if (body.categoria !== undefined) out.categoria = body.categoria || null;
+    if (body.categoria !== undefined) out.categoria = body.categoria ? canonicalFinanceiroCategoriaLabel(body.categoria) : null;
     if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
     if (body.created_at !== undefined) out.created_at = String(body.created_at || '').trim() || null;
     out.tipo = tipoRegistro === TIPO_REGISTRO_RECEITA ? 'receita' : 'despesa';

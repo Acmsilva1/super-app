@@ -116,9 +116,9 @@ describe('financeiroAnalistaService', () => {
     });
 
     expect(out.categorias_mes).toHaveLength(2);
-    expect(out.categorias_mes[0].categoria).toBe('Saude');
+    expect(out.categorias_mes[0].categoria).toBe('Saúde');
     expect(out.categorias_mes[0].valor).toBe(1200);
-    expect(out.categorias_mes[1].categoria).toBe('Alimentacao');
+    expect(out.categorias_mes[1].categoria).toBe('Alimentação');
     expect(out.categorias_mes[1].valor).toBe(500);
   });
 });

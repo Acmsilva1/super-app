@@ -17,11 +17,11 @@ export const STATUS_PAGO = 'pago';
 export const STATUS_PENDENTE = 'pendente';
 
 export const CATEGORIAS_GASTO_VARIADO = [
-  'Alimentacao',
-  'Habitacao',
+  'Alimenta\u00e7\u00e3o',
+  'Habita\u00e7\u00e3o',
   'Transporte',
   'Lazer',
-  'Saude',
+  'Sa\u00fade',
   'Ticket',
   'Compras',
   'Contas',
@@ -29,8 +29,8 @@ export const CATEGORIAS_GASTO_VARIADO = [
 ];
 
 export const CATEGORIAS_RECEITA = [
-  'Salário',
-  'Benefício',
+  'Sal\u00e1rio',
+  'Benef\u00edcio',
   'Ticket',
   'Outro',
 ];

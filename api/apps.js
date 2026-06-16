@@ -36,7 +36,7 @@ export const APPS = [
     status: 'active',
     title: 'Missoes de Treino',
     description: 'Controle diario de missoes com API de acompanhamento, progresso e historico.',
-    category: 'Saude',
+    category: 'Sa\u00fade',
     health_path: '/api/missoes-treino?health=1',
   },
 ];

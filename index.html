@@ -6486,7 +6486,7 @@
                         <td class="col-desc"><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong><div style="font-size:0.72rem;color:#9ca3af;margin-top:0.15rem;">${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` às ${escapeHtml(hora)}` : ''}</div></td>
                         <td class="col-status"><span class="finance-status-toggle ${String(r.tipo_registro) === 'receita' ? 'is-paid' : 'is-pending'}" aria-label="${String(r.tipo_registro) === 'receita' ? 'Receita' : 'Despesa'}">${String(r.tipo_registro) === 'receita' ? 'Receita' : 'Despesa'}</span></td>
                         <td class="col-valor" style="color:${String(r.tipo_registro) === 'receita' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
-                        <td class="col-categoria">${escapeHtml(r.categoria || '--')}</td>
+                        <td class="col-categoria">${escapeHtml(canonicalFinanceiroCategoriaLabel(r.categoria || '--'))}</td>
                         <td class="col-actions">
                             <div class="app-list-actions">
                                 <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="${escapeHtml(r.tipo_registro || 'gasto_variado')}">Editar</button>
@@ -6535,7 +6535,7 @@
                 gastosVariados.forEach((g) => {
                     const categoriaRaw = String(g.categoria || 'Sem categoria').trim() || 'Sem categoria';
                     const categoriaKey = normalizeFinanceiroCategoriaText(categoriaRaw);
-                    if (!gastosCategoriaMap.has(categoriaKey)) gastosCategoriaMap.set(categoriaKey, categoriaRaw);
+                    if (!gastosCategoriaMap.has(categoriaKey)) gastosCategoriaMap.set(categoriaKey, canonicalFinanceiroCategoriaLabel(categoriaRaw));
                 });
                 const activeGastosCategoria = gastosCategoriaMap.has(activeGastosCategoriaKey)
                     ? activeGastosCategoriaKey
@@ -6834,10 +6834,39 @@
                     const categoriasAno = Array.isArray(analise?.categorias_ano) ? analise.categorias_ano : [];
                     const historicoDetalhado = Array.isArray(analise?.historico_detalhado) ? analise.historico_detalhado : [];
                     const resumoHistorico = comparativos?.resumo_historico || {};
+                    const canonicalFinanceiroCategoriaLabel = (value) => {
+                        const key = normalizeFinanceiroCategoriaText(value);
+                        const labels = {
+                            alimentacao: 'Alimenta\u00e7\u00e3o',
+                            habitacao: 'Habita\u00e7\u00e3o',
+                            transporte: 'Transporte',
+                            lazer: 'Lazer',
+                            saude: 'Sa\u00fade',
+                            ticket: 'Ticket',
+                            compras: 'Compras',
+                            contas: 'Contas',
+                            outros: 'Outros',
+                            outro: 'Outro',
+                            salario: 'Sal\u00e1rio',
+                            beneficio: 'Benef\u00edcio',
+                        };
+                        return labels[key] || String(value || '').trim();
+                    };
+                    const categoriasAnoNormalizadas = [...categoriasAno].reduce((acc, item) => {
+                        const raw = String(item?.categoria || '—').trim() || '—';
+                        const key = normalizeFinanceiroCategoriaText(raw);
+                        const current = acc.get(key) || { categoria: canonicalFinanceiroCategoriaLabel(raw), valor: 0 };
+                        acc.set(key, {
+                            categoria: current.categoria || canonicalFinanceiroCategoriaLabel(raw),
+                            valor: Number((Number(current.valor || 0) + Number(item?.valor || 0)).toFixed(2)),
+                        });
+                        return acc;
+                    }, new Map());
+                    const categoriasAnoBase = [...categoriasAnoNormalizadas.values()];
                     const topCategoria = topCategorias[0] || null;
                     const topCategoriaMes = categoriasMes[0] || topCategoria || null;
-                    const categoriaMaisGastaAno = [...categoriasAno].sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))[0] || topCategoriaMes || null;
-                    const categoriaMenosGastaAno = [...categoriasAno].sort((a, b) => Number(a?.valor || 0) - Number(b?.valor || 0))[0] || null;
+                    const categoriaMaisGastaAno = [...categoriasAnoBase].sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))[0] || topCategoriaMes || null;
+                    const categoriaMenosGastaAno = [...categoriasAnoBase].sort((a, b) => Number(a?.valor || 0) - Number(b?.valor || 0))[0] || null;
                     const melhorMes = resumoHistorico?.melhor_mes || null;
                     const piorMes = resumoHistorico?.pior_mes || null;
                     const melhorMesFallback = historicoDetalhado.reduce((acc, item) => (Number(item?.saldo || 0) > Number(acc?.saldo || Number.NEGATIVE_INFINITY) ? item : acc), null);
@@ -6904,7 +6933,7 @@
                                 </tr>
                             `).join('')
                         : '<tr><td colspan="7">Sem histórico suficiente para montar a tabela de meses.</td></tr>';
-                    const categoriasRows = [...categoriasAno]
+                    const categoriasRows = [...categoriasAnoBase]
                         .sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))
                         .map((item) => `
                                 <tr>
@@ -7749,8 +7778,8 @@
                 }
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const pad = (n) => String(n).padStart(2, '0');
-                const gastoCategorias = ['Alimentacao','Habitacao','Transporte','Lazer','Saude','Ticket','Compras','Contas','Outros'];
-                const receitaCategorias = ['Salário','Benefício','Ticket','Outro'];
+                const gastoCategorias = ['Alimenta\u00e7\u00e3o','Habita\u00e7\u00e3o','Transporte','Lazer','Sa\u00fade','Ticket','Compras','Contas','Outros'];
+                const receitaCategorias = ['Sal\u00e1rio','Benef\u00edcio','Ticket','Outro'];
                 const tipoRegistro = item?.tipo_registro || defaultTipo || 'gasto_variado';
                 const metodoPagamentoInit = tipoRegistro === 'gasto_variado'
                     ? (String(item?.metodo_pagamento || '').trim() || (item ? 'credito' : 'debito_pix'))

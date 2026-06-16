@@ -1,5 +1,6 @@
 import {
   calcularDashboard,
+  canonicalFinanceiroCategoriaLabel,
   getBrazilTodayIso,
   parseMesAno,
   normalizeFinanceiroCategoriaText,
@@ -28,9 +29,9 @@ function groupByCategory(rows) {
   for (const row of rows || []) {
     const categoria = normalizeCategory(row?.categoria);
     const key = normalizeFinanceiroCategoriaText(categoria);
-    const current = map.get(key) || { categoria, valor: 0 };
+    const current = map.get(key) || { categoria: canonicalFinanceiroCategoriaLabel(categoria), valor: 0 };
     map.set(key, {
-      categoria: current.categoria || categoria,
+      categoria: current.categoria || canonicalFinanceiroCategoriaLabel(categoria),
       valor: round2((current.valor || 0) + safeNumber(row?.valor)),
     });
   }
