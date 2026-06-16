@@ -58,7 +58,8 @@ function isFutureMesAno(mesAno, referenceMesAno) {
 
 function isRealLearningState(row) {
   return String(row?.origem || '') === 'cron_aprendizado'
-    && String(row?.metadados?.allow_learning ?? true) !== 'false';
+    && String(row?.metadados?.allow_learning ?? true) !== 'false'
+    && String(row?.metadados?.cron_run ?? false) === 'true';
 }
 
 function buildHistoricoMensalAno({ financasRows = [], fixasRows = [] } = {}) {
@@ -235,6 +236,7 @@ export default async function handler(req, res) {
 
     const mesAno = String(req.query?.mes_ano || '').trim() || new Date().toISOString().slice(0, 7);
     const allowLearning = String(req.query?.learn || '') === '1';
+    const cronRun = String(req.query?.cron || '') === '1';
     const generatedAt = new Date().toISOString();
     const referenciaAtualMesAno = getBrazilTodayIso().slice(0, 7);
     const { ano, mes } = parseMesAno(mesAno);
@@ -377,6 +379,7 @@ export default async function handler(req, res) {
         risco_classificado: analise.modelo?.score_risco?.classificado || 'baixo',
         aprendizado_percentual: analise.modelo?.aprendizado?.percentual ?? 0,
         allow_learning: allowLearning,
+        cron_run: cronRun,
       },
     });
 
@@ -404,6 +407,7 @@ export default async function handler(req, res) {
           generated_at: generatedAt,
           modelo_versao: analise.modelo?.versao || 'financeiro-adaptive-v1',
           allow_learning: allowLearning,
+          cron_run: cronRun,
         },
       });
     }

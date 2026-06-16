@@ -6866,7 +6866,16 @@
                                 <div class="finance-analista-card__meta">${escapeHtml(comparativeSub)} | ${escapeHtml(comparativoInsight)}</div>
                                 <div class="finance-analista-chart" style="margin-top:0.75rem; min-height:220px;">
                                     <h4>Meses anteriores</h4>
-                                    <div id="financeiro-analista-chart-comparativo" style="width:100%;height:240px;"></div>
+                                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.75rem;">
+                                        <div style="min-height:180px;">
+                                            <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.04em;color:#93c5fd;margin-bottom:0.35rem;">Receitas do ano</div>
+                                            <div id="financeiro-analista-chart-comparativo-receitas" style="width:100%;height:180px;"></div>
+                                        </div>
+                                        <div style="min-height:180px;">
+                                            <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.04em;color:#fda4af;margin-bottom:0.35rem;">Despesas do ano</div>
+                                            <div id="financeiro-analista-chart-comparativo-despesas" style="width:100%;height:180px;"></div>
+                                        </div>
+                                    </div>
                                     <div class="finance-analista-card__meta" style="margin-top:0.5rem;">${escapeHtml(mlLeituraResumo)}</div>
                                 </div>
                             </section>
@@ -6907,7 +6916,8 @@
 
                     requestAnimationFrame(() => {
                         const chartMonthNode = panel.querySelector('#financeiro-analista-chart-month');
-                        const chartComparativoNode = panel.querySelector('#financeiro-analista-chart-comparativo');
+                        const chartComparativoReceitasNode = panel.querySelector('#financeiro-analista-chart-comparativo-receitas');
+                        const chartComparativoDespesasNode = panel.querySelector('#financeiro-analista-chart-comparativo-despesas');
 
                         const historicoOrdenado = historico
                             .map((item) => ({
@@ -6990,19 +7000,14 @@
                             chart.resize();
                         }
 
-                        if (chartComparativoNode) {
-                            let chart = el._financeiroAnalistaChartComparativo;
+                        if (chartComparativoReceitasNode) {
+                            let chart = el._financeiroAnalistaChartComparativoReceitas;
                             if (!chart || chart.isDisposed?.()) {
-                                chart = echarts.init(chartComparativoNode);
-                                el._financeiroAnalistaChartComparativo = chart;
+                                chart = echarts.init(chartComparativoReceitasNode);
+                                el._financeiroAnalistaChartComparativoReceitas = chart;
                             }
-                            const historicoComparativo = historicoOrdenado.map((item) => ({
-                                ...item,
-                                saldo_real: Number.isFinite(item.saldo_real) ? item.saldo_real : Number(item.receitas_total || 0) - Number(item.despesas_totais || 0),
-                            }));
-                            const labelsComparativo = historicoComparativo.map((item) => item.mes_ano);
-                            const receitasComparativo = historicoComparativo.map((item) => Number(item.receitas_total || 0));
-                            const despesasComparativo = historicoComparativo.map((item) => Number(item.despesas_totais || 0));
+                            const labelsComparativo = historicoOrdenado.map((item) => item.mes_ano);
+                            const receitasComparativo = historicoOrdenado.map((item) => Number(item.receitas_total || 0));
                             const formatAxisMoney = (value) => {
                                 const num = Number(value || 0);
                                 if (!Number.isFinite(num)) return 'R$ 0';
@@ -7027,17 +7032,13 @@
                                         if (!items?.length) return '';
                                         const month = String(items[0]?.axisValue || '');
                                         const receita = items.find((item) => item.seriesName === 'Receita');
-                                        const despesa = items.find((item) => item.seriesName === 'Despesa');
-                                        const saldo = Number(receita?.value || 0) - Number(despesa?.value || 0);
                                         return [
                                             `<strong>${escapeHtml(month)}</strong>`,
                                             `Receita: ${formatMoney(receita?.value)}`,
-                                            `Despesa: ${formatMoney(despesa?.value)}`,
-                                            `Saldo estimado: ${formatMoney(saldo)}`,
                                         ].join('<br/>');
                                     },
                                 },
-                                grid: { left: 64, right: 20, top: 34, bottom: 14, containLabel: true },
+                                grid: { left: 64, right: 20, top: 28, bottom: 14, containLabel: true },
                                 xAxis: {
                                     type: 'value',
                                     axisLabel: {
@@ -7060,9 +7061,7 @@
                                         name: 'Receita',
                                         type: 'bar',
                                         data: receitasComparativo,
-                                        barWidth: 14,
-                                        barGap: '28%',
-                                        barCategoryGap: '42%',
+                                        barWidth: 12,
                                         label: {
                                             show: true,
                                             position: 'right',
@@ -7075,11 +7074,58 @@
                                             borderRadius: [0, 10, 10, 0],
                                         },
                                     },
+                                ],
+                            });
+                            chart.resize();
+                        }
+
+                        if (chartComparativoDespesasNode) {
+                            let chart = el._financeiroAnalistaChartComparativoDespesas;
+                            if (!chart || chart.isDisposed?.()) {
+                                chart = echarts.init(chartComparativoDespesasNode);
+                                el._financeiroAnalistaChartComparativoDespesas = chart;
+                            }
+                            const labelsComparativo = historicoOrdenado.map((item) => item.mes_ano);
+                            const despesasComparativo = historicoOrdenado.map((item) => Number(item.despesas_totais || 0));
+                            chart.setOption({
+                                animationDuration: 750,
+                                tooltip: {
+                                    trigger: 'axis',
+                                    axisPointer: { type: 'shadow' },
+                                    formatter: (items) => {
+                                        if (!items?.length) return '';
+                                        const month = String(items[0]?.axisValue || '');
+                                        const despesa = items.find((item) => item.seriesName === 'Despesa');
+                                        return [
+                                            `<strong>${escapeHtml(month)}</strong>`,
+                                            `Despesa: ${formatMoney(despesa?.value)}`,
+                                        ].join('<br/>');
+                                    },
+                                },
+                                grid: { left: 64, right: 20, top: 28, bottom: 14, containLabel: true },
+                                xAxis: {
+                                    type: 'value',
+                                    axisLabel: {
+                                        color: '#94a3b8',
+                                        formatter: (value) => formatAxisMoney(value),
+                                    },
+                                    splitLine: { show: false },
+                                    axisTick: { show: false },
+                                    axisLine: { show: false },
+                                },
+                                yAxis: {
+                                    type: 'category',
+                                    data: labelsComparativo,
+                                    axisLabel: { color: '#94a3b8', interval: 0 },
+                                    axisTick: { show: false },
+                                    axisLine: { show: false },
+                                },
+                                series: [
                                     {
                                         name: 'Despesa',
                                         type: 'bar',
                                         data: despesasComparativo,
-                                        barWidth: 14,
+                                        barWidth: 12,
                                         label: {
                                             show: true,
                                             position: 'right',

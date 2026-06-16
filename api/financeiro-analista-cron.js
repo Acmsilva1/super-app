@@ -8,6 +8,7 @@ export default async function handler(req, res) {
       ...(req.query || {}),
       mes_ano: mesAnoAtual,
       learn: '1',
+      cron: '1',
     },
   };
 
