@@ -6815,23 +6815,18 @@
                     const resumoHistorico = comparativos?.resumo_historico || {};
                     const melhorMes = resumoHistorico?.melhor_mes || null;
                     const piorMes = resumoHistorico?.pior_mes || null;
+                    const projectedVariavelValue = projecao?.despesas_variaveis_projetadas !== null && projecao?.despesas_variaveis_projetadas !== undefined
+                        ? Number(projecao.despesas_variaveis_projetadas || 0)
+                        : Number(mensal.despesas_variadas || 0);
                     const monthSummaryText = projecao?.ativa
-                        ? `Mantido o ritmo atual, o mês tende a fechar em ${this.formatMoneyBr(Number(projecao.saldo_projetado || 0))}.`
-                        : `O mês já está fechado em ${this.formatMoneyBr(Number(mensal.saldo || 0))}.`;
-                    const monthForecast = projecao?.saldo_projetado !== null && projecao?.saldo_projetado !== undefined
-                        ? this.formatMoneyBr(Number(projecao.saldo_projetado || 0))
-                        : this.formatMoneyBr(Number(mensal.saldo || 0));
-                    const despesaProjetada = projecao?.despesas_projetadas !== null && projecao?.despesas_projetadas !== undefined
-                        ? this.formatMoneyBr(Number(projecao.despesas_projetadas || 0))
-                        : this.formatMoneyBr(Number(mensal.despesas_totais || 0));
-                    const fixasProjetadas = projecao?.despesas_fixas_projetadas !== null && projecao?.despesas_fixas_projetadas !== undefined
-                        ? this.formatMoneyBr(Number(projecao.despesas_fixas_projetadas || 0))
-                        : this.formatMoneyBr(Number(mensal.despesas_fixas || 0));
-                    const variaveisProjetadas = projecao?.despesas_variaveis_projetadas !== null && projecao?.despesas_variaveis_projetadas !== undefined
+                        ? `Mantido o ritmo atual, o débito / pix tende a fechar em ${this.formatMoneyBr(projectedVariavelValue)}.`
+                        : `O débito / pix já está em ${this.formatMoneyBr(projectedVariavelValue)}.`;
+                    const monthForecast = projecao?.despesas_variaveis_projetadas !== null && projecao?.despesas_variaveis_projetadas !== undefined
                         ? this.formatMoneyBr(Number(projecao.despesas_variaveis_projetadas || 0))
                         : this.formatMoneyBr(Number(mensal.despesas_variadas || 0));
+                    const variaveisProjetadas = monthForecast;
                     const categoriaRisco = String(projecao?.categoria_variavel_risco || topCategoria?.categoria || 'Sem categoria');
-                    const resumoMesDetalhado = `Despesa total projetada: ${despesaProjetada} = fixas ${fixasProjetadas} + débito/pix ${variaveisProjetadas}. Categoria mais pressionada: ${categoriaRisco}.`;
+                    const resumoMesDetalhado = `Projeção de débito / pix: ${variaveisProjetadas}. Fixas seguem estáveis e entram apenas no comparativo e nos gráficos. Categoria mais pressionada: ${categoriaRisco}.`;
                     const comparativeHeadline = melhorMes?.mes_ano
                         ? `Melhor desempenho: ${String(melhorMes.mes_ano)} com ${this.formatMoneyBr(Number(melhorMes.saldo || 0))}`
                         : 'Sem histórico suficiente para apontar o melhor mês';
@@ -6856,7 +6851,7 @@
                                 </div>
                                 <div class="finance-analista-grid">
                                     <div class="finance-analista-kpi">
-                                        <span>Saldo projetado</span>
+                                        <span>Débito / pix projetado</span>
                                         <strong>${escapeHtml(monthForecast)}</strong>
                                         <small>${escapeHtml(monthSummaryText)} ${escapeHtml(resumoMesDetalhado)} ${escapeHtml(topCategoriaTexto)}</small>
                                     </div>
