@@ -11,6 +11,7 @@ import {
   defaultFinanceiroPesos,
   getBrazilTodayIso,
   filtrarFinancasPorMes,
+  normalizeFinanceiroCategoriaText,
   normalizarFinanceiroPesos,
   parseMesAno,
   rangeMes,
@@ -93,11 +94,12 @@ function buildHistoricoMensalAno({ financasRows = [], fixasRows = [] } = {}) {
       const categoryTotals = new Map();
       for (const gasto of item.gastos || []) {
         const categoria = String(gasto?.categoria || 'Sem categoria').trim() || 'Sem categoria';
-        const nextValue = Number(categoryTotals.get(categoria) || 0) + Number(gasto?.valor || 0);
-        categoryTotals.set(categoria, Number(nextValue.toFixed(2)));
+        const key = normalizeFinanceiroCategoriaText(categoria);
+        const current = categoryTotals.get(key) || { categoria, valor: 0 };
+        const nextValue = Number(current.valor || 0) + Number(gasto?.valor || 0);
+        categoryTotals.set(key, { categoria: current.categoria || categoria, valor: Number(nextValue.toFixed(2)) });
       }
-      const topCategoria = [...categoryTotals.entries()]
-        .map(([categoria, valor]) => ({ categoria, valor: Number(valor || 0) }))
+      const topCategoria = [...categoryTotals.values()]
         .sort((a, b) => b.valor - a.valor)[0] || null;
       const dashboard = (() => {
         const receitas = item.receitas.reduce((acc, row) => acc + Number(row?.valor || 0), 0);

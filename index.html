@@ -6402,7 +6402,6 @@
                 const activeTab = ['summary', 'data', 'poupanca', 'analista'].includes(tabRaw) ? tabRaw : 'data';
                 const dataFilterRaw = String(el.getAttribute('data-active-data-filter') || '').toLowerCase();
                 const activeDataFilter = ['despesas_fixas', 'gastos_variados', 'receitas'].includes(dataFilterRaw) ? dataFilterRaw : '';
-                const activeGastosCategoriaRaw = String(el.getAttribute('data-active-gastos-categoria') || '').trim();
                 el.setAttribute('data-active-tab', activeTab);
 
                 const graficos = data.graficos || {};
@@ -6524,11 +6523,25 @@
                 const showImportFixasCallout = fixasEmpty && activeDataFilter === 'despesas_fixas';
                 const isMobileFixas = typeof window !== 'undefined' && window.innerWidth <= 900;
                 const detailsAttr = isMobileFixas ? '' : 'open';
-                const activeGastosCategoria = gastosVariados.some((g) => String(g.categoria || 'Sem categoria') === activeGastosCategoriaRaw)
-                    ? activeGastosCategoriaRaw
+                const normalizeFinanceiroCategoriaText = (value) => String(value || '')
+                    .trim()
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/\s+/g, ' ');
+                const activeGastosCategoriaRaw = String(el.getAttribute('data-active-gastos-categoria') || '').trim();
+                const activeGastosCategoriaKey = normalizeFinanceiroCategoriaText(activeGastosCategoriaRaw);
+                const gastosCategoriaMap = new Map();
+                gastosVariados.forEach((g) => {
+                    const categoriaRaw = String(g.categoria || 'Sem categoria').trim() || 'Sem categoria';
+                    const categoriaKey = normalizeFinanceiroCategoriaText(categoriaRaw);
+                    if (!gastosCategoriaMap.has(categoriaKey)) gastosCategoriaMap.set(categoriaKey, categoriaRaw);
+                });
+                const activeGastosCategoria = gastosCategoriaMap.has(activeGastosCategoriaKey)
+                    ? activeGastosCategoriaKey
                     : '';
                 const gastosVariadosFiltrados = activeGastosCategoria
-                    ? gastosVariados.filter((g) => String(g.categoria || 'Sem categoria') === activeGastosCategoria)
+                    ? gastosVariados.filter((g) => normalizeFinanceiroCategoriaText(g.categoria || 'Sem categoria') === activeGastosCategoria)
                     : gastosVariados;
                 const totalGastosVariadosFiltrado = gastosVariadosFiltrados.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                 const rowsGastosHtml = gastosVariadosFiltrados.length ? gastosVariadosFiltrados.map(mkRowFin).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
@@ -6673,7 +6686,7 @@
                                     ${gastosVariados.length > 0 ? `
                                     <select id="financeiro-filter-categoria-gastos" style="font-size:0.72rem; padding:0.15rem 0.35rem; border-radius:0.4rem; background:transparent; border:1px solid rgba(148, 163, 184, 0.4); color:inherit; outline:none; cursor:pointer;">
                                         <option value="">Todas as categorias</option>
-                                        ${[...new Set(gastosVariados.map(g => g.categoria || 'Sem categoria'))].sort().map(c => `<option value="${escapeHtml(c)}" ${c === activeGastosCategoria ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+                                        ${[...gastosCategoriaMap.entries()].map(([key, label]) => `<option value="${escapeHtml(key)}" ${key === activeGastosCategoria ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}
                                     </select>
                                     ` : ''}
                                 </div>
@@ -7483,7 +7496,7 @@
                         const tbody = el.querySelector('#financeiro-table-gastos');
                         const totalNode = el.querySelector('#financeiro-total-gastos');
                         const filtered = selected
-                            ? gastosVariados.filter(g => (g.categoria || 'Sem categoria') === selected)
+                            ? gastosVariados.filter(g => normalizeFinanceiroCategoriaText(g.categoria || 'Sem categoria') === selected)
                             : gastosVariados;
                         if (totalNode) {
                             const total = filtered.reduce((sum, r) => sum + Number(r.valor || 0), 0);

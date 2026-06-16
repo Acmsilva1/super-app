@@ -92,4 +92,33 @@ describe('financeiroAnalistaService', () => {
     expect(out.modelo.aprendizado.ciclos_processados).toBe(0);
     expect(out.modelo.aprendizado.percentual).toBe(0);
   });
+
+  it('agrupa categorias com e sem acento como a mesma categoria', () => {
+    const out = buildFinanceiroAnalise({
+      mesAno: '2026-06',
+      todayIso: '2026-06-16',
+      receitasMes: [{ valor: 4000 }],
+      gastosMes: [
+        { valor: 500, categoria: 'Saude' },
+        { valor: 700, categoria: 'Saúde' },
+        { valor: 300, categoria: 'Alimentacao' },
+        { valor: 200, categoria: 'Alimentação' },
+      ],
+      despesasFixasMes: [{ valor: 1000 }],
+      receitasAno: [{ valor: 4000 }],
+      gastosAno: [
+        { valor: 500, categoria: 'Saude' },
+        { valor: 700, categoria: 'Saúde' },
+        { valor: 300, categoria: 'Alimentacao' },
+        { valor: 200, categoria: 'Alimentação' },
+      ],
+      despesasFixasAno: [{ valor: 1000 }],
+    });
+
+    expect(out.categorias_mes).toHaveLength(2);
+    expect(out.categorias_mes[0].categoria).toBe('Saude');
+    expect(out.categorias_mes[0].valor).toBe(1200);
+    expect(out.categorias_mes[1].categoria).toBe('Alimentacao');
+    expect(out.categorias_mes[1].valor).toBe(500);
+  });
 });

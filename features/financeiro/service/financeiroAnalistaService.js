@@ -2,6 +2,7 @@ import {
   calcularDashboard,
   getBrazilTodayIso,
   parseMesAno,
+  normalizeFinanceiroCategoriaText,
 } from './financeiroService.js';
 
 function round2(value) {
@@ -26,10 +27,14 @@ function groupByCategory(rows) {
   const map = new Map();
   for (const row of rows || []) {
     const categoria = normalizeCategory(row?.categoria);
-    map.set(categoria, round2((map.get(categoria) || 0) + safeNumber(row?.valor)));
+    const key = normalizeFinanceiroCategoriaText(categoria);
+    const current = map.get(key) || { categoria, valor: 0 };
+    map.set(key, {
+      categoria: current.categoria || categoria,
+      valor: round2((current.valor || 0) + safeNumber(row?.valor)),
+    });
   }
-  return [...map.entries()]
-    .map(([categoria, valor]) => ({ categoria, valor: round2(valor) }))
+  return [...map.values()]
     .sort((a, b) => b.valor - a.valor);
 }
 

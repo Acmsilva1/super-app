@@ -32,6 +32,7 @@ export {
   inferTipoRegistro,
   parseMesAno,
   rangeMes,
+  normalizeFinanceiroCategoriaText,
   filtrarFinancasPorMes,
   classificarFinancas,
   calcularDashboard,

@@ -20,6 +20,15 @@ export function normalizeFinanceiroMetodoPagamento(value) {
   return raw;
 }
 
+export function normalizeFinanceiroCategoriaText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
 export function inferTipoRegistro(body = {}) {
   const explicit = String(body.tipo_registro || '').trim();
   if (explicit) return explicit;
@@ -135,13 +144,17 @@ export function calcularDashboard({ receitasRows, gastosRows, despesasFixasRows 
 }
 
 export function calcularGraficos({ gastosRows, despesasFixasRows }) {
-  const categoriaMap = {};
+  const categoriaMap = new Map();
   for (const row of gastosRows || []) {
-    const categoria = String(row?.categoria || 'Sem categoria');
-    categoriaMap[categoria] = (categoriaMap[categoria] || 0) + (Number(row?.valor) || 0);
+    const categoriaRaw = String(row?.categoria || 'Sem categoria').trim() || 'Sem categoria';
+    const categoriaKey = normalizeFinanceiroCategoriaText(categoriaRaw);
+    const current = categoriaMap.get(categoriaKey) || { categoria: categoriaRaw, valor: 0 };
+    categoriaMap.set(categoriaKey, {
+      categoria: current.categoria || categoriaRaw,
+      valor: Math.round(((Number(current.valor) || 0) + (Number(row?.valor) || 0)) * 100) / 100,
+    });
   }
-  const categorias_gastos = Object.entries(categoriaMap)
-    .map(([categoria, valor]) => ({ categoria, valor: Math.round(valor * 100) / 100 }))
+  const categorias_gastos = [...categoriaMap.values()]
     .sort((a, b) => b.valor - a.valor);
 
   let pago = 0;
