@@ -201,6 +201,14 @@ async function getHistoricalFeatures(limit = 12) {
   return { data: [], error: null };
 }
 
+async function getHistoricalModelState(limit = 24) {
+  const query = supabase.from(TABLE_FINANCEIRO_MODELO_ESTADO).select('*');
+  if (query && typeof query.order === 'function' && typeof query.limit === 'function') {
+    return query.order('created_at', { ascending: false }).limit(limit);
+  }
+  return { data: [], error: null };
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') {
@@ -221,7 +229,7 @@ export default async function handler(req, res) {
     const yearEnd = new Date(ano, 11, 31, 23, 59, 59, 999).toISOString();
     const prevMes = previousMesAno(mesAno);
 
-    const [yearFinancasResult, yearFixasResult, currentFeatureResult, prevFeatureResult, historyFeatureResult] = await Promise.all([
+    const [yearFinancasResult, yearFixasResult, currentFeatureResult, prevFeatureResult, historyFeatureResult, modelStateHistoryResult] = await Promise.all([
       supabase.from(TABLE_FINANCAS).select('*').gte('created_at', yearStart).lte('created_at', yearEnd),
       supabase.from(TABLE_DESPESAS_FIXAS).select('*').gte('created_at', yearStart).lte('created_at', yearEnd),
       supabase.from(TABLE_FINANCEIRO_FEATURES_MENSAIS).select('*').eq('mes_ano', mesAno).limit(1),
@@ -229,6 +237,7 @@ export default async function handler(req, res) {
         ? supabase.from(TABLE_FINANCEIRO_FEATURES_MENSAIS).select('*').eq('mes_ano', prevMes).limit(1)
         : Promise.resolve({ data: [], error: null }),
       getHistoricalFeatures(12),
+      getHistoricalModelState(24),
     ]);
 
     const yearFinancas = yearFinancasResult.data || [];
@@ -238,6 +247,7 @@ export default async function handler(req, res) {
     const currentFeatureRow = rowOrFirst(currentFeatureResult.data);
     const prevFeatureRow = rowOrFirst(prevFeatureResult.data);
     const historyRows = historyFeatureResult.data || [];
+    const modelStateHistoryRows = modelStateHistoryResult.data || [];
 
     if (yearFinancasErr) return json(res, 500, { error: yearFinancasErr.message });
     if (yearFixasErr) return json(res, 500, { error: yearFixasErr.message });
@@ -268,6 +278,7 @@ export default async function handler(req, res) {
       gastosAno,
       despesasFixasAno: yearFixas,
       historico: historicoMensalAno.length ? historicoMensalAno : historyRows,
+      learningHistory: modelStateHistoryRows,
       pesos: baseWeights,
       previousState,
       allowLearning,
@@ -322,6 +333,7 @@ export default async function handler(req, res) {
           ...(analise?.modelo?.aprendizado || {}),
           previous_cycle: Boolean(previousState),
           modo_aprendizado: analise.modelo?.modo_aprendizado || 'somente_cron',
+          ciclos_aprendizado_reais: modelStateHistoryRows.length,
         },
         resumo_mensal: analise.resumo_mensal,
         resumo_anual: analise.resumo_anual,
@@ -401,6 +413,7 @@ export default async function handler(req, res) {
           risco_classificado: String(row?.risco_classificado ?? row?.payload?.modelo?.score_risco?.classificado ?? 'baixo'),
           aprendizado_percentual: Number(row?.payload?.modelo?.aprendizado?.percentual ?? 0),
         })),
+        ciclos_aprendizado_reais: modelStateHistoryRows.length,
       },
     });
   } catch (error) {

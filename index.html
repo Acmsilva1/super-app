@@ -6812,28 +6812,29 @@
                             ? 'O mês aliviou porque a receita compensou a pressão de despesas.'
                             : 'Não houve alívio claro no fechamento parcial do mês.';
                     const monthVsYear = comparativos?.mes_vs_ano || {};
+                    const resumoHistorico = comparativos?.resumo_historico || {};
+                    const melhorMes = resumoHistorico?.melhor_mes || null;
+                    const piorMes = resumoHistorico?.pior_mes || null;
                     const monthSummaryText = projecao?.ativa
                         ? `Mantido o ritmo atual, o mês tende a fechar em ${this.formatMoneyBr(Number(projecao.saldo_projetado || 0))}.`
                         : `O mês já está fechado em ${this.formatMoneyBr(Number(mensal.saldo || 0))}.`;
                     const monthForecast = projecao?.saldo_projetado !== null && projecao?.saldo_projetado !== undefined
                         ? this.formatMoneyBr(Number(projecao.saldo_projetado || 0))
                         : this.formatMoneyBr(Number(mensal.saldo || 0));
-                    const comparativeHeadline = monthVsYear?.receita_vs_media_ano_pct !== undefined
-                        ? `${Number(monthVsYear.receita_vs_media_ano_pct || 0).toFixed(1)}% receita vs média anual`
-                        : 'Sem base anual suficiente';
-                    const comparativeSub = monthVsYear?.despesa_vs_media_ano_pct !== undefined
-                        ? `${Number(monthVsYear.despesa_vs_media_ano_pct || 0).toFixed(1)}% despesa vs média anual`
-                        : 'Comparativo anual indisponível';
+                    const comparativeHeadline = melhorMes?.mes_ano
+                        ? `Melhor desempenho: ${String(melhorMes.mes_ano)} com ${this.formatMoneyBr(Number(melhorMes.saldo || 0))}`
+                        : 'Sem histórico suficiente para apontar o melhor mês';
+                    const comparativeSub = piorMes?.mes_ano
+                        ? `Pior desempenho: ${String(piorMes.mes_ano)} com ${this.formatMoneyBr(Number(piorMes.saldo || 0))}`
+                        : 'Sem histórico suficiente para apontar o pior mês';
                     const historicoRange = historico.length
                         ? `${String(historico[historico.length - 1]?.mes_ano || '')} até ${String(historico[0]?.mes_ano || '')}`
                         : 'Sem histórico suficiente';
-                    const comparativoInsight = comparativos?.alivio_motivo === 'despesas_fixas_controladas'
-                        ? 'O mês aliviou porque as fixas cederam.'
-                        : comparativos?.alivio_motivo === 'receita_compensou'
-                            ? 'O mês aliviou porque a receita compensou.'
-                            : 'Sem alívio claro no período.';
+                    const comparativoInsight = melhorMes?.mes_ano && piorMes?.mes_ano
+                        ? `Análise feita para comparar os meses do histórico e mostrar quem fechou melhor e pior. Critério: saldo real como principal indicador, com receita e despesa como apoio.`
+                        : 'Análise feita para usar o histórico e destacar o mês mais forte e o mais pressionado.';
                     const mlLeituraResumo = historico.length
-                        ? `Leitura do ML: compara ${historico.length} mês(es) em receita e despesa lado a lado para destacar tendência, oscilação e fechamento mais apertado ou mais folgado.`
+                        ? `Leitura do ML: compara ${historico.length} mês(es) para identificar o melhor e o pior desempenho, além de mostrar a pressão das despesas e a força da receita.`
                         : 'Leitura do ML: ainda não há histórico suficiente para um comparativo confiável.';
                     panel.innerHTML = `
                         <div class="finance-analista-bi">
@@ -6872,13 +6873,13 @@
                             <section class="finance-analista-card">
                                 <span class="finance-analista-card__label">Aprendizado do módulo</span>
                                 <div class="finance-analista-card__value">${aprendizadoPct.toFixed(1)}%</div>
-                                <div class="finance-analista-card__meta">Ciclos: ${Number(aprendizado?.ciclos_processados || 0)} | Modelo: ${escapeHtml(String(modelo?.versao || 'financeiro-adaptive-v1'))}</div>
+                                <div class="finance-analista-card__meta">Ciclos de aprendizado: ${Number(aprendizado?.ciclos_aprendizado_reais || aprendizado?.ciclos_processados || 0)} | Meses analisados: ${Number(aprendizado?.meses_analisados || historico.length || 0)} | Modelo: ${escapeHtml(String(modelo?.versao || 'financeiro-adaptive-v1'))}</div>
                                 <div class="finance-analista-progress">
                                     <div class="finance-analista-progress__head">
-                                        <strong>Progresso do aprendizado</strong>
+                                        <strong>Maturidade do modelo</strong>
                                         <span>${aprendizadoPct.toFixed(1)}%</span>
                                     </div>
-                                    <div class="finance-analista-progress__track" aria-label="Progresso do aprendizado do módulo">
+                                    <div class="finance-analista-progress__track" aria-label="Maturidade do modelo financeiro">
                                         <div class="finance-analista-progress__fill" style="width:${Math.max(0, Math.min(100, aprendizadoPct)).toFixed(1)}%;"></div>
                                     </div>
                                     <div class="finance-analista-progress__scale">
@@ -6889,7 +6890,8 @@
                                 </div>
                                 <table class="finance-analista-mini-table">
                                     <tbody>
-                                        <tr><td>Ciclos processados</td><td>${Number(aprendizado?.ciclos_processados || 0)}</td></tr>
+                                        <tr><td>Ciclos de aprendizado</td><td>${Number(aprendizado?.ciclos_aprendizado_reais || aprendizado?.ciclos_processados || 0)}</td></tr>
+                                        <tr><td>Meses analisados</td><td>${Number(aprendizado?.meses_analisados || historico.length || 0)}</td></tr>
                                         <tr><td>Base histórica</td><td>${escapeHtml(historicoRange)}</td></tr>
                                     </tbody>
                                 </table>
@@ -7000,6 +7002,13 @@
                             const labelsComparativo = historicoComparativo.map((item) => item.mes_ano);
                             const receitasComparativo = historicoComparativo.map((item) => Number(item.receitas_total || 0));
                             const despesasComparativo = historicoComparativo.map((item) => Number(item.despesas_totais || 0));
+                            const formatAxisMoney = (value) => {
+                                const num = Number(value || 0);
+                                if (!Number.isFinite(num)) return 'R$ 0';
+                                if (Math.abs(num) >= 1000000) return `R$ ${(num / 1000000).toFixed(1)}M`;
+                                if (Math.abs(num) >= 1000) return `R$ ${(num / 1000).toFixed(1)}k`;
+                                return `R$ ${num.toFixed(0)}`;
+                            };
                             chart.setOption({
                                 animationDuration: 750,
                                 legend: {
@@ -7027,18 +7036,21 @@
                                         ].join('<br/>');
                                     },
                                 },
-                                grid: { left: 8, right: 8, top: 34, bottom: 14, containLabel: true },
+                                grid: { left: 64, right: 20, top: 34, bottom: 14, containLabel: true },
                                 xAxis: {
-                                    type: 'category',
-                                    data: labelsComparativo,
-                                    axisLabel: { color: '#94a3b8', interval: 0 },
+                                    type: 'value',
+                                    axisLabel: {
+                                        color: '#94a3b8',
+                                        formatter: (value) => formatAxisMoney(value),
+                                    },
+                                    splitLine: { show: false },
                                     axisTick: { show: false },
                                     axisLine: { show: false },
                                 },
                                 yAxis: {
-                                    type: 'value',
-                                    axisLabel: { color: '#94a3b8' },
-                                    splitLine: { show: false },
+                                    type: 'category',
+                                    data: labelsComparativo,
+                                    axisLabel: { color: '#94a3b8', interval: 0 },
                                     axisTick: { show: false },
                                     axisLine: { show: false },
                                 },
@@ -7047,36 +7059,36 @@
                                         name: 'Receita',
                                         type: 'bar',
                                         data: receitasComparativo,
-                                        barWidth: 18,
+                                        barWidth: 14,
                                         barGap: '28%',
-                                        barCategoryGap: '36%',
+                                        barCategoryGap: '42%',
                                         label: {
                                             show: true,
-                                            position: 'top',
+                                            position: 'right',
                                             color: '#dcfce7',
                                             fontWeight: 700,
                                             formatter: (params) => formatMoney(params?.value),
                                         },
                                         itemStyle: {
                                             color: '#22c55e',
-                                            borderRadius: [10, 10, 0, 0],
+                                            borderRadius: [0, 10, 10, 0],
                                         },
                                     },
                                     {
                                         name: 'Despesa',
                                         type: 'bar',
                                         data: despesasComparativo,
-                                        barWidth: 18,
+                                        barWidth: 14,
                                         label: {
                                             show: true,
-                                            position: 'top',
+                                            position: 'right',
                                             color: '#fee2e2',
                                             fontWeight: 700,
                                             formatter: (params) => formatMoney(params?.value),
                                         },
                                         itemStyle: {
                                             color: '#fb7185',
-                                            borderRadius: [10, 10, 0, 0],
+                                            borderRadius: [0, 10, 10, 0],
                                         },
                                     },
                                 ],

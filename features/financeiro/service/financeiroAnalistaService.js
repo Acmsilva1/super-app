@@ -282,6 +282,76 @@ function calcularOscilacaoHistorica(historico = []) {
   };
 }
 
+function calcularResumoHistoricoComparativo(historico = [], yearSummary = {}) {
+  const itens = (Array.isArray(historico) ? historico : [])
+    .map((item) => {
+      const resumoMensal = item?.payload?.resumo_mensal || {};
+      const receitas = safeNumber(item?.receitas_total ?? resumoMensal.receitas);
+      const despesas = safeNumber(item?.despesas_totais ?? resumoMensal.despesas_totais);
+      const saldo = safeNumber(item?.saldo_real ?? resumoMensal.saldo);
+      const fixasRatio = safeNumber(resumoMensal.fixas_ratio_receitas ?? (receitas > 0 ? (safeNumber(resumoMensal.despesas_fixas) / receitas) * 100 : 0));
+      const variaveisRatio = safeNumber(resumoMensal.variaveis_ratio_receitas ?? (receitas > 0 ? (safeNumber(resumoMensal.despesas_variadas) / receitas) * 100 : 0));
+      return {
+        mes_ano: item?.mes_ano || null,
+        receitas,
+        despesas,
+        saldo,
+        fixasRatio,
+        variaveisRatio,
+      };
+    })
+    .filter((item) => item.mes_ano);
+
+  if (!itens.length) {
+    return {
+      melhor_mes: null,
+      pior_mes: null,
+      criterio: 'Sem histórico suficiente para comparar meses.',
+      motivo: 'A leitura usa saldo, receitas e despesas dos meses anteriores para apontar o melhor e o pior fechamento.',
+    };
+  }
+
+  const melhor = [...itens].sort((a, b) => b.saldo - a.saldo || b.receitas - a.receitas)[0];
+  const pior = [...itens].sort((a, b) => a.saldo - b.saldo || b.despesas - a.despesas)[0];
+  const mediaReceita = safeNumber(yearSummary?.media_receitas_mensais);
+  const mediaDespesa = safeNumber(yearSummary?.media_despesas_mensais);
+
+  const melhorMotivo = melhor.saldo >= 0 && melhor.fixasRatio <= 40
+    ? 'saldo positivo com fixas controladas'
+    : melhor.receitas >= mediaReceita && melhor.despesas <= mediaDespesa
+      ? 'receita acima da média com despesa sob controle'
+      : melhor.receitas >= mediaReceita
+        ? 'receita mais forte que a média'
+        : 'despesa menor que os demais meses';
+
+  const piorMotivo = pior.saldo < 0
+    ? 'saldo negativo no fechamento'
+    : pior.fixasRatio >= 50
+      ? 'despesas fixas muito pesadas'
+      : pior.despesas >= mediaDespesa
+        ? 'despesa acima da média'
+        : 'receita abaixo da média';
+
+  return {
+    melhor_mes: {
+      mes_ano: melhor.mes_ano,
+      saldo: round2(melhor.saldo),
+      receitas: round2(melhor.receitas),
+      despesas: round2(melhor.despesas),
+      motivo: melhorMotivo,
+    },
+    pior_mes: {
+      mes_ano: pior.mes_ano,
+      saldo: round2(pior.saldo),
+      receitas: round2(pior.receitas),
+      despesas: round2(pior.despesas),
+      motivo: piorMotivo,
+    },
+    criterio: 'Comparação entre os meses do histórico usando saldo real como principal indicador e receita/despesa como apoio.',
+    motivo: 'A análise foi feita para identificar os meses mais eficientes e os mais pressionados, destacando o que mudou no comportamento financeiro.',
+  };
+}
+
 function identificarPossiveisErros({ features, projection, historico = [], previousState = null } = {}) {
   const errors = [];
   const meses = historico.length;
@@ -397,19 +467,30 @@ function identificarPossiveisErros({ features, projection, historico = [], previ
   return errors;
 }
 
-function calcularNivelAprendizado({ historico = [], feedback = null, adaptiveWeights = null } = {}) {
+function calcularNivelAprendizado({ historico = [], feedback = null, adaptiveWeights = null, learningHistory = [] } = {}) {
   const historicoSeguro = Array.isArray(historico) ? historico.filter(Boolean) : [];
-  const ciclos = Math.max(1, historicoSeguro.length);
-  const coverage = clamp(ciclos / 12, 0, 1);
-  const errorQuality = feedback?.tem_feedback ? clamp(1 - Math.min(1, Math.abs(safeNumber(feedback?.saldo_erro_pct)) / 0.75), 0, 1) : 0.35;
-  const adaptation = adaptiveWeights?.ajuste_motivos ? clamp(adaptiveWeights.ajuste_motivos.length / 8, 0, 1) : 0.2;
-  const rawPercent = round2((coverage * 0.45 + errorQuality * 0.35 + adaptation * 0.2) * 100);
-  const floor = historicoSeguro.length > 0 || feedback?.tem_feedback || adaptiveWeights?.ajuste_motivos?.length ? 12 : 8;
+  const learningSeguro = Array.isArray(learningHistory) ? learningHistory.filter(Boolean) : [];
+  const ciclosHistorico = Math.max(1, historicoSeguro.length);
+  const ciclosAprendizado = learningSeguro.length > 0 ? learningSeguro.length : ciclosHistorico;
+  const coverage = clamp(ciclosAprendizado / 24, 0, 1);
+  const recentScores = learningSeguro
+    .slice(0, 6)
+    .map((item) => safeNumber(item?.aprendizado_percentual ?? item?.payload?.modelo?.aprendizado?.percentual ?? 0))
+    .filter((value) => Number.isFinite(value));
+  const consistency = recentScores.length >= 2
+    ? clamp(1 - Math.min(1, coefficientOfVariation(recentScores) / 0.45), 0, 1)
+    : 0.45;
+  const errorQuality = feedback?.tem_feedback ? clamp(1 - Math.min(1, Math.abs(safeNumber(feedback?.saldo_erro_pct)) / 0.5), 0, 1) : 0.4;
+  const adaptation = adaptiveWeights?.ajuste_motivos ? clamp(adaptiveWeights.ajuste_motivos.length / 10, 0, 1) : 0.25;
+  const rawPercent = round2((coverage * 0.5 + consistency * 0.25 + errorQuality * 0.15 + adaptation * 0.1) * 100);
+  const floor = (learningSeguro.length > 0 || historicoSeguro.length > 0 || feedback?.tem_feedback || adaptiveWeights?.ajuste_motivos?.length) ? 15 : 8;
   const percent = Math.max(floor, rawPercent);
   return {
     percentual: clamp(percent, 0, 100),
-    ciclos_processados: ciclos,
+    ciclos_processados: ciclosAprendizado,
+    meses_analisados: ciclosHistorico,
     cobertura: coverage,
+    consistencia: consistency,
     qualidade_erro: errorQuality,
     adaptacao: adaptation,
   };
@@ -529,6 +610,7 @@ export function buildFinanceiroAnalise({
   gastosAno = [],
   despesasFixasAno = [],
   historico = [],
+  learningHistory = [],
   todayIso = getBrazilTodayIso(),
   pesos = defaultFinanceiroPesos(),
   previousState = null,
@@ -623,7 +705,8 @@ export function buildFinanceiroAnalise({
     : normalizarFinanceiroPesos(pesos);
   const riskScore = calcularFinanceiroRiscoScore(features, adaptiveWeights);
   const oscilacaoHistorica = calcularOscilacaoHistorica(historico);
-  const nivelAprendizado = calcularNivelAprendizado({ historico, feedback, adaptiveWeights });
+  const nivelAprendizado = calcularNivelAprendizado({ historico, feedback, adaptiveWeights, learningHistory });
+  const resumoComparativoHistorico = calcularResumoHistoricoComparativo(historico, yearSummary);
   const possiveisErros = identificarPossiveisErros({
     features,
     projection,
@@ -682,6 +765,7 @@ export function buildFinanceiroAnalise({
       mes_vs_ano: monthVsYear,
       oscilacao_historica: oscilacaoHistorica,
       alivio_motivo: alivioMotivo,
+      resumo_historico: resumoComparativoHistorico,
       media_ultimos_ciclos: {
         receitas: average(historico.map((item) => safeNumber(item?.receitas_total ?? item?.payload?.resumo_mensal?.receitas))),
         despesas: average(historico.map((item) => safeNumber(item?.despesas_totais ?? item?.payload?.resumo_mensal?.despesas_totais))),
