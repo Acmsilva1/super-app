@@ -6343,7 +6343,7 @@
                 if (appId === 'financeiro') {
                     const financeCheckpoint = this.uiState.checkpoint?.appMeta?.financeiro || this.uiState.appMeta?.financeiro || {};
                     if (!mesAno && financeCheckpoint.mesAno) mesAno = financeCheckpoint.mesAno;
-                    if (financeCheckpoint.activeTab) contentEl.setAttribute('data-active-tab', financeCheckpoint.activeTab);
+                    contentEl.setAttribute('data-active-tab', 'data');
                     if (financeCheckpoint.activeDataFilter) contentEl.setAttribute('data-active-data-filter', financeCheckpoint.activeDataFilter);
                 }
                 try {
@@ -7350,8 +7350,9 @@
                     const m = el.querySelector('#financeiro-mes').value;
                     const a = el.querySelector('#financeiro-ano').value;
                     el.setAttribute('data-mes-ano', `${a}-${String(m).padStart(2, '0')}`);
+                    setTab('data');
                     this.rememberAppCheckpoint('financeiro', {
-                        activeTab: el.getAttribute('data-active-tab') || activeTab,
+                        activeTab: 'data',
                         activeDataFilter: el.getAttribute('data-active-data-filter') || '',
                         mesAno: el.getAttribute('data-mes-ano') || `${a}-${String(m).padStart(2, '0')}`,
                     });
