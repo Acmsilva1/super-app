@@ -9,6 +9,7 @@ import {
   buildFinanceiroAnalise,
   classificarFinancas,
   defaultFinanceiroPesos,
+  getBrazilTodayIso,
   filtrarFinancasPorMes,
   normalizarFinanceiroPesos,
   parseMesAno,
@@ -46,6 +47,13 @@ function previousMesAno(mesAno) {
 function rowMesAno(row) {
   const raw = String(row?.data_lancamento || row?.created_at || '').slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw.slice(0, 7) : null;
+}
+
+function isFutureMesAno(mesAno, referenceMesAno) {
+  const current = String(mesAno || '').slice(0, 7);
+  const reference = String(referenceMesAno || '').slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(current) || !/^\d{4}-\d{2}$/.test(reference)) return false;
+  return current > reference;
 }
 
 function buildHistoricoMensalAno({ financasRows = [], fixasRows = [] } = {}) {
@@ -223,6 +231,7 @@ export default async function handler(req, res) {
     const mesAno = String(req.query?.mes_ano || '').trim() || new Date().toISOString().slice(0, 7);
     const allowLearning = String(req.query?.learn || '') === '1';
     const generatedAt = new Date().toISOString();
+    const referenciaAtualMesAno = getBrazilTodayIso().slice(0, 7);
     const { ano, mes } = parseMesAno(mesAno);
     const { start, end } = rangeMes(ano, mes);
     const yearStart = new Date(ano, 0, 1).toISOString();
@@ -268,6 +277,11 @@ export default async function handler(req, res) {
       financasRows: yearFinancas,
       fixasRows: yearFixas,
     });
+    const historicoAprendizado = (historicoMensalAno.length ? historicoMensalAno : historyRows)
+      .filter((row) => !isFutureMesAno(row?.mes_ano, referenciaAtualMesAno));
+    const modelStateHistoryAprendizado = modelStateHistoryRows.filter((row) => !isFutureMesAno(row?.mes_ano, referenciaAtualMesAno));
+    const futureIgnoredCount = Math.max(0, (historicoMensalAno.length ? historicoMensalAno : historyRows).length - historicoAprendizado.length)
+      + Math.max(0, modelStateHistoryRows.length - modelStateHistoryAprendizado.length);
 
     const analise = buildFinanceiroAnalise({
       mesAno,
@@ -277,8 +291,8 @@ export default async function handler(req, res) {
       receitasAno,
       gastosAno,
       despesasFixasAno: yearFixas,
-      historico: historicoMensalAno.length ? historicoMensalAno : historyRows,
-      learningHistory: modelStateHistoryRows,
+      historico: historicoAprendizado,
+      learningHistory: modelStateHistoryAprendizado,
       pesos: baseWeights,
       previousState,
       allowLearning,
@@ -403,7 +417,7 @@ export default async function handler(req, res) {
         run_id: runRow?.id ?? null,
         model_state_id: modelStateRow?.id ?? null,
         previous_cycle: Boolean(previousState),
-        historico: (historicoMensalAno.length ? historicoMensalAno : historyRows).map((row) => ({
+        historico: historicoAprendizado.map((row) => ({
           mes_ano: row?.mes_ano || null,
           receitas_total: Number(row?.receitas_total ?? row?.payload?.resumo_mensal?.receitas ?? 0),
           despesas_totais: Number(row?.despesas_totais ?? row?.payload?.resumo_mensal?.despesas_totais ?? 0),
@@ -413,7 +427,8 @@ export default async function handler(req, res) {
           risco_classificado: String(row?.risco_classificado ?? row?.payload?.modelo?.score_risco?.classificado ?? 'baixo'),
           aprendizado_percentual: Number(row?.payload?.modelo?.aprendizado?.percentual ?? 0),
         })),
-        ciclos_aprendizado_reais: modelStateHistoryRows.length,
+        ciclos_aprendizado_reais: modelStateHistoryAprendizado.length,
+        meses_futuros_ignorados: futureIgnoredCount,
       },
     });
   } catch (error) {
