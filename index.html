@@ -6435,6 +6435,24 @@
                     } catch (e) { return ''; }
                 };
                 const lancDate = (r) => String((r && (r.data_lancamento || (r.created_at && String(r.created_at).slice(0, 10)))) || '').slice(0, 10);
+                const canonicalFinanceiroCategoriaLabel = (value) => {
+                    const key = normalizeFinanceiroCategoriaText(value);
+                    const labels = {
+                        alimentacao: 'Alimenta\u00e7\u00e3o',
+                        habitacao: 'Habita\u00e7\u00e3o',
+                        transporte: 'Transporte',
+                        lazer: 'Lazer',
+                        saude: 'Sa\u00fade',
+                        ticket: 'Ticket',
+                        compras: 'Compras',
+                        contas: 'Contas',
+                        outros: 'Outros',
+                        outro: 'Outro',
+                        salario: 'Sal\u00e1rio',
+                        beneficio: 'Benef\u00edcio',
+                    };
+                    return labels[key] || String(value || '').trim();
+                };
 
                 const fixaCategoriaKey = (r) => {
                     const isContaFixa = r?.conta_fixa === true || r?.conta_fixa === 'true';
@@ -6834,24 +6852,6 @@
                     const categoriasAno = Array.isArray(analise?.categorias_ano) ? analise.categorias_ano : [];
                     const historicoDetalhado = Array.isArray(analise?.historico_detalhado) ? analise.historico_detalhado : [];
                     const resumoHistorico = comparativos?.resumo_historico || {};
-                    const canonicalFinanceiroCategoriaLabel = (value) => {
-                        const key = normalizeFinanceiroCategoriaText(value);
-                        const labels = {
-                            alimentacao: 'Alimenta\u00e7\u00e3o',
-                            habitacao: 'Habita\u00e7\u00e3o',
-                            transporte: 'Transporte',
-                            lazer: 'Lazer',
-                            saude: 'Sa\u00fade',
-                            ticket: 'Ticket',
-                            compras: 'Compras',
-                            contas: 'Contas',
-                            outros: 'Outros',
-                            outro: 'Outro',
-                            salario: 'Sal\u00e1rio',
-                            beneficio: 'Benef\u00edcio',
-                        };
-                        return labels[key] || String(value || '').trim();
-                    };
                     const categoriasAnoNormalizadas = [...categoriasAno].reduce((acc, item) => {
                         const raw = String(item?.categoria || '—').trim() || '—';
                         const key = normalizeFinanceiroCategoriaText(raw);
