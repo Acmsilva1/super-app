@@ -6797,6 +6797,7 @@
                     const categoriasMes = Array.isArray(analise?.categorias_mes) ? analise.categorias_mes : topCategorias;
                     const categoriasAno = Array.isArray(analise?.categorias_ano) ? analise.categorias_ano : [];
                     const historicoDetalhado = Array.isArray(analise?.historico_detalhado) ? analise.historico_detalhado : [];
+                    const resumoHistorico = comparativos?.resumo_historico || {};
                     const topCategoria = topCategorias[0] || null;
                     const topCategoriaMes = categoriasMes[0] || topCategoria || null;
                     const categoriaMaisGastaAno = [...categoriasAno].sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))[0] || topCategoriaMes || null;
