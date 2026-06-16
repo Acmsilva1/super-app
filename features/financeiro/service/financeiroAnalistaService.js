@@ -736,6 +736,23 @@ export function buildFinanceiroAnalise({
     projecao: projection,
     top_category: topCategory,
   });
+  const historicoDetalhado = (Array.isArray(historico) ? historico : [])
+    .map((item) => {
+      const resumoHistorico = item?.payload?.resumo_mensal || {};
+      return {
+        mes_ano: item?.mes_ano || null,
+        receitas: round2(safeNumber(item?.receitas_total ?? resumoHistorico.receitas)),
+        despesas_fixas: round2(safeNumber(resumoHistorico.despesas_fixas)),
+        despesas_variadas: round2(safeNumber(resumoHistorico.despesas_variadas)),
+        despesas_totais: round2(safeNumber(item?.despesas_totais ?? resumoHistorico.despesas_totais)),
+        saldo: round2(safeNumber(item?.saldo_real ?? resumoHistorico.saldo)),
+        fixas_ratio_receitas: round2(safeNumber(resumoHistorico.fixas_ratio_receitas)),
+        variaveis_ratio_receitas: round2(safeNumber(resumoHistorico.variaveis_ratio_receitas)),
+        top_categoria: item?.top_categoria ?? item?.payload?.metadados?.top_category?.categoria ?? null,
+      };
+    })
+    .filter((item) => item.mes_ano)
+    .sort((a, b) => String(b.mes_ano).localeCompare(String(a.mes_ano)));
   const feedback = construirFinanceiroFeedback({ previousState, features });
   const adaptiveWeights = allowLearning
     ? ajustarFinanceiroPesos(pesos, feedback, features)
@@ -798,6 +815,9 @@ export function buildFinanceiroAnalise({
     resumo_mensal: monthSummary,
     resumo_anual: yearSummary,
     projecao: projection,
+    categorias_mes: monthCategoryTotals,
+    categorias_ano: yearCategoryTotals,
+    historico_detalhado: historicoDetalhado,
     comparativos: {
       mes_vs_ano: monthVsYear,
       oscilacao_historica: oscilacaoHistorica,

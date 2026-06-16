@@ -6794,97 +6794,101 @@
                     const aprendizadoPct = Number(aprendizado?.percentual || 0);
                     const aprendizadoBadge = aprendizadoPct >= 80 ? 'is-low' : aprendizadoPct >= 55 ? 'is-mid' : aprendizadoPct >= 30 ? 'is-high' : 'is-crit';
                     const topCategorias = Array.isArray(mensal?.top_categorias) ? mensal.top_categorias : [];
+                    const categoriasMes = Array.isArray(analise?.categorias_mes) ? analise.categorias_mes : topCategorias;
+                    const categoriasAno = Array.isArray(analise?.categorias_ano) ? analise.categorias_ano : [];
+                    const historicoDetalhado = Array.isArray(analise?.historico_detalhado) ? analise.historico_detalhado : [];
                     const topCategoria = topCategorias[0] || null;
-                    const topCategoriaTexto = topCategoria?.categoria
-                        ? `${String(topCategoria.categoria)} lidera as despesas variáveis com ${this.formatMoneyBr(Number(topCategoria.valor || 0))}.`
-                        : 'Ainda não há categoria suficiente para identificar o principal foco de gasto.';
-                    const fixasRatio = Number(mensal?.fixas_ratio_receitas || 0);
-                    const pressaoFixasTexto = `As despesas fixas consomem ${fixasRatio.toFixed(1)}% da receita do mês.`;
-                    const pressaoFixasImpacto = fixasRatio >= 50
-                        ? 'Isso reduz a folga para variáveis e pode apertar o fechamento.'
-                        : fixasRatio >= 35
-                            ? 'É um nível moderado e ainda sob controle.'
-                            : 'É um nível saudável e deixa mais espaço para o restante do mês.';
-                    const alivioMotivo = String(comparativos?.alivio_motivo || '');
-                    const alivioTexto = alivioMotivo === 'despesas_fixas_controladas'
-                        ? 'O mês aliviou porque as despesas fixas ficaram abaixo da média do ano.'
-                        : alivioMotivo === 'receita_compensou'
-                            ? 'O mês aliviou porque a receita compensou a pressão de despesas.'
-                            : 'Não houve alívio claro no fechamento parcial do mês.';
-                    const monthVsYear = comparativos?.mes_vs_ano || {};
-                    const resumoHistorico = comparativos?.resumo_historico || {};
+                    const topCategoriaMes = categoriasMes[0] || topCategoria || null;
+                    const categoriaMaisGastaAno = [...categoriasAno].sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))[0] || topCategoriaMes || null;
+                    const categoriaMenosGastaAno = [...categoriasAno].sort((a, b) => Number(a?.valor || 0) - Number(b?.valor || 0))[0] || null;
                     const melhorMes = resumoHistorico?.melhor_mes || null;
                     const piorMes = resumoHistorico?.pior_mes || null;
-                    const projectedVariavelValue = projecao?.despesas_variaveis_projetadas !== null && projecao?.despesas_variaveis_projetadas !== undefined
-                        ? Number(projecao.despesas_variaveis_projetadas || 0)
-                        : Number(mensal.despesas_variadas || 0);
-                    const monthSummaryText = projecao?.ativa
-                        ? `Mantido o ritmo atual, o débito / pix tende a fechar em ${this.formatMoneyBr(projectedVariavelValue)}.`
-                        : `O débito / pix já está em ${this.formatMoneyBr(projectedVariavelValue)}.`;
-                    const monthForecast = projecao?.despesas_variaveis_projetadas !== null && projecao?.despesas_variaveis_projetadas !== undefined
-                        ? this.formatMoneyBr(Number(projecao.despesas_variaveis_projetadas || 0))
-                        : this.formatMoneyBr(Number(mensal.despesas_variadas || 0));
-                    const variaveisProjetadas = monthForecast;
-                    const categoriaRisco = String(projecao?.categoria_variavel_risco || topCategoria?.categoria || 'Sem categoria');
-                    const resumoMesDetalhado = `Projeção de débito / pix: ${variaveisProjetadas}. Fixas seguem estáveis e entram apenas no comparativo e nos gráficos. Categoria mais pressionada: ${categoriaRisco}.`;
-                    const comparativeHeadline = melhorMes?.mes_ano
-                        ? `Melhor desempenho: ${String(melhorMes.mes_ano)} com ${this.formatMoneyBr(Number(melhorMes.saldo || 0))}`
-                        : 'Sem histórico suficiente para apontar o melhor mês';
-                    const comparativeSub = piorMes?.mes_ano
-                        ? `Pior desempenho: ${String(piorMes.mes_ano)} com ${this.formatMoneyBr(Number(piorMes.saldo || 0))}`
-                        : 'Sem histórico suficiente para apontar o pior mês';
-                    const historicoRange = historico.length
-                        ? `${String(historico[historico.length - 1]?.mes_ano || '')} até ${String(historico[0]?.mes_ano || '')}`
-                        : 'Sem histórico suficiente';
-                    const comparativoInsight = melhorMes?.mes_ano && piorMes?.mes_ano
-                        ? `Análise feita para comparar os meses do histórico e mostrar quem fechou melhor e pior. Critério: saldo real como principal indicador, com receita e despesa como apoio.`
-                        : 'Análise feita para usar o histórico e destacar o mês mais forte e o mais pressionado.';
-                    const mlLeituraResumo = historico.length
-                        ? `Leitura do ML: compara ${historico.length} mês(es) para identificar o melhor e o pior desempenho, além de mostrar a pressão das despesas e a força da receita.`
-                        : 'Leitura do ML: ainda não há histórico suficiente para um comparativo confiável.';
+                    const melhorMesFallback = historicoDetalhado.reduce((acc, item) => (Number(item?.saldo || 0) > Number(acc?.saldo || Number.NEGATIVE_INFINITY) ? item : acc), null);
+                    const piorMesFallback = historicoDetalhado.reduce((acc, item) => (Number(item?.saldo || 0) < Number(acc?.saldo || Number.POSITIVE_INFINITY) ? item : acc), null);
+                    const mesComMaisFixas = historicoDetalhado.reduce((acc, item) => (Number(item?.despesas_fixas || 0) > Number(acc?.despesas_fixas || Number.NEGATIVE_INFINITY) ? item : acc), null);
+                    const mesComMaisVariaveis = historicoDetalhado.reduce((acc, item) => (Number(item?.despesas_variadas || 0) > Number(acc?.despesas_variadas || Number.NEGATIVE_INFINITY) ? item : acc), null);
+                    const melhorMesFinal = melhorMes?.mes_ano ? melhorMes : melhorMesFallback;
+                    const piorMesFinal = piorMes?.mes_ano ? piorMes : piorMesFallback;
+                    const despesasReceitasPctMes = mensal.receitas > 0 ? (Number(mensal.despesas_totais || 0) / Number(mensal.receitas || 1)) * 100 : 0;
+                    const despesasReceitasPctAno = yearSummary.receitas > 0 ? (Number(yearSummary.despesas_totais || 0) / Number(yearSummary.receitas || 1)) * 100 : 0;
+                    const fixasPctReceita = mensal.receitas > 0 ? (Number(mensal.despesas_fixas || 0) / Number(mensal.receitas || 1)) * 100 : 0;
+                    const variaveisPctReceita = mensal.receitas > 0 ? (Number(mensal.despesas_variadas || 0) / Number(mensal.receitas || 1)) * 100 : 0;
+                    const formatPercent = (value) => `${Number(value || 0).toFixed(1)}%`;
+                    const cardMonthLabel = String(periodo.mes_ano || mesAno);
+                    const cardBestValue = melhorMesFinal?.mes_ano ? `${String(melhorMesFinal.mes_ano)} com ${this.formatMoneyBr(Number(melhorMesFinal.saldo || 0))}` : 'Sem histórico suficiente';
+                    const cardWorstValue = piorMesFinal?.mes_ano ? `${String(piorMesFinal.mes_ano)} com ${this.formatMoneyBr(Number(piorMesFinal.saldo || 0))}` : 'Sem histórico suficiente';
+                    const cardTopCategory = categoriaMaisGastaAno?.categoria ? `${String(categoriaMaisGastaAno.categoria)} com ${this.formatMoneyBr(Number(categoriaMaisGastaAno.valor || 0))}` : 'Sem categoria suficiente';
+                    const cardBottomCategory = categoriaMenosGastaAno?.categoria ? `${String(categoriaMenosGastaAno.categoria)} com ${this.formatMoneyBr(Number(categoriaMenosGastaAno.valor || 0))}` : 'Sem categoria suficiente';
+                    const cardFixedMonth = mesComMaisFixas?.mes_ano ? `${String(mesComMaisFixas.mes_ano)} com ${this.formatMoneyBr(Number(mesComMaisFixas.despesas_fixas || 0))}` : 'Sem histórico suficiente';
+                    const cardVariableMonth = mesComMaisVariaveis?.mes_ano ? `${String(mesComMaisVariaveis.mes_ano)} com ${this.formatMoneyBr(Number(mesComMaisVariaveis.despesas_variadas || 0))}` : 'Sem histórico suficiente';
+                    const resumoMesesRows = historicoDetalhado.length
+                        ? historicoDetalhado.map((item) => `
+                                <tr>
+                                    <td>${escapeHtml(String(item.mes_ano || ''))}</td>
+                                    <td>${escapeHtml(this.formatMoneyBr(Number(item.receitas || 0)))}</td>
+                                    <td>${escapeHtml(this.formatMoneyBr(Number(item.despesas_fixas || 0)))}</td>
+                                    <td>${escapeHtml(this.formatMoneyBr(Number(item.despesas_variadas || 0)))}</td>
+                                    <td>${escapeHtml(this.formatMoneyBr(Number(item.saldo || 0)))}</td>
+                                    <td>${escapeHtml(formatPercent(Number(item.receitas || 0) > 0 ? (Number(item.despesas_totais || 0) / Number(item.receitas || 1)) * 100 : 0))}</td>
+                                    <td>${escapeHtml(String(item.top_categoria || '—'))}</td>
+                                </tr>
+                            `).join('')
+                        : '<tr><td colspan="7">Sem histórico suficiente para montar a tabela de meses.</td></tr>';
+                    const categoriasRows = [...categoriasAno]
+                        .sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))
+                        .map((item) => `
+                                <tr>
+                                    <td>${escapeHtml(String(item?.categoria || '—'))}</td>
+                                    <td>${escapeHtml(this.formatMoneyBr(Number(item?.valor || 0)))}</td>
+                                    <td>${escapeHtml(formatPercent(yearSummary.despesas_totais > 0 ? (Number(item?.valor || 0) / Number(yearSummary.despesas_totais || 1)) * 100 : 0))}</td>
+                                </tr>
+                            `).join('') || '<tr><td colspan="3">Sem categorias anuais suficientes.</td></tr>';
                     panel.innerHTML = `
                         <div class="finance-analista-bi">
                             <section class="finance-analista-card">
                                 <div class="finance-analista-hero__title" style="margin-bottom:0.5rem;">
                                     <h3>Analista financeiro</h3>
-                                    <span class="finance-analista-chip">${escapeHtml(String(periodo.mes_ano || mesAno))}</span>
+                                    <span class="finance-analista-chip">${escapeHtml(cardMonthLabel)}</span>
                                 </div>
-                                <div class="finance-analista-grid">
-                                    <div class="finance-analista-kpi">
-                                        <span>Débito / pix projetado</span>
-                                        <strong>${escapeHtml(monthForecast)}</strong>
-                                        <small>${escapeHtml(monthSummaryText)} ${escapeHtml(resumoMesDetalhado)} ${escapeHtml(topCategoriaTexto)}</small>
-                                    </div>
-                                    <div class="finance-analista-kpi">
-                                        <span>Pressão das fixas</span>
-                                        <strong>${fixasRatio.toFixed(1)}%</strong>
-                                        <small>${escapeHtml(pressaoFixasTexto)} ${escapeHtml(pressaoFixasImpacto)}</small>
-                                    </div>
-                                </div>
-                                <div class="finance-analista-chart" style="margin-top:0.75rem; min-height:220px;">
-                                    <h4>Projeção do mês</h4>
-                                    <div id="financeiro-analista-chart-month" style="width:100%;height:220px;"></div>
-                                </div>
+                                <div class="finance-analista-card__meta">Leitura objetiva do mês e do ano, sem gráficos. Os 7 blocos abaixo resumem o que mais pesa nas finanças agora.</div>
                             </section>
-                            <section class="finance-analista-card">
-                                <span class="finance-analista-card__label">Comparativo</span>
-                                <div class="finance-analista-card__value">${escapeHtml(comparativeHeadline)}</div>
-                                <div class="finance-analista-card__meta">${escapeHtml(comparativeSub)} | ${escapeHtml(comparativoInsight)}</div>
-                                <div class="finance-analista-chart" style="margin-top:0.75rem; min-height:220px;">
-                                    <h4>Meses anteriores</h4>
-                                    <div style="display:flex;flex-direction:column;gap:0.9rem;">
-                                        <div style="min-height:180px;width:100%;">
-                                            <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.04em;color:#93c5fd;margin-bottom:0.35rem;">Receitas do ano</div>
-                                            <div id="financeiro-analista-chart-comparativo-receitas" style="width:100%;height:180px;"></div>
-                                        </div>
-                                        <div style="min-height:180px;width:100%;">
-                                            <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.04em;color:#fda4af;margin-bottom:0.35rem;">Despesas do ano</div>
-                                            <div id="financeiro-analista-chart-comparativo-despesas" style="width:100%;height:180px;"></div>
-                                        </div>
-                                    </div>
-                                    <div class="finance-analista-card__meta" style="margin-top:0.5rem;">${escapeHtml(mlLeituraResumo)}</div>
-                                </div>
-                            </section>
+                            <div class="finance-analista-grid">
+                                <article class="finance-analista-card">
+                                    <span class="finance-analista-card__label">1 - Melhor mês do ano</span>
+                                    <div class="finance-analista-card__value">${escapeHtml(cardBestValue)}</div>
+                                    <div class="finance-analista-card__meta">${escapeHtml(String(melhorMesFinal?.motivo || 'Critério: saldo real como principal indicador.'))}</div>
+                                </article>
+                                <article class="finance-analista-card">
+                                    <span class="finance-analista-card__label">2 - Pior mês do ano</span>
+                                    <div class="finance-analista-card__value">${escapeHtml(cardWorstValue)}</div>
+                                    <div class="finance-analista-card__meta">${escapeHtml(String(piorMesFinal?.motivo || 'Critério: saldo real como principal indicador.'))}</div>
+                                </article>
+                                <article class="finance-analista-card">
+                                    <span class="finance-analista-card__label">3 - Categoria que mais gasta</span>
+                                    <div class="finance-analista-card__value">${escapeHtml(cardTopCategory)}</div>
+                                    <div class="finance-analista-card__meta">Baseado nas categorias acumuladas do ano para destacar o maior foco de gasto.</div>
+                                </article>
+                                <article class="finance-analista-card">
+                                    <span class="finance-analista-card__label">4 - Categoria que menos gasta</span>
+                                    <div class="finance-analista-card__value">${escapeHtml(cardBottomCategory)}</div>
+                                    <div class="finance-analista-card__meta">Mostra a categoria menos pressionada no acumulado anual analisado.</div>
+                                </article>
+                                <article class="finance-analista-card">
+                                    <span class="finance-analista-card__label">5 - Mês com mais despesas fixas</span>
+                                    <div class="finance-analista-card__value">${escapeHtml(cardFixedMonth)}</div>
+                                    <div class="finance-analista-card__meta">Ajuda a enxergar quando o peso contratual apertou mais o fechamento.</div>
+                                </article>
+                                <article class="finance-analista-card">
+                                    <span class="finance-analista-card__label">6 - Mês com mais débito / pix</span>
+                                    <div class="finance-analista-card__value">${escapeHtml(cardVariableMonth)}</div>
+                                    <div class="finance-analista-card__meta">Mostra o mês com maior pressão nas despesas variáveis.</div>
+                                </article>
+                                <article class="finance-analista-card">
+                                    <span class="finance-analista-card__label">7 - Despesas sobre receitas</span>
+                                    <div class="finance-analista-card__value">${escapeHtml(formatPercent(despesasReceitasPctMes))}</div>
+                                    <div class="finance-analista-card__meta">No mês: ${escapeHtml(formatPercent(despesasReceitasPctMes))} | No ano: ${escapeHtml(formatPercent(despesasReceitasPctAno))} | Fixas: ${escapeHtml(formatPercent(fixasPctReceita))} | Variáveis: ${escapeHtml(formatPercent(variaveisPctReceita))}</div>
+                                </article>
+                            </div>
                             <section class="finance-analista-card">
                                 <span class="finance-analista-card__label">Aprendizado do módulo</span>
                                 <div class="finance-analista-card__value">${aprendizadoPct.toFixed(1)}%</div>
@@ -6908,249 +6912,50 @@
                                         <tr><td>Ciclos reais</td><td>${Number(aprendizado?.ciclos_aprendizado_reais || aprendizado?.ciclos_processados || 0)}</td></tr>
                                         <tr><td>Snapshots do modelo</td><td>${Number(aprendizado?.snapshots_modelo || 0)}</td></tr>
                                         <tr><td>Meses analisados</td><td>${Number(aprendizado?.meses_analisados || historico.length || 0)}</td></tr>
-                                        <tr><td>Base histórica</td><td>${escapeHtml(historicoRange)}</td></tr>
+                                        <tr><td>Base histórica</td><td>${escapeHtml(historico.length ? `${String(historico[historico.length - 1]?.mes_ano || '')} até ${String(historico[0]?.mes_ano || '')}` : 'Sem histórico suficiente')}</td></tr>
                                     </tbody>
                                 </table>
                             </section>
+                            <section class="finance-analista-card">
+                                <span class="finance-analista-card__label">Tabela de meses</span>
+                                <div class="finance-analista-table-wrap">
+                                    <table class="finance-analista-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Mês</th>
+                                                <th>Receitas</th>
+                                                <th>Fixas</th>
+                                                <th>Débito / Pix</th>
+                                                <th>Saldo</th>
+                                                <th>Despesa / Receita</th>
+                                                <th>Categoria líder</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${resumoMesesRows}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+                            <section class="finance-analista-card">
+                                <span class="finance-analista-card__label">Tabela de categorias</span>
+                                <div class="finance-analista-table-wrap">
+                                    <table class="finance-analista-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Categoria</th>
+                                                <th>Valor</th>
+                                                <th>% do ano</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${categoriasRows}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
                         </div>
                     `;
-
-                    if (typeof echarts === 'undefined') {
-                        this.ensureVisualizationLibraries().then(() => renderFinanceiroAnalista(payload)).catch(() => {});
-                        return;
-                    }
-
-                    requestAnimationFrame(() => {
-                        const chartMonthNode = panel.querySelector('#financeiro-analista-chart-month');
-                        const chartComparativoReceitasNode = panel.querySelector('#financeiro-analista-chart-comparativo-receitas');
-                        const chartComparativoDespesasNode = panel.querySelector('#financeiro-analista-chart-comparativo-despesas');
-                        const formatAxisMoney = (value) => {
-                            const num = Number(value || 0);
-                            if (!Number.isFinite(num)) return 'R$ 0';
-                            if (Math.abs(num) >= 1000000) return `R$ ${(num / 1000000).toFixed(1)}M`;
-                            if (Math.abs(num) >= 1000) return `R$ ${(num / 1000).toFixed(1)}k`;
-                            return `R$ ${num.toFixed(0)}`;
-                        };
-
-                        const historicoOrdenado = historico
-                            .map((item) => ({
-                                mes_ano: item?.mes_ano || '',
-                                receitas_total: Number(item?.receitas_total || 0),
-                                despesas_totais: Number(item?.despesas_totais || 0),
-                                saldo_real: Number(item?.saldo_real || 0),
-                                aprendizado_percentual: Number(item?.aprendizado_percentual || 0),
-                            }))
-                            .filter((item) => item.mes_ano)
-                            .sort((a, b) => a.mes_ano.localeCompare(b.mes_ano));
-
-                        if (chartMonthNode) {
-                            let chart = el._financeiroAnalistaChartMonth;
-                            if (!chart || chart.isDisposed?.()) {
-                                chart = echarts.init(chartMonthNode);
-                                el._financeiroAnalistaChartMonth = chart;
-                            }
-                            const monthBars = [
-                                {
-                                    value: Number(mensal.receitas || 0),
-                                    itemStyle: { color: '#38bdf8' },
-                                },
-                                {
-                                    value: Number(mensal.despesas_totais || 0),
-                                    itemStyle: { color: '#fb7185' },
-                                },
-                                {
-                                    value: Number(mensal.saldo || 0),
-                                    itemStyle: { color: Number(mensal.saldo || 0) >= 0 ? '#22c55e' : '#f97316' },
-                                },
-                            ];
-                            chart.setOption({
-                                animationDuration: 800,
-                                tooltip: {
-                                    trigger: 'axis',
-                                    axisPointer: { type: 'shadow' },
-                                    formatter: (items) => {
-                                        const [receita, despesa, saldo] = items || [];
-                                        return [
-                                            `<strong>${escapeHtml(String(periodo.mes_ano || mesAno))}</strong>`,
-                                            `Receita: ${formatMoney(receita?.value)}`,
-                                            `Despesa: ${formatMoney(despesa?.value)}`,
-                                            `Saldo: ${formatMoney(saldo?.value)}`,
-                                        ].join('<br/>');
-                                    },
-                                },
-                                grid: { left: 8, right: 8, top: 12, bottom: 12, containLabel: true },
-                                xAxis: {
-                                    type: 'category',
-                                    data: ['Receita', 'Despesa', 'Saldo'],
-                                    axisLabel: { color: '#94a3b8' },
-                                    axisTick: { show: false },
-                                    axisLine: { show: false },
-                                },
-                                yAxis: {
-                                    type: 'value',
-                                    axisLabel: { color: '#94a3b8' },
-                                    splitLine: { show: false },
-                                    axisTick: { show: false },
-                                    axisLine: { show: false },
-                                },
-                                series: [{
-                                    type: 'bar',
-                                    data: monthBars,
-                                    barWidth: 48,
-                                    label: {
-                                        show: true,
-                                        position: 'top',
-                                        color: '#e2e8f0',
-                                        fontWeight: 700,
-                                        formatter: (params) => formatMoney(params?.value),
-                                    },
-                                    emphasis: { focus: 'series' },
-                                    itemStyle: {
-                                        borderRadius: [12, 12, 0, 0],
-                                    },
-                                }],
-                            });
-                            chart.resize();
-                        }
-
-                        if (chartComparativoReceitasNode) {
-                            let chart = el._financeiroAnalistaChartComparativoReceitas;
-                                if (!chart || chart.isDisposed?.()) {
-                                    chart = echarts.init(chartComparativoReceitasNode);
-                                    el._financeiroAnalistaChartComparativoReceitas = chart;
-                                }
-                            const labelsComparativo = historicoOrdenado.map((item) => item.mes_ano);
-                            const receitasComparativo = historicoOrdenado.map((item) => Number(item.receitas_total || 0));
-                            chart.setOption({
-                                animationDuration: 750,
-                                legend: {
-                                    show: true,
-                                    top: 0,
-                                    left: 0,
-                                    textStyle: { color: '#cbd5e1', fontSize: 11 },
-                                    itemWidth: 12,
-                                    itemHeight: 10,
-                                },
-                                tooltip: {
-                                    trigger: 'axis',
-                                    axisPointer: { type: 'shadow' },
-                                    formatter: (items) => {
-                                        if (!items?.length) return '';
-                                        const month = String(items[0]?.axisValue || '');
-                                        const receita = items.find((item) => item.seriesName === 'Receita');
-                                        return [
-                                            `<strong>${escapeHtml(month)}</strong>`,
-                                            `Receita: ${formatMoney(receita?.value)}`,
-                                        ].join('<br/>');
-                                    },
-                                },
-                                grid: { left: 64, right: 20, top: 28, bottom: 14, containLabel: true },
-                                xAxis: {
-                                    type: 'value',
-                                    axisLabel: {
-                                        color: '#94a3b8',
-                                        formatter: (value) => formatAxisMoney(value),
-                                    },
-                                    splitLine: { show: false },
-                                    axisTick: { show: false },
-                                    axisLine: { show: false },
-                                },
-                                yAxis: {
-                                    type: 'category',
-                                    data: labelsComparativo,
-                                    axisLabel: { color: '#94a3b8', interval: 0 },
-                                    axisTick: { show: false },
-                                    axisLine: { show: false },
-                                },
-                                series: [
-                                    {
-                                        name: 'Receita',
-                                        type: 'bar',
-                                        data: receitasComparativo,
-                                        barWidth: 12,
-                                        label: {
-                                            show: true,
-                                            position: 'right',
-                                            color: '#dcfce7',
-                                            fontWeight: 700,
-                                            formatter: (params) => formatMoney(params?.value),
-                                        },
-                                        itemStyle: {
-                                            color: '#22c55e',
-                                            borderRadius: [0, 10, 10, 0],
-                                        },
-                                    },
-                                ],
-                            });
-                            chart.resize();
-                            requestAnimationFrame(() => chart.resize());
-                        }
-
-                        if (chartComparativoDespesasNode) {
-                            let chart = el._financeiroAnalistaChartComparativoDespesas;
-                            if (!chart || chart.isDisposed?.()) {
-                                chart = echarts.init(chartComparativoDespesasNode);
-                                el._financeiroAnalistaChartComparativoDespesas = chart;
-                            }
-                            const labelsComparativo = historicoOrdenado.map((item) => item.mes_ano);
-                            const despesasComparativo = historicoOrdenado.map((item) => Number(item.despesas_totais || 0));
-                            chart.setOption({
-                                animationDuration: 750,
-                                tooltip: {
-                                    trigger: 'axis',
-                                    axisPointer: { type: 'shadow' },
-                                    formatter: (items) => {
-                                        if (!items?.length) return '';
-                                        const month = String(items[0]?.axisValue || '');
-                                        const despesa = items.find((item) => item.seriesName === 'Despesa');
-                                        return [
-                                            `<strong>${escapeHtml(month)}</strong>`,
-                                            `Despesa: ${formatMoney(despesa?.value)}`,
-                                        ].join('<br/>');
-                                    },
-                                },
-                                grid: { left: 64, right: 20, top: 28, bottom: 14, containLabel: true },
-                                xAxis: {
-                                    type: 'value',
-                                    axisLabel: {
-                                        color: '#94a3b8',
-                                        formatter: (value) => formatAxisMoney(value),
-                                    },
-                                    splitLine: { show: false },
-                                    axisTick: { show: false },
-                                    axisLine: { show: false },
-                                },
-                                yAxis: {
-                                    type: 'category',
-                                    data: labelsComparativo,
-                                    axisLabel: { color: '#94a3b8', interval: 0 },
-                                    axisTick: { show: false },
-                                    axisLine: { show: false },
-                                },
-                                series: [
-                                    {
-                                        name: 'Despesa',
-                                        type: 'bar',
-                                        data: despesasComparativo,
-                                        barWidth: 12,
-                                        label: {
-                                            show: true,
-                                            position: 'right',
-                                            color: '#fee2e2',
-                                            fontWeight: 700,
-                                            formatter: (params) => formatMoney(params?.value),
-                                        },
-                                        itemStyle: {
-                                            color: '#fb7185',
-                                            borderRadius: [0, 10, 10, 0],
-                                        },
-                                    },
-                                ],
-                            });
-                            chart.resize();
-                            requestAnimationFrame(() => chart.resize());
-                        }
-                    });
                 };
                 const loadFinanceiroAnalista = async () => {
                     const panel = el.querySelector(`#${analistaPanelId}`);
