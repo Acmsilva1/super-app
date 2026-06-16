@@ -6822,13 +6822,23 @@
                     const piorMesFinal = piorMes?.mes_ano ? piorMes : piorMesFallback;
                     const despesasReceitasPctMes = mensal.receitas > 0 ? (Number(mensal.despesas_totais || 0) / Number(mensal.receitas || 1)) * 100 : 0;
                     const formatPercent = (value) => `${Number(value || 0).toFixed(1)}%`;
+                    const formatMesReferencia = (mesAnoRef) => {
+                        const raw = String(mesAnoRef || '').trim();
+                        const match = raw.match(/^(\d{4})-(\d{2})$/);
+                        if (!match) return raw || 'sem histórico';
+                        const ano = Number(match[1]);
+                        const mes = Number(match[2]);
+                        const dt = new Date(Date.UTC(ano, mes - 1, 1));
+                        const nomeMes = new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'America/Sao_Paulo' }).format(dt);
+                        return `${nomeMes} de ${match[1]}`;
+                    };
                     const cardMonthLabel = String(periodo.mes_ano || mesAno);
-                    const cardBestRef = melhorMesFinal?.mes_ano ? `Referência: ${String(melhorMesFinal.mes_ano)}` : 'Referência: sem histórico';
-                    const cardWorstRef = piorMesFinal?.mes_ano ? `Referência: ${String(piorMesFinal.mes_ano)}` : 'Referência: sem histórico';
+                    const cardBestRef = melhorMesFinal?.mes_ano ? `Referência: ${formatMesReferencia(melhorMesFinal.mes_ano)}` : 'Referência: sem histórico';
+                    const cardWorstRef = piorMesFinal?.mes_ano ? `Referência: ${formatMesReferencia(piorMesFinal.mes_ano)}` : 'Referência: sem histórico';
                     const cardTopCategoryRef = `Referência: acumulado do ano`;
                     const cardBottomCategoryRef = `Referência: acumulado do ano`;
-                    const cardFixedMonthRef = mesComMaisFixas?.mes_ano ? `Referência: ${String(mesComMaisFixas.mes_ano)}` : 'Referência: sem histórico';
-                    const cardVariableMonthRef = mesComMaisVariaveis?.mes_ano ? `Referência: ${String(mesComMaisVariaveis.mes_ano)}` : 'Referência: sem histórico';
+                    const cardFixedMonthRef = mesComMaisFixas?.mes_ano ? `Referência: ${formatMesReferencia(mesComMaisFixas.mes_ano)}` : 'Referência: sem histórico';
+                    const cardVariableMonthRef = mesComMaisVariaveis?.mes_ano ? `Referência: ${formatMesReferencia(mesComMaisVariaveis.mes_ano)}` : 'Referência: sem histórico';
                     const mesesComReceita = historicoDetalhado
                         .map((item) => {
                             const receitas = Number(item?.receitas || 0);
@@ -6845,8 +6855,8 @@
                         .filter(Boolean);
                     const mesMaisPositivo = mesesComReceita.reduce((acc, item) => (item.percentual < acc.percentual ? item : acc), mesesComReceita[0] || null);
                     const mesMaisNegativo = mesesComReceita.reduce((acc, item) => (item.percentual > acc.percentual ? item : acc), mesesComReceita[0] || null);
-                    const cardPositiveRef = mesMaisPositivo?.mes_ano ? `Referência: ${String(mesMaisPositivo.mes_ano)}` : 'Referência: sem histórico';
-                    const cardNegativeRef = mesMaisNegativo?.mes_ano ? `Referência: ${String(mesMaisNegativo.mes_ano)}` : 'Referência: sem histórico';
+                    const cardPositiveRef = mesMaisPositivo?.mes_ano ? `Referência: ${formatMesReferencia(mesMaisPositivo.mes_ano)}` : 'Referência: sem histórico';
+                    const cardNegativeRef = mesMaisNegativo?.mes_ano ? `Referência: ${formatMesReferencia(mesMaisNegativo.mes_ano)}` : 'Referência: sem histórico';
                     const cardPositiveValue = mesMaisPositivo ? formatPercent(mesMaisPositivo.percentual) : 'Sem histórico suficiente';
                     const cardNegativeValue = mesMaisNegativo ? formatPercent(mesMaisNegativo.percentual) : 'Sem histórico suficiente';
                     const cardBestValue = melhorMesFinal?.mes_ano ? `${this.formatMoneyBr(Number(melhorMesFinal.saldo || 0))}` : 'Sem histórico suficiente';
