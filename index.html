@@ -2855,11 +2855,19 @@
         }
         .finance-analista-card__label {
             display: block;
-            font-size: 0.78rem;
+            font-size: 0.9rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: #9bc3ff;
-            margin-bottom: 0.35rem;
+            color: #c7dbff;
+            margin-bottom: 0.45rem;
+        }
+        .finance-analista-card__ref {
+            display: block;
+            font-size: 0.72rem;
+            color: #8ca8d0;
+            margin-bottom: 0.2rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
         .finance-analista-card__value {
             font-size: 1.55rem;
@@ -6818,12 +6826,18 @@
                     const variaveisPctReceita = mensal.receitas > 0 ? (Number(mensal.despesas_variadas || 0) / Number(mensal.receitas || 1)) * 100 : 0;
                     const formatPercent = (value) => `${Number(value || 0).toFixed(1)}%`;
                     const cardMonthLabel = String(periodo.mes_ano || mesAno);
-                    const cardBestValue = melhorMesFinal?.mes_ano ? `${String(melhorMesFinal.mes_ano)} com ${this.formatMoneyBr(Number(melhorMesFinal.saldo || 0))}` : 'Sem histórico suficiente';
-                    const cardWorstValue = piorMesFinal?.mes_ano ? `${String(piorMesFinal.mes_ano)} com ${this.formatMoneyBr(Number(piorMesFinal.saldo || 0))}` : 'Sem histórico suficiente';
-                    const cardTopCategory = categoriaMaisGastaAno?.categoria ? `${String(categoriaMaisGastaAno.categoria)} com ${this.formatMoneyBr(Number(categoriaMaisGastaAno.valor || 0))}` : 'Sem categoria suficiente';
-                    const cardBottomCategory = categoriaMenosGastaAno?.categoria ? `${String(categoriaMenosGastaAno.categoria)} com ${this.formatMoneyBr(Number(categoriaMenosGastaAno.valor || 0))}` : 'Sem categoria suficiente';
-                    const cardFixedMonth = mesComMaisFixas?.mes_ano ? `${String(mesComMaisFixas.mes_ano)} com ${this.formatMoneyBr(Number(mesComMaisFixas.despesas_fixas || 0))}` : 'Sem histórico suficiente';
-                    const cardVariableMonth = mesComMaisVariaveis?.mes_ano ? `${String(mesComMaisVariaveis.mes_ano)} com ${this.formatMoneyBr(Number(mesComMaisVariaveis.despesas_variadas || 0))}` : 'Sem histórico suficiente';
+                    const cardBestRef = melhorMesFinal?.mes_ano ? `Referência: ${String(melhorMesFinal.mes_ano)}` : 'Referência: sem histórico';
+                    const cardWorstRef = piorMesFinal?.mes_ano ? `Referência: ${String(piorMesFinal.mes_ano)}` : 'Referência: sem histórico';
+                    const cardTopCategoryRef = `Referência: acumulado do ano`;
+                    const cardBottomCategoryRef = `Referência: acumulado do ano`;
+                    const cardFixedMonthRef = mesComMaisFixas?.mes_ano ? `Referência: ${String(mesComMaisFixas.mes_ano)}` : 'Referência: sem histórico';
+                    const cardVariableMonthRef = mesComMaisVariaveis?.mes_ano ? `Referência: ${String(mesComMaisVariaveis.mes_ano)}` : 'Referência: sem histórico';
+                    const cardBestValue = melhorMesFinal?.mes_ano ? `${this.formatMoneyBr(Number(melhorMesFinal.saldo || 0))}` : 'Sem histórico suficiente';
+                    const cardWorstValue = piorMesFinal?.mes_ano ? `${this.formatMoneyBr(Number(piorMesFinal.saldo || 0))}` : 'Sem histórico suficiente';
+                    const cardTopCategory = categoriaMaisGastaAno?.categoria ? `${String(categoriaMaisGastaAno.categoria)} - ${this.formatMoneyBr(Number(categoriaMaisGastaAno.valor || 0))}` : 'Sem categoria suficiente';
+                    const cardBottomCategory = categoriaMenosGastaAno?.categoria ? `${String(categoriaMenosGastaAno.categoria)} - ${this.formatMoneyBr(Number(categoriaMenosGastaAno.valor || 0))}` : 'Sem categoria suficiente';
+                    const cardFixedMonth = mesComMaisFixas?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisFixas.despesas_fixas || 0))}` : 'Sem histórico suficiente';
+                    const cardVariableMonth = mesComMaisVariaveis?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisVariaveis.despesas_variadas || 0))}` : 'Sem histórico suficiente';
                     const resumoMesesRows = historicoDetalhado.length
                         ? historicoDetalhado.map((item) => `
                                 <tr>
@@ -6853,49 +6867,48 @@
                                     <h3>Analista financeiro</h3>
                                     <span class="finance-analista-chip">${escapeHtml(cardMonthLabel)}</span>
                                 </div>
-                                <div class="finance-analista-card__meta">Leitura objetiva do mês e do ano, sem gráficos. Os 7 blocos abaixo resumem o que mais pesa nas finanças agora.</div>
                             </section>
                             <div class="finance-analista-grid">
                                 <article class="finance-analista-card">
                                     <span class="finance-analista-card__label">1 - Melhor mês do ano</span>
+                                    <span class="finance-analista-card__ref">${escapeHtml(cardBestRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardBestValue)}</div>
-                                    <div class="finance-analista-card__meta">${escapeHtml(String(melhorMesFinal?.motivo || 'Critério: saldo real como principal indicador.'))}</div>
                                 </article>
                                 <article class="finance-analista-card">
                                     <span class="finance-analista-card__label">2 - Pior mês do ano</span>
+                                    <span class="finance-analista-card__ref">${escapeHtml(cardWorstRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardWorstValue)}</div>
-                                    <div class="finance-analista-card__meta">${escapeHtml(String(piorMesFinal?.motivo || 'Critério: saldo real como principal indicador.'))}</div>
                                 </article>
                                 <article class="finance-analista-card">
                                     <span class="finance-analista-card__label">3 - Categoria que mais gasta</span>
+                                    <span class="finance-analista-card__ref">${escapeHtml(cardTopCategoryRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardTopCategory)}</div>
-                                    <div class="finance-analista-card__meta">Baseado nas categorias acumuladas do ano para destacar o maior foco de gasto.</div>
                                 </article>
                                 <article class="finance-analista-card">
                                     <span class="finance-analista-card__label">4 - Categoria que menos gasta</span>
+                                    <span class="finance-analista-card__ref">${escapeHtml(cardBottomCategoryRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardBottomCategory)}</div>
-                                    <div class="finance-analista-card__meta">Mostra a categoria menos pressionada no acumulado anual analisado.</div>
                                 </article>
                                 <article class="finance-analista-card">
                                     <span class="finance-analista-card__label">5 - Mês com mais despesas fixas</span>
+                                    <span class="finance-analista-card__ref">${escapeHtml(cardFixedMonthRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardFixedMonth)}</div>
-                                    <div class="finance-analista-card__meta">Ajuda a enxergar quando o peso contratual apertou mais o fechamento.</div>
                                 </article>
                                 <article class="finance-analista-card">
                                     <span class="finance-analista-card__label">6 - Mês com mais débito / pix</span>
+                                    <span class="finance-analista-card__ref">${escapeHtml(cardVariableMonthRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardVariableMonth)}</div>
-                                    <div class="finance-analista-card__meta">Mostra o mês com maior pressão nas despesas variáveis.</div>
                                 </article>
                                 <article class="finance-analista-card">
                                     <span class="finance-analista-card__label">7 - Despesas sobre receitas</span>
+                                    <span class="finance-analista-card__ref">Referência: mês atual</span>
                                     <div class="finance-analista-card__value">${escapeHtml(formatPercent(despesasReceitasPctMes))}</div>
-                                    <div class="finance-analista-card__meta">No mês: ${escapeHtml(formatPercent(despesasReceitasPctMes))} | No ano: ${escapeHtml(formatPercent(despesasReceitasPctAno))} | Fixas: ${escapeHtml(formatPercent(fixasPctReceita))} | Variáveis: ${escapeHtml(formatPercent(variaveisPctReceita))}</div>
                                 </article>
                             </div>
                             <section class="finance-analista-card">
                                 <span class="finance-analista-card__label">Aprendizado do módulo</span>
+                                <span class="finance-analista-card__ref">Referência: modelo adaptativo atual</span>
                                 <div class="finance-analista-card__value">${aprendizadoPct.toFixed(1)}%</div>
-                                <div class="finance-analista-card__meta">Ciclos reais: ${Number(aprendizado?.ciclos_aprendizado_reais || aprendizado?.ciclos_processados || 0)} | Snapshots: ${Number(aprendizado?.snapshots_modelo || 0)} | Meses analisados: ${Number(aprendizado?.meses_analisados || historico.length || 0)} | Modelo: ${escapeHtml(String(modelo?.versao || 'financeiro-adaptive-v1'))}</div>
                                 <div class="finance-analista-progress">
                                     <div class="finance-analista-progress__head">
                                         <strong>Maturidade do modelo</strong>
