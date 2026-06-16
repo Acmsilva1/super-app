@@ -650,18 +650,38 @@ export function buildFinanceiroAnalise({
   const avgReceitasMensais = round2(yearDashboard.receitas / monthsElapsed);
   const avgDespesasMensais = round2(yearGrossExpenses / monthsElapsed);
   const avgSaldoMensal = round2(yearDashboard.liquido / monthsElapsed);
-  const dailyReceitas = round2(monthDashboard.receitas / diasDecorridos);
-  const dailyDespesas = round2(monthGrossExpenses / diasDecorridos);
-  const dailySaldo = round2(dailyReceitas - dailyDespesas);
-  const projectedReceitas = isCurrentMonth || diaReferencia > 0 ? projectMonth(monthDashboard.receitas, diasDecorridos, diasNoMes) : null;
-  const projectedDespesas = isCurrentMonth || diaReferencia > 0 ? projectMonth(monthGrossExpenses, diasDecorridos, diasNoMes) : null;
-  const projectedSaldo = projectedReceitas !== null && projectedDespesas !== null
-    ? round2(projectedReceitas - projectedDespesas)
-    : null;
-
   const monthCategoryTotals = groupByCategory(gastosMes);
   const topCategory = monthCategoryTotals[0] || null;
   const topCategories = monthCategoryTotals.slice(0, 3);
+  const yearCategoryTotals = groupByCategory(gastosAno);
+  const yearTopCategory = yearCategoryTotals[0] || null;
+  const dailyReceitas = round2(monthDashboard.receitas / diasDecorridos);
+  const dailyDespesasFixas = round2(monthDashboard.despesas_fixas / diasDecorridos);
+  const dailyDespesasVariaveis = round2(monthDashboard.despesas_variadas / diasDecorridos);
+  const weeklyDespesasVariaveis = round2(monthDashboard.despesas_variadas / Math.max(1, diasDecorridos / 7));
+  const monthlyWeeks = Math.max(1, diasNoMes / 7);
+  const variableShareCurrent = monthDashboard.despesas_variadas > 0 && topCategory
+    ? clamp(safeNumber(topCategory.valor) / Math.max(1, monthDashboard.despesas_variadas), 0, 1)
+    : 0;
+  const variableShareYear = yearDashboard.despesas_variadas > 0 && yearTopCategory
+    ? clamp(safeNumber(yearTopCategory.valor) / Math.max(1, yearDashboard.despesas_variadas), 0, 1)
+    : 0;
+  const categoryPressure = clamp(
+    1
+    + Math.max(0, variableShareCurrent - variableShareYear) * 0.6
+    + Math.max(0, variableShareCurrent - 0.35) * 0.5,
+    0.9,
+    1.35
+  );
+  const projectedVariaveis = round2(weeklyDespesasVariaveis * monthlyWeeks * categoryPressure);
+  const projectedFixas = round2(monthDashboard.despesas_fixas);
+  const dailyDespesas = round2(dailyDespesasFixas + dailyDespesasVariaveis);
+  const dailySaldo = round2(dailyReceitas - dailyDespesas);
+  const projectedReceitas = isCurrentMonth || diaReferencia > 0 ? projectMonth(monthDashboard.receitas, diasDecorridos, diasNoMes) : null;
+  const projectedDespesas = isCurrentMonth || diaReferencia > 0 ? round2(projectedFixas + projectedVariaveis) : null;
+  const projectedSaldo = projectedReceitas !== null && projectedDespesas !== null
+    ? round2(projectedReceitas - projectedDespesas)
+    : null;
   const receitasMonth = monthDashboard.receitas;
   const despesasMonth = monthGrossExpenses;
   const saldoMonth = round2(receitasMonth - despesasMonth);
@@ -696,10 +716,18 @@ export function buildFinanceiroAnalise({
     dias_no_mes: diasNoMes,
     ritmo_receitas_diario: dailyReceitas,
     ritmo_despesas_diario: dailyDespesas,
+    ritmo_despesas_fixas_diario: dailyDespesasFixas,
+    ritmo_despesas_variaveis_diario: dailyDespesasVariaveis,
+    ritmo_despesas_variaveis_semanal: weeklyDespesasVariaveis,
     ritmo_saldo_diario: dailySaldo,
     receitas_projetadas: projectedReceitas,
     despesas_projetadas: projectedDespesas,
+    despesas_fixas_projetadas: projectedFixas,
+    despesas_variaveis_projetadas: projectedVariaveis,
     saldo_projetado: projectedSaldo,
+    categoria_variavel_risco: topCategory?.categoria || null,
+    categoria_variavel_top_ano: yearTopCategory?.categoria || null,
+    fator_categoria_variavel: categoryPressure,
   };
 
   const features = extrairFinanceiroFeatures({

@@ -6821,6 +6821,17 @@
                     const monthForecast = projecao?.saldo_projetado !== null && projecao?.saldo_projetado !== undefined
                         ? this.formatMoneyBr(Number(projecao.saldo_projetado || 0))
                         : this.formatMoneyBr(Number(mensal.saldo || 0));
+                    const despesaProjetada = projecao?.despesas_projetadas !== null && projecao?.despesas_projetadas !== undefined
+                        ? this.formatMoneyBr(Number(projecao.despesas_projetadas || 0))
+                        : this.formatMoneyBr(Number(mensal.despesas_totais || 0));
+                    const fixasProjetadas = projecao?.despesas_fixas_projetadas !== null && projecao?.despesas_fixas_projetadas !== undefined
+                        ? this.formatMoneyBr(Number(projecao.despesas_fixas_projetadas || 0))
+                        : this.formatMoneyBr(Number(mensal.despesas_fixas || 0));
+                    const variaveisProjetadas = projecao?.despesas_variaveis_projetadas !== null && projecao?.despesas_variaveis_projetadas !== undefined
+                        ? this.formatMoneyBr(Number(projecao.despesas_variaveis_projetadas || 0))
+                        : this.formatMoneyBr(Number(mensal.despesas_variadas || 0));
+                    const categoriaRisco = String(projecao?.categoria_variavel_risco || topCategoria?.categoria || 'Sem categoria');
+                    const resumoMesDetalhado = `Despesa total projetada: ${despesaProjetada} = fixas ${fixasProjetadas} + débito/pix ${variaveisProjetadas}. Categoria mais pressionada: ${categoriaRisco}.`;
                     const comparativeHeadline = melhorMes?.mes_ano
                         ? `Melhor desempenho: ${String(melhorMes.mes_ano)} com ${this.formatMoneyBr(Number(melhorMes.saldo || 0))}`
                         : 'Sem histórico suficiente para apontar o melhor mês';
@@ -6845,9 +6856,9 @@
                                 </div>
                                 <div class="finance-analista-grid">
                                     <div class="finance-analista-kpi">
-                                        <span>Resumo do mês</span>
+                                        <span>Saldo projetado</span>
                                         <strong>${escapeHtml(monthForecast)}</strong>
-                                        <small>Previsão de gasto final do mês. ${escapeHtml(topCategoriaTexto)}</small>
+                                        <small>${escapeHtml(monthSummaryText)} ${escapeHtml(resumoMesDetalhado)} ${escapeHtml(topCategoriaTexto)}</small>
                                     </div>
                                     <div class="finance-analista-kpi">
                                         <span>Pressão das fixas</span>
