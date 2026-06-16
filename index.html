@@ -6993,33 +6993,6 @@
                                 </article>
                             </div>
                             <section class="finance-analista-card">
-                                <span class="finance-analista-card__label">Aprendizado do módulo</span>
-                                <span class="finance-analista-card__ref">Referência: modelo adaptativo atual</span>
-                                <div class="finance-analista-card__value">${aprendizadoPct.toFixed(1)}%</div>
-                                <div class="finance-analista-progress">
-                                    <div class="finance-analista-progress__head">
-                                        <strong>Maturidade do modelo</strong>
-                                        <span>${aprendizadoPct.toFixed(1)}%</span>
-                                    </div>
-                                    <div class="finance-analista-progress__track" aria-label="Maturidade do modelo financeiro">
-                                        <div class="finance-analista-progress__fill" style="width:${Math.max(0, Math.min(100, aprendizadoPct)).toFixed(1)}%;"></div>
-                                    </div>
-                                    <div class="finance-analista-progress__scale">
-                                        <span>0</span>
-                                        <span>50</span>
-                                        <span>100</span>
-                                    </div>
-                                </div>
-                                <table class="finance-analista-mini-table">
-                                    <tbody>
-                                        <tr><td>Ciclos reais</td><td>${Number(aprendizado?.ciclos_aprendizado_reais || aprendizado?.ciclos_processados || 0)}</td></tr>
-                                        <tr><td>Snapshots do modelo</td><td>${Number(aprendizado?.snapshots_modelo || 0)}</td></tr>
-                                        <tr><td>Meses analisados</td><td>${Number(aprendizado?.meses_analisados || historico.length || 0)}</td></tr>
-                                        <tr><td>Base histórica</td><td>${escapeHtml(historico.length ? `${String(historico[historico.length - 1]?.mes_ano || '')} até ${String(historico[0]?.mes_ano || '')}` : 'Sem histórico suficiente')}</td></tr>
-                                    </tbody>
-                                </table>
-                            </section>
-                            <section class="finance-analista-card">
                                 <span class="finance-analista-card__label">Tabela de meses</span>
                                 <div class="finance-analista-table-wrap">
                                     <table class="finance-analista-table">
@@ -7056,6 +7029,33 @@
                                         </tbody>
                                     </table>
                                 </div>
+                            </section>
+                            <section class="finance-analista-card">
+                                <span class="finance-analista-card__label">Aprendizado do módulo</span>
+                                <span class="finance-analista-card__ref">Referência: modelo adaptativo atual</span>
+                                <div class="finance-analista-card__value">${aprendizadoPct.toFixed(1)}%</div>
+                                <div class="finance-analista-progress">
+                                    <div class="finance-analista-progress__head">
+                                        <strong>Maturidade do modelo</strong>
+                                        <span>${aprendizadoPct.toFixed(1)}%</span>
+                                    </div>
+                                    <div class="finance-analista-progress__track" aria-label="Maturidade do modelo financeiro">
+                                        <div class="finance-analista-progress__fill" style="width:${Math.max(0, Math.min(100, aprendizadoPct)).toFixed(1)}%;"></div>
+                                    </div>
+                                    <div class="finance-analista-progress__scale">
+                                        <span>0</span>
+                                        <span>50</span>
+                                        <span>100</span>
+                                    </div>
+                                </div>
+                                <table class="finance-analista-mini-table">
+                                    <tbody>
+                                        <tr><td>Ciclos reais</td><td>${Number(aprendizado?.ciclos_aprendizado_reais || aprendizado?.ciclos_processados || 0)}</td></tr>
+                                        <tr><td>Snapshots do modelo</td><td>${Number(aprendizado?.snapshots_modelo || 0)}</td></tr>
+                                        <tr><td>Meses analisados</td><td>${Number(aprendizado?.meses_analisados || historico.length || 0)}</td></tr>
+                                        <tr><td>Base histórica</td><td>${escapeHtml(historico.length ? `${String(historico[historico.length - 1]?.mes_ano || '')} até ${String(historico[0]?.mes_ano || '')}` : 'Sem histórico suficiente')}</td></tr>
+                                    </tbody>
+                                </table>
                             </section>
                         </div>
                     `;
