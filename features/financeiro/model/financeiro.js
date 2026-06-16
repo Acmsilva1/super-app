@@ -4,6 +4,8 @@ export const TABLE_POUPANCA = 'tb_poupanca';
 export const TABLE_POUPANCA_METAS = 'tb_poupanca_metas';
 export const TABLE_FINANCEIRO_ANALISES = 'tb_financeiro_analises';
 export const TABLE_FINANCEIRO_FEATURES_MENSAIS = 'tb_financeiro_features_mensais';
+export const TABLE_FINANCEIRO_ANALISE_RUNS = 'tb_financeiro_analise_runs';
+export const TABLE_FINANCEIRO_MODELO_ESTADO = 'tb_financeiro_modelo_estado';
 
 export const TIPO_REGISTRO_DESPESA_FIXA = 'despesa_fixa';
 export const TIPO_REGISTRO_GASTO_VARIADO = 'gasto_variado';

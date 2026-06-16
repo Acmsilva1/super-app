@@ -92,10 +92,16 @@ describe('API do financeiro analista', () => {
         };
       }
       if (table === 'tb_financeiro_features_mensais') {
-        return createPersistTable();
+        return createPersistTable({ insertedId: 1001, updatedId: 1002 });
       }
       if (table === 'tb_financeiro_analises') {
         return createPersistTable({ insertedId: 2001, updatedId: 2002 });
+      }
+      if (table === 'tb_financeiro_analise_runs') {
+        return createPersistTable({ insertedId: 3001, updatedId: 3002 });
+      }
+      if (table === 'tb_financeiro_modelo_estado') {
+        return createPersistTable({ insertedId: 4001, updatedId: 4002 });
       }
       throw new Error(`Tabela inesperada: ${table}`);
     });
@@ -112,5 +118,58 @@ describe('API do financeiro analista', () => {
     expect(res.body.aprendizado.percentual).toBeGreaterThan(0);
     expect(res.body.aprendizado.feature_id).toBe(1001);
     expect(res.body.aprendizado.analysis_id).toBe(2001);
+    expect(res.body.aprendizado.run_id).toBe(3001);
+    expect(res.body.aprendizado.model_state_id).toBeNull();
+  });
+
+  it('gera estado do modelo quando o aprendizado esta ativo', async () => {
+    const rowsFinancas = [
+      { id: 1, tipo: 'receita', valor: 3000, created_at: '2026-06-03T10:00:00.000Z', categoria: 'Salario' },
+      { id: 2, tipo: 'despesa', valor: 400, created_at: '2026-06-10T10:00:00.000Z', categoria: 'Transporte' },
+    ];
+    const rowsFixas = [
+      { id: 3, valor: 1200, created_at: '2026-06-05T10:00:00.000Z' },
+    ];
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_financas') {
+        return {
+          select: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              lte: vi.fn(() => createRowsResult(rowsFinancas)),
+            })),
+          })),
+        };
+      }
+      if (table === 'tb_despesas_fixas') {
+        return {
+          select: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              lte: vi.fn(() => createRowsResult(rowsFixas)),
+            })),
+          })),
+        };
+      }
+      if (table === 'tb_financeiro_features_mensais') {
+        return createPersistTable({ insertedId: 1010, updatedId: 1011 });
+      }
+      if (table === 'tb_financeiro_analises') {
+        return createPersistTable({ insertedId: 2010, updatedId: 2011 });
+      }
+      if (table === 'tb_financeiro_analise_runs') {
+        return createPersistTable({ insertedId: 3010, updatedId: 3011 });
+      }
+      if (table === 'tb_financeiro_modelo_estado') {
+        return createPersistTable({ insertedId: 4010, updatedId: 4011 });
+      }
+      throw new Error(`Tabela inesperada: ${table}`);
+    });
+
+    const app = createApp(financeiroAnalistaHandler);
+    const res = await request(app).get('/api/test?mes_ano=2026-06&learn=1');
+
+    expect(res.status).toBe(200);
+    expect(res.body.aprendizado.run_id).toBe(3010);
+    expect(res.body.aprendizado.model_state_id).toBe(4010);
   });
 });

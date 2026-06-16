@@ -2,8 +2,10 @@ import { supabase } from '../lib/supabase.js';
 import {
   TABLE_DESPESAS_FIXAS,
   TABLE_FINANCAS,
+  TABLE_FINANCEIRO_ANALISE_RUNS,
   TABLE_FINANCEIRO_ANALISES,
   TABLE_FINANCEIRO_FEATURES_MENSAIS,
+  TABLE_FINANCEIRO_MODELO_ESTADO,
   buildFinanceiroAnalise,
   classificarFinancas,
   defaultFinanceiroPesos,
@@ -21,6 +23,12 @@ function json(res, status, data) {
 function rowOrFirst(data) {
   if (Array.isArray(data)) return data[0] || null;
   return data || null;
+}
+
+async function insertRecord(table, payload) {
+  const insert = await supabase.from(table).insert(payload).select();
+  if (insert.error) throw insert.error;
+  return rowOrFirst(insert.data);
 }
 
 function isHealth(req) {
@@ -127,6 +135,10 @@ async function persistMonthlyRecord(table, payload, conflictKey = 'mes_ano') {
   throw insert.error;
 }
 
+async function appendFinanceiroRecord(table, payload) {
+  return insertRecord(table, payload);
+}
+
 async function getHistoricalFeatures(limit = 12) {
   const query = supabase.from(TABLE_FINANCEIRO_FEATURES_MENSAIS).select('*');
   if (query && typeof query.order === 'function' && typeof query.limit === 'function') {
@@ -148,6 +160,7 @@ export default async function handler(req, res) {
 
     const mesAno = String(req.query?.mes_ano || '').trim() || new Date().toISOString().slice(0, 7);
     const allowLearning = String(req.query?.learn || '') === '1';
+    const generatedAt = new Date().toISOString();
     const { ano, mes } = parseMesAno(mesAno);
     const { start, end } = rangeMes(ano, mes);
     const yearStart = new Date(ano, 0, 1).toISOString();
@@ -230,11 +243,78 @@ export default async function handler(req, res) {
         ...analise.metadados,
         modelo: analise.modelo,
         feature_id: featureRow?.id ?? null,
+        modo_aprendizado: analise.modelo?.modo_aprendizado || 'somente_cron',
       },
       modelo_versao: analise.modelo?.versao || 'financeiro-adaptive-v1',
-      modo_aprendizado: analise.modelo?.modo_aprendizado || 'somente_cron',
     };
     const analysisRow = await persistMonthlyRecord(TABLE_FINANCEIRO_ANALISES, analysisPayload, 'mes_ano');
+
+    const runRow = await appendFinanceiroRecord(TABLE_FINANCEIRO_ANALISE_RUNS, {
+      mes_ano: mesAno,
+      escopo: 'financeiro',
+      origem: allowLearning ? 'cron_aprendizado' : 'consulta_aba',
+      tipo_execucao: allowLearning ? 'aprendizado' : 'recalculo',
+      allow_learning: allowLearning,
+      feature_id: featureRow?.id ?? null,
+      analysis_id: analysisRow?.id ?? null,
+      payload: {
+        analista: analise,
+        aprendizado: {
+          ...(analise?.modelo?.aprendizado || {}),
+          previous_cycle: Boolean(previousState),
+          modo_aprendizado: analise.modelo?.modo_aprendizado || 'somente_cron',
+        },
+        resumo_mensal: analise.resumo_mensal,
+        resumo_anual: analise.resumo_anual,
+        projecao: analise.projecao,
+        sinais: analise.sinais,
+        recomendacoes: analise.recomendacoes,
+        features: featurePayload,
+        counts: {
+          lancamentos: monthFinancas.length + monthFixas.length,
+          receitas: receitasMes.length,
+          gastos_variados: gastosMes.length,
+          despesas_fixas: monthFixas.length,
+        },
+        previous_state: previousState,
+      },
+      metadados: {
+        generated_at: generatedAt,
+        modelo_versao: analise.modelo?.versao || 'financeiro-adaptive-v1',
+        score_risco: analise.modelo?.score_risco?.score ?? null,
+        risco_classificado: analise.modelo?.score_risco?.classificado || 'baixo',
+        aprendizado_percentual: analise.modelo?.aprendizado?.percentual ?? 0,
+        allow_learning: allowLearning,
+      },
+    });
+
+    let modelStateRow = null;
+    if (allowLearning) {
+      modelStateRow = await appendFinanceiroRecord(TABLE_FINANCEIRO_MODELO_ESTADO, {
+        mes_ano: mesAno,
+        escopo: 'financeiro',
+        origem: 'cron_aprendizado',
+        run_id: runRow?.id ?? null,
+        feature_id: featureRow?.id ?? null,
+        analysis_id: analysisRow?.id ?? null,
+        pesos: analise.modelo?.pesos || {},
+        feedback: analise.modelo?.feedback || {},
+        score_risco: analise.modelo?.score_risco?.score ?? null,
+        risco_classificado: analise.modelo?.score_risco?.classificado || 'baixo',
+        aprendizado_percentual: analise.modelo?.aprendizado?.percentual ?? 0,
+        payload: {
+          analista: analise,
+          previous_state: previousState,
+          feature_row: featureRow,
+          analysis_row: analysisRow,
+        },
+        metadados: {
+          generated_at: generatedAt,
+          modelo_versao: analise.modelo?.versao || 'financeiro-adaptive-v1',
+          allow_learning: allowLearning,
+        },
+      });
+    }
 
     return json(res, 200, {
       mes_ano: mesAno,
@@ -249,6 +329,8 @@ export default async function handler(req, res) {
         ...(analise?.modelo?.aprendizado || {}),
         feature_id: featureRow?.id ?? null,
         analysis_id: analysisRow?.id ?? null,
+        run_id: runRow?.id ?? null,
+        model_state_id: modelStateRow?.id ?? null,
         previous_cycle: Boolean(previousState),
         historico: historyRows.map((row) => ({
           mes_ano: row?.mes_ano || null,
