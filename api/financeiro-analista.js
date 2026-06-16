@@ -43,6 +43,60 @@ function previousMesAno(mesAno) {
   return d.toISOString().slice(0, 7);
 }
 
+function rowMesAno(row) {
+  const raw = String(row?.data_lancamento || row?.created_at || '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw.slice(0, 7) : null;
+}
+
+function buildHistoricoMensalAno({ financasRows = [], fixasRows = [] } = {}) {
+  const grupos = new Map();
+  const ensure = (mesAno) => {
+    if (!mesAno) return null;
+    if (!grupos.has(mesAno)) {
+      grupos.set(mesAno, { mes_ano: mesAno, receitas: [], gastos: [], fixas: [] });
+    }
+    return grupos.get(mesAno);
+  };
+
+  for (const row of financasRows || []) {
+    const mesAno = rowMesAno(row);
+    const bucket = ensure(mesAno);
+    if (!bucket) continue;
+    if (String(row?.tipo || '').toLowerCase() === 'receita') bucket.receitas.push(row);
+    else bucket.gastos.push(row);
+  }
+
+  for (const row of fixasRows || []) {
+    const mesAno = rowMesAno(row);
+    const bucket = ensure(mesAno);
+    if (!bucket) continue;
+    bucket.fixas.push(row);
+  }
+
+  return [...grupos.values()]
+    .sort((a, b) => a.mes_ano.localeCompare(b.mes_ano))
+    .map((item) => {
+      const dashboard = (() => {
+        const receitas = item.receitas.reduce((acc, row) => acc + Number(row?.valor || 0), 0);
+        const despesasVariadas = item.gastos.reduce((acc, row) => acc + Number(row?.valor || 0), 0);
+        const despesasFixas = item.fixas.reduce((acc, row) => acc + Number(row?.valor || 0), 0);
+        return {
+          receitas: Number(receitas.toFixed(2)),
+          despesas_variadas: Number(despesasVariadas.toFixed(2)),
+          despesas_fixas: Number(despesasFixas.toFixed(2)),
+          saldo: Number((receitas - despesasVariadas - despesasFixas).toFixed(2)),
+        };
+      })();
+
+      return {
+        mes_ano: item.mes_ano,
+        receitas_total: dashboard.receitas,
+        despesas_totais: Number((dashboard.despesas_variadas + dashboard.despesas_fixas).toFixed(2)),
+        saldo_real: dashboard.saldo,
+      };
+    });
+}
+
 function extractModelWeights(row) {
   return row?.metadados?.pesos
     || row?.payload?.modelo?.pesos
@@ -200,6 +254,11 @@ export default async function handler(req, res) {
     );
     const previousState = extractPreviousState(currentFeatureRow) || extractPreviousState(prevFeatureRow);
 
+    const historicoMensalAno = buildHistoricoMensalAno({
+      financasRows: yearFinancas,
+      fixasRows: yearFixas,
+    });
+
     const analise = buildFinanceiroAnalise({
       mesAno,
       receitasMes,
@@ -208,7 +267,7 @@ export default async function handler(req, res) {
       receitasAno,
       gastosAno,
       despesasFixasAno: yearFixas,
-      historico: historyRows,
+      historico: historicoMensalAno.length ? historicoMensalAno : historyRows,
       pesos: baseWeights,
       previousState,
       allowLearning,
@@ -332,7 +391,7 @@ export default async function handler(req, res) {
         run_id: runRow?.id ?? null,
         model_state_id: modelStateRow?.id ?? null,
         previous_cycle: Boolean(previousState),
-        historico: historyRows.map((row) => ({
+        historico: (historicoMensalAno.length ? historicoMensalAno : historyRows).map((row) => ({
           mes_ano: row?.mes_ano || null,
           receitas_total: Number(row?.receitas_total ?? row?.payload?.resumo_mensal?.receitas ?? 0),
           despesas_totais: Number(row?.despesas_totais ?? row?.payload?.resumo_mensal?.despesas_totais ?? 0),

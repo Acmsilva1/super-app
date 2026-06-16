@@ -5547,6 +5547,7 @@
                 this.UI_STATE_KEY = 'superapp_ui_state_v1';
                 this.uiState = this.loadUiState();
                 this._uiStateRestored = false;
+                this._sessionRestoreQueued = false;
                 this.vizLibrariesReady = false;
                 this.vizLibrariesLoading = null;
                 this.notificationItems = [];
@@ -5563,30 +5564,27 @@
                     history.scrollRestoration = 'manual';
                 }
                 this.setupEventListeners();
-                this.clearPersistedOpenApps();
                 await this.ensureVisualizationLibraries();
                 this.loadData();
                 this.updateStatistics();
-                this.returnHome();
                 this.startNotificationCenter();
-            }
-
-            clearPersistedOpenApps() {
-                this.uiState.openApps = [];
-                this.saveUiState();
             }
 
             loadUiState() {
                 try {
                     const raw = localStorage.getItem(this.UI_STATE_KEY);
-                    if (!raw) return { openApps: [], windowScrolls: {} };
+                    if (!raw) return { openApps: [], windowScrolls: {}, appTabs: {}, lastActiveAppId: null, checkpoint: null, appMeta: {} };
                     const parsed = JSON.parse(raw);
                     return {
                         openApps: Array.isArray(parsed?.openApps) ? parsed.openApps : [],
-                        windowScrolls: parsed?.windowScrolls && typeof parsed.windowScrolls === 'object' ? parsed.windowScrolls : {}
+                        windowScrolls: parsed?.windowScrolls && typeof parsed.windowScrolls === 'object' ? parsed.windowScrolls : {},
+                        appTabs: parsed?.appTabs && typeof parsed.appTabs === 'object' ? parsed.appTabs : {},
+                        lastActiveAppId: typeof parsed?.lastActiveAppId === 'string' ? parsed.lastActiveAppId : null,
+                        checkpoint: parsed?.checkpoint && typeof parsed.checkpoint === 'object' ? parsed.checkpoint : null,
+                        appMeta: parsed?.appMeta && typeof parsed.appMeta === 'object' ? parsed.appMeta : {},
                     };
                 } catch (_err) {
-                    return { openApps: [], windowScrolls: {} };
+                    return { openApps: [], windowScrolls: {}, appTabs: {}, lastActiveAppId: null, checkpoint: null, appMeta: {} };
                 }
             }
 
@@ -5603,6 +5601,16 @@
                 this.saveUiState();
             }
 
+            rememberAppCheckpoint(appId, patch = {}) {
+                if (!appId) return;
+                if (!this.uiState.appMeta || typeof this.uiState.appMeta !== 'object') this.uiState.appMeta = {};
+                this.uiState.appMeta[appId] = {
+                    ...(this.uiState.appMeta[appId] || {}),
+                    ...patch,
+                };
+                this.saveUiState();
+            }
+
             restoreWindowScroll(appId, contentEl) {
                 if (!appId || !contentEl) return;
                 const y = Number(this.uiState.windowScrolls?.[appId] || 0);
@@ -5612,15 +5620,38 @@
                 });
             }
 
-            persistOpenAppsState() {
+            persistOpenAppsState(activeAppId = null) {
                 this.uiState.openApps = Array.from(this.openWindows.keys());
+                if (activeAppId) this.uiState.lastActiveAppId = activeAppId;
+                if (this.openWindows.size > 0) {
+                    this.uiState.checkpoint = {
+                        openApps: [...this.uiState.openApps],
+                        windowScrolls: { ...(this.uiState.windowScrolls || {}) },
+                        appTabs: { ...(this.uiState.appTabs || {}) },
+                        lastActiveAppId: this.uiState.lastActiveAppId || null,
+                        appMeta: { ...(this.uiState.appMeta || {}) },
+                    };
+                }
                 this.saveUiState();
             }
 
             restoreUiStateAfterAppsLoaded() {
                 if (this._uiStateRestored) return;
                 this._uiStateRestored = true;
-                this.clearPersistedOpenApps();
+                const checkpoint = this.uiState.checkpoint || {};
+                const openApps = Array.isArray(checkpoint.openApps) && checkpoint.openApps.length
+                    ? checkpoint.openApps
+                    : (Array.isArray(this.uiState.openApps) ? this.uiState.openApps : []);
+                if (!openApps.length || this._sessionRestoreQueued) return;
+                this._sessionRestoreQueued = true;
+                requestAnimationFrame(() => {
+                    openApps.forEach((appId) => {
+                        if (appId && !this.openWindows.has(appId)) {
+                            this.launchApp(appId);
+                        }
+                    });
+                    this._sessionRestoreQueued = false;
+                });
             }
 
             loadExternalScript(src) {
@@ -5701,17 +5732,10 @@
                     this.quickAddFinanceiro(e);
                 });
                 document.addEventListener('visibilitychange', () => {
-                    if (document.visibilityState === 'hidden') {
-                        this._resumeNeedsHomeReset = true;
-                        return;
-                    }
-                    if (this._resumeNeedsHomeReset) {
-                        this._resumeNeedsHomeReset = false;
-                        this.returnHome();
-                    }
+                    if (document.visibilityState === 'hidden') this.persistOpenAppsState(this.uiState.lastActiveAppId || null);
                 });
                 window.addEventListener('pageshow', (event) => {
-                    if (event.persisted) this.returnHome();
+                    if (event.persisted) this.persistOpenAppsState(this.uiState.lastActiveAppId || null);
                 });
                 window.addEventListener('beforeunload', () => {
                     this.persistOpenAppsState();
@@ -6246,7 +6270,7 @@
 
                 document.getElementById('windowsContainer').appendChild(windowElement);
                 this.openWindows.set(appId, windowElement);
-                this.persistOpenAppsState();
+                this.persistOpenAppsState(appId);
                 this.updateStatistics();
                 const contentEl = windowElement.querySelector('.window-content');
                 contentEl.setAttribute('data-app-id', appId);
@@ -6315,6 +6339,12 @@
                 if (!path) return;
                 let mesAno = contentEl.getAttribute('data-mes-ano');
                 if (appId === 'financeiro' && !mesAno) mesAno = this.getMesAnoAtual();
+                if (appId === 'financeiro') {
+                    const financeCheckpoint = this.uiState.checkpoint?.appMeta?.financeiro || this.uiState.appMeta?.financeiro || {};
+                    if (!mesAno && financeCheckpoint.mesAno) mesAno = financeCheckpoint.mesAno;
+                    if (financeCheckpoint.activeTab) contentEl.setAttribute('data-active-tab', financeCheckpoint.activeTab);
+                    if (financeCheckpoint.activeDataFilter) contentEl.setAttribute('data-active-data-filter', financeCheckpoint.activeDataFilter);
+                }
                 try {
                     let url = '/api/' + path;
                     if (appId === 'financeiro') url = '/api/financeiro?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
@@ -7363,6 +7393,11 @@
                 const applyFinanceDataFilter = (target) => {
                     const normalizedTarget = ['despesas_fixas', 'gastos_variados', 'receitas'].includes(String(target || '')) ? String(target) : '';
                     el.setAttribute('data-active-data-filter', normalizedTarget);
+                    this.rememberAppCheckpoint('financeiro', {
+                        activeTab: el.getAttribute('data-active-tab') || activeTab,
+                        activeDataFilter: normalizedTarget,
+                        mesAno: el.getAttribute('data-mes-ano') || mesAno,
+                    });
                     const emptyEl = el.querySelector('#financeiro-data-empty');
                     const hintBar = el.querySelector('#financeiro-data-toolbar-hint');
                     el.querySelectorAll('[data-action="financeiro-data-filter"]').forEach((b) => {
@@ -7391,6 +7426,11 @@
 
                 const setTab = (tab) => {
                     el.setAttribute('data-active-tab', tab);
+                    this.rememberAppCheckpoint('financeiro', {
+                        activeTab: tab,
+                        activeDataFilter: el.getAttribute('data-active-data-filter') || '',
+                        mesAno: el.getAttribute('data-mes-ano') || mesAno,
+                    });
                     el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
                         const active = btn.dataset.tab === tab;
                         btn.classList.toggle('is-active', active);
@@ -7435,6 +7475,11 @@
                     const m = el.querySelector('#financeiro-mes').value;
                     const a = el.querySelector('#financeiro-ano').value;
                     el.setAttribute('data-mes-ano', `${a}-${String(m).padStart(2, '0')}`);
+                    this.rememberAppCheckpoint('financeiro', {
+                        activeTab: el.getAttribute('data-active-tab') || activeTab,
+                        activeDataFilter: el.getAttribute('data-active-data-filter') || '',
+                        mesAno: el.getAttribute('data-mes-ano') || `${a}-${String(m).padStart(2, '0')}`,
+                    });
                     this.refreshAppContent('financeiro');
                 };
                 el.querySelector('#financeiro-mes').onchange = refreshMesAno;
@@ -8698,7 +8743,7 @@
                     element.remove();
                     const appId = windowId.replace('window-', '');
                     this.openWindows.delete(appId);
-                    this.persistOpenAppsState();
+                    this.persistOpenAppsState(this.uiState.lastActiveAppId || appId);
                     this.updateStatistics();
                 }
             }
@@ -8706,7 +8751,6 @@
             returnHome() {
                 const windowIds = Array.from(this.openWindows.keys()).map((appId) => `window-${appId}`);
                 windowIds.forEach((windowId) => this.closeWindow(windowId));
-                this.clearPersistedOpenApps();
                 document.body.classList.add('view-apps');
                 document.getElementById('navApps')?.classList.add('active');
                 document.querySelector('nav')?.classList.remove('nav-open');

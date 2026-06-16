@@ -65,10 +65,19 @@ describe('API do financeiro analista', () => {
 
   it('gera analise e persiste estado adaptativo', async () => {
     const rowsFinancas = [
+      { id: 11, tipo: 'receita', valor: 2800, created_at: '2026-02-03T10:00:00.000Z', categoria: 'Salario' },
+      { id: 12, tipo: 'despesa', valor: 700, created_at: '2026-02-10T10:00:00.000Z', categoria: 'Transporte' },
+      { id: 13, tipo: 'receita', valor: 3200, created_at: '2026-03-03T10:00:00.000Z', categoria: 'Salario' },
+      { id: 14, tipo: 'despesa', valor: 900, created_at: '2026-03-11T10:00:00.000Z', categoria: 'Mercado' },
+      { id: 15, tipo: 'receita', valor: 2900, created_at: '2026-04-03T10:00:00.000Z', categoria: 'Salario' },
+      { id: 16, tipo: 'despesa', valor: 1100, created_at: '2026-04-11T10:00:00.000Z', categoria: 'Lazer' },
       { id: 1, tipo: 'receita', valor: 3000, created_at: '2026-06-03T10:00:00.000Z', categoria: 'Salario' },
       { id: 2, tipo: 'despesa', valor: 400, created_at: '2026-06-10T10:00:00.000Z', categoria: 'Transporte' },
     ];
     const rowsFixas = [
+      { id: 21, valor: 1000, created_at: '2026-02-05T10:00:00.000Z' },
+      { id: 22, valor: 1150, created_at: '2026-03-05T10:00:00.000Z' },
+      { id: 23, valor: 1180, created_at: '2026-04-05T10:00:00.000Z' },
       { id: 3, valor: 1200, created_at: '2026-06-05T10:00:00.000Z' },
     ];
 
@@ -116,6 +125,7 @@ describe('API do financeiro analista', () => {
     expect(res.body.analista.modelo.pesos).toBeTruthy();
     expect(res.body.aprendizado).toBeTruthy();
     expect(res.body.aprendizado.percentual).toBeGreaterThan(0);
+    expect(res.body.aprendizado.historico.length).toBeGreaterThanOrEqual(4);
     expect(res.body.aprendizado.feature_id).toBe(1001);
     expect(res.body.aprendizado.analysis_id).toBe(2001);
     expect(res.body.aprendizado.run_id).toBe(3001);
@@ -124,10 +134,13 @@ describe('API do financeiro analista', () => {
 
   it('gera estado do modelo quando o aprendizado esta ativo', async () => {
     const rowsFinancas = [
+      { id: 11, tipo: 'receita', valor: 2800, created_at: '2026-02-03T10:00:00.000Z', categoria: 'Salario' },
+      { id: 12, tipo: 'despesa', valor: 700, created_at: '2026-02-10T10:00:00.000Z', categoria: 'Transporte' },
       { id: 1, tipo: 'receita', valor: 3000, created_at: '2026-06-03T10:00:00.000Z', categoria: 'Salario' },
       { id: 2, tipo: 'despesa', valor: 400, created_at: '2026-06-10T10:00:00.000Z', categoria: 'Transporte' },
     ];
     const rowsFixas = [
+      { id: 21, valor: 1000, created_at: '2026-02-05T10:00:00.000Z' },
       { id: 3, valor: 1200, created_at: '2026-06-05T10:00:00.000Z' },
     ];
 
