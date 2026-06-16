@@ -2837,6 +2837,225 @@
             display: grid;
             gap: 0.9rem;
         }
+        .finance-analista-shell {
+            display: grid;
+            gap: 0.9rem;
+        }
+        .finance-analista-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+        .finance-analista-card {
+            border-radius: 1rem;
+            padding: 0.95rem;
+            background: linear-gradient(180deg, rgba(15, 27, 48, 0.94), rgba(8, 15, 27, 0.96));
+            border: 1px solid rgba(96, 136, 194, 0.26);
+            box-shadow: 0 16px 30px rgba(0, 0, 0, 0.22);
+        }
+        .finance-analista-card__label {
+            display: block;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #8fb2df;
+            margin-bottom: 0.35rem;
+        }
+        .finance-analista-card__value {
+            font-size: 1.28rem;
+            font-weight: 800;
+            color: #f6fbff;
+        }
+        .finance-analista-card__meta {
+            font-size: 0.78rem;
+            color: #9fb6d7;
+            margin-top: 0.25rem;
+            line-height: 1.45;
+        }
+        .finance-analista-stack {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .finance-analista-list {
+            display: grid;
+            gap: 0.55rem;
+        }
+        .finance-analista-item {
+            border-radius: 0.9rem;
+            padding: 0.8rem 0.9rem;
+            background: rgba(10, 18, 31, 0.88);
+            border: 1px solid rgba(96, 136, 194, 0.18);
+        }
+        .finance-analista-item strong {
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+        .finance-analista-item small {
+            color: #99b4d6;
+            line-height: 1.45;
+        }
+        .finance-analista-bi {
+            display: grid;
+            gap: 0.9rem;
+        }
+        .finance-analista-hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+            gap: 0.75rem;
+            align-items: stretch;
+        }
+        .finance-analista-hero__main {
+            border-radius: 1.1rem;
+            padding: 1rem;
+            background: linear-gradient(145deg, rgba(7, 17, 33, 0.96), rgba(15, 23, 42, 0.92));
+            border: 1px solid rgba(96, 136, 194, 0.24);
+        }
+        .finance-analista-hero__aside {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .finance-analista-hero__title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.65rem;
+        }
+        .finance-analista-hero__title h3 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+        }
+        .finance-analista-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border-radius: 999px;
+            padding: 0.38rem 0.65rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            background: rgba(37, 99, 235, 0.16);
+            color: #dbeafe;
+            border: 1px solid rgba(96, 165, 250, 0.24);
+        }
+        .finance-analista-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.65rem;
+        }
+        .finance-analista-kpi {
+            border-radius: 0.95rem;
+            padding: 0.8rem;
+            background: rgba(10, 18, 31, 0.85);
+            border: 1px solid rgba(96, 136, 194, 0.18);
+        }
+        .finance-analista-kpi span {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #8fb2df;
+            margin-bottom: 0.25rem;
+        }
+        .finance-analista-kpi strong {
+            display: block;
+            font-size: 1rem;
+            color: #f8fbff;
+        }
+        .finance-analista-kpi small {
+            display: block;
+            margin-top: 0.2rem;
+            color: #9fb6d7;
+            line-height: 1.4;
+        }
+        .finance-analista-charts {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+        .finance-analista-chart {
+            min-height: 300px;
+            border-radius: 1rem;
+            padding: 0.75rem;
+            background: linear-gradient(180deg, rgba(10, 18, 31, 0.86), rgba(7, 15, 26, 0.94));
+            border: 1px solid rgba(96, 136, 194, 0.22);
+        }
+        .finance-analista-chart h4 {
+            margin: 0 0 0.45rem 0;
+            font-size: 0.84rem;
+            color: #dbeafe;
+        }
+        .finance-analista-panel-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+            gap: 0.75rem;
+        }
+        .finance-analista-list--compact .finance-analista-item {
+            background: rgba(12, 18, 31, 0.9);
+        }
+        .finance-analista-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+        .finance-analista-table th,
+        .finance-analista-table td {
+            text-align: left;
+            padding: 0.65rem 0.55rem;
+            border-bottom: 1px solid rgba(96, 136, 194, 0.18);
+            vertical-align: top;
+        }
+        .finance-analista-table th {
+            color: #9fb6d7;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .finance-analista-table tfoot td {
+            color: #e2e8f0;
+            font-weight: 700;
+        }
+        .finance-analista-table-wrap {
+            overflow-x: auto;
+            border-radius: 1rem;
+            border: 1px solid rgba(96, 136, 194, 0.18);
+            background: rgba(7, 15, 26, 0.94);
+        }
+        .finance-analista-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            border-radius: 999px;
+            padding: 0.28rem 0.55rem;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .finance-analista-badge.is-low { background: rgba(34,197,94,0.16); color: #bbf7d0; }
+        .finance-analista-badge.is-mid { background: rgba(245,158,11,0.16); color: #fde68a; }
+        .finance-analista-badge.is-high { background: rgba(249,115,22,0.16); color: #fed7aa; }
+        .finance-analista-badge.is-crit { background: rgba(239,68,68,0.16); color: #fecaca; }
+        .finance-analista-error-grid {
+            display: grid;
+            gap: 0.55rem;
+        }
+        .finance-analista-error {
+            border-radius: 0.9rem;
+            padding: 0.75rem 0.85rem;
+            background: rgba(10, 18, 31, 0.88);
+            border: 1px solid rgba(96, 136, 194, 0.18);
+        }
+        .finance-analista-error strong {
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+        .finance-analista-error small {
+            color: #9fb6d7;
+            line-height: 1.45;
+        }
         .module-data-toolbar {
             display: flex;
             flex-wrap: wrap;
@@ -5161,6 +5380,19 @@
                 max-width: none;
             }
         }
+        @media (max-width: 768px) {
+            .finance-analista-hero,
+            .finance-analista-panel-grid,
+            .finance-analista-charts {
+                grid-template-columns: 1fr;
+            }
+            .finance-analista-chart {
+                min-height: 260px;
+            }
+            .finance-analista-kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
 
     </style>
 </head>
@@ -6056,8 +6288,11 @@
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
                 if (el._financeiroChartCategoria) { try { el._financeiroChartCategoria.dispose(); } catch (_) {} el._financeiroChartCategoria = null; }
                 if (el._financeiroChartStatus) { try { el._financeiroChartStatus.dispose(); } catch (_) {} el._financeiroChartStatus = null; }
+                if (el._financeiroAnalistaChartTrend) { try { el._financeiroAnalistaChartTrend.dispose(); } catch (_) {} el._financeiroAnalistaChartTrend = null; }
+                if (el._financeiroAnalistaChartMix) { try { el._financeiroAnalistaChartMix.dispose(); } catch (_) {} el._financeiroAnalistaChartMix = null; }
+                if (el._financeiroAnalistaChartLearning) { try { el._financeiroAnalistaChartLearning.dispose(); } catch (_) {} el._financeiroAnalistaChartLearning = null; }
                 const tabRaw = (el.getAttribute('data-active-tab') || '').toLowerCase();
-                const activeTab = ['summary', 'data', 'poupanca'].includes(tabRaw) ? tabRaw : 'data';
+                const activeTab = ['summary', 'data', 'poupanca', 'analista'].includes(tabRaw) ? tabRaw : 'data';
                 const dataFilterRaw = String(el.getAttribute('data-active-data-filter') || '').toLowerCase();
                 const activeDataFilter = ['despesas_fixas', 'gastos_variados', 'receitas'].includes(dataFilterRaw) ? dataFilterRaw : '';
                 const activeGastosCategoriaRaw = String(el.getAttribute('data-active-gastos-categoria') || '').trim();
@@ -6214,6 +6449,7 @@
                 const metaProgresso = metaValor > 0 ? Math.max(0, Math.min(1, poupancaTotal / metaValor)) : 0;
                 const metaPercent = Math.round(metaProgresso * 100);
                 const metaRestante = Math.max(0, Math.round((metaValor - poupancaTotal) * 100) / 100);
+                const analistaPanelId = 'financeiro-analista-panel';
 
                 el.innerHTML = `
                     <div class="finance-module-shell">
@@ -6227,6 +6463,7 @@
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Dashboards</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupança</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'analista' ? 'is-active' : ''}" data-action="module-tab" data-tab="analista" role="tab" aria-selected="${activeTab === 'analista' ? 'true' : 'false'}">Analista</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <button type="button" class="finance-filter-chip finance-filter-chip--fixas" data-action="financeiro-data-filter" data-target="despesas_fixas" role="tab" aria-selected="false">
@@ -6407,6 +6644,15 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="module-tab-panel ${activeTab === 'analista' ? '' : 'hidden'}" data-tab-panel="analista">
+                            <div id="${analistaPanelId}" class="finance-analista-shell">
+                                <div class="finance-analista-card">
+                                    <span class="finance-analista-card__label">Carregando</span>
+                                    <div class="finance-analista-card__value">Análise em andamento</div>
+                                    <div class="finance-analista-card__meta">Calculando mês atual, acumulado anual e projeção do ritmo diário.</div>
+                                </div>
+                            </div>
+                        </div>
                         <button type="button" class="finance-fab finance-fab-pulse" data-action="financeiro-open-modal" aria-label="Adicionar registro financeiro">+</button>
                     </div>
                 `;
@@ -6443,6 +6689,486 @@
                 gastosVariados.forEach((r) => itemMap.set(`gasto_variado:${r.id}`, r));
                 receitas.forEach((r) => itemMap.set(`receita:${r.id}`, r));
                 poupancaLogs.forEach((r) => itemMap.set(`poupanca:${r.id}`, r));
+                const renderFinanceiroAnalista = (payload) => {
+                    const panel = el.querySelector(`#${analistaPanelId}`);
+                    if (!panel) return;
+                    const analise = payload?.analista || payload || {};
+                    const aprendizado = payload?.aprendizado || analise?.modelo?.aprendizado || {};
+                    const periodo = analise?.periodo || {};
+                    const mensal = analise?.resumo_mensal || {};
+                    const anual = analise?.resumo_anual || {};
+                    const projecao = analise?.projecao || {};
+                    const comparativos = analise?.comparativos || {};
+                    const modelo = analise?.modelo || {};
+                    const pesos = modelo?.pesos || {};
+                    const sinais = Array.isArray(analise?.sinais) ? analise.sinais : [];
+                    const recomendacoes = Array.isArray(analise?.recomendacoes) ? analise.recomendacoes : [];
+                    const erros = Array.isArray(analise?.possiveis_erros) ? analise.possiveis_erros : [];
+                    const historico = Array.isArray(aprendizado?.historico) ? aprendizado.historico : [];
+                    const riscoScore = modelo?.score_risco || {};
+                    const feedback = modelo?.feedback || {};
+                    const aprendizadoPct = Number(aprendizado?.percentual || 0);
+                    const scoreLevel = riscoScore.classificado === 'critico'
+                        ? 'is-crit'
+                        : riscoScore.classificado === 'alto'
+                            ? 'is-high'
+                            : riscoScore.classificado === 'medio'
+                                ? 'is-mid'
+                                : 'is-low';
+                    const topCategorias = Array.isArray(mensal?.top_categorias) ? mensal.top_categorias : [];
+                    const topCategoria = topCategorias[0] || null;
+                    const topCategoriaTexto = topCategoria?.categoria
+                        ? `${String(topCategoria.categoria)} lidera as despesas variáveis com ${this.formatMoneyBr(Number(topCategoria.valor || 0))}.`
+                        : 'Ainda não há categoria suficiente para identificar o principal foco de gasto.';
+                    const fixasRatio = Number(mensal?.fixas_ratio_receitas || 0);
+                    const variaveisRatio = Number(mensal?.variaveis_ratio_receitas || 0);
+                    const alivioMotivo = String(comparativos?.alivio_motivo || '');
+                    const alivioTexto = alivioMotivo === 'despesas_fixas_controladas'
+                        ? 'O mês aliviou porque as despesas fixas ficaram abaixo da média do ano.'
+                        : alivioMotivo === 'receita_compensou'
+                            ? 'O mês aliviou porque a receita compensou a pressão de despesas.'
+                            : 'Não houve alívio claro no fechamento parcial do mês.';
+                    const monthVsYear = comparativos?.mes_vs_ano || {};
+                    const oscilacao = comparativos?.oscilacao_historica || {};
+                    const monthSummaryText = projecao?.ativa
+                        ? `Mantido o ritmo atual, o mês tende a fechar em ${this.formatMoneyBr(Number(projecao.saldo_projetado || 0))}.`
+                        : `O mês já está fechado em ${this.formatMoneyBr(Number(mensal.saldo || 0))}.`;
+                    const insightCards = [
+                        {
+                            label: 'Gasta mais no mês',
+                            value: topCategoria?.categoria || 'Sem categoria',
+                            meta: topCategoriaTexto,
+                        },
+                        {
+                            label: 'Projeção final do mês',
+                            value: projecao?.saldo_projetado !== null && projecao?.saldo_projetado !== undefined
+                                ? this.formatMoneyBr(Number(projecao.saldo_projetado || 0))
+                                : '--',
+                            meta: projecao?.ativa
+                                ? `Receita diária ${this.formatMoneyBr(Number(projecao.ritmo_receitas_diario || 0))} | Despesa diária ${this.formatMoneyBr(Number(projecao.ritmo_despesas_diario || 0))}`
+                                : 'A projeção é exibida como leitura histórica para meses fechados.',
+                        },
+                        {
+                            label: 'Despesas fixas x receita',
+                            value: `${fixasRatio.toFixed(1)}%`,
+                            meta: fixasRatio >= 50
+                                ? 'Despesas fixas muito altas versus receita.'
+                                : 'Despesas fixas sob controle relativo à receita.',
+                        },
+                        {
+                            label: 'Aprendizado do modelo',
+                            value: `${aprendizadoPct.toFixed(1)}%`,
+                            meta: `Ciclos processados: ${Number(aprendizado?.ciclos_processados || 0)}.`,
+                        },
+                    ];
+                    const badgeFor = (tipo) => {
+                        if (tipo === 'critico') return 'style="color:#fecaca;background:rgba(127,29,29,0.28);border:1px solid rgba(248,113,113,0.35);"';
+                        if (tipo === 'alerta') return 'style="color:#fde68a;background:rgba(120,53,15,0.24);border:1px solid rgba(251,191,36,0.28);"';
+                        return 'style="color:#dbeafe;background:rgba(30,64,175,0.18);border:1px solid rgba(96,165,250,0.26);"';
+                    };
+                    const severityClass = (level) => {
+                        if (level === 'alta') return 'is-high';
+                        if (level === 'media') return 'is-mid';
+                        return 'is-low';
+                    };
+                    const weightOrder = [
+                        'saldo_negativo',
+                        'despesas_fixas',
+                        'despesas_variaveis',
+                        'concentracao_gasto',
+                        'desvio_receita',
+                        'desvio_despesa',
+                        'ritmo_diario',
+                        'estabilidade',
+                    ];
+                    const weightLabel = {
+                        saldo_negativo: 'Saldo negativo',
+                        despesas_fixas: 'Despesas fixas',
+                        despesas_variaveis: 'Despesas variáveis',
+                        concentracao_gasto: 'Concentração do gasto',
+                        desvio_receita: 'Desvio de receita',
+                        desvio_despesa: 'Desvio de despesa',
+                        ritmo_diario: 'Ritmo diário',
+                        estabilidade: 'Estabilidade',
+                    };
+                    const weightImpact = {
+                        saldo_negativo: feedback?.tem_feedback
+                            ? `Erro de saldo de ${this.formatMoneyBr(Number(feedback?.saldo_erro || 0))} no ciclo anterior.`
+                            : 'Protege o modelo contra mês no vermelho.',
+                        despesas_fixas: `Peso atual de ${fixasRatio.toFixed(1)}% da receita no mês.`,
+                        despesas_variaveis: `Peso atual de ${variaveisRatio.toFixed(1)}% da receita no mês.`,
+                        concentracao_gasto: topCategoria?.categoria
+                            ? `Categoria líder: ${topCategoria.categoria}.`
+                            : 'Não há concentração suficiente para medir.',
+                        desvio_receita: monthVsYear?.receita_vs_media_ano_pct !== undefined
+                            ? `Receita vs média anual: ${Number(monthVsYear.receita_vs_media_ano_pct || 0).toFixed(1)}%.`
+                            : 'Compara receita com a linha anual.',
+                        desvio_despesa: monthVsYear?.despesa_vs_media_ano_pct !== undefined
+                            ? `Despesa vs média anual: ${Number(monthVsYear.despesa_vs_media_ano_pct || 0).toFixed(1)}%.`
+                            : 'Compara despesa com a linha anual.',
+                        ritmo_diario: projecao?.ativa
+                            ? `Ritmo atual projeta saldo de ${this.formatMoneyBr(Number(projecao.saldo_projetado || 0))}.`
+                            : 'Usado como referência do avanço diário.',
+                        estabilidade: `Oscilação do saldo nos últimos ciclos: ${Number(oscilacao?.coef_saldos || 0).toFixed(2)}.`,
+                    };
+                    const pesoRows = weightOrder
+                        .filter((key) => Object.prototype.hasOwnProperty.call(pesos, key))
+                        .map((key) => ({
+                            key,
+                            label: weightLabel[key] || key,
+                            valor: Number(pesos[key] || 0) * 100,
+                            impacto: weightImpact[key] || 'Sem observação específica.',
+                        }));
+                    const sinalHtml = sinais.length
+                        ? sinais.map((s) => `<div class="finance-analista-item" ${badgeFor(s.tipo)}><strong>${escapeHtml(s.titulo || 'Sinal')}</strong><small>${escapeHtml(s.descricao || '')}</small></div>`).join('')
+                        : '<div class="finance-analista-item"><strong>Sem alertas relevantes</strong><small>Os dados atuais não apontam anomalias fortes no período analisado.</small></div>';
+                    const recomendacaoHtml = recomendacoes.length
+                        ? recomendacoes.map((r) => `<div class="finance-analista-item"><strong>Recomendação</strong><small>${escapeHtml(String(r))}</small></div>`).join('')
+                        : '<div class="finance-analista-item"><strong>Sem novas recomendações</strong><small>O motor não detectou uma ação corretiva prioritária para este ciclo.</small></div>';
+                    const erroHtml = erros.length
+                        ? erros.map((err) => `<div class="finance-analista-error ${severityClass(err.severidade)}"><strong>${escapeHtml(err.titulo || err.tipo || 'Erro possível')}</strong><small>${escapeHtml(err.descricao || '')}</small></div>`).join('')
+                        : '<div class="finance-analista-error is-low"><strong>Sem erros prováveis</strong><small>O contexto atual não indica falhas fortes de leitura, mas isso muda conforme o histórico cresce.</small></div>';
+                    const historicoRange = historico.length
+                        ? `${escapeHtml(String(historico[0]?.mes_ano || ''))} até ${escapeHtml(String(historico[historico.length - 1]?.mes_ano || ''))}`
+                        : 'Sem histórico suficiente';
+                    panel.innerHTML = `
+                        <div class="finance-analista-bi">
+                            <section class="finance-analista-hero">
+                                <div class="finance-analista-hero__main">
+                                    <div class="finance-analista-hero__title">
+                                        <h3>Analista financeiro</h3>
+                                        <span class="finance-analista-chip">${escapeHtml(String(periodo.mes_ano || mesAno))}</span>
+                                    </div>
+                                    <div class="finance-analista-kpi-grid">
+                                        ${insightCards.map((card) => `
+                                            <div class="finance-analista-kpi">
+                                                <span>${escapeHtml(card.label)}</span>
+                                                <strong>${escapeHtml(card.value)}</strong>
+                                                <small>${escapeHtml(card.meta)}</small>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="finance-analista-hero__aside">
+                                    <div class="finance-analista-card">
+                                        <span class="finance-analista-card__label">Resultado da última análise</span>
+                                        <div class="finance-analista-card__value">${escapeHtml(String(riscoScore.classificado || 'baixo').toUpperCase())} ${Number(riscoScore.score || 0).toFixed(1)}</div>
+                                        <div class="finance-analista-card__meta">Aprendizado atual: ${aprendizadoPct.toFixed(1)}% | Ciclos: ${Number(aprendizado?.ciclos_processados || 0)}</div>
+                                    </div>
+                                    <div class="finance-analista-card">
+                                        <span class="finance-analista-card__label">Leitura do mês</span>
+                                        <div class="finance-analista-card__value">${escapeHtml(String(monthSummaryText))}</div>
+                                        <div class="finance-analista-card__meta">${escapeHtml(String(alivioTexto))}</div>
+                                    </div>
+                                </div>
+                            </section>
+                            <section class="finance-analista-charts">
+                                <div class="finance-analista-chart">
+                                    <h4>Histórico mensal e anual</h4>
+                                    <div id="financeiro-analista-chart-trend" style="width:100%;height:250px;"></div>
+                                </div>
+                                <div class="finance-analista-chart">
+                                    <h4>Estrutura do mês</h4>
+                                    <div id="financeiro-analista-chart-mix" style="width:100%;height:250px;"></div>
+                                </div>
+                                <div class="finance-analista-chart">
+                                    <h4>Aprendizado do modelo</h4>
+                                    <div id="financeiro-analista-chart-learning" style="width:100%;height:250px;"></div>
+                                </div>
+                            </section>
+                            <section class="finance-analista-panel-grid">
+                                <div class="finance-analista-card">
+                                    <span class="finance-analista-card__label">Sinais e comparativos</span>
+                                    <div class="finance-analista-list finance-analista-list--compact">
+                                        <div class="finance-analista-item">
+                                            <strong>Despesa x receita no mês</strong>
+                                            <small>Receita: ${this.formatMoneyBr(Number(mensal.receitas || 0))} | Despesa total: ${this.formatMoneyBr(Number(mensal.despesas_totais || 0))} | Saldo: ${this.formatMoneyBr(Number(mensal.saldo || 0))}</small>
+                                        </div>
+                                        <div class="finance-analista-item">
+                                            <strong>Comparativo anual</strong>
+                                            <small>Receita vs média anual: ${Number(monthVsYear?.receita_vs_media_ano_pct || 0).toFixed(1)}% | Despesa vs média anual: ${Number(monthVsYear?.despesa_vs_media_ano_pct || 0).toFixed(1)}% | Saldo vs média anual: ${Number(monthVsYear?.saldo_vs_media_ano_pct || 0).toFixed(1)}%</small>
+                                        </div>
+                                        <div class="finance-analista-item">
+                                            <strong>Oscilação histórica</strong>
+                                            <small>Receitas: ${Number(oscilacao?.coef_receitas || 0).toFixed(2)} | Despesas: ${Number(oscilacao?.coef_despesas || 0).toFixed(2)} | Saldos: ${Number(oscilacao?.coef_saldos || 0).toFixed(2)} | Janela: ${escapeHtml(historicoRange)}</small>
+                                        </div>
+                                        <div class="finance-analista-item">
+                                            <strong>Leitura do alívio mensal</strong>
+                                            <small>${escapeHtml(String(alivioTexto))}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="finance-analista-card">
+                                    <span class="finance-analista-card__label">Inspeção rápida</span>
+                                    <div class="finance-analista-list finance-analista-list--compact">
+                                        <div class="finance-analista-item">
+                                            <strong>O que mais pesa</strong>
+                                            <small>${escapeHtml(topCategoriaTexto)}</small>
+                                        </div>
+                                        <div class="finance-analista-item">
+                                            <strong>Despesa fixa versus receita</strong>
+                                            <small>${fixasRatio.toFixed(1)}% da receita está comprometida com fixas. ${fixasRatio >= 50 ? 'Isso está alto e merece atenção.' : 'Isso ainda parece administrável.'}</small>
+                                        </div>
+                                        <div class="finance-analista-item">
+                                            <strong>Projeto até o fim do mês</strong>
+                                            <small>${escapeHtml(String(monthSummaryText))}</small>
+                                        </div>
+                                        <div class="finance-analista-item">
+                                            <strong>Feedback do ciclo anterior</strong>
+                                            <small>${feedback?.tem_feedback ? `Erro de saldo: ${this.formatMoneyBr(Number(feedback.saldo_erro || 0))} | Erro de receita: ${this.formatMoneyBr(Number(feedback.receita_erro || 0))} | Erro de despesa: ${this.formatMoneyBr(Number(feedback.despesa_erro || 0))}` : 'Ainda não há ciclo anterior para feedback adaptativo.'}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                            <section class="finance-analista-panel-grid">
+                                <div class="finance-analista-card">
+                                    <span class="finance-analista-card__label">Sinais e recomendações</span>
+                                    <div class="finance-analista-list finance-analista-list--compact">
+                                        ${sinalHtml}
+                                    </div>
+                                </div>
+                                <div class="finance-analista-card">
+                                    <span class="finance-analista-card__label">Possíveis erros de análise</span>
+                                    <div class="finance-analista-error-grid">
+                                        ${erroHtml}
+                                    </div>
+                                </div>
+                            </section>
+                            <div class="finance-analista-card">
+                                <span class="finance-analista-card__label">Pesos do modelo e resultado da última análise</span>
+                                <div class="finance-analista-card__meta">Resultado atual: ${escapeHtml(String(riscoScore.classificado || 'baixo').toUpperCase())} ${Number(riscoScore.score || 0).toFixed(1)} | Aprendizado: ${aprendizadoPct.toFixed(1)}% | Base histórica: ${historico.length} ciclo(s)</div>
+                                <div class="finance-analista-table-wrap" style="margin-top:0.85rem;">
+                                    <table class="finance-analista-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Peso</th>
+                                                <th>Valor</th>
+                                                <th>Efeito na última análise</th>
+                                                <th>Resultado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${pesoRows.map((row) => `
+                                                <tr>
+                                                    <td>${escapeHtml(row.label)}</td>
+                                                    <td>${row.valor.toFixed(1)}%</td>
+                                                    <td>${escapeHtml(row.impacto)}</td>
+                                                    <td><span class="finance-analista-badge ${scoreLevel}">${escapeHtml(String(riscoScore.classificado || 'baixo'))}</span></td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td>Aprendizado do modelo</td>
+                                                <td>${aprendizadoPct.toFixed(1)}%</td>
+                                                <td>Modelo completo de referência</td>
+                                                <td>${escapeHtml(String(modelo?.versao || 'financeiro-adaptive-v1'))}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            <section class="finance-analista-panel-grid">
+                                <div class="finance-analista-card">
+                                    <span class="finance-analista-card__label">Leitura por categorias do mês</span>
+                                    <div class="finance-analista-list finance-analista-list--compact">
+                                        ${topCategorias.length
+                                            ? topCategorias.map((c, idx) => `<div class="finance-analista-item"><strong>${idx + 1}. ${escapeHtml(c.categoria || 'Sem categoria')}</strong><small>${this.formatMoneyBr(Number(c.valor || 0))} | ${(Number(mensal.despesas_totais || 0) > 0 ? ((Number(c.valor || 0) / Number(mensal.despesas_totais || 1)) * 100).toFixed(1) : '0.0')}% das despesas do mês</small></div>`).join('')
+                                            : '<div class="finance-analista-item"><strong>Sem categorias destacadas</strong><small>O mês ainda não tem volume suficiente para separar os maiores gastos.</small></div>'}
+                                    </div>
+                                </div>
+                                <div class="finance-analista-card">
+                                    <span class="finance-analista-card__label">Resumo executivo</span>
+                                    <div class="finance-analista-list finance-analista-list--compact">
+                                        <div class="finance-analista-item"><strong>Receita do mês</strong><small>${this.formatMoneyBr(Number(mensal.receitas || 0))}</small></div>
+                                        <div class="finance-analista-item"><strong>Despesa do mês</strong><small>${this.formatMoneyBr(Number(mensal.despesas_totais || 0))}</small></div>
+                                        <div class="finance-analista-item"><strong>Saldo do mês</strong><small>${this.formatMoneyBr(Number(mensal.saldo || 0))}</small></div>
+                                        <div class="finance-analista-item"><strong>Saldo anual</strong><small>${this.formatMoneyBr(Number(anual.saldo || 0))}</small></div>
+                                    </div>
+                                </div>
+                            </section>
+                            <div class="finance-analista-card">
+                                <span class="finance-analista-card__label">Recomendações do motor</span>
+                                <div class="finance-analista-list finance-analista-list--compact">
+                                    ${recomendacaoHtml}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    if (typeof echarts === 'undefined') {
+                        this.ensureVisualizationLibraries().then(() => renderFinanceiroAnalista(payload)).catch(() => {});
+                        return;
+                    }
+
+                    requestAnimationFrame(() => {
+                        const chartTrendNode = panel.querySelector('#financeiro-analista-chart-trend');
+                        const chartMixNode = panel.querySelector('#financeiro-analista-chart-mix');
+                        const chartLearningNode = panel.querySelector('#financeiro-analista-chart-learning');
+
+                        const historicoOrdenado = historico
+                            .map((item) => ({
+                                mes_ano: item?.mes_ano || '',
+                                receitas_total: Number(item?.receitas_total || 0),
+                                despesas_totais: Number(item?.despesas_totais || 0),
+                                saldo_real: Number(item?.saldo_real || 0),
+                                aprendizado_percentual: Number(item?.aprendizado_percentual || 0),
+                            }))
+                            .filter((item) => item.mes_ano)
+                            .sort((a, b) => a.mes_ano.localeCompare(b.mes_ano));
+
+                        if (chartTrendNode) {
+                            let chart = el._financeiroAnalistaChartTrend;
+                            if (!chart || chart.isDisposed?.()) {
+                                chart = echarts.init(chartTrendNode);
+                                el._financeiroAnalistaChartTrend = chart;
+                            }
+                            chart.setOption({
+                                animationDuration: 850,
+                                tooltip: { trigger: 'axis' },
+                                legend: { top: 0, textStyle: { color: '#cbd5e1' } },
+                                grid: { left: 8, right: 18, top: 32, bottom: 6, containLabel: true },
+                                xAxis: {
+                                    type: 'category',
+                                    data: historicoOrdenado.map((item) => item.mes_ano),
+                                    axisLabel: { color: '#94a3b8', interval: 0 },
+                                    axisLine: { lineStyle: { color: 'rgba(148,163,184,0.2)' } },
+                                },
+                                yAxis: {
+                                    type: 'value',
+                                    axisLabel: { color: '#94a3b8' },
+                                    splitLine: { lineStyle: { color: 'rgba(148,163,184,0.14)' } },
+                                },
+                                series: [
+                                    {
+                                        name: 'Receita',
+                                        type: 'line',
+                                        smooth: true,
+                                        showSymbol: false,
+                                        data: historicoOrdenado.map((item) => item.receitas_total),
+                                        lineStyle: { width: 3, color: '#38bdf8' },
+                                        areaStyle: { color: 'rgba(56,189,248,0.08)' },
+                                    },
+                                    {
+                                        name: 'Despesa',
+                                        type: 'line',
+                                        smooth: true,
+                                        showSymbol: false,
+                                        data: historicoOrdenado.map((item) => item.despesas_totais),
+                                        lineStyle: { width: 3, color: '#f97316' },
+                                        areaStyle: { color: 'rgba(249,115,22,0.08)' },
+                                    },
+                                    {
+                                        name: 'Saldo',
+                                        type: 'line',
+                                        smooth: true,
+                                        showSymbol: false,
+                                        data: historicoOrdenado.map((item) => item.saldo_real),
+                                        lineStyle: { width: 3, color: '#22c55e' },
+                                    },
+                                ],
+                            });
+                            chart.resize();
+                        }
+
+                        if (chartMixNode) {
+                            let chart = el._financeiroAnalistaChartMix;
+                            if (!chart || chart.isDisposed?.()) {
+                                chart = echarts.init(chartMixNode);
+                                el._financeiroAnalistaChartMix = chart;
+                            }
+                            const mixData = topCategorias.length
+                                ? topCategorias.map((item) => ({ name: item.categoria || 'Sem categoria', value: Number(item.valor || 0) }))
+                                : [
+                                    { name: 'Despesas fixas', value: Number(mensal?.despesas_fixas || 0) },
+                                    { name: 'Despesas variáveis', value: Number(mensal?.despesas_variadas || 0) },
+                                ];
+                            chart.setOption({
+                                tooltip: {
+                                    trigger: 'item',
+                                    formatter: (params) => `${String(params.name || '')}<br/>${this.formatMoneyBr(Number(params.value || 0))} (${Number(params.percent || 0).toFixed(1)}%)`,
+                                },
+                                legend: { bottom: 0, textStyle: { color: '#cbd5e1' } },
+                                series: [{
+                                    type: 'pie',
+                                    radius: ['48%', '72%'],
+                                    center: ['50%', '44%'],
+                                    data: mixData,
+                                    label: { color: '#e2e8f0', formatter: '{b}\n{d}%' },
+                                    itemStyle: { borderWidth: 2, borderColor: 'rgba(7,15,26,0.95)' },
+                                }],
+                            });
+                            chart.resize();
+                        }
+
+                        if (chartLearningNode) {
+                            let chart = el._financeiroAnalistaChartLearning;
+                            if (!chart || chart.isDisposed?.()) {
+                                chart = echarts.init(chartLearningNode);
+                                el._financeiroAnalistaChartLearning = chart;
+                            }
+                            chart.setOption({
+                                tooltip: { formatter: () => `Aprendizado: ${aprendizadoPct.toFixed(1)}%<br/>Ciclos: ${Number(aprendizado?.ciclos_processados || 0)}<br/>Modelo: ${String(modelo?.versao || 'financeiro-adaptive-v1')}` },
+                                series: [{
+                                    type: 'gauge',
+                                    startAngle: 210,
+                                    endAngle: -30,
+                                    min: 0,
+                                    max: 100,
+                                    progress: { show: true, width: 16, itemStyle: { color: '#38bdf8' } },
+                                    axisLine: { lineStyle: { width: 16, color: [[1, 'rgba(96,165,250,0.14)']] } },
+                                    axisTick: { show: false },
+                                    splitLine: { length: 10, lineStyle: { color: 'rgba(148,163,184,0.28)' } },
+                                    axisLabel: { color: '#94a3b8' },
+                                    pointer: { show: true, width: 4 },
+                                    anchor: { show: true, size: 10, itemStyle: { color: '#dbeafe' } },
+                                    detail: {
+                                        valueAnimation: true,
+                                        formatter: (value) => `${Number(value || 0).toFixed(1)}%`,
+                                        color: '#f8fafc',
+                                        fontSize: 20,
+                                        offsetCenter: [0, '42%'],
+                                    },
+                                    title: {
+                                        color: '#cbd5e1',
+                                        fontSize: 12,
+                                        offsetCenter: [0, '70%'],
+                                    },
+                                    data: [{ value: aprendizadoPct, name: 'Aprendizado' }],
+                                }],
+                            });
+                            chart.resize();
+                        }
+                    });
+                };
+                const loadFinanceiroAnalista = async () => {
+                    const panel = el.querySelector(`#${analistaPanelId}`);
+                    if (!panel) return;
+                    const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                    el._financeiroAnalistaToken = token;
+                    panel.innerHTML = `
+                        <div class="finance-analista-card">
+                            <span class="finance-analista-card__label">Carregando</span>
+                            <div class="finance-analista-card__value">Análise em andamento</div>
+                            <div class="finance-analista-card__meta">Buscando o mês atual e o acumulado do ano.</div>
+                        </div>
+                    `;
+                    try {
+                        const res = await fetch('/api/financeiro-analista?mes_ano=' + encodeURIComponent(mesAno));
+                        const dataAnalista = await this.readApiJsonOrThrow(res, 'Falha ao carregar o analista financeiro');
+                        if (el._financeiroAnalistaToken !== token) return;
+                        renderFinanceiroAnalista(dataAnalista || {});
+                    } catch (err) {
+                        if (el._financeiroAnalistaToken !== token) return;
+                        panel.innerHTML = `
+                            <div class="finance-analista-card">
+                                <span class="finance-analista-card__label">Erro</span>
+                                <div class="finance-analista-card__value">Não foi possível gerar a análise</div>
+                                <div class="finance-analista-card__meta">${escapeHtml(err.message || 'Falha ao consultar o endpoint do analista.')}</div>
+                            </div>
+                        `;
+                    }
+                };
 
                 const ensureCharts = () => {
                     const summaryPanel = el.querySelector('[data-tab-panel="summary"]');
@@ -6770,6 +7496,7 @@
                     }
                     if (tab === 'summary') ensureCharts();
                     if (tab === 'poupanca') ensurePoupancaMetaChart();
+                    if (tab === 'analista') loadFinanceiroAnalista();
                 };
 
                 el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
@@ -6781,6 +7508,7 @@
                 });
                 setTab(activeTab);
                 if (activeTab === 'data') applyFinanceDataFilter(activeDataFilter);
+                if (activeTab === 'analista') loadFinanceiroAnalista();
 
                 el.querySelectorAll('[data-action="financeiro-data-filter"]').forEach((btn) => {
                     btn.onclick = () => {

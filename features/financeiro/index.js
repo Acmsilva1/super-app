@@ -8,6 +8,8 @@ export {
   TIPO_REGISTRO_RECEITA,
   TABLE_POUPANCA,
   TABLE_POUPANCA_METAS,
+  TABLE_FINANCEIRO_ANALISES,
+  TABLE_FINANCEIRO_FEATURES_MENSAIS,
   STATUS_PAGO,
   STATUS_PENDENTE,
   CATEGORIAS_GASTO_VARIADO,
@@ -37,3 +39,13 @@ export {
   payloadUpdateFinanceiro,
   getBrazilTodayIso,
 } from './service/financeiroService.js';
+
+export {
+  buildFinanceiroAnalise,
+  defaultFinanceiroPesos,
+  normalizarFinanceiroPesos,
+  extrairFinanceiroFeatures,
+  construirFinanceiroFeedback,
+  ajustarFinanceiroPesos,
+  calcularFinanceiroRiscoScore,
+} from './service/financeiroAnalistaService.js';
