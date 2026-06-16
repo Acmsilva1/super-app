@@ -3081,6 +3081,19 @@
             color: #e2e8f0;
             font-weight: 700;
         }
+        .finance-analista-value--receita {
+            color: #22c55e;
+            font-weight: 700;
+        }
+        .finance-analista-value--fixa,
+        .finance-analista-value--debito {
+            color: #f87171;
+            font-weight: 700;
+        }
+        .finance-analista-value--saldo {
+            color: #facc15;
+            font-weight: 700;
+        }
         .finance-analista-table-wrap {
             overflow-x: auto;
             border-radius: 1rem;
@@ -6869,10 +6882,10 @@
                         ? historicoDetalhado.map((item) => `
                                 <tr>
                                     <td>${escapeHtml(String(item.mes_ano || ''))}</td>
-                                    <td>${escapeHtml(this.formatMoneyBr(Number(item.receitas || 0)))}</td>
-                                    <td>${escapeHtml(this.formatMoneyBr(Number(item.despesas_fixas || 0)))}</td>
-                                    <td>${escapeHtml(this.formatMoneyBr(Number(item.despesas_variadas || 0)))}</td>
-                                    <td>${escapeHtml(this.formatMoneyBr(Number(item.saldo || 0)))}</td>
+                                    <td><span class="finance-analista-value--receita">${escapeHtml(this.formatMoneyBr(Number(item.receitas || 0)))}</span></td>
+                                    <td><span class="finance-analista-value--fixa">${escapeHtml(this.formatMoneyBr(Number(item.despesas_fixas || 0)))}</span></td>
+                                    <td><span class="finance-analista-value--debito">${escapeHtml(this.formatMoneyBr(Number(item.despesas_variadas || 0)))}</span></td>
+                                    <td><span class="finance-analista-value--saldo">${escapeHtml(this.formatMoneyBr(Number(item.saldo || 0)))}</span></td>
                                     <td>${escapeHtml(formatPercent(Number(item.receitas || 0) > 0 ? (Number(item.despesas_totais || 0) / Number(item.receitas || 1)) * 100 : 0))}</td>
                                     <td>${escapeHtml(String(item.top_categoria || '—'))}</td>
                                 </tr>
