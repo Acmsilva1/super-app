@@ -56,6 +56,11 @@ function isFutureMesAno(mesAno, referenceMesAno) {
   return current > reference;
 }
 
+function isRealLearningState(row) {
+  return String(row?.origem || '') === 'cron_aprendizado'
+    && String(row?.metadados?.allow_learning ?? true) !== 'false';
+}
+
 function buildHistoricoMensalAno({ financasRows = [], fixasRows = [] } = {}) {
   const grupos = new Map();
   const ensure = (mesAno) => {
@@ -279,7 +284,9 @@ export default async function handler(req, res) {
     });
     const historicoAprendizado = (historicoMensalAno.length ? historicoMensalAno : historyRows)
       .filter((row) => !isFutureMesAno(row?.mes_ano, referenciaAtualMesAno));
-    const modelStateHistoryAprendizado = modelStateHistoryRows.filter((row) => !isFutureMesAno(row?.mes_ano, referenciaAtualMesAno));
+    const modelStateHistoryAprendizado = modelStateHistoryRows
+      .filter(isRealLearningState)
+      .filter((row) => !isFutureMesAno(row?.mes_ano, referenciaAtualMesAno));
     const futureIgnoredCount = Math.max(0, (historicoMensalAno.length ? historicoMensalAno : historyRows).length - historicoAprendizado.length)
       + Math.max(0, modelStateHistoryRows.length - modelStateHistoryAprendizado.length);
 
@@ -428,6 +435,7 @@ export default async function handler(req, res) {
           aprendizado_percentual: Number(row?.payload?.modelo?.aprendizado?.percentual ?? 0),
         })),
         ciclos_aprendizado_reais: modelStateHistoryAprendizado.length,
+        snapshots_modelo: modelStateHistoryRows.length,
         meses_futuros_ignorados: futureIgnoredCount,
       },
     });
