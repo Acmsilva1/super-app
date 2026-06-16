@@ -739,13 +739,18 @@ export function buildFinanceiroAnalise({
   const historicoDetalhado = (Array.isArray(historico) ? historico : [])
     .map((item) => {
       const resumoHistorico = item?.payload?.resumo_mensal || {};
+      const receitasHistoricas = item?.receitas_total ?? resumoHistorico.receitas;
+      const despesasFixasHistoricas = item?.despesas_fixas ?? resumoHistorico.despesas_fixas;
+      const despesasVariadasHistoricas = item?.despesas_variadas ?? resumoHistorico.despesas_variadas;
+      const despesasTotaisHistoricas = item?.despesas_totais ?? resumoHistorico.despesas_totais;
+      const saldoHistorico = item?.saldo_real ?? resumoHistorico.saldo;
       return {
         mes_ano: item?.mes_ano || null,
-        receitas: round2(safeNumber(item?.receitas_total ?? resumoHistorico.receitas)),
-        despesas_fixas: round2(safeNumber(resumoHistorico.despesas_fixas)),
-        despesas_variadas: round2(safeNumber(resumoHistorico.despesas_variadas)),
-        despesas_totais: round2(safeNumber(item?.despesas_totais ?? resumoHistorico.despesas_totais)),
-        saldo: round2(safeNumber(item?.saldo_real ?? resumoHistorico.saldo)),
+        receitas: round2(safeNumber(receitasHistoricas)),
+        despesas_fixas: round2(safeNumber(despesasFixasHistoricas)),
+        despesas_variadas: round2(safeNumber(despesasVariadasHistoricas)),
+        despesas_totais: round2(safeNumber(despesasTotaisHistoricas)),
+        saldo: round2(safeNumber(saldoHistorico)),
         fixas_ratio_receitas: round2(safeNumber(resumoHistorico.fixas_ratio_receitas)),
         variaveis_ratio_receitas: round2(safeNumber(resumoHistorico.variaveis_ratio_receitas)),
         top_categoria: item?.top_categoria ?? item?.payload?.metadados?.top_category?.categoria ?? null,
