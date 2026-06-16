@@ -90,6 +90,15 @@ function buildHistoricoMensalAno({ financasRows = [], fixasRows = [] } = {}) {
   return [...grupos.values()]
     .sort((a, b) => a.mes_ano.localeCompare(b.mes_ano))
     .map((item) => {
+      const categoryTotals = new Map();
+      for (const gasto of item.gastos || []) {
+        const categoria = String(gasto?.categoria || 'Sem categoria').trim() || 'Sem categoria';
+        const nextValue = Number(categoryTotals.get(categoria) || 0) + Number(gasto?.valor || 0);
+        categoryTotals.set(categoria, Number(nextValue.toFixed(2)));
+      }
+      const topCategoria = [...categoryTotals.entries()]
+        .map(([categoria, valor]) => ({ categoria, valor: Number(valor || 0) }))
+        .sort((a, b) => b.valor - a.valor)[0] || null;
       const dashboard = (() => {
         const receitas = item.receitas.reduce((acc, row) => acc + Number(row?.valor || 0), 0);
         const despesasVariadas = item.gastos.reduce((acc, row) => acc + Number(row?.valor || 0), 0);
@@ -105,8 +114,11 @@ function buildHistoricoMensalAno({ financasRows = [], fixasRows = [] } = {}) {
       return {
         mes_ano: item.mes_ano,
         receitas_total: dashboard.receitas,
+        despesas_fixas: dashboard.despesas_fixas,
+        despesas_variadas: dashboard.despesas_variadas,
         despesas_totais: Number((dashboard.despesas_variadas + dashboard.despesas_fixas).toFixed(2)),
         saldo_real: dashboard.saldo,
+        top_categoria: topCategoria?.categoria || null,
       };
     });
 }
