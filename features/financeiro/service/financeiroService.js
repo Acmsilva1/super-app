@@ -63,9 +63,10 @@ export function inferTipoRegistro(body = {}) {
 }
 
 export function parseMesAno(mesAno) {
-  const now = new Date();
-  let ano = now.getFullYear();
-  let mes = now.getMonth() + 1;
+  const nowIso = getBrazilTodayIso();
+  const nowMatch = String(nowIso || '').match(/^(\d{4})-(\d{2})/);
+  let ano = nowMatch ? Number(nowMatch[1]) : new Date().getFullYear();
+  let mes = nowMatch ? Number(nowMatch[2]) : new Date().getMonth() + 1;
   if (mesAno && /^\d{4}-\d{2}$/.test(mesAno)) {
     const [a, m] = mesAno.split('-').map(Number);
     ano = a;

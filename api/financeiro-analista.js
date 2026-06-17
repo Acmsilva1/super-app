@@ -258,7 +258,7 @@ export default async function handler(req, res) {
       return json(res, 200, { ok: true, service: 'financeiro-analista' });
     }
 
-    const mesAno = String(req.query?.mes_ano || '').trim() || new Date().toISOString().slice(0, 7);
+    const mesAno = String(req.query?.mes_ano || '').trim() || getBrazilTodayIso().slice(0, 7);
     const allowLearning = String(req.query?.learn || '') === '1';
     const cronRun = String(req.query?.cron || '') === '1';
     const generatedAt = new Date().toISOString();

@@ -6303,8 +6303,15 @@
             }
 
             getMesAnoAtual() {
-                const d = new Date();
-                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                const fmt = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric',
+                    month: '2-digit',
+                });
+                const parts = fmt.formatToParts(new Date());
+                const map = {};
+                parts.forEach((p) => { map[p.type] = p.value; });
+                return `${map.year}-${map.month}`;
             }
 
             /** Mês civil anterior a `YYYY-MM` (ex.: 2026-03 → 2026-02; 2026-01 → 2025-12). */
