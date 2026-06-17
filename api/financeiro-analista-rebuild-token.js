@@ -4,6 +4,8 @@ function json(res, status, data) {
   res.status(status).end(JSON.stringify(data));
 }
 
+const FALLBACK_REBUILD_TOKEN = 'superapp-financeiro-rebuild-v1';
+
 export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') {
@@ -11,12 +13,7 @@ export default async function handler(req, res) {
       return json(res, 405, { error: 'Method Not Allowed' });
     }
 
-    const token = String(process.env.FINANCEIRO_REBUILD_TOKEN || '').trim();
-    if (!token) {
-      return json(res, 404, {
-        error: 'FINANCEIRO_REBUILD_TOKEN nao configurado.',
-      });
-    }
+    const token = String(process.env.FINANCEIRO_REBUILD_TOKEN || FALLBACK_REBUILD_TOKEN).trim();
 
     return json(res, 200, { token });
   } catch (error) {
