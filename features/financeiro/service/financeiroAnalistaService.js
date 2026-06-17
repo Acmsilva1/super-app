@@ -368,12 +368,29 @@ function calcularResumoHistoricoComparativo(historico = [], yearSummary = {}) {
 function buildFinanceiroAnalistaCards({ historico = [], categoriasAno = [], yearSummary = {} } = {}) {
   const historicoSeguro = Array.isArray(historico) ? historico.filter((item) => item?.mes_ano) : [];
   const categoriasSeguro = Array.isArray(categoriasAno) ? categoriasAno.filter(Boolean) : [];
+  const historicoNormalizado = historicoSeguro
+    .map((item) => {
+      const resumoHistorico = item?.payload?.resumo_mensal || {};
+      return {
+        mes_ano: String(item?.mes_ano || '').trim(),
+        receitas: safeNumber(item?.receitas ?? item?.receitas_total ?? resumoHistorico.receitas),
+        despesas_fixas: safeNumber(item?.despesas_fixas ?? resumoHistorico.despesas_fixas),
+        despesas_variadas: safeNumber(item?.despesas_variadas ?? resumoHistorico.despesas_variadas),
+        despesas_totais: safeNumber(item?.despesas_totais ?? resumoHistorico.despesas_totais),
+        saldo: safeNumber(item?.saldo ?? item?.saldo_real ?? resumoHistorico.saldo),
+        fixas_ratio_receitas: safeNumber(item?.fixas_ratio_receitas ?? resumoHistorico.fixas_ratio_receitas),
+        variaveis_ratio_receitas: safeNumber(item?.variaveis_ratio_receitas ?? resumoHistorico.variaveis_ratio_receitas),
+        top_categoria: item?.top_categoria ?? item?.payload?.metadados?.top_category?.categoria ?? null,
+      };
+    })
+    .filter((item) => item.mes_ano)
+    .sort((a, b) => String(b.mes_ano).localeCompare(String(a.mes_ano)));
 
-  const melhorMes = historicoSeguro.reduce((acc, item) => (Number(item?.saldo || 0) > Number(acc?.saldo || Number.NEGATIVE_INFINITY) ? item : acc), null);
-  const piorMes = historicoSeguro.reduce((acc, item) => (Number(item?.saldo || 0) < Number(acc?.saldo || Number.POSITIVE_INFINITY) ? item : acc), null);
-  const mesComMaisFixas = historicoSeguro.reduce((acc, item) => (Number(item?.despesas_fixas || 0) > Number(acc?.despesas_fixas || Number.NEGATIVE_INFINITY) ? item : acc), null);
-  const mesComMaisVariaveis = historicoSeguro.reduce((acc, item) => (Number(item?.despesas_variadas || 0) > Number(acc?.despesas_variadas || Number.NEGATIVE_INFINITY) ? item : acc), null);
-  const mesesComReceita = historicoSeguro
+  const melhorMes = historicoNormalizado.reduce((acc, item) => (Number(item?.saldo || 0) > Number(acc?.saldo || Number.NEGATIVE_INFINITY) ? item : acc), null);
+  const piorMes = historicoNormalizado.reduce((acc, item) => (Number(item?.saldo || 0) < Number(acc?.saldo || Number.POSITIVE_INFINITY) ? item : acc), null);
+  const mesComMaisFixas = historicoNormalizado.reduce((acc, item) => (Number(item?.despesas_fixas || 0) > Number(acc?.despesas_fixas || Number.NEGATIVE_INFINITY) ? item : acc), null);
+  const mesComMaisVariaveis = historicoNormalizado.reduce((acc, item) => (Number(item?.despesas_variadas || 0) > Number(acc?.despesas_variadas || Number.NEGATIVE_INFINITY) ? item : acc), null);
+  const mesesComReceita = historicoNormalizado
     .map((item) => {
       const receitas = Number(item?.receitas || 0);
       if (!(receitas > 0)) return null;
@@ -443,7 +460,7 @@ function buildFinanceiroAnalistaCards({ historico = [], categoriasAno = [], year
       mes_ano: mesMaisNegativo.mes_ano,
       percentual: round2(mesMaisNegativo.percentual),
     } : null,
-    historico_sem_janeiro: historicoSeguro,
+    historico_sem_janeiro: historicoNormalizado,
   };
 }
 
