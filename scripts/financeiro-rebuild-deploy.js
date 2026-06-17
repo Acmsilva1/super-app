@@ -1,5 +1,3 @@
-import { rebuildFinanceiroAnalises } from '../features/financeiro/service/financeiroRebuildService.js';
-
 const isVercelProduction = String(process.env.VERCEL || '') === '1'
   && String(process.env.VERCEL_ENV || '') === 'production';
 
@@ -9,6 +7,7 @@ if (!isVercelProduction) {
 }
 
 try {
+  const { rebuildFinanceiroAnalises } = await import('../features/financeiro/service/financeiroRebuildService.js');
   const result = await rebuildFinanceiroAnalises();
   console.log(`financeiro-rebuild-deploy: ${result.months_processed} mes(es) recalculados`);
   process.exit(0);
