@@ -69,6 +69,10 @@ function rowMesAno(row) {
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw.slice(0, 7) : null;
 }
 
+function isJanuaryMesAno(mesAno) {
+  return String(mesAno || '').slice(5, 7) === '01';
+}
+
 function isFutureMesAno(mesAno, referenceMesAno) {
   const current = String(mesAno || '').slice(0, 7);
   const reference = String(referenceMesAno || '').slice(0, 7);
@@ -85,7 +89,7 @@ function isRealLearningState(row) {
 function buildHistoricoMensalAno({ financasRows = [], fixasRows = [] } = {}) {
   const grupos = new Map();
   const ensure = (mesAno) => {
-    if (!mesAno) return null;
+    if (!mesAno || isJanuaryMesAno(mesAno)) return null;
     if (!grupos.has(mesAno)) {
       grupos.set(mesAno, { mes_ano: mesAno, receitas: [], gastos: [], fixas: [] });
     }
@@ -330,12 +334,15 @@ export default async function handler(req, res) {
       financasRows: yearFinancas,
       fixasRows: yearFixas,
     });
-    const historicoAprendizado = (historicoMensalAno.length ? historicoMensalAno : historyRows)
+    const historicoBase = (historicoMensalAno.length ? historicoMensalAno : historyRows)
+      .filter((row) => !isJanuaryMesAno(row?.mes_ano));
+    const historicoAprendizado = historicoBase
       .filter((row) => !isFutureMesAno(row?.mes_ano, referenciaAtualMesAno));
     const modelStateHistoryAprendizado = modelStateHistoryRows
       .filter(isRealLearningState)
+      .filter((row) => !isJanuaryMesAno(row?.mes_ano))
       .filter((row) => !isFutureMesAno(row?.mes_ano, referenciaAtualMesAno));
-    const futureIgnoredCount = Math.max(0, (historicoMensalAno.length ? historicoMensalAno : historyRows).length - historicoAprendizado.length)
+    const futureIgnoredCount = Math.max(0, historicoBase.length - historicoAprendizado.length)
       + Math.max(0, modelStateHistoryRows.length - modelStateHistoryAprendizado.length);
 
     const analise = buildFinanceiroAnalise({

@@ -26,13 +26,17 @@ function rowMesAno(row) {
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw.slice(0, 7) : null;
 }
 
-async function fetchAllRows(table, columns = 'created_at,data_lancamento') {
+function isJanuaryMesAno(mesAno) {
+  return String(mesAno || '').slice(5, 7) === '01';
+}
+
+async function fetchAllRows(supabaseClient, table, columns = 'created_at,data_lancamento') {
   const pageSize = 1000;
   const rows = [];
   let from = 0;
 
   while (true) {
-    const query = supabase
+    const query = supabaseClient
       .from(table)
       .select(columns)
       .order('created_at', { ascending: true })
@@ -48,8 +52,8 @@ async function fetchAllRows(table, columns = 'created_at,data_lancamento') {
   return rows;
 }
 
-async function clearDerivedTable(table) {
-  const { error } = await supabase.from(table).delete().not('id', 'is', null);
+async function clearDerivedTable(supabaseClient, table) {
+  const { error } = await supabaseClient.from(table).delete().not('id', 'is', null);
   if (error) throw error;
 }
 
@@ -72,7 +76,7 @@ function createMockRes() {
   };
 }
 
-async function runAnalistaForMonth(mesAno) {
+async function runAnalistaForMonth(financeiroAnalistaHandler, mesAno) {
   const req = {
     method: 'GET',
     query: {
@@ -112,25 +116,25 @@ export async function rebuildFinanceiroAnalises() {
   const { default: financeiroAnalistaHandler } = await import('../../../api/financeiro-analista.js');
 
   const [financasRows, fixasRows] = await Promise.all([
-    fetchAllRows(TABLE_FINANCAS),
-    fetchAllRows(TABLE_DESPESAS_FIXAS),
+    fetchAllRows(supabase, TABLE_FINANCAS),
+    fetchAllRows(supabase, TABLE_DESPESAS_FIXAS),
   ]);
 
   const months = [...new Set([
     ...financasRows.map(rowMesAno),
     ...fixasRows.map(rowMesAno),
-  ].filter(Boolean))].sort();
+  ].filter((mesAno) => Boolean(mesAno) && !isJanuaryMesAno(mesAno)))].sort();
 
   await Promise.all([
-    clearDerivedTable(TABLE_FINANCEIRO_ANALISE_RUNS),
-    clearDerivedTable(TABLE_FINANCEIRO_MODELO_ESTADO),
-    clearDerivedTable(TABLE_FINANCEIRO_ANALISES),
-    clearDerivedTable(TABLE_FINANCEIRO_FEATURES_MENSAIS),
+    clearDerivedTable(supabase, TABLE_FINANCEIRO_ANALISE_RUNS),
+    clearDerivedTable(supabase, TABLE_FINANCEIRO_MODELO_ESTADO),
+    clearDerivedTable(supabase, TABLE_FINANCEIRO_ANALISES),
+    clearDerivedTable(supabase, TABLE_FINANCEIRO_FEATURES_MENSAIS),
   ]);
 
   const processed = [];
   for (const mesAno of months) {
-    const result = await runAnalistaForMonth(mesAno);
+    const result = await runAnalistaForMonth(financeiroAnalistaHandler, mesAno);
     processed.push({
       mes_ano: mesAno,
       feature_id: result?.aprendizado?.feature_id ?? null,
