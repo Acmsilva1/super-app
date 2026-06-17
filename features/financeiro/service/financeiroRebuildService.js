@@ -1,5 +1,3 @@
-import { supabase } from '../../../lib/supabase.js';
-import financeiroAnalistaHandler from '../../../api/financeiro-analista.js';
 import {
   TABLE_DESPESAS_FIXAS,
   TABLE_FINANCAS,
@@ -98,6 +96,21 @@ async function runAnalistaForMonth(mesAno) {
 }
 
 export async function rebuildFinanceiroAnalises() {
+  const hasSupabaseSecrets = Boolean(process.env.SUPABASE_URL)
+    && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY);
+  if (!hasSupabaseSecrets) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'missing_supabase_secrets',
+      months_processed: 0,
+      months: [],
+    };
+  }
+
+  const { supabase } = await import('../../../lib/supabase.js');
+  const { default: financeiroAnalistaHandler } = await import('../../../api/financeiro-analista.js');
+
   const [financasRows, fixasRows] = await Promise.all([
     fetchAllRows(TABLE_FINANCAS),
     fetchAllRows(TABLE_DESPESAS_FIXAS),

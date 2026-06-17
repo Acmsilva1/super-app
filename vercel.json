@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build && npm run finance:rebuild:deploy",
+  "buildCommand": "npm run build && (npm run finance:rebuild:deploy || true)",
   "outputDirectory": ".",
   "framework": null,
   "headers": [

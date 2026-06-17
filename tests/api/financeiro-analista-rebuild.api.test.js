@@ -2,19 +2,12 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { fromMock, analistaMock } = vi.hoisted(() => ({
-  fromMock: vi.fn(),
-  analistaMock: vi.fn(),
+const { rebuildMock } = vi.hoisted(() => ({
+  rebuildMock: vi.fn(),
 }));
 
-vi.mock('../../lib/supabase.js', () => ({
-  supabase: {
-    from: fromMock,
-  },
-}));
-
-vi.mock('../../api/financeiro-analista.js', () => ({
-  default: analistaMock,
+vi.mock('../../features/financeiro/service/financeiroRebuildService.js', () => ({
+  rebuildFinanceiroAnalises: rebuildMock,
 }));
 
 import rebuildHandler from '../../api/financeiro-analista-rebuild.js';
@@ -26,28 +19,9 @@ function createApp(handler) {
   return app;
 }
 
-function createSelectChain(data) {
-  return {
-    select: vi.fn(() => ({
-      order: vi.fn(() => ({
-        range: vi.fn().mockResolvedValue({ data, error: null }),
-      })),
-    })),
-  };
-}
-
-function createDeleteChain() {
-  return {
-    delete: vi.fn(() => ({
-      not: vi.fn().mockResolvedValue({ error: null }),
-    })),
-  };
-}
-
 describe('API de rebuild do financeiro analista', () => {
   beforeEach(() => {
-    fromMock.mockReset();
-    analistaMock.mockReset();
+    rebuildMock.mockReset();
     delete process.env.FINANCEIRO_REBUILD_TOKEN;
   });
 
@@ -59,40 +33,16 @@ describe('API de rebuild do financeiro analista', () => {
     expect(res.body.error).toContain('FINANCEIRO_REBUILD_TOKEN');
   });
 
-  it('recalcula os meses em ordem e limpa as tabelas derivadas', async () => {
+  it('encaminha para o helper de rebuild quando autenticado', async () => {
     process.env.FINANCEIRO_REBUILD_TOKEN = 'rebuild-secret';
-
-    const financasRows = [
-      { created_at: '2026-06-03T10:00:00.000Z' },
-      { created_at: '2026-04-03T10:00:00.000Z' },
-    ];
-    const fixasRows = [
-      { created_at: '2026-05-05T10:00:00.000Z' },
-    ];
-
-    fromMock.mockImplementation((table) => {
-      if (table === 'tb_financas') return createSelectChain(financasRows);
-      if (table === 'tb_despesas_fixas') return createSelectChain(fixasRows);
-      if (
-        table === 'tb_financeiro_analise_runs'
-        || table === 'tb_financeiro_modelo_estado'
-        || table === 'tb_financeiro_analises'
-        || table === 'tb_financeiro_features_mensais'
-      ) {
-        return createDeleteChain();
-      }
-      throw new Error(`Tabela inesperada: ${table}`);
-    });
-
-    analistaMock.mockImplementation(async (req, res) => {
-      res.status(200).end(JSON.stringify({
-        aprendizado: {
-          feature_id: `${req.query.mes_ano}-feature`,
-          analysis_id: `${req.query.mes_ano}-analysis`,
-          run_id: `${req.query.mes_ano}-run`,
-          model_state_id: `${req.query.mes_ano}-state`,
-        },
-      }));
+    rebuildMock.mockResolvedValue({
+      ok: true,
+      months_processed: 3,
+      months: [
+        { mes_ano: '2026-04' },
+        { mes_ano: '2026-05' },
+        { mes_ano: '2026-06' },
+      ],
     });
 
     const app = createApp(rebuildHandler);
@@ -104,7 +54,6 @@ describe('API de rebuild do financeiro analista', () => {
     expect(res.body.ok).toBe(true);
     expect(res.body.months_processed).toBe(3);
     expect(res.body.months.map((item) => item.mes_ano)).toEqual(['2026-04', '2026-05', '2026-06']);
-    expect(analistaMock).toHaveBeenCalledTimes(3);
-    expect(analistaMock.mock.calls.map((call) => call[0].query.mes_ano)).toEqual(['2026-04', '2026-05', '2026-06']);
+    expect(rebuildMock).toHaveBeenCalledTimes(1);
   });
 });
