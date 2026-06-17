@@ -6853,7 +6853,7 @@
                 gastosVariados.forEach((r) => itemMap.set(`gasto_variado:${r.id}`, r));
                 receitas.forEach((r) => itemMap.set(`receita:${r.id}`, r));
                 poupancaLogs.forEach((r) => itemMap.set(`poupanca:${r.id}`, r));
-                const rebuildStorageKey = 'superapp_financeiro_rebuild_token_v1';
+                const rebuildStorageKey = 'superapp_financeiro_rebuild_token_v2';
                 const getFinanceiroRebuildToken = () => {
                     try {
                         return String(sessionStorage.getItem(rebuildStorageKey) || '').trim();
@@ -6867,13 +6867,17 @@
                         if (token) sessionStorage.setItem(rebuildStorageKey, token);
                     } catch (_err) {}
                 };
-                const promptFinanceiroRebuildToken = () => {
-                    const current = getFinanceiroRebuildToken();
-                    const token = window.prompt('Digite o FINANCEIRO_REBUILD_TOKEN para recalcular a aba Analista.', current || '');
-                    if (token === null) return '';
-                    const cleaned = String(token || '').trim();
-                    if (cleaned) setFinanceiroRebuildToken(cleaned);
-                    return cleaned;
+                const ensureFinanceiroRebuildToken = async () => {
+                    const cached = getFinanceiroRebuildToken();
+                    if (cached) return cached;
+                    const res = await fetch('/api/financeiro-analista-rebuild-token', { cache: 'no-store' });
+                    const data = await this.readApiJsonOrThrow(res, 'Falha ao obter o token de rebuild');
+                    const token = String(data?.token || '').trim();
+                    if (!token) {
+                        throw new Error('Token de rebuild nao configurado.');
+                    }
+                    setFinanceiroRebuildToken(token);
+                    return token;
                 };
                 const rebuildFinanceiroAnalista = async () => {
                     const panel = el.querySelector(`#${analistaPanelId}`);
@@ -6886,10 +6890,7 @@
                             </div>
                         `;
                     }
-                    const token = getFinanceiroRebuildToken() || promptFinanceiroRebuildToken();
-                    if (!token) {
-                        throw new Error('Token de rebuild nao informado.');
-                    }
+                    const token = await ensureFinanceiroRebuildToken();
                     const res = await fetch('/api/financeiro-analista-rebuild', {
                         method: 'POST',
                         headers: {
@@ -6947,7 +6948,13 @@
                     const categoriaMenosGastaAno = [...categoriasAnoBase].sort((a, b) => Number(a?.valor || 0) - Number(b?.valor || 0))[0] || null;
                     const despesasReceitasPctMes = mensal.receitas > 0 ? (Number(mensal.despesas_totais || 0) / Number(mensal.receitas || 1)) * 100 : 0;
                     const formatPercent = (value) => `${Number(value || 0).toFixed(1)}%`;
-                    const isJanuaryMesAno = (mesAnoRef) => String(mesAnoRef || '').slice(5, 7) === '01';
+                    const parseMesAnoRef = (mesAnoRef) => {
+                        const raw = String(mesAnoRef || '').trim();
+                        const match = raw.match(/^(\d{4})[-/](\d{2})(?:[-/]\d{2})?/);
+                        if (!match) return null;
+                        return { ano: match[1], mes: match[2] };
+                    };
+                    const isJanuaryMesAno = (mesAnoRef) => parseMesAnoRef(mesAnoRef)?.mes === '01';
                     const formatMesReferencia = (mesAnoRef) => {
                         const raw = String(mesAnoRef || '').trim();
                         const match = raw.match(/^(\d{4})-(\d{2})$/);

@@ -52,6 +52,13 @@ function coefficientOfVariation(values) {
   return round2(Math.sqrt(variance) / Math.abs(avg));
 }
 
+function isJanuaryMesAno(mesAno) {
+  const raw = String(mesAno || '').trim();
+  const match = raw.match(/^(\d{4})[-/](\d{2})(?:[-/]\d{2})?/);
+  if (!match) return false;
+  return match[2] === '01';
+}
+
 function buildSignal(tipo, titulo, descricao, meta = {}) {
   return {
     tipo,
@@ -631,6 +638,8 @@ export function buildFinanceiroAnalise({
   previousState = null,
   allowLearning = true,
 } = {}) {
+  const historicoSemJaneiro = (Array.isArray(historico) ? historico : []).filter((item) => !isJanuaryMesAno(item?.mes_ano));
+  const learningHistorySemJaneiro = (Array.isArray(learningHistory) ? learningHistory : []).filter((item) => !isJanuaryMesAno(item?.mes_ano));
   const { ano, mes } = parseMesAno(mesAno);
   const monthKey = monthLabel(ano, mes);
   const diasNoMes = new Date(ano, mes, 0).getDate();
@@ -742,7 +751,7 @@ export function buildFinanceiroAnalise({
     projecao: projection,
     top_category: topCategory,
   });
-  const historicoDetalhado = (Array.isArray(historico) ? historico : [])
+  const historicoDetalhado = historicoSemJaneiro
     .map((item) => {
       const resumoHistorico = item?.payload?.resumo_mensal || {};
       const receitasHistoricas = item?.receitas_total ?? resumoHistorico.receitas;
@@ -769,9 +778,9 @@ export function buildFinanceiroAnalise({
     ? ajustarFinanceiroPesos(pesos, feedback, features)
     : normalizarFinanceiroPesos(pesos);
   const riskScore = calcularFinanceiroRiscoScore(features, adaptiveWeights);
-  const oscilacaoHistorica = calcularOscilacaoHistorica(historico);
-  const nivelAprendizado = calcularNivelAprendizado({ historico, feedback, adaptiveWeights, learningHistory });
-  const resumoComparativoHistorico = calcularResumoHistoricoComparativo(historico, yearSummary);
+  const oscilacaoHistorica = calcularOscilacaoHistorica(historicoSemJaneiro);
+  const nivelAprendizado = calcularNivelAprendizado({ historico: historicoSemJaneiro, feedback, adaptiveWeights, learningHistory: learningHistorySemJaneiro });
+  const resumoComparativoHistorico = calcularResumoHistoricoComparativo(historicoSemJaneiro, yearSummary);
   const possiveisErros = identificarPossiveisErros({
     features,
     projection,
@@ -835,9 +844,9 @@ export function buildFinanceiroAnalise({
       alivio_motivo: alivioMotivo,
       resumo_historico: resumoComparativoHistorico,
       media_ultimos_ciclos: {
-        receitas: average(historico.map((item) => safeNumber(item?.receitas_total ?? item?.payload?.resumo_mensal?.receitas))),
-        despesas: average(historico.map((item) => safeNumber(item?.despesas_totais ?? item?.payload?.resumo_mensal?.despesas_totais))),
-        saldo: average(historico.map((item) => safeNumber(item?.saldo_real ?? item?.payload?.resumo_mensal?.saldo))),
+        receitas: average(historicoSemJaneiro.map((item) => safeNumber(item?.receitas_total ?? item?.payload?.resumo_mensal?.receitas))),
+        despesas: average(historicoSemJaneiro.map((item) => safeNumber(item?.despesas_totais ?? item?.payload?.resumo_mensal?.despesas_totais))),
+        saldo: average(historicoSemJaneiro.map((item) => safeNumber(item?.saldo_real ?? item?.payload?.resumo_mensal?.saldo))),
       },
     },
     sinais: signals,

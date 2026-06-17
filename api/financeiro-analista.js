@@ -71,7 +71,10 @@ function rowMesAno(row) {
 }
 
 function isJanuaryMesAno(mesAno) {
-  return String(mesAno || '').slice(5, 7) === '01';
+  const raw = String(mesAno || '').trim();
+  const match = raw.match(/^(\d{4})[-/](\d{2})(?:[-/]\d{2})?/);
+  if (!match) return false;
+  return match[2] === '01';
 }
 
 function isFutureMesAno(mesAno, referenceMesAno) {
