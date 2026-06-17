@@ -7342,8 +7342,11 @@
                         }
                     }
                     const labelsAnuais = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                    const labelsAnuaisInvertidos = [...labelsAnuais].reverse();
                     const serieReceitas = labelsAnuais.map((_, idx) => Number(graficosAnuais[idx]?.receitas || 0));
                     const serieDespesas = labelsAnuais.map((_, idx) => Number(graficosAnuais[idx]?.despesas || 0));
+                    const serieReceitasInvertida = [...serieReceitas].reverse();
+                    const serieDespesasInvertida = [...serieDespesas].reverse();
                     const makePulseGradient = (baseColor, glowColor) => (phase) => {
                         const p = ((phase % 1) + 1) % 1;
                         const m = 1 - p;
@@ -7394,7 +7397,7 @@
                             },
                             yAxis: {
                                 type: 'category',
-                                data: labelsAnuais,
+                                data: labelsAnuaisInvertidos,
                                 axisLabel: { color: '#cbd5e1' },
                                 axisTick: { show: false },
                                 axisLine: { lineStyle: { color: 'rgba(148,163,184,0.24)' } },
@@ -7425,7 +7428,7 @@
                         '_financeiroChartReceitasAnual',
                         'Receitas do ano por mês',
                         'Receitas',
-                        serieReceitas,
+                        serieReceitasInvertida,
                         '#22c55e',
                         'rgba(34, 197, 94, 0.25)',
                         '#86efac',
@@ -7435,7 +7438,7 @@
                         '_financeiroChartDespesasAnual',
                         'Despesas totais do ano por mês',
                         'Despesas',
-                        serieDespesas,
+                        serieDespesasInvertida,
                         '#ef4444',
                         'rgba(239, 68, 68, 0.22)',
                         '#fca5a5',
