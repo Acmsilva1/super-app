@@ -298,6 +298,7 @@ export default async function handler(req, res) {
       supabase.from(TABLE_DESPESAS_FIXAS).select('*').gte('created_at', yearStartQuery).lte('created_at', yearEndQuery),
       supabase.from(TABLE_FINANCEIRO_FEATURES_MENSAIS).select('*').eq('mes_ano', mesAno).limit(1),
       prevMes
+        && !isJanuaryMesAno(prevMes)
         ? supabase.from(TABLE_FINANCEIRO_FEATURES_MENSAIS).select('*').eq('mes_ano', prevMes).limit(1)
         : Promise.resolve({ data: [], error: null }),
       getHistoricalFeatures(12),
@@ -318,10 +319,12 @@ export default async function handler(req, res) {
 
     const yearFinancasFiltered = yearFinancas.filter((row) => rowMesAno(row)?.startsWith(`${ano}-`));
     const yearFixasFiltered = yearFixas.filter((row) => rowMesAno(row)?.startsWith(`${ano}-`));
-    const monthFinancas = filtrarFinancasPorMes(yearFinancasFiltered, ano, mes);
-    const monthFixas = filtrarFinancasPorMes(yearFixasFiltered, ano, mes);
+    const yearFinancasRecorte = yearFinancasFiltered.filter((row) => !isJanuaryMesAno(rowMesAno(row)));
+    const yearFixasRecorte = yearFixasFiltered.filter((row) => !isJanuaryMesAno(rowMesAno(row)));
+    const monthFinancas = filtrarFinancasPorMes(yearFinancasRecorte, ano, mes);
+    const monthFixas = filtrarFinancasPorMes(yearFixasRecorte, ano, mes);
     const { receitas: receitasMes, gastosVariados: gastosMes } = classificarFinancas(monthFinancas);
-    const { receitas: receitasAno, gastosVariados: gastosAno } = classificarFinancas(yearFinancasFiltered);
+    const { receitas: receitasAno, gastosVariados: gastosAno } = classificarFinancas(yearFinancasRecorte);
 
     const baseWeights = normalizarFinanceiroPesos(
       extractModelWeights(currentFeatureRow)
@@ -331,8 +334,8 @@ export default async function handler(req, res) {
     const previousState = extractPreviousState(currentFeatureRow) || extractPreviousState(prevFeatureRow);
 
     const historicoMensalAno = buildHistoricoMensalAno({
-      financasRows: yearFinancas,
-      fixasRows: yearFixas,
+      financasRows: yearFinancasRecorte,
+      fixasRows: yearFixasRecorte,
     });
     const historicoBase = (historicoMensalAno.length ? historicoMensalAno : historyRows)
       .filter((row) => !isJanuaryMesAno(row?.mes_ano));
@@ -352,7 +355,7 @@ export default async function handler(req, res) {
       despesasFixasMes: monthFixas,
       receitasAno,
       gastosAno,
-      despesasFixasAno: yearFixasFiltered,
+      despesasFixasAno: yearFixasRecorte,
       historico: historicoAprendizado,
       learningHistory: modelStateHistoryAprendizado,
       pesos: baseWeights,
