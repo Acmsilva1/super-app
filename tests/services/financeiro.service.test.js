@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   calcularDashboard,
+  calcularGraficosAnuais,
   classificarFinancas,
   inferTipoRegistro,
   montarTabelaFinanceiroRows,
@@ -52,6 +53,28 @@ describe('financeiroService', () => {
       despesas_variadas: 50,
       liquido: 120,
     });
+  });
+
+  it('calcula graficos anuais por mes sem repetir meses fora do ano', () => {
+    const out = calcularGraficosAnuais({
+      ano: 2026,
+      rows: [
+        { tipo: 'receita', valor: 100, data_lancamento: '2026-01-10' },
+        { tipo: 'despesa', valor: 30, data_lancamento: '2026-01-20' },
+        { tipo: 'receita', valor: 200, data_lancamento: '2026-02-05' },
+        { tipo: 'despesa', valor: 80, data_lancamento: '2026-02-12' },
+        { tipo: 'receita', valor: 999, data_lancamento: '2025-12-12' },
+      ],
+      despesasFixasRows: [
+        { valor: 20, created_at: '2026-01-01T12:00:00.000Z' },
+        { valor: 10, created_at: '2026-02-01T12:00:00.000Z' },
+      ],
+    });
+
+    expect(out).toHaveLength(12);
+    expect(out[0]).toMatchObject({ mes_ano: '2026-01', receitas: 100, despesas: 50, saldo: 50 });
+    expect(out[1]).toMatchObject({ mes_ano: '2026-02', receitas: 200, despesas: 90, saldo: 110 });
+    expect(out[11]).toMatchObject({ mes_ano: '2026-12', receitas: 0, despesas: 0, saldo: 0 });
   });
 
   it('valida payload de insert para meta de poupanca', () => {

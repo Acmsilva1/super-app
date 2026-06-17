@@ -208,6 +208,56 @@ export function calcularGraficos({ gastosRows, despesasFixasRows }) {
   };
 }
 
+function getYearMonthKey(row) {
+  const raw = String(row?.data_lancamento || row?.created_at || '').trim();
+  if (!raw) return '';
+  const match = raw.match(/^(\d{4})-(\d{2})/);
+  if (match) return `${match[1]}-${match[2]}`;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+export function calcularGraficosAnuais({ ano, rows, despesasFixasRows }) {
+  const year = Number(ano);
+  const meses = Array.from({ length: 12 }, (_, i) => ({
+    mes: i + 1,
+    mes_ano: `${year}-${String(i + 1).padStart(2, '0')}`,
+    receitas: 0,
+    despesas: 0,
+  }));
+  const slotByKey = new Map(meses.map((item) => [item.mes_ano, item]));
+  const { receitas, gastosVariados } = classificarFinancas(rows || []);
+
+  for (const row of receitas || []) {
+    const key = getYearMonthKey(row);
+    const slot = slotByKey.get(key);
+    if (!slot) continue;
+    slot.receitas = Math.round((slot.receitas + (Number(row?.valor) || 0)) * 100) / 100;
+  }
+
+  for (const row of gastosVariados || []) {
+    const key = getYearMonthKey(row);
+    const slot = slotByKey.get(key);
+    if (!slot) continue;
+    slot.despesas = Math.round((slot.despesas + (Number(row?.valor) || 0)) * 100) / 100;
+  }
+
+  for (const row of despesasFixasRows || []) {
+    const key = getYearMonthKey(row);
+    const slot = slotByKey.get(key);
+    if (!slot) continue;
+    slot.despesas = Math.round((slot.despesas + (Number(row?.valor) || 0)) * 100) / 100;
+  }
+
+  return meses.map((item) => ({
+    ...item,
+    saldo: Math.round((item.receitas - item.despesas) * 100) / 100,
+  }));
+}
+
 export function montarTabelaFinanceiroRows(rows, tipoRegistro) {
   return sortCronologiaDesc(rows).map((r) => ({
     ...r,

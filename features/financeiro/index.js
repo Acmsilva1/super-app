@@ -38,6 +38,7 @@ export {
   classificarFinancas,
   calcularDashboard,
   calcularGraficos,
+  calcularGraficosAnuais,
   montarTabelaFinanceiroRows,
   payloadInsertFinanceiro,
   payloadUpdateFinanceiro,

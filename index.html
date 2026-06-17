@@ -4725,6 +4725,7 @@
         .lista-compras-col-list .lista-btn-del { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
         .app-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
         @media (max-width: 640px) { .app-charts { grid-template-columns: 1fr; } }
+        .app-chart-wrap--span-2 { grid-column: 1 / -1; }
         .app-chart-wrap {
             background: linear-gradient(155deg, rgba(14, 27, 50, 0.82), rgba(10, 20, 38, 0.9));
             border-radius: var(--radius);
@@ -6402,6 +6403,7 @@
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
                 if (el._financeiroChartCategoria) { try { el._financeiroChartCategoria.dispose(); } catch (_) {} el._financeiroChartCategoria = null; }
                 if (el._financeiroChartStatus) { try { el._financeiroChartStatus.dispose(); } catch (_) {} el._financeiroChartStatus = null; }
+                if (el._financeiroChartAnual) { try { el._financeiroChartAnual.dispose(); } catch (_) {} el._financeiroChartAnual = null; }
                 if (el._financeiroAnalistaChartMonth) { try { el._financeiroAnalistaChartMonth.dispose(); } catch (_) {} el._financeiroAnalistaChartMonth = null; }
                 if (el._financeiroAnalistaChartComparativo) { try { el._financeiroAnalistaChartComparativo.dispose(); } catch (_) {} el._financeiroAnalistaChartComparativo = null; }
                 if (el._financeiroAnalistaChartLearning) { try { el._financeiroAnalistaChartLearning.dispose(); } catch (_) {} el._financeiroAnalistaChartLearning = null; }
@@ -6423,6 +6425,7 @@
                 const poupancaMetaAtiva = (data.poupanca && data.poupanca.meta_ativa) || null;
                 const pagosPendentes = graficos.pagos_pendentes || {};
                 const categoriasGastos = graficos.categorias_gastos || [];
+                const graficosAnuais = Array.isArray(data.graficos_anuais) ? data.graficos_anuais : [];
 
                 const mesAno = data.mes_ano || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
                 const [ano, mes] = mesAno.split('-').map(Number);
@@ -6653,6 +6656,9 @@
                             <div class="app-charts">
                                 <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias de gastos</p><div id="financeiro-chart-categorias" style="height:280px;"></div></div>
                                 <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Despesas fixas: pagos x pendentes</p><div id="financeiro-chart-status" style="height:280px;"></div></div>
+                            </div>
+                            <div class="app-charts">
+                                <div class="app-chart-wrap app-chart-wrap--span-2"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x despesas por mês</p><div id="financeiro-chart-anual" style="height:320px;"></div></div>
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'data' ? '' : 'hidden'}" data-tab-panel="data">
@@ -7330,6 +7336,92 @@
                             });
                             chart.resize();
                         }
+                    }
+                    const chartAnualNode = el.querySelector('#financeiro-chart-anual');
+                    if (chartAnualNode) {
+                        const labelsAnuais = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                        const serieReceitas = labelsAnuais.map((_, idx) => Number(graficosAnuais[idx]?.receitas || 0));
+                        const serieDespesas = labelsAnuais.map((_, idx) => Number(graficosAnuais[idx]?.despesas || 0));
+                        let chart = el._financeiroChartAnual;
+                        if (!chart || chart.isDisposed?.()) {
+                            chart = echarts.init(chartAnualNode);
+                            el._financeiroChartAnual = chart;
+                        }
+                        const maxAnual = Math.max(...serieReceitas, ...serieDespesas, 0);
+                        const eixoMax = maxAnual > 0 ? Math.ceil((maxAnual * 1.2) / 100) * 100 : undefined;
+                        chart.setOption({
+                            animationDuration: 850,
+                            animationEasing: 'cubicOut',
+                            grid: { left: 12, right: 12, top: 28, bottom: 18, containLabel: true },
+                            legend: {
+                                top: 0,
+                                textStyle: { color: '#cbd5e1' },
+                                itemWidth: 12,
+                                itemHeight: 12,
+                            },
+                            tooltip: {
+                                trigger: 'axis',
+                                axisPointer: { type: 'shadow' },
+                                backgroundColor: 'rgba(8, 20, 38, 0.96)',
+                                borderColor: 'rgba(148, 163, 184, 0.35)',
+                                textStyle: { color: '#dbeafe' },
+                                formatter: (items) => {
+                                    const monthName = items?.[0]?.axisValue || '';
+                                    const receitasItem = items?.find((item) => item.seriesName === 'Receitas');
+                                    const despesasItem = items?.find((item) => item.seriesName === 'Despesas');
+                                    const receitasVal = Number(receitasItem?.value || 0);
+                                    const despesasVal = Number(despesasItem?.value || 0);
+                                    const saldoVal = receitasVal - despesasVal;
+                                    return [
+                                        `<strong>${monthName}</strong>`,
+                                        `Receitas: ${this.formatMoneyBr(receitasVal)}`,
+                                        `Despesas: ${this.formatMoneyBr(despesasVal)}`,
+                                        `Saldo: ${this.formatMoneyBr(saldoVal)}`,
+                                    ].join('<br/>');
+                                },
+                            },
+                            xAxis: {
+                                type: 'category',
+                                data: labelsAnuais,
+                                axisLabel: { color: '#cbd5e1' },
+                                axisTick: { show: false },
+                                axisLine: { lineStyle: { color: 'rgba(148,163,184,0.24)' } },
+                            },
+                            yAxis: {
+                                type: 'value',
+                                max: eixoMax,
+                                axisLabel: { color: '#94a3b8', formatter: (value) => this.formatMoneyBr(Number(value || 0)) },
+                                splitLine: { lineStyle: { color: 'rgba(148,163,184,0.16)' } },
+                            },
+                            series: [
+                                {
+                                    name: 'Receitas',
+                                    type: 'bar',
+                                    data: serieReceitas,
+                                    barMaxWidth: 16,
+                                    barGap: '32%',
+                                    itemStyle: {
+                                        color: '#22c55e',
+                                        borderRadius: [8, 8, 0, 0],
+                                        shadowBlur: 12,
+                                        shadowColor: 'rgba(34, 197, 94, 0.25)',
+                                    },
+                                },
+                                {
+                                    name: 'Despesas',
+                                    type: 'bar',
+                                    data: serieDespesas,
+                                    barMaxWidth: 16,
+                                    itemStyle: {
+                                        color: '#ef4444',
+                                        borderRadius: [8, 8, 0, 0],
+                                        shadowBlur: 12,
+                                        shadowColor: 'rgba(239, 68, 68, 0.22)',
+                                    },
+                                },
+                            ],
+                        });
+                        chart.resize();
                     }
                     const startResumoGlow = () => {
                         if (el._financeiroResumoGlowTimer) clearInterval(el._financeiroResumoGlowTimer);

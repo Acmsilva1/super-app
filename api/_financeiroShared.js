@@ -15,6 +15,7 @@ import {
   classificarFinancas,
   calcularDashboard,
   calcularGraficos,
+  calcularGraficosAnuais,
   montarTabelaFinanceiroRows,
   payloadInsertFinanceiro,
   payloadUpdateFinanceiro,
@@ -203,6 +204,11 @@ export async function obterFinanceiroMes(query = {}) {
     gastosRows: gastosVariados,
     despesasFixasRows: despesasFixasRowsRaw || [],
   });
+  const graficosAnuais = calcularGraficosAnuais({
+    ano,
+    rows: allFinancasRows || [],
+    despesasFixasRows: despesasFixasRowsRaw || [],
+  });
 
   const poupancaTotal = Math.round((poupancaRowsRaw || []).reduce((acc, r) => acc + (Number(r?.valor) || 0), 0) * 100) / 100;
   const valorMeta = Number(poupancaMetaAtiva?.valor_meta || 0);
@@ -221,6 +227,7 @@ export async function obterFinanceiroMes(query = {}) {
       mes_ano,
       dashboard,
       graficos,
+      graficos_anuais: graficosAnuais,
       tabelas: {
         despesas_fixas: despesasFixasTabela,
         gastos_variados: gastosVariadosTabela,
