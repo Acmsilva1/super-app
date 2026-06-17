@@ -365,6 +365,88 @@ function calcularResumoHistoricoComparativo(historico = [], yearSummary = {}) {
   };
 }
 
+function buildFinanceiroAnalistaCards({ historico = [], categoriasAno = [], yearSummary = {} } = {}) {
+  const historicoSeguro = Array.isArray(historico) ? historico.filter((item) => item?.mes_ano) : [];
+  const categoriasSeguro = Array.isArray(categoriasAno) ? categoriasAno.filter(Boolean) : [];
+
+  const melhorMes = historicoSeguro.reduce((acc, item) => (Number(item?.saldo || 0) > Number(acc?.saldo || Number.NEGATIVE_INFINITY) ? item : acc), null);
+  const piorMes = historicoSeguro.reduce((acc, item) => (Number(item?.saldo || 0) < Number(acc?.saldo || Number.POSITIVE_INFINITY) ? item : acc), null);
+  const mesComMaisFixas = historicoSeguro.reduce((acc, item) => (Number(item?.despesas_fixas || 0) > Number(acc?.despesas_fixas || Number.NEGATIVE_INFINITY) ? item : acc), null);
+  const mesComMaisVariaveis = historicoSeguro.reduce((acc, item) => (Number(item?.despesas_variadas || 0) > Number(acc?.despesas_variadas || Number.NEGATIVE_INFINITY) ? item : acc), null);
+  const mesesComReceita = historicoSeguro
+    .map((item) => {
+      const receitas = Number(item?.receitas || 0);
+      if (!(receitas > 0)) return null;
+      const despesasTotais = Number(item?.despesas_totais || 0);
+      return {
+        mes_ano: String(item?.mes_ano || ''),
+        percentual: (despesasTotais / receitas) * 100,
+      };
+    })
+    .filter(Boolean);
+  const mesMaisPositivo = mesesComReceita.reduce((acc, item) => (item.percentual < acc.percentual ? item : acc), mesesComReceita[0] || null);
+  const mesMaisNegativo = mesesComReceita.reduce((acc, item) => (item.percentual > acc.percentual ? item : acc), mesesComReceita[0] || null);
+
+  const categoriaMaisGasta = [...categoriasSeguro]
+    .sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))[0] || null;
+  const categoriaMenosGasta = [...categoriasSeguro]
+    .sort((a, b) => Number(a?.valor || 0) - Number(b?.valor || 0))[0] || null;
+
+  return {
+    melhor_mes: melhorMes ? {
+      mes_ano: melhorMes.mes_ano,
+      saldo: round2(melhorMes.saldo),
+      receitas: round2(melhorMes.receitas),
+      despesas: round2(melhorMes.despesas),
+      motivo: melhorMes.saldo >= 0 && Number(melhorMes.fixas_ratio_receitas || 0) <= 40
+        ? 'saldo positivo com fixas controladas'
+        : Number(melhorMes.receitas || 0) >= Number(yearSummary?.media_receitas_mensais || 0) && Number(melhorMes.despesas || 0) <= Number(yearSummary?.media_despesas_mensais || 0)
+          ? 'receita acima da media com despesa sob controle'
+          : Number(melhorMes.receitas || 0) >= Number(yearSummary?.media_receitas_mensais || 0)
+            ? 'receita mais forte que a media'
+            : 'despesa menor que os demais meses',
+    } : null,
+    pior_mes: piorMes ? {
+      mes_ano: piorMes.mes_ano,
+      saldo: round2(piorMes.saldo),
+      receitas: round2(piorMes.receitas),
+      despesas: round2(piorMes.despesas),
+      motivo: piorMes.saldo < 0
+        ? 'saldo negativo no fechamento'
+        : Number(piorMes.fixas_ratio_receitas || 0) >= 50
+          ? 'despesas fixas muito pesadas'
+          : Number(piorMes.despesas || 0) >= Number(yearSummary?.media_despesas_mensais || 0)
+            ? 'despesa acima da media'
+            : 'receita abaixo da media',
+    } : null,
+    categoria_mais_gasta: categoriaMaisGasta ? {
+      categoria: categoriaMaisGasta.categoria,
+      valor: round2(categoriaMaisGasta.valor),
+    } : null,
+    categoria_menos_gasta: categoriaMenosGasta ? {
+      categoria: categoriaMenosGasta.categoria,
+      valor: round2(categoriaMenosGasta.valor),
+    } : null,
+    mes_com_mais_fixas: mesComMaisFixas ? {
+      mes_ano: mesComMaisFixas.mes_ano,
+      despesas_fixas: round2(mesComMaisFixas.despesas_fixas),
+    } : null,
+    mes_com_mais_variaveis: mesComMaisVariaveis ? {
+      mes_ano: mesComMaisVariaveis.mes_ano,
+      despesas_variadas: round2(mesComMaisVariaveis.despesas_variadas),
+    } : null,
+    mes_mais_positivo: mesMaisPositivo ? {
+      mes_ano: mesMaisPositivo.mes_ano,
+      percentual: round2(mesMaisPositivo.percentual),
+    } : null,
+    mes_mais_negativo: mesMaisNegativo ? {
+      mes_ano: mesMaisNegativo.mes_ano,
+      percentual: round2(mesMaisNegativo.percentual),
+    } : null,
+    historico_sem_janeiro: historicoSeguro,
+  };
+}
+
 function identificarPossiveisErros({ features, projection, historico = [], previousState = null } = {}) {
   const errors = [];
   const meses = historico.length;
@@ -781,6 +863,11 @@ export function buildFinanceiroAnalise({
   const oscilacaoHistorica = calcularOscilacaoHistorica(historicoSemJaneiro);
   const nivelAprendizado = calcularNivelAprendizado({ historico: historicoSemJaneiro, feedback, adaptiveWeights, learningHistory: learningHistorySemJaneiro });
   const resumoComparativoHistorico = calcularResumoHistoricoComparativo(historicoSemJaneiro, yearSummary);
+  const cards = buildFinanceiroAnalistaCards({
+    historico: historicoSemJaneiro,
+    categoriasAno: yearCategoryTotals,
+    yearSummary,
+  });
   const possiveisErros = identificarPossiveisErros({
     features,
     projection,
@@ -838,6 +925,7 @@ export function buildFinanceiroAnalise({
     categorias_mes: monthCategoryTotals,
     categorias_ano: yearCategoryTotals,
     historico_detalhado: historicoDetalhado,
+    cards,
     comparativos: {
       mes_vs_ano: monthVsYear,
       oscilacao_historica: oscilacaoHistorica,

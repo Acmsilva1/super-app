@@ -132,6 +132,8 @@ describe('API do financeiro analista', () => {
     expect(res.body.aprendizado.historico.length).toBeGreaterThanOrEqual(4);
     expect(res.body.aprendizado.historico.some((item) => item.mes_ano === '2026-01')).toBe(false);
     expect(res.body.analista.comparativos.resumo_historico.melhor_mes.mes_ano).toBe('2026-06');
+    expect(res.body.analista.cards.melhor_mes.mes_ano).toBe('2026-06');
+    expect(res.body.analista.cards.historico_sem_janeiro.some((item) => item.mes_ano === '2026-01')).toBe(false);
     expect(res.body.aprendizado.feature_id).toBe(1001);
     expect(res.body.aprendizado.analysis_id).toBe(2001);
     expect(res.body.aprendizado.run_id).toBe(3001);
