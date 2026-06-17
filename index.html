@@ -6898,6 +6898,7 @@
                     const piorMesFinal = piorMes?.mes_ano ? piorMes : piorMesFallback;
                     const despesasReceitasPctMes = mensal.receitas > 0 ? (Number(mensal.despesas_totais || 0) / Number(mensal.receitas || 1)) * 100 : 0;
                     const formatPercent = (value) => `${Number(value || 0).toFixed(1)}%`;
+                    const isJanuaryMesAno = (mesAnoRef) => String(mesAnoRef || '').slice(5, 7) === '01';
                     const formatMesReferencia = (mesAnoRef) => {
                         const raw = String(mesAnoRef || '').trim();
                         const match = raw.match(/^(\d{4})-(\d{2})$/);
@@ -6915,7 +6916,13 @@
                     const cardBottomCategoryRef = `Referência: acumulado do ano`;
                     const cardFixedMonthRef = mesComMaisFixas?.mes_ano ? `Referência: ${formatMesReferencia(mesComMaisFixas.mes_ano)}` : 'Referência: sem histórico';
                     const cardVariableMonthRef = mesComMaisVariaveis?.mes_ano ? `Referência: ${formatMesReferencia(mesComMaisVariaveis.mes_ano)}` : 'Referência: sem histórico';
-                    const mesesComReceita = historicoDetalhado
+                    const historicoSemJaneiro = historicoDetalhado.filter((item) => !isJanuaryMesAno(item?.mes_ano));
+                    const categoriasAnoBaseSemJaneiro = categoriasAnoBase.filter((item) => !isJanuaryMesAno(item?.mes_ano));
+                    const melhorMesSemJaneiro = historicoSemJaneiro.reduce((acc, item) => (Number(item?.saldo || 0) > Number(acc?.saldo || Number.NEGATIVE_INFINITY) ? item : acc), null);
+                    const piorMesSemJaneiro = historicoSemJaneiro.reduce((acc, item) => (Number(item?.saldo || 0) < Number(acc?.saldo || Number.POSITIVE_INFINITY) ? item : acc), null);
+                    const mesComMaisFixasSemJaneiro = historicoSemJaneiro.reduce((acc, item) => (Number(item?.despesas_fixas || 0) > Number(acc?.despesas_fixas || Number.NEGATIVE_INFINITY) ? item : acc), null);
+                    const mesComMaisVariaveisSemJaneiro = historicoSemJaneiro.reduce((acc, item) => (Number(item?.despesas_variadas || 0) > Number(acc?.despesas_variadas || Number.NEGATIVE_INFINITY) ? item : acc), null);
+                    const mesesComReceita = historicoSemJaneiro
                         .map((item) => {
                             const receitas = Number(item?.receitas || 0);
                             if (!(receitas > 0)) {
@@ -6931,18 +6938,22 @@
                         .filter(Boolean);
                     const mesMaisPositivo = mesesComReceita.reduce((acc, item) => (item.percentual < acc.percentual ? item : acc), mesesComReceita[0] || null);
                     const mesMaisNegativo = mesesComReceita.reduce((acc, item) => (item.percentual > acc.percentual ? item : acc), mesesComReceita[0] || null);
+                    const melhorMesFinalSemJaneiro = melhorMesSemJaneiro;
+                    const piorMesFinalSemJaneiro = piorMesSemJaneiro;
+                    const mesComMaisFixasFinal = mesComMaisFixasSemJaneiro;
+                    const mesComMaisVariaveisFinal = mesComMaisVariaveisSemJaneiro;
                     const cardPositiveRef = mesMaisPositivo?.mes_ano ? `Referência: ${formatMesReferencia(mesMaisPositivo.mes_ano)}` : 'Referência: sem histórico';
                     const cardNegativeRef = mesMaisNegativo?.mes_ano ? `Referência: ${formatMesReferencia(mesMaisNegativo.mes_ano)}` : 'Referência: sem histórico';
                     const cardPositiveValue = mesMaisPositivo ? formatPercent(mesMaisPositivo.percentual) : 'Sem histórico suficiente';
                     const cardNegativeValue = mesMaisNegativo ? formatPercent(mesMaisNegativo.percentual) : 'Sem histórico suficiente';
-                    const cardBestValue = melhorMesFinal?.mes_ano ? `${this.formatMoneyBr(Number(melhorMesFinal.saldo || 0))}` : 'Sem histórico suficiente';
-                    const cardWorstValue = piorMesFinal?.mes_ano ? `${this.formatMoneyBr(Number(piorMesFinal.saldo || 0))}` : 'Sem histórico suficiente';
+                    const cardBestValue = melhorMesFinalSemJaneiro?.mes_ano ? `${this.formatMoneyBr(Number(melhorMesFinalSemJaneiro.saldo || 0))}` : 'Sem histórico suficiente';
+                    const cardWorstValue = piorMesFinalSemJaneiro?.mes_ano ? `${this.formatMoneyBr(Number(piorMesFinalSemJaneiro.saldo || 0))}` : 'Sem histórico suficiente';
                     const cardTopCategory = categoriaMaisGastaAno?.categoria ? `${String(categoriaMaisGastaAno.categoria)} - ${this.formatMoneyBr(Number(categoriaMaisGastaAno.valor || 0))}` : 'Sem categoria suficiente';
                     const cardBottomCategory = categoriaMenosGastaAno?.categoria ? `${String(categoriaMenosGastaAno.categoria)} - ${this.formatMoneyBr(Number(categoriaMenosGastaAno.valor || 0))}` : 'Sem categoria suficiente';
-                    const cardFixedMonth = mesComMaisFixas?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisFixas.despesas_fixas || 0))}` : 'Sem histórico suficiente';
-                    const cardVariableMonth = mesComMaisVariaveis?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisVariaveis.despesas_variadas || 0))}` : 'Sem histórico suficiente';
-                    const resumoMesesRows = historicoDetalhado.length
-                        ? historicoDetalhado.map((item) => `
+                    const cardFixedMonth = mesComMaisFixasFinal?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisFixasFinal.despesas_fixas || 0))}` : 'Sem histórico suficiente';
+                    const cardVariableMonth = mesComMaisVariaveisFinal?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisVariaveisFinal.despesas_variadas || 0))}` : 'Sem histórico suficiente';
+                    const resumoMesesRows = historicoSemJaneiro.length
+                        ? historicoSemJaneiro.map((item) => `
                                 <tr>
                                     <td>${escapeHtml(String(item.mes_ano || ''))}</td>
                                     <td><span class="finance-analista-value--receita">${escapeHtml(this.formatMoneyBr(Number(item.receitas || 0)))}</span></td>
@@ -6954,7 +6965,7 @@
                                 </tr>
                             `).join('')
                         : '<tr><td colspan="7">Sem histórico suficiente para montar a tabela de meses.</td></tr>';
-                    const categoriasRows = [...categoriasAnoBase]
+                    const categoriasRows = [...categoriasAnoBaseSemJaneiro]
                         .sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))
                         .map((item) => `
                                 <tr>
