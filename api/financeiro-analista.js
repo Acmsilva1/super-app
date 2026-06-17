@@ -77,6 +77,13 @@ function isJanuaryMesAno(mesAno) {
   return match[2] === '01';
 }
 
+function isBeforeRecorteMesAno(mesAno, recorteInicioMesAno = '2026-02') {
+  const current = String(mesAno || '').slice(0, 7);
+  const recorte = String(recorteInicioMesAno || '').slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(current) || !/^\d{4}-\d{2}$/.test(recorte)) return false;
+  return current < recorte;
+}
+
 function isFutureMesAno(mesAno, referenceMesAno) {
   const current = String(mesAno || '').slice(0, 7);
   const reference = String(referenceMesAno || '').slice(0, 7);
@@ -290,10 +297,11 @@ export default async function handler(req, res) {
     const generatedAt = new Date().toISOString();
     const referenciaAtualMesAno = getBrazilTodayIso().slice(0, 7);
     const { ano, mes } = parseMesAno(mesAno);
+    const recorteInicioMesAno = `${ano}-02`;
     const { start, end } = rangeMes(ano, mes);
-    const yearStart = `${ano}-01-01T00:00:00.000Z`;
+    const yearStart = `${ano}-02-01T00:00:00.000Z`;
     const yearEnd = `${ano}-12-31T23:59:59.999Z`;
-    const yearStartQuery = `${ano}-01-01T00:00:00.000Z`;
+    const yearStartQuery = `${ano}-02-01T00:00:00.000Z`;
     const yearEndQuery = `${ano + 1}-01-02T00:00:00.000Z`;
     const prevMes = previousMesAno(mesAno);
 
@@ -323,8 +331,8 @@ export default async function handler(req, res) {
 
     const yearFinancasFiltered = yearFinancas.filter((row) => rowMesAno(row)?.startsWith(`${ano}-`));
     const yearFixasFiltered = yearFixas.filter((row) => rowMesAno(row)?.startsWith(`${ano}-`));
-    const yearFinancasRecorte = yearFinancasFiltered.filter((row) => !isJanuaryMesAno(rowMesAno(row)));
-    const yearFixasRecorte = yearFixasFiltered.filter((row) => !isJanuaryMesAno(rowMesAno(row)));
+    const yearFinancasRecorte = yearFinancasFiltered.filter((row) => !isBeforeRecorteMesAno(rowMesAno(row), recorteInicioMesAno));
+    const yearFixasRecorte = yearFixasFiltered.filter((row) => !isBeforeRecorteMesAno(rowMesAno(row), recorteInicioMesAno));
     const monthFinancas = filtrarFinancasPorMes(yearFinancasRecorte, ano, mes);
     const monthFixas = filtrarFinancasPorMes(yearFixasRecorte, ano, mes);
     const { receitas: receitasMes, gastosVariados: gastosMes } = classificarFinancas(monthFinancas);
@@ -342,18 +350,19 @@ export default async function handler(req, res) {
       fixasRows: yearFixasRecorte,
     });
     const historicoBase = (historicoMensalAno.length ? historicoMensalAno : historyRows)
-      .filter((row) => !isJanuaryMesAno(row?.mes_ano));
+      .filter((row) => !isBeforeRecorteMesAno(row?.mes_ano, recorteInicioMesAno));
     const historicoAprendizado = historicoBase
       .filter((row) => !isFutureMesAno(row?.mes_ano, referenciaAtualMesAno));
     const modelStateHistoryAprendizado = modelStateHistoryRows
       .filter(isRealLearningState)
-      .filter((row) => !isJanuaryMesAno(row?.mes_ano))
+      .filter((row) => !isBeforeRecorteMesAno(row?.mes_ano, recorteInicioMesAno))
       .filter((row) => !isFutureMesAno(row?.mes_ano, referenciaAtualMesAno));
     const futureIgnoredCount = Math.max(0, historicoBase.length - historicoAprendizado.length)
       + Math.max(0, modelStateHistoryRows.length - modelStateHistoryAprendizado.length);
 
     const analise = buildFinanceiroAnalise({
       mesAno,
+      recorteInicioMesAno,
       receitasMes,
       gastosMes,
       despesasFixasMes: monthFixas,
@@ -440,6 +449,7 @@ export default async function handler(req, res) {
         aprendizado_percentual: analise.modelo?.aprendizado?.percentual ?? 0,
         allow_learning: allowLearning,
         cron_run: cronRun,
+        recorte_inicio_mes_ano: recorteInicioMesAno,
       },
     });
 
@@ -468,6 +478,7 @@ export default async function handler(req, res) {
           modelo_versao: analise.modelo?.versao || 'financeiro-adaptive-v1',
           allow_learning: allowLearning,
           cron_run: cronRun,
+          recorte_inicio_mes_ano: recorteInicioMesAno,
         },
       });
     }

@@ -6920,6 +6920,7 @@
                     const projecao = analise?.projecao || {};
                     const comparativos = analise?.comparativos || {};
                     const modelo = analise?.modelo || {};
+                    const recorteInicioMesAno = analise?.metadados?.recorte_inicio_mes_ano || '2026-02';
                     const pesos = modelo?.pesos || {};
                     const formatMoney = (value) => this.formatMoneyBr(Number(value || 0));
                     const historico = Array.isArray(aprendizado?.historico) ? aprendizado.historico : [];
@@ -7015,7 +7016,7 @@
                                     </div>
                                     <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-analista-refresh" style="white-space:nowrap;">Recalcular</button>
                                 </div>
-                                <div class="finance-analista-card__meta">Atualize o recorte quando precisar forçar a leitura sem janeiro.</div>
+                                <div class="finance-analista-card__meta">Fonte da verdade: ${escapeHtml(recorteInicioMesAno)} em diante. Janeiro de 2026 nunca entra no cálculo.</div>
                             </section>
                             <div class="finance-analista-grid">
                                 <article class="finance-analista-card">

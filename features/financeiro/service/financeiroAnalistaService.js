@@ -76,6 +76,33 @@ function monthsElapsedInYear(mes) {
   return Math.max(1, Math.min(12, Number(mes) || 1));
 }
 
+function isBeforeRecorteMesAno(mesAno, recorteInicioMesAno = '2026-02') {
+  const current = String(mesAno || '').slice(0, 7);
+  const recorte = String(recorteInicioMesAno || '').slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(current) || !/^\d{4}-\d{2}$/.test(recorte)) return false;
+  return current < recorte;
+}
+
+function normalizarHistoricoAnalista(historico = [], recorteInicioMesAno = '2026-02') {
+  return (Array.isArray(historico) ? historico : [])
+    .filter((item) => item?.mes_ano && !isBeforeRecorteMesAno(item.mes_ano, recorteInicioMesAno))
+    .map((item) => {
+      const resumoHistorico = item?.payload?.resumo_mensal || {};
+      return {
+        mes_ano: String(item?.mes_ano || '').trim(),
+        receitas: safeNumber(item?.receitas ?? item?.receitas_total ?? resumoHistorico.receitas),
+        despesas_fixas: safeNumber(item?.despesas_fixas ?? resumoHistorico.despesas_fixas),
+        despesas_variadas: safeNumber(item?.despesas_variadas ?? resumoHistorico.despesas_variadas),
+        despesas_totais: safeNumber(item?.despesas_totais ?? resumoHistorico.despesas_totais),
+        saldo: safeNumber(item?.saldo ?? item?.saldo_real ?? resumoHistorico.saldo),
+        fixas_ratio_receitas: safeNumber(item?.fixas_ratio_receitas ?? resumoHistorico.fixas_ratio_receitas),
+        variaveis_ratio_receitas: safeNumber(item?.variaveis_ratio_receitas ?? resumoHistorico.variaveis_ratio_receitas),
+        top_categoria: item?.top_categoria ?? item?.payload?.metadados?.top_category?.categoria ?? null,
+      };
+    })
+    .sort((a, b) => String(b.mes_ano).localeCompare(String(a.mes_ano)));
+}
+
 function projectMonth(total, diasDecorridos, diasNoMes) {
   if (!(diasDecorridos > 0) || !(diasNoMes > 0)) return 0;
   return round2((safeNumber(total) / diasDecorridos) * diasNoMes);
@@ -284,35 +311,28 @@ export function calcularFinanceiroRiscoScore(features = {}, pesos = defaultFinan
 }
 
 function calcularOscilacaoHistorica(historico = []) {
-  const receitas = historico.map((item) => safeNumber(item?.receitas_total ?? item?.payload?.resumo_mensal?.receitas));
-  const despesas = historico.map((item) => safeNumber(item?.despesas_totais ?? item?.payload?.resumo_mensal?.despesas_totais));
-  const saldos = historico.map((item) => safeNumber(item?.saldo_real ?? item?.payload?.resumo_mensal?.saldo));
+  const historicoNormalizado = normalizarHistoricoAnalista(historico);
+  const receitas = historicoNormalizado.map((item) => safeNumber(item?.receitas));
+  const despesas = historicoNormalizado.map((item) => safeNumber(item?.despesas_totais));
+  const saldos = historicoNormalizado.map((item) => safeNumber(item?.saldo));
   return {
     coef_receitas: coefficientOfVariation(receitas),
     coef_despesas: coefficientOfVariation(despesas),
     coef_saldos: coefficientOfVariation(saldos),
-    meses: historico.length,
+    meses: historicoNormalizado.length,
   };
 }
 
 function calcularResumoHistoricoComparativo(historico = [], yearSummary = {}) {
-  const itens = (Array.isArray(historico) ? historico : [])
-    .map((item) => {
-      const resumoMensal = item?.payload?.resumo_mensal || {};
-      const receitas = safeNumber(item?.receitas_total ?? resumoMensal.receitas);
-      const despesas = safeNumber(item?.despesas_totais ?? resumoMensal.despesas_totais);
-      const saldo = safeNumber(item?.saldo_real ?? resumoMensal.saldo);
-      const fixasRatio = safeNumber(resumoMensal.fixas_ratio_receitas ?? (receitas > 0 ? (safeNumber(resumoMensal.despesas_fixas) / receitas) * 100 : 0));
-      const variaveisRatio = safeNumber(resumoMensal.variaveis_ratio_receitas ?? (receitas > 0 ? (safeNumber(resumoMensal.despesas_variadas) / receitas) * 100 : 0));
-      return {
-        mes_ano: item?.mes_ano || null,
-        receitas,
-        despesas,
-        saldo,
-        fixasRatio,
-        variaveisRatio,
-      };
-    })
+  const itens = normalizarHistoricoAnalista(historico)
+    .map((item) => ({
+      mes_ano: item.mes_ano,
+      receitas: item.receitas,
+      despesas: item.despesas_totais,
+      saldo: item.saldo,
+      fixasRatio: item.fixas_ratio_receitas,
+      variaveisRatio: item.variaveis_ratio_receitas,
+    }))
     .filter((item) => item.mes_ano);
 
   if (!itens.length) {
@@ -366,31 +386,14 @@ function calcularResumoHistoricoComparativo(historico = [], yearSummary = {}) {
 }
 
 function buildFinanceiroAnalistaCards({ historico = [], categoriasAno = [], yearSummary = {} } = {}) {
-  const historicoSeguro = Array.isArray(historico) ? historico.filter((item) => item?.mes_ano) : [];
+  const historicoSeguro = normalizarHistoricoAnalista(historico);
   const categoriasSeguro = Array.isArray(categoriasAno) ? categoriasAno.filter(Boolean) : [];
-  const historicoNormalizado = historicoSeguro
-    .map((item) => {
-      const resumoHistorico = item?.payload?.resumo_mensal || {};
-      return {
-        mes_ano: String(item?.mes_ano || '').trim(),
-        receitas: safeNumber(item?.receitas ?? item?.receitas_total ?? resumoHistorico.receitas),
-        despesas_fixas: safeNumber(item?.despesas_fixas ?? resumoHistorico.despesas_fixas),
-        despesas_variadas: safeNumber(item?.despesas_variadas ?? resumoHistorico.despesas_variadas),
-        despesas_totais: safeNumber(item?.despesas_totais ?? resumoHistorico.despesas_totais),
-        saldo: safeNumber(item?.saldo ?? item?.saldo_real ?? resumoHistorico.saldo),
-        fixas_ratio_receitas: safeNumber(item?.fixas_ratio_receitas ?? resumoHistorico.fixas_ratio_receitas),
-        variaveis_ratio_receitas: safeNumber(item?.variaveis_ratio_receitas ?? resumoHistorico.variaveis_ratio_receitas),
-        top_categoria: item?.top_categoria ?? item?.payload?.metadados?.top_category?.categoria ?? null,
-      };
-    })
-    .filter((item) => item.mes_ano)
-    .sort((a, b) => String(b.mes_ano).localeCompare(String(a.mes_ano)));
 
-  const melhorMes = historicoNormalizado.reduce((acc, item) => (Number(item?.saldo || 0) > Number(acc?.saldo || Number.NEGATIVE_INFINITY) ? item : acc), null);
-  const piorMes = historicoNormalizado.reduce((acc, item) => (Number(item?.saldo || 0) < Number(acc?.saldo || Number.POSITIVE_INFINITY) ? item : acc), null);
-  const mesComMaisFixas = historicoNormalizado.reduce((acc, item) => (Number(item?.despesas_fixas || 0) > Number(acc?.despesas_fixas || Number.NEGATIVE_INFINITY) ? item : acc), null);
-  const mesComMaisVariaveis = historicoNormalizado.reduce((acc, item) => (Number(item?.despesas_variadas || 0) > Number(acc?.despesas_variadas || Number.NEGATIVE_INFINITY) ? item : acc), null);
-  const mesesComReceita = historicoNormalizado
+  const melhorMes = historicoSeguro.reduce((acc, item) => (Number(item?.saldo || 0) > Number(acc?.saldo || Number.NEGATIVE_INFINITY) ? item : acc), null);
+  const piorMes = historicoSeguro.reduce((acc, item) => (Number(item?.saldo || 0) < Number(acc?.saldo || Number.POSITIVE_INFINITY) ? item : acc), null);
+  const mesComMaisFixas = historicoSeguro.reduce((acc, item) => (Number(item?.despesas_fixas || 0) > Number(acc?.despesas_fixas || Number.NEGATIVE_INFINITY) ? item : acc), null);
+  const mesComMaisVariaveis = historicoSeguro.reduce((acc, item) => (Number(item?.despesas_variadas || 0) > Number(acc?.despesas_variadas || Number.NEGATIVE_INFINITY) ? item : acc), null);
+  const mesesComReceita = historicoSeguro
     .map((item) => {
       const receitas = Number(item?.receitas || 0);
       if (!(receitas > 0)) return null;
@@ -460,7 +463,7 @@ function buildFinanceiroAnalistaCards({ historico = [], categoriasAno = [], year
       mes_ano: mesMaisNegativo.mes_ano,
       percentual: round2(mesMaisNegativo.percentual),
     } : null,
-    historico_sem_janeiro: historicoNormalizado,
+    historico_sem_janeiro: historicoSeguro,
   };
 }
 
@@ -724,6 +727,7 @@ function buildBucketSignals({
 
 export function buildFinanceiroAnalise({
   mesAno = getBrazilTodayIso().slice(0, 7),
+  recorteInicioMesAno = '2026-02',
   receitasMes = [],
   gastosMes = [],
   despesasFixasMes = [],
@@ -737,8 +741,8 @@ export function buildFinanceiroAnalise({
   previousState = null,
   allowLearning = true,
 } = {}) {
-  const historicoSemJaneiro = (Array.isArray(historico) ? historico : []).filter((item) => !isJanuaryMesAno(item?.mes_ano));
-  const learningHistorySemJaneiro = (Array.isArray(learningHistory) ? learningHistory : []).filter((item) => !isJanuaryMesAno(item?.mes_ano));
+  const historicoSemJaneiro = normalizarHistoricoAnalista(historico, recorteInicioMesAno);
+  const learningHistorySemJaneiro = normalizarHistoricoAnalista(learningHistory, recorteInicioMesAno);
   const { ano, mes } = parseMesAno(mesAno);
   const monthKey = monthLabel(ano, mes);
   const diasNoMes = new Date(ano, mes, 0).getDate();
@@ -760,7 +764,7 @@ export function buildFinanceiroAnalise({
 
   const monthGrossExpenses = round2(monthDashboard.despesas_fixas + monthDashboard.despesas_variadas);
   const yearGrossExpenses = round2(yearDashboard.despesas_fixas + yearDashboard.despesas_variadas);
-  const monthsElapsed = monthsElapsedInYear(mes);
+  const monthsElapsed = Math.max(1, mes - 1);
   const avgReceitasMensais = round2(yearDashboard.receitas / monthsElapsed);
   const avgDespesasMensais = round2(yearGrossExpenses / monthsElapsed);
   const avgSaldoMensal = round2(yearDashboard.liquido / monthsElapsed);
@@ -850,28 +854,7 @@ export function buildFinanceiroAnalise({
     projecao: projection,
     top_category: topCategory,
   });
-  const historicoDetalhado = historicoSemJaneiro
-    .map((item) => {
-      const resumoHistorico = item?.payload?.resumo_mensal || {};
-      const receitasHistoricas = item?.receitas_total ?? resumoHistorico.receitas;
-      const despesasFixasHistoricas = item?.despesas_fixas ?? resumoHistorico.despesas_fixas;
-      const despesasVariadasHistoricas = item?.despesas_variadas ?? resumoHistorico.despesas_variadas;
-      const despesasTotaisHistoricas = item?.despesas_totais ?? resumoHistorico.despesas_totais;
-      const saldoHistorico = item?.saldo_real ?? resumoHistorico.saldo;
-      return {
-        mes_ano: item?.mes_ano || null,
-        receitas: round2(safeNumber(receitasHistoricas)),
-        despesas_fixas: round2(safeNumber(despesasFixasHistoricas)),
-        despesas_variadas: round2(safeNumber(despesasVariadasHistoricas)),
-        despesas_totais: round2(safeNumber(despesasTotaisHistoricas)),
-        saldo: round2(safeNumber(saldoHistorico)),
-        fixas_ratio_receitas: round2(safeNumber(resumoHistorico.fixas_ratio_receitas)),
-        variaveis_ratio_receitas: round2(safeNumber(resumoHistorico.variaveis_ratio_receitas)),
-        top_categoria: item?.top_categoria ?? item?.payload?.metadados?.top_category?.categoria ?? null,
-      };
-    })
-    .filter((item) => item.mes_ano)
-    .sort((a, b) => String(b.mes_ano).localeCompare(String(a.mes_ano)));
+  const historicoDetalhado = historicoSemJaneiro;
   const feedback = construirFinanceiroFeedback({ previousState, features });
   const adaptiveWeights = allowLearning
     ? ajustarFinanceiroPesos(pesos, feedback, features)
@@ -949,9 +932,9 @@ export function buildFinanceiroAnalise({
       alivio_motivo: alivioMotivo,
       resumo_historico: resumoComparativoHistorico,
       media_ultimos_ciclos: {
-        receitas: average(historicoSemJaneiro.map((item) => safeNumber(item?.receitas_total ?? item?.payload?.resumo_mensal?.receitas))),
-        despesas: average(historicoSemJaneiro.map((item) => safeNumber(item?.despesas_totais ?? item?.payload?.resumo_mensal?.despesas_totais))),
-        saldo: average(historicoSemJaneiro.map((item) => safeNumber(item?.saldo_real ?? item?.payload?.resumo_mensal?.saldo))),
+        receitas: average(historicoSemJaneiro.map((item) => safeNumber(item?.receitas))),
+        despesas: average(historicoSemJaneiro.map((item) => safeNumber(item?.despesas_totais))),
+        saldo: average(historicoSemJaneiro.map((item) => safeNumber(item?.saldo))),
       },
     },
     sinais: signals,
@@ -971,6 +954,7 @@ export function buildFinanceiroAnalise({
       generated_at: todayIso,
       previous_cycle: Boolean(previousState),
       allow_learning: allowLearning,
+      recorte_inicio_mes_ano: recorteInicioMesAno,
     },
   };
 }
