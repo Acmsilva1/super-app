@@ -7352,7 +7352,7 @@
                         chart.setOption({
                             animationDuration: 850,
                             animationEasing: 'cubicOut',
-                            grid: { left: 12, right: 12, top: 28, bottom: 18, containLabel: true },
+                            grid: { left: 12, right: 12, top: 40, bottom: 18, containLabel: true },
                             legend: {
                                 top: 0,
                                 textStyle: { color: '#cbd5e1' },
@@ -7400,6 +7400,15 @@
                                     data: serieReceitas,
                                     barMaxWidth: 16,
                                     barGap: '32%',
+                                    label: {
+                                        show: true,
+                                        position: 'top',
+                                        distance: 4,
+                                        color: '#86efac',
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        formatter: ({ value }) => (Number(value || 0) > 0 ? this.formatMoneyBr(Number(value || 0)) : ''),
+                                    },
                                     itemStyle: {
                                         color: '#22c55e',
                                         borderRadius: [8, 8, 0, 0],
@@ -7412,6 +7421,15 @@
                                     type: 'bar',
                                     data: serieDespesas,
                                     barMaxWidth: 16,
+                                    label: {
+                                        show: true,
+                                        position: 'top',
+                                        distance: 4,
+                                        color: '#fca5a5',
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        formatter: ({ value }) => (Number(value || 0) > 0 ? this.formatMoneyBr(Number(value || 0)) : ''),
+                                    },
                                     itemStyle: {
                                         color: '#ef4444',
                                         borderRadius: [8, 8, 0, 0],
