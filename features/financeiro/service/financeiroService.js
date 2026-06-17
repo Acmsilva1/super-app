@@ -96,7 +96,21 @@ export function getBrazilTodayIso() {
 }
 
 function dataLanc(row) {
-  return String(row?.data_lancamento || (row?.created_at && String(row.created_at).slice(0, 10)) || '').slice(0, 10);
+  const raw = String(row?.data_lancamento || row?.created_at || '').trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.slice(0, 10);
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return '';
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = fmt.formatToParts(date);
+  const map = {};
+  parts.forEach((p) => { map[p.type] = p.value; });
+  return `${map.year}-${map.month}-${map.day}`;
 }
 
 function stamp(row) {

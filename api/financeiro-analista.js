@@ -46,8 +46,26 @@ function previousMesAno(mesAno) {
   return d.toISOString().slice(0, 7);
 }
 
+function brazilDateIsoFromDateLike(dateLike) {
+  const raw = String(dateLike || '').trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return '';
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = fmt.formatToParts(date);
+  const map = {};
+  parts.forEach((p) => { map[p.type] = p.value; });
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
 function rowMesAno(row) {
-  const raw = String(row?.data_lancamento || row?.created_at || '').slice(0, 10);
+  const raw = brazilDateIsoFromDateLike(row?.data_lancamento || row?.created_at || '');
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw.slice(0, 7) : null;
 }
 
@@ -265,13 +283,15 @@ export default async function handler(req, res) {
     const referenciaAtualMesAno = getBrazilTodayIso().slice(0, 7);
     const { ano, mes } = parseMesAno(mesAno);
     const { start, end } = rangeMes(ano, mes);
-    const yearStart = new Date(ano, 0, 1).toISOString();
-    const yearEnd = new Date(ano, 11, 31, 23, 59, 59, 999).toISOString();
+    const yearStart = `${ano}-01-01T00:00:00.000Z`;
+    const yearEnd = `${ano}-12-31T23:59:59.999Z`;
+    const yearStartQuery = `${ano}-01-01T00:00:00.000Z`;
+    const yearEndQuery = `${ano + 1}-01-02T00:00:00.000Z`;
     const prevMes = previousMesAno(mesAno);
 
     const [yearFinancasResult, yearFixasResult, currentFeatureResult, prevFeatureResult, historyFeatureResult, modelStateHistoryResult] = await Promise.all([
-      supabase.from(TABLE_FINANCAS).select('*').gte('created_at', yearStart).lte('created_at', yearEnd),
-      supabase.from(TABLE_DESPESAS_FIXAS).select('*').gte('created_at', yearStart).lte('created_at', yearEnd),
+      supabase.from(TABLE_FINANCAS).select('*').gte('created_at', yearStartQuery).lte('created_at', yearEndQuery),
+      supabase.from(TABLE_DESPESAS_FIXAS).select('*').gte('created_at', yearStartQuery).lte('created_at', yearEndQuery),
       supabase.from(TABLE_FINANCEIRO_FEATURES_MENSAIS).select('*').eq('mes_ano', mesAno).limit(1),
       prevMes
         ? supabase.from(TABLE_FINANCEIRO_FEATURES_MENSAIS).select('*').eq('mes_ano', prevMes).limit(1)
@@ -292,10 +312,12 @@ export default async function handler(req, res) {
     if (yearFinancasErr) return json(res, 500, { error: yearFinancasErr.message });
     if (yearFixasErr) return json(res, 500, { error: yearFixasErr.message });
 
-    const monthFinancas = filtrarFinancasPorMes(yearFinancas, ano, mes);
-    const monthFixas = filtrarFinancasPorMes(yearFixas, ano, mes);
+    const yearFinancasFiltered = yearFinancas.filter((row) => rowMesAno(row)?.startsWith(`${ano}-`));
+    const yearFixasFiltered = yearFixas.filter((row) => rowMesAno(row)?.startsWith(`${ano}-`));
+    const monthFinancas = filtrarFinancasPorMes(yearFinancasFiltered, ano, mes);
+    const monthFixas = filtrarFinancasPorMes(yearFixasFiltered, ano, mes);
     const { receitas: receitasMes, gastosVariados: gastosMes } = classificarFinancas(monthFinancas);
-    const { receitas: receitasAno, gastosVariados: gastosAno } = classificarFinancas(yearFinancas);
+    const { receitas: receitasAno, gastosVariados: gastosAno } = classificarFinancas(yearFinancasFiltered);
 
     const baseWeights = normalizarFinanceiroPesos(
       extractModelWeights(currentFeatureRow)
@@ -323,7 +345,7 @@ export default async function handler(req, res) {
       despesasFixasMes: monthFixas,
       receitasAno,
       gastosAno,
-      despesasFixasAno: yearFixas,
+      despesasFixasAno: yearFixasFiltered,
       historico: historicoAprendizado,
       learningHistory: modelStateHistoryAprendizado,
       pesos: baseWeights,

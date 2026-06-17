@@ -15,7 +15,21 @@ function json(res, status, data) {
 }
 
 function rowMesAno(row) {
-  const raw = String(row?.data_lancamento || row?.created_at || '').slice(0, 10);
+  const rawValue = String(row?.data_lancamento || row?.created_at || '').trim();
+  if (!rawValue) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) return rawValue.slice(0, 7);
+  const date = new Date(rawValue);
+  if (Number.isNaN(date.getTime())) return null;
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = fmt.formatToParts(date);
+  const map = {};
+  parts.forEach((p) => { map[p.type] = p.value; });
+  const raw = `${map.year}-${map.month}-${map.day}`;
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw.slice(0, 7) : null;
 }
 
