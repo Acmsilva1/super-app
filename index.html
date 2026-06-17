@@ -7241,7 +7241,9 @@
                                 xAxis: {
                                     type: 'value',
                                     max: eixoCategoriasMax,
-                                    axisLabel: { color: '#94a3b8' },
+                                    axisLabel: { show: false },
+                                    axisTick: { show: false },
+                                    axisLine: { show: false },
                                     splitLine: { lineStyle: { color: 'rgba(148,163,184,0.16)' } }
                                 },
                                 yAxis: {
@@ -7367,7 +7369,9 @@
                             xAxis: {
                                 type: 'value',
                                 max: eixoMax,
-                                axisLabel: { color: '#94a3b8', formatter: (value) => this.formatMoneyBr(Number(value || 0)) },
+                                axisLabel: { show: false },
+                                axisTick: { show: false },
+                                axisLine: { show: false },
                                 splitLine: { lineStyle: { color: 'rgba(148,163,184,0.16)' } },
                             },
                             yAxis: {
