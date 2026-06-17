@@ -119,8 +119,8 @@ export async function rebuildFinanceiroAnalises() {
   const { default: financeiroAnalistaHandler } = await import('../../../api/financeiro-analista.js');
 
   const [financasRows, fixasRows] = await Promise.all([
-    fetchAllRows(supabase, TABLE_FINANCAS),
-    fetchAllRows(supabase, TABLE_DESPESAS_FIXAS),
+    fetchAllRows(supabase, TABLE_FINANCAS, 'created_at,data_lancamento'),
+    fetchAllRows(supabase, TABLE_DESPESAS_FIXAS, 'created_at'),
   ]);
 
   const months = [...new Set([

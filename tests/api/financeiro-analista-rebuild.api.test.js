@@ -25,16 +25,15 @@ describe('API de rebuild do financeiro analista', () => {
     delete process.env.FINANCEIRO_REBUILD_TOKEN;
   });
 
-  it('bloqueia sem token configurado', async () => {
+  it('bloqueia sem token valido', async () => {
     const app = createApp(rebuildHandler);
     const res = await request(app).post('/api/test');
 
     expect(res.status).toBe(403);
-    expect(res.body.error).toContain('FINANCEIRO_REBUILD_TOKEN');
+    expect(res.body.error).toContain('token de rebuild');
   });
 
   it('encaminha para o helper de rebuild quando autenticado', async () => {
-    process.env.FINANCEIRO_REBUILD_TOKEN = 'rebuild-secret';
     rebuildMock.mockResolvedValue({
       ok: true,
       months_processed: 3,
@@ -48,7 +47,7 @@ describe('API de rebuild do financeiro analista', () => {
     const app = createApp(rebuildHandler);
     const res = await request(app)
       .post('/api/test')
-      .set('x-rebuild-token', 'rebuild-secret');
+      .set('x-rebuild-token', 'superapp-financeiro-rebuild-v1');
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
