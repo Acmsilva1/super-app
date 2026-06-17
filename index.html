@@ -7026,10 +7026,14 @@
                     panel.innerHTML = `
                         <div class="finance-analista-bi">
                             <section class="finance-analista-card">
-                                <div class="finance-analista-hero__title" style="margin-bottom:0.5rem;">
-                                    <h3>Analista financeiro</h3>
-                                    <span class="finance-analista-chip">${escapeHtml(cardMonthLabel)}</span>
+                                <div class="finance-analista-hero__title" style="margin-bottom:0.5rem;display:flex;justify-content:space-between;gap:0.75rem;align-items:center;">
+                                    <div style="min-width:0;">
+                                        <h3>Analista financeiro</h3>
+                                        <span class="finance-analista-chip">${escapeHtml(cardMonthLabel)}</span>
+                                    </div>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-analista-refresh" style="white-space:nowrap;">Recalcular</button>
                                 </div>
+                                <div class="finance-analista-card__meta">Atualize o recorte quando precisar forçar a leitura sem janeiro.</div>
                             </section>
                             <div class="finance-analista-grid">
                                 <article class="finance-analista-card">
@@ -7516,9 +7520,11 @@
                         if (t === 'data') applyFinanceDataFilter(el.getAttribute('data-active-data-filter') || '');
                     };
                 });
-                const analistaRefreshBtn = el.querySelector('[data-action="financeiro-analista-refresh"]');
-                if (analistaRefreshBtn) {
-                    analistaRefreshBtn.onclick = async () => {
+                if (!el._financeiroAnalistaRefreshBound) {
+                    el._financeiroAnalistaRefreshBound = true;
+                    el.addEventListener('click', async (event) => {
+                        const btn = event.target?.closest?.('[data-action="financeiro-analista-refresh"]');
+                        if (!btn || !el.contains(btn)) return;
                         try {
                             await rebuildFinanceiroAnalista();
                         } catch (err) {
@@ -7534,7 +7540,7 @@
                             }
                             alert(err.message || 'Falha ao recalcular o analista financeiro.');
                         }
-                    };
+                    });
                 }
                 setTab(activeTab);
                 if (activeTab === 'data') applyFinanceDataFilter(activeDataFilter);
