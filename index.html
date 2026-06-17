@@ -9003,6 +9003,7 @@
             }
 
             navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
+                reg.update().catch(() => {});
                 reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
                     newWorker.addEventListener('statechange', () => {

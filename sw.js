@@ -2,12 +2,10 @@
  * Service Worker - SUPERAPP PWA
  * Incrementar CACHE_VERSION a cada deploy/commit para invalidar cache e forcar atualizacao.
  */
-const CACHE_VERSION = '2026-06-17-analista-refresh-v3';
+const CACHE_VERSION = '2026-06-17-no-stale-shell-v1';
 const CACHE_NAME = 'superapp-' + CACHE_VERSION;
 
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
+const ESSENTIAL_ASSETS = [
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png'
@@ -17,7 +15,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => Promise.allSettled(ASSETS_TO_CACHE.map((url) => cache.add(url).catch(() => {}))))
+      .then((cache) => Promise.allSettled(ESSENTIAL_ASSETS.map((url) => cache.add(url).catch(() => {}))))
       .then(() => self.skipWaiting())
   );
 });
@@ -52,41 +50,30 @@ self.addEventListener('fetch', (event) => {
     url.pathname === '/index.html' ||
     url.pathname.endsWith('.html');
 
-  // JS de modulos (import dinamico em /features/...) tem URL estavel; cache-first deixava o PWA no mobile com codigo antigo.
+  // JS de modulos (import dinamico em /features/...) precisa vir sempre da rede para evitar shell antiga.
   const isStaleSensitiveScript =
     url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs');
 
   if (isHtmlRequest || isStaleSensitiveScript) {
     event.respondWith(
       fetch(event.request)
-        .then((res) => {
-          if (res && res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return res;
-        })
-        .catch(async () => {
-          const cached = await caches.match(event.request);
-          return cached || caches.match('/index.html') || caches.match('/');
-        })
     );
     return;
   }
 
-  // Assets estaticos: cache-first com update em background.
+  // Demais assets: rede primeiro, com fallback de cache apenas para manter imagens e ícones responsivos.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((res) => {
-          if (res && res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return res;
-        })
-        .catch(() => cached || caches.match('/') || caches.match('/index.html'));
-      return cached || fetchPromise;
-    })
+    fetch(event.request)
+      .then((res) => {
+        if (res && res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return res;
+      })
+      .catch(async () => {
+        const cached = await caches.match(event.request);
+        return cached || Response.error();
+      })
   );
 });
