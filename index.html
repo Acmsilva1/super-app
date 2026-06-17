@@ -7344,6 +7344,24 @@
                     const labelsAnuais = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                     const serieReceitas = labelsAnuais.map((_, idx) => Number(graficosAnuais[idx]?.receitas || 0));
                     const serieDespesas = labelsAnuais.map((_, idx) => Number(graficosAnuais[idx]?.despesas || 0));
+                    const makePulseGradient = (baseColor, glowColor) => (phase) => {
+                        const p = ((phase % 1) + 1) % 1;
+                        const m = 1 - p;
+                        const leftA = Math.max(0, p - 0.14);
+                        const rightA = Math.min(1, p + 0.14);
+                        const leftB = Math.max(0, m - 0.14);
+                        const rightB = Math.min(1, m + 0.14);
+                        return new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                            { offset: 0, color: baseColor },
+                            { offset: leftA, color: glowColor },
+                            { offset: p, color: '#e0f2fe' },
+                            { offset: rightA, color: glowColor },
+                            { offset: leftB, color: glowColor },
+                            { offset: m, color: '#e0f2fe' },
+                            { offset: rightB, color: glowColor },
+                            { offset: 1, color: baseColor },
+                        ]);
+                    };
                     const renderFinanceiroAnualBarChart = (chartNode, chartRef, title, seriesName, dataSeries, color, shadowColor, labelColor) => {
                         if (!chartNode) return;
                         let chart = el[chartRef];
@@ -7422,6 +7440,8 @@
                         'rgba(239, 68, 68, 0.22)',
                         '#fca5a5',
                     );
+                    const receitasPulseGradient = makePulseGradient('#22c55e', '#86efac');
+                    const despesasPulseGradient = makePulseGradient('#ef4444', '#fca5a5');
                     const startResumoGlow = () => {
                         if (el._financeiroResumoGlowTimer) clearInterval(el._financeiroResumoGlowTimer);
                         let phase = 0;
@@ -7448,6 +7468,26 @@
                                                 { offset: rightB, color: '#38bdf8' },
                                                 { offset: 1, color: '#2563eb' },
                                             ]),
+                                        },
+                                    }],
+                                });
+                            }
+                            const receitasChart = el._financeiroChartReceitasAnual;
+                            if (receitasChart && !receitasChart.isDisposed?.()) {
+                                receitasChart.setOption({
+                                    series: [{
+                                        itemStyle: {
+                                            color: receitasPulseGradient(phase),
+                                        },
+                                    }],
+                                });
+                            }
+                            const despesasChart = el._financeiroChartDespesasAnual;
+                            if (despesasChart && !despesasChart.isDisposed?.()) {
+                                despesasChart.setOption({
+                                    series: [{
+                                        itemStyle: {
+                                            color: despesasPulseGradient(phase),
                                         },
                                     }],
                                 });
