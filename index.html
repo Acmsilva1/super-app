@@ -6806,8 +6806,13 @@
                         <div class="module-tab-panel ${activeTab === 'analista' ? '' : 'hidden'}" data-tab-panel="analista">
                             <div id="${analistaPanelId}" class="finance-analista-shell">
                                 <div class="finance-analista-card">
-                                    <span class="finance-analista-card__label">Carregando</span>
-                                    <div class="finance-analista-card__value">Análise em andamento</div>
+                                    <div class="finance-analista-hero__title" style="margin-bottom:0.5rem;display:flex;justify-content:space-between;gap:0.75rem;align-items:center;">
+                                        <div>
+                                            <span class="finance-analista-card__label">Carregando</span>
+                                            <div class="finance-analista-card__value">Análise em andamento</div>
+                                        </div>
+                                        <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-analista-refresh" style="white-space:nowrap;">Recalcular</button>
+                                    </div>
                                     <div class="finance-analista-card__meta">Calculando mês atual, acumulado anual e projeção do ritmo diário.</div>
                                 </div>
                             </div>
@@ -6848,6 +6853,58 @@
                 gastosVariados.forEach((r) => itemMap.set(`gasto_variado:${r.id}`, r));
                 receitas.forEach((r) => itemMap.set(`receita:${r.id}`, r));
                 poupancaLogs.forEach((r) => itemMap.set(`poupanca:${r.id}`, r));
+                const rebuildStorageKey = 'superapp_financeiro_rebuild_token_v1';
+                const getFinanceiroRebuildToken = () => {
+                    try {
+                        return String(sessionStorage.getItem(rebuildStorageKey) || '').trim();
+                    } catch (_err) {
+                        return '';
+                    }
+                };
+                const setFinanceiroRebuildToken = (value) => {
+                    try {
+                        const token = String(value || '').trim();
+                        if (token) sessionStorage.setItem(rebuildStorageKey, token);
+                    } catch (_err) {}
+                };
+                const promptFinanceiroRebuildToken = () => {
+                    const current = getFinanceiroRebuildToken();
+                    const token = window.prompt('Digite o FINANCEIRO_REBUILD_TOKEN para recalcular a aba Analista.', current || '');
+                    if (token === null) return '';
+                    const cleaned = String(token || '').trim();
+                    if (cleaned) setFinanceiroRebuildToken(cleaned);
+                    return cleaned;
+                };
+                const rebuildFinanceiroAnalista = async () => {
+                    const panel = el.querySelector(`#${analistaPanelId}`);
+                    if (panel) {
+                        panel.innerHTML = `
+                            <div class="finance-analista-card">
+                                <span class="finance-analista-card__label">Recalculando</span>
+                                <div class="finance-analista-card__value">Processando dados</div>
+                                <div class="finance-analista-card__meta">Recalculando tudo com travas de janeiro ativadas.</div>
+                            </div>
+                        `;
+                    }
+                    const token = getFinanceiroRebuildToken() || promptFinanceiroRebuildToken();
+                    if (!token) {
+                        throw new Error('Token de rebuild nao informado.');
+                    }
+                    const res = await fetch('/api/financeiro-analista-rebuild', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-rebuild-token': token,
+                        },
+                        cache: 'no-store',
+                    });
+                    const data = await this.readApiJsonOrThrow(res, 'Falha ao recalcular o analista financeiro');
+                    if (data?.skipped) {
+                        throw new Error(`Rebuild ignorado: ${data.reason || 'motivo nao informado'}`);
+                    }
+                    await this.refreshAppContent('financeiro');
+                    return data;
+                };
                 const renderFinanceiroAnalista = (payload) => {
                     const panel = el.querySelector(`#${analistaPanelId}`);
                     if (!panel) return;
@@ -7459,6 +7516,26 @@
                         if (t === 'data') applyFinanceDataFilter(el.getAttribute('data-active-data-filter') || '');
                     };
                 });
+                const analistaRefreshBtn = el.querySelector('[data-action="financeiro-analista-refresh"]');
+                if (analistaRefreshBtn) {
+                    analistaRefreshBtn.onclick = async () => {
+                        try {
+                            await rebuildFinanceiroAnalista();
+                        } catch (err) {
+                            const panel = el.querySelector(`#${analistaPanelId}`);
+                            if (panel) {
+                                panel.innerHTML = `
+                                    <div class="finance-analista-card">
+                                        <span class="finance-analista-card__label">Erro</span>
+                                        <div class="finance-analista-card__value">Não foi possível recalcular</div>
+                                        <div class="finance-analista-card__meta">${escapeHtml(err.message || 'Falha ao recalcular o analista financeiro.')}</div>
+                                    </div>
+                                `;
+                            }
+                            alert(err.message || 'Falha ao recalcular o analista financeiro.');
+                        }
+                    };
+                }
                 setTab(activeTab);
                 if (activeTab === 'data') applyFinanceDataFilter(activeDataFilter);
                 if (activeTab === 'analista') loadFinanceiroAnalista();
