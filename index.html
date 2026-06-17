@@ -6406,7 +6406,7 @@
                 if (el._financeiroAnalistaChartComparativo) { try { el._financeiroAnalistaChartComparativo.dispose(); } catch (_) {} el._financeiroAnalistaChartComparativo = null; }
                 if (el._financeiroAnalistaChartLearning) { try { el._financeiroAnalistaChartLearning.dispose(); } catch (_) {} el._financeiroAnalistaChartLearning = null; }
                 const tabRaw = (el.getAttribute('data-active-tab') || '').toLowerCase();
-                const activeTab = ['summary', 'data', 'poupanca', 'analista'].includes(tabRaw) ? tabRaw : 'data';
+                const activeTab = ['summary', 'data', 'poupanca'].includes(tabRaw) ? tabRaw : 'data';
                 const dataFilterRaw = String(el.getAttribute('data-active-data-filter') || '').toLowerCase();
                 const activeDataFilter = ['despesas_fixas', 'gastos_variados', 'receitas'].includes(dataFilterRaw) ? dataFilterRaw : '';
                 el.setAttribute('data-active-tab', activeTab);
@@ -6622,7 +6622,6 @@
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Dashboards</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupança</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'analista' ? 'is-active' : ''}" data-action="module-tab" data-tab="analista" role="tab" aria-selected="${activeTab === 'analista' ? 'true' : 'false'}">Analista</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <button type="button" class="finance-filter-chip finance-filter-chip--fixas" data-action="financeiro-data-filter" data-target="despesas_fixas" role="tab" aria-selected="false">
@@ -7512,7 +7511,6 @@
                     }
                     if (tab === 'summary') ensureCharts();
                     if (tab === 'poupanca') ensurePoupancaMetaChart();
-                    if (tab === 'analista') loadFinanceiroAnalista();
                 };
 
                 el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
@@ -7546,8 +7544,6 @@
                 }
                 setTab(activeTab);
                 if (activeTab === 'data') applyFinanceDataFilter(activeDataFilter);
-                if (activeTab === 'analista') loadFinanceiroAnalista();
-
                 el.querySelectorAll('[data-action="financeiro-data-filter"]').forEach((btn) => {
                     btn.onclick = () => {
                         setTab('data');

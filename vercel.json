@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build && (npm run finance:rebuild:deploy || true)",
+  "buildCommand": "npm run build",
   "outputDirectory": ".",
   "framework": null,
   "headers": [
@@ -42,10 +42,5 @@
       ]
     }
   ],
-  "crons": [
-    {
-      "path": "/api/financeiro-analista-cron",
-      "schedule": "0 2 * * *"
-    }
-  ]
+  "crons": []
 }

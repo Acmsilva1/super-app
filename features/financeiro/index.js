@@ -43,13 +43,3 @@ export {
   payloadUpdateFinanceiro,
   getBrazilTodayIso,
 } from './service/financeiroService.js';
-
-export {
-  buildFinanceiroAnalise,
-  defaultFinanceiroPesos,
-  normalizarFinanceiroPesos,
-  extrairFinanceiroFeatures,
-  construirFinanceiroFeedback,
-  ajustarFinanceiroPesos,
-  calcularFinanceiroRiscoScore,
-} from './service/financeiroAnalistaService.js';
