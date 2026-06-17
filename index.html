@@ -7352,7 +7352,7 @@
                         chart.setOption({
                             animationDuration: 850,
                             animationEasing: 'cubicOut',
-                            grid: { left: 12, right: 12, top: 40, bottom: 18, containLabel: true },
+                            grid: { left: 96, right: 24, top: 18, bottom: 18, containLabel: true },
                             legend: {
                                 top: 0,
                                 textStyle: { color: '#cbd5e1' },
@@ -7381,29 +7381,29 @@
                                 },
                             },
                             xAxis: {
+                                type: 'value',
+                                max: eixoMax,
+                                axisLabel: { color: '#94a3b8', formatter: (value) => this.formatMoneyBr(Number(value || 0)) },
+                                splitLine: { lineStyle: { color: 'rgba(148,163,184,0.16)' } },
+                            },
+                            yAxis: {
                                 type: 'category',
                                 data: labelsAnuais,
                                 axisLabel: { color: '#cbd5e1' },
                                 axisTick: { show: false },
                                 axisLine: { lineStyle: { color: 'rgba(148,163,184,0.24)' } },
                             },
-                            yAxis: {
-                                type: 'value',
-                                max: eixoMax,
-                                axisLabel: { color: '#94a3b8', formatter: (value) => this.formatMoneyBr(Number(value || 0)) },
-                                splitLine: { lineStyle: { color: 'rgba(148,163,184,0.16)' } },
-                            },
                             series: [
                                 {
                                     name: 'Receitas',
                                     type: 'bar',
                                     data: serieReceitas,
-                                    barMaxWidth: 16,
-                                    barGap: '32%',
+                                    barMaxWidth: 12,
+                                    barGap: '38%',
                                     label: {
                                         show: true,
-                                        position: 'top',
-                                        distance: 4,
+                                        position: 'right',
+                                        distance: 6,
                                         color: '#86efac',
                                         fontSize: 10,
                                         fontWeight: 700,
@@ -7420,11 +7420,11 @@
                                     name: 'Despesas',
                                     type: 'bar',
                                     data: serieDespesas,
-                                    barMaxWidth: 16,
+                                    barMaxWidth: 12,
                                     label: {
                                         show: true,
-                                        position: 'top',
-                                        distance: 4,
+                                        position: 'right',
+                                        distance: 6,
                                         color: '#fca5a5',
                                         fontSize: 10,
                                         fontWeight: 700,
