@@ -6658,7 +6658,7 @@
                                 <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Despesas fixas: pagos x pendentes</p><div id="financeiro-chart-status" style="height:280px;"></div></div>
                             </div>
                             <div class="app-charts">
-                                <div class="app-chart-wrap app-chart-wrap--span-2"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x despesas por mês</p><div id="financeiro-chart-anual" style="height:320px;"></div></div>
+                                <div class="app-chart-wrap app-chart-wrap--span-2"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas x despesas por mês</p><div id="financeiro-chart-anual" style="height:420px;"></div></div>
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'data' ? '' : 'hidden'}" data-tab-panel="data">
@@ -7399,6 +7399,7 @@
                                     type: 'bar',
                                     data: serieReceitas,
                                     barMaxWidth: 12,
+                                    barCategoryGap: '28%',
                                     barGap: '38%',
                                     label: {
                                         show: true,
@@ -7421,6 +7422,7 @@
                                     type: 'bar',
                                     data: serieDespesas,
                                     barMaxWidth: 12,
+                                    barCategoryGap: '28%',
                                     label: {
                                         show: true,
                                         position: 'right',
