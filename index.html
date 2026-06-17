@@ -6371,13 +6371,13 @@
                 if (appId === 'financeiro') {
                     const financeCheckpoint = this.uiState.checkpoint?.appMeta?.financeiro || this.uiState.appMeta?.financeiro || {};
                     if (!mesAno && financeCheckpoint.mesAno) mesAno = financeCheckpoint.mesAno;
-                    contentEl.setAttribute('data-active-tab', 'data');
+                    contentEl.setAttribute('data-active-tab', financeCheckpoint.activeTab || 'data');
                     if (financeCheckpoint.activeDataFilter) contentEl.setAttribute('data-active-data-filter', financeCheckpoint.activeDataFilter);
                 }
                 try {
                     let url = '/api/' + path;
                     if (appId === 'financeiro') url = '/api/financeiro?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
-                    const res = await fetch(url);
+                    const res = await fetch(url, appId === 'financeiro' ? { cache: 'no-store' } : undefined);
                     const data = await this.readApiJsonOrThrow(res, 'Falha ao carregar');
                     if (appId === 'financeiro') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinanceiroContent(contentEl, data); }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
@@ -7094,7 +7094,7 @@
                         </div>
                     `;
                     try {
-                        const res = await fetch('/api/financeiro-analista?mes_ano=' + encodeURIComponent(mesAno));
+                        const res = await fetch('/api/financeiro-analista?mes_ano=' + encodeURIComponent(mesAno), { cache: 'no-store' });
                         const dataAnalista = await this.readApiJsonOrThrow(res, 'Falha ao carregar o analista financeiro');
                         if (el._financeiroAnalistaToken !== token) return;
                         renderFinanceiroAnalista(dataAnalista || {});

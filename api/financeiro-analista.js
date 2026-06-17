@@ -20,6 +20,7 @@ import {
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
   res.status(status).end(JSON.stringify(data));
 }
 

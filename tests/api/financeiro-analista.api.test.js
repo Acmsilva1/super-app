@@ -122,6 +122,7 @@ describe('API do financeiro analista', () => {
     const res = await request(app).get('/api/test?mes_ano=2026-06');
 
     expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('no-store');
     expect(res.body.mes_ano).toBe('2026-06');
     expect(res.body.analista.resumo_mensal.receitas).toBe(3000);
     expect(res.body.analista.resumo_mensal.despesas_totais).toBe(1600);
