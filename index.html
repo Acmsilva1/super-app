@@ -1276,7 +1276,7 @@
             margin-bottom: 1rem;
         }
 
-        /* Módulo Fluxograma (escopo isolado; tema escuro não afeta o body do SUPERAPP) */
+        /* MÃ³dulo Fluxograma (escopo isolado; tema escuro nÃ£o afeta o body do SUPERAPP) */
         .window-content.fluxograma-window-content {
             padding: 0 !important;
             overflow: hidden !important;
@@ -2047,7 +2047,7 @@
             transition: transform .16s ease, box-shadow .16s ease, background .16s ease, color .16s ease, border-color .16s ease;
         }
         .fluxograma-root .flux-project-card .flux-card-del::before {
-            content: "×";
+            content: "Ã—";
             display: block;
             transform: translateY(-0.02rem);
             font-size: 1.25rem;
@@ -3272,7 +3272,7 @@
         .finance-data-section.hidden-by-filter {
             display: none;
         }
-        /* Scroll apenas dentro da grelha (˜10 linhas); cabeçalho da tabela colado ao topo deste bloco — não herda o scroll da janela no mobile */
+        /* Scroll apenas dentro da grelha (Ëœ10 linhas); cabeÃ§alho da tabela colado ao topo deste bloco â€” nÃ£o herda o scroll da janela no mobile */
         .finance-data-section,
         .finance-poupanca-table-wrap {
             scroll-margin-top: calc(var(--finance-sticky-offset, 7.5rem) + 0.35rem);
@@ -3292,7 +3292,7 @@
             overflow: hidden;
             min-height: 0;
         }
-        /* Sobrescreve display:flex acima quando o filtro oculta a secção (mesma especificidade + classe extra) */
+        /* Sobrescreve display:flex acima quando o filtro oculta a secÃ§Ã£o (mesma especificidade + classe extra) */
         .module-table-wrap.finance-data-section.finance-data-table-limited.hidden-by-filter {
             display: none;
         }
@@ -3707,7 +3707,7 @@
             .finance-module-shell {
                 padding-bottom: 5.4rem;
             }
-            /* Topo compacto: Saldo (~50%) + Mês/Ano ao lado, na primeira linha */
+            /* Topo compacto: Saldo (~50%) + MÃªs/Ano ao lado, na primeira linha */
             .finance-sticky-head {
                 display: grid;
                 grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -3792,7 +3792,7 @@
                 width: 95px;
                 height: 75px;
             }
-            /* Aba Dados com filtro ativo: tela fixa — menu no topo, tabela preenche o restante */
+            /* Aba Dados com filtro ativo: tela fixa â€” menu no topo, tabela preenche o restante */
             .window-content[data-active-tab="data"][data-active-data-filter]:not([data-active-data-filter=""]) {
                 overflow: hidden;
                 display: flex;
@@ -4459,7 +4459,7 @@
         .lista-compras-col-list li:last-child { border-bottom: none; }
         .lista-compras-cols li.lista-compras-empty { display: block; width: 100%; text-align: center; color: #9ca3af; padding: 0.85rem; font-size: 0.875rem; border: none; list-style: none; }
 
-        /* Lista de compras — formulário "mercado" (grid + chips, cara própria) */
+        /* Lista de compras â€” formulÃ¡rio "mercado" (grid + chips, cara prÃ³pria) */
         .lista-entry-shell { margin-bottom: 1.15rem; }
         .lista-compras-module-shell {
             display: grid;
@@ -5490,7 +5490,7 @@
                 </div>
 
                 <nav>
-                    <a href="#apps" id="navApps" class="nav-link active">Aplicações</a>
+                    <a href="#apps" id="navApps" class="nav-link active">AplicaÃ§Ãµes</a>
                 </nav>
 
                 <div class="header-actions">
@@ -5500,7 +5500,7 @@
                     <button class="header-btn" id="darkModeToggle" title="Modo escuro (alternar)" aria-label="Alternar modo escuro">
                         <i class="fas fa-moon" id="darkModeIcon"></i>
                     </button>
-                    <button class="header-btn" id="notificationsBtn" title="Notificações" style="position: relative;">
+                    <button class="header-btn" id="notificationsBtn" title="NotificaÃ§Ãµes" style="position: relative;">
                         <i class="fas fa-bell"></i>
                         <span id="notificationBadge" class="notification-badge" aria-hidden="true"></span>
                     </button>
@@ -5515,15 +5515,15 @@
     <!-- APPLICATIONS -->
     <section id="apps" class="apps-section">
         <div class="container">
-            <h3 class="section-title">Aplicações Disponíveis</h3>
+            <h3 class="section-title">AplicaÃ§Ãµes DisponÃ­veis</h3>
             <div id="appsContainer" class="apps-grid">
                 <div class="empty-state">
                     <div>
                         <div class="empty-state-icon">
                             <i class="fas fa-inbox"></i>
                         </div>
-                        <p class="empty-state-text">Nenhuma aplicação disponível</p>
-                        <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
+                        <p class="empty-state-text">Nenhuma aplicaÃ§Ã£o disponÃ­vel</p>
+                        <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicaÃ§Ãµes serÃ£o carregadas do backend</p>
                     </div>
                 </div>
             </div>
@@ -5532,7 +5532,7 @@
 
     <!-- APP WINDOWS CONTAINER -->
     <div id="windowsContainer"></div>
-    <button id="homeFinanceFab" type="button" class="finance-fab finance-fab-pulse home-finance-fab" aria-label="Lançamento rápido no financeiro" title="Lançamento rápido no financeiro">+</button>
+    <button id="homeFinanceFab" type="button" class="finance-fab finance-fab-pulse home-finance-fab" aria-label="LanÃ§amento rÃ¡pido no financeiro" title="LanÃ§amento rÃ¡pido no financeiro">+</button>
 
     <script>
         // ============================================
@@ -5821,8 +5821,8 @@
                                 <div class="empty-state-icon">
                                     <i class="fas fa-inbox"></i>
                                 </div>
-                                <p class="empty-state-text">Nenhuma aplicação disponível</p>
-                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicações serão carregadas do backend</p>
+                                <p class="empty-state-text">Nenhuma aplicaÃ§Ã£o disponÃ­vel</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #9ca3af;">As aplicaÃ§Ãµes serÃ£o carregadas do backend</p>
                             </div>
                         </div>
                     `;
@@ -5998,8 +5998,8 @@
                                 <div class="roadmap-empty-icon">
                                     <i class="fas fa-map"></i>
                                 </div>
-                                <p class="roadmap-empty-text">Roadmap não carregado</p>
-                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap será carregado do backend</p>
+                                <p class="roadmap-empty-text">Roadmap nÃ£o carregado</p>
+                                <p class="mt-2" style="font-size: 0.875rem; color: #bfdbfe;">O roadmap serÃ¡ carregado do backend</p>
                             </div>
                         </div>
                     `;
@@ -6018,7 +6018,7 @@
             }
 
             // ============================================
-            // DIÁLOGOS DE CONFIRMAÇÃO PERSONALIZADOS
+            // DIÃLOGOS DE CONFIRMAÃ‡ÃƒO PERSONALIZADOS
             // ============================================
             async showConfirm(title, message) {
                 return new Promise((resolve) => {
@@ -6081,13 +6081,13 @@
                 const chartsHtml = chartSections.map((section) => `
                     <section class="section">
                         <h3>${escapeHtml(section.title || '')}</h3>
-                        ${section.img ? `<img src="${section.img}" alt="${escapeHtml(section.title || 'Gráfico')}" />` : '<p>Sem dados para gráfico neste mês.</p>'}
+                        ${section.img ? `<img src="${section.img}" alt="${escapeHtml(section.title || 'GrÃ¡fico')}" />` : '<p>Sem dados para grÃ¡fico neste mÃªs.</p>'}
                     </section>
                 `).join('');
                 const tableHead = tableHeaders.map((h) => `<th>${escapeHtml(h)}</th>`).join('');
                 const tableBody = tableRows.length
                     ? tableRows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(String(cell ?? ''))}</td>`).join('')}</tr>`).join('')
-                    : `<tr><td colspan="${Math.max(1, tableHeaders.length)}">Sem dados no período.</td></tr>`;
+                    : `<tr><td colspan="${Math.max(1, tableHeaders.length)}">Sem dados no perÃ­odo.</td></tr>`;
 
                 return `<!doctype html>
 <html lang="pt-BR">
@@ -6231,7 +6231,7 @@
       <div class="subtitle">${escapeHtml(subtitle)}</div>
       <div class="chips">
         <span class="chip">Resumo mensal</span>
-        <span class="chip">Gráficos + dados detalhados</span>
+        <span class="chip">GrÃ¡ficos + dados detalhados</span>
       </div>
       <div class="summary">${summaryHtml}</div>
     </header>
@@ -6315,7 +6315,7 @@
                 return `${map.year}-${map.month}`;
             }
 
-            /** Mês civil anterior a `YYYY-MM` (ex.: 2026-03 ? 2026-02; 2026-01 ? 2025-12). */
+            /** MÃªs civil anterior a `YYYY-MM` (ex.: 2026-03 ? 2026-02; 2026-01 ? 2025-12). */
             getMesAnoAnterior(mesAno) {
                 const parts = String(mesAno || '').split('-').map(Number);
                 const y = parts[0];
@@ -6523,7 +6523,7 @@
                 const mkRowGastoVariado = (r) => {
                     const hora = fmtHoraBrasilia(r.created_at);
                     return `<tr>
-                        <td class="col-desc"><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong><div style="font-size:0.72rem;color:#9ca3af;margin-top:0.15rem;">${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` às ${escapeHtml(hora)}` : ''}</div></td>
+                        <td class="col-desc"><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong><div style="font-size:0.72rem;color:#9ca3af;margin-top:0.15rem;">${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` Ã s ${escapeHtml(hora)}` : ''}</div></td>
                         <td class="col-status"><span class="finance-status-toggle ${String(r.tipo_registro) === 'receita' ? 'is-paid' : 'is-pending'}" aria-label="${String(r.tipo_registro) === 'receita' ? 'Receita' : 'Despesa'}">${String(r.tipo_registro) === 'receita' ? 'Receita' : 'Despesa'}</span></td>
                         <td class="col-valor" style="color:${String(r.tipo_registro) === 'receita' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td class="col-categoria">${escapeHtml(canonicalFinanceiroCategoriaLabel(r.categoria || '--'))}</td>
@@ -6596,8 +6596,8 @@
                     ? gastosVariados.filter((g) => normalizeFinanceiroCategoriaText(g.categoria || 'Sem categoria') === activeGastosCategoria)
                     : gastosVariados;
                 const totalGastosVariadosFiltrado = gastosVariadosFiltrados.reduce((sum, r) => sum + Number(r.valor || 0), 0);
-                const rowsGastosHtml = gastosVariadosFiltrados.length ? gastosVariadosFiltrados.map(mkRowGastoVariado).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
-                const rowsReceitasHtml = receitas.length ? receitas.map(mkRowReceita).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mês.</td></tr>';
+                const rowsGastosHtml = gastosVariadosFiltrados.length ? gastosVariadosFiltrados.map(mkRowGastoVariado).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lanÃ§amento em dÃ©bito / pix neste mÃªs.</td></tr>';
+                const rowsReceitasHtml = receitas.length ? receitas.map(mkRowReceita).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mÃªs.</td></tr>';
                 const rowsPoupancaHtml = poupancaLogs.length
                     ? poupancaLogs.map((r) => {
                         const hora = fmtHoraBrasilia(r.created_at);
@@ -6613,7 +6613,7 @@
                             </td>
                         </tr>`;
                     }).join('')
-                    : '<tr><td colspan="4" class="module-table-empty">Nenhum lançamento em poupança.</td></tr>';
+                    : '<tr><td colspan="4" class="module-table-empty">Nenhum lanÃ§amento em poupanÃ§a.</td></tr>';
                 const metaNome = String(poupancaMetaAtiva?.nome_meta || '').trim();
                 const metaId = Number(poupancaMetaAtiva?.id || 0);
                 const metaValor = Number(poupancaMetaAtiva?.valor_meta || 0);
@@ -6627,26 +6627,26 @@
                     <div class="finance-module-shell">
                         <div class="finance-sticky-head">
                             <div class="app-mes-ano">
-                                <label>Mês/Ano</label>
+                                <label>MÃªs/Ano</label>
                                 <select id="financeiro-mes">${meses.map((m, i) => `<option value="${i + 1}" ${(i + 1 === mes) ? 'selected' : ''}>${m}</option>`).join('')}</select>
                                 <select id="financeiro-ano">${anos.map((a) => `<option value="${a}" ${(a === ano) ? 'selected' : ''}>${a}</option>`).join('')}</select>
                             </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Dashboards</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupança</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">PoupanÃ§a</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <button type="button" class="finance-filter-chip finance-filter-chip--fixas" data-action="financeiro-data-filter" data-target="despesas_fixas" role="tab" aria-selected="false">
-                                    <span class="finance-filter-chip-label">Ver só</span>
+                                    <span class="finance-filter-chip-label">Ver sÃ³</span>
                                     <span class="finance-filter-chip-title">Despesas fixas</span>
                                 </button>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--variadas" data-action="financeiro-data-filter" data-target="gastos_variados" role="tab" aria-selected="false">
-                                    <span class="finance-filter-chip-label">Ver só</span>
-                                    <span class="finance-filter-chip-title">Débito / pix</span>
+                                    <span class="finance-filter-chip-label">Ver sÃ³</span>
+                                    <span class="finance-filter-chip-title">DÃ©bito / pix</span>
                                 </button>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--receitas" data-action="financeiro-data-filter" data-target="receitas" role="tab" aria-selected="false">
-                                    <span class="finance-filter-chip-label">Ver só</span>
+                                    <span class="finance-filter-chip-label">Ver sÃ³</span>
                                     <span class="finance-filter-chip-title">Receitas</span>
                                 </button>
                             </div>
@@ -6658,7 +6658,7 @@
                                 <div class="totais-card totais-card--main totais-card--despesas-total"><div class="val">${this.formatMoneyBr(despesasTotalVal)}</div><div class="stat-label">Total despesas</div></div>
                                 <p class="totais-group-title">Resumo de despesas</p>
                                 <div class="totais-card totais-card--despesas-fixas"><div class="val">${this.formatMoneyBr(despesasFixasVal)}</div><div class="stat-label">Despesas fixas</div></div>
-                                <div class="totais-card totais-card--despesas-variadas"><div class="val">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label">Débito / pix</div></div>
+                                <div class="totais-card totais-card--despesas-variadas"><div class="val">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label">DÃ©bito / pix</div></div>
                                 <p class="totais-group-title">Status das despesas</p>
                                 <div class="totais-card totais-card--pago"><div class="val">${this.formatMoneyBr(pagoVal)}</div><div class="stat-label">PAGO</div></div>
                                 <div class="totais-card totais-card--pendente"><div class="val">${this.formatMoneyBr(pendenteVal)}</div><div class="stat-label">PENDENTE</div></div>
@@ -6668,8 +6668,8 @@
                                 <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Despesas fixas: pagos x pendentes</p><div id="financeiro-chart-status" style="height:280px;"></div></div>
                             </div>
                             <div class="app-charts">
-                                <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas do ano por mês</p><div id="financeiro-chart-receitas-anual" style="height:280px;"></div></div>
-                                <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Despesas totais do ano por mês</p><div id="financeiro-chart-despesas-anual" style="height:280px;"></div></div>
+                                <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Receitas do ano por mÃªs</p><div id="financeiro-chart-receitas-anual" style="height:280px;"></div></div>
+                                <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Despesas totais do ano por mÃªs</p><div id="financeiro-chart-despesas-anual" style="height:280px;"></div></div>
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'data' ? '' : 'hidden'}" data-tab-panel="data">
@@ -6677,7 +6677,7 @@
                                 <p class="app-form-note" style="margin:0;">Toque num filtro acima para abrir uma tabela. Fixas: pendentes primeiro; demais listas ordenadas do maior para o menor valor.</p>
                             </div>
                             <div id="financeiro-data-empty" class="finance-data-empty-state">
-                                Nenhuma tabela aberta. Escolha <strong>Despesas fixas</strong>, <strong>Débito / pix</strong> ou <strong>Receitas</strong>.
+                                Nenhuma tabela aberta. Escolha <strong>Despesas fixas</strong>, <strong>DÃ©bito / pix</strong> ou <strong>Receitas</strong>.
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="despesas_fixas" id="financeiro-section-despesas-fixas" data-fixas-empty="${fixasEmpty ? '1' : '0'}">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem; gap:0.5rem; flex-wrap:wrap;">
@@ -6692,17 +6692,17 @@
                                 </div>
                                 ${fixasEmpty ? `
                                 <div id="financeiro-import-fixas-callout" class="finance-import-fixas-callout ${showImportFixasCallout ? '' : 'hidden'}" role="region" aria-label="Preencher despesas fixas">
-                                    <p class="finance-import-fixas-callout__text">Este mês ainda não tem despesas fixas. Contas fixas e parcelas já lançadas no ano são replicadas automaticamente — toque abaixo para preencher agora.</p>
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-import-fixas-prev-month">Preencher mês automaticamente</button>
+                                    <p class="finance-import-fixas-callout__text">Este mÃªs ainda nÃ£o tem despesas fixas. Contas fixas e parcelas jÃ¡ lanÃ§adas no ano sÃ£o replicadas automaticamente â€” toque abaixo para preencher agora.</p>
+                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-import-fixas-prev-month">Preencher mÃªs automaticamente</button>
                                 </div>` : ''}
                                 <div class="finance-despesas-fixas-mobile-actions">
                                     <button type="button" class="finance-fixas-mobile-btn" data-action="financeiro-open-fixas-modal" data-target="pendentes">
                                         <strong>Pendentes</strong>
-                                        <span id="financeiro-fixas-mobile-pendentes-total">${despesasFixasPendentes.length} item(ns) • ${this.formatMoneyBr(totalPendenteFixas)}</span>
+                                        <span id="financeiro-fixas-mobile-pendentes-total">${despesasFixasPendentes.length} item(ns) â€¢ ${this.formatMoneyBr(totalPendenteFixas)}</span>
                                     </button>
                                     <button type="button" class="finance-fixas-mobile-btn" data-action="financeiro-open-fixas-modal" data-target="pagas">
                                         <strong>Pagas</strong>
-                                        <span id="financeiro-fixas-mobile-pagas-total">${despesasFixasPagas.length} item(ns) • ${this.formatMoneyBr(totalPagoFixas)}</span>
+                                        <span id="financeiro-fixas-mobile-pagas-total">${despesasFixasPagas.length} item(ns) â€¢ ${this.formatMoneyBr(totalPagoFixas)}</span>
                                     </button>
                                 </div>
                                 <div class="finance-despesas-fixas-grid">
@@ -6713,7 +6713,7 @@
                                         </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
-                                                <thead><tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr></thead>
+                                                <thead><tr><th class="col-desc">DescriÃ§Ã£o</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">AÃ§Ãµes</th></tr></thead>
                                                 <tbody id="financeiro-table-fixas-pendentes">${rowsFixasPendentesHtml}</tbody>
                                             </table>
                                         </div>
@@ -6725,7 +6725,7 @@
                                         </summary>
                                         <div class="finance-table-scroll">
                                             <table class="module-table">
-                                                <thead><tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr></thead>
+                                                <thead><tr><th class="col-desc">DescriÃ§Ã£o</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">AÃ§Ãµes</th></tr></thead>
                                                 <tbody id="financeiro-table-fixas-pagas">${rowsFixasPagasHtml}</tbody>
                                             </table>
                                         </div>
@@ -6735,7 +6735,7 @@
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
                                 <div class="finance-data-section-head finance-data-section-head--variadas">
                                     <div class="finance-despesas-col-header" style="color:#ef4444;margin:0;">
-                                        <span style="font-size:0.875rem;font-weight:600;">Débito / pix</span>
+                                        <span style="font-size:0.875rem;font-weight:600;">DÃ©bito / pix</span>
                                         <span id="financeiro-total-gastos">${this.formatMoneyBr(totalGastosVariadosFiltrado)}</span>
                                     </div>
                                     ${gastosVariados.length > 0 ? `
@@ -6747,7 +6747,7 @@
                                 </div>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr></thead>
+                                        <thead><tr><th class="col-desc">DescriÃ§Ã£o</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">AÃ§Ãµes</th></tr></thead>
                                         <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
                                     </table>
                                 </div>
@@ -6761,7 +6761,7 @@
                                 </div>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr></thead>
+                                        <thead><tr><th class="col-desc">DescriÃ§Ã£o</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">AÃ§Ãµes</th></tr></thead>
                                         <tbody id="financeiro-table-receitas">${rowsReceitasHtml}</tbody>
                                     </table>
                                 </div>
@@ -6769,14 +6769,14 @@
                         </div>
                         <div class="module-tab-panel ${activeTab === 'poupanca' ? '' : 'hidden'}" data-tab-panel="poupanca">
                             <div class="app-totais">
-                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(poupancaTotal)}</div><div class="stat-label">Total acumulado em poupança</div></div>
+                                <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(poupancaTotal)}</div><div class="stat-label">Total acumulado em poupanÃ§a</div></div>
                             </div>
-                            ${poupancaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca` não encontrada no Supabase. Crie a tabela para habilitar este módulo.</p>'}
-                            ${poupancaMetaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca_metas` não encontrada no Supabase. Crie a tabela para habilitar metas.</p>'}
+                            ${poupancaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca` nÃ£o encontrada no Supabase. Crie a tabela para habilitar este mÃ³dulo.</p>'}
+                            ${poupancaMetaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca_metas` nÃ£o encontrada no Supabase. Crie a tabela para habilitar metas.</p>'}
                             <div class="poupanca-meta-entry-card">
                                 <div>
                                     <h4>Adicionar Meta</h4>
-                                    <p>Abra o formulário padrão para cadastrar descrição, valor e data de início.</p>
+                                    <p>Abra o formulÃ¡rio padrÃ£o para cadastrar descriÃ§Ã£o, valor e data de inÃ­cio.</p>
                                 </div>
                                 <button type="button" class="app-btn" data-action="poupanca-open-meta-modal">Adicionar Meta</button>
                             </div>
@@ -6784,8 +6784,8 @@
                                 <div class="poupanca-meta-card">
                                     <div class="poupanca-meta-card-top">
                                         <div>
-                                            <h4>${escapeHtml(metaNome || 'Meta de poupança')}</h4>
-                                            <p class="meta-sub">Início: ${escapeHtml(metaInicio ? this.formatDateBr(metaInicio) : '--')}</p>
+                                            <h4>${escapeHtml(metaNome || 'Meta de poupanÃ§a')}</h4>
+                                            <p class="meta-sub">InÃ­cio: ${escapeHtml(metaInicio ? this.formatDateBr(metaInicio) : '--')}</p>
                                         </div>
                                         <div class="poupanca-meta-card-actions">
                                             <button type="button" class="app-btn app-btn-secondary" data-action="poupanca-meta-edit" data-id="${metaId}">Editar</button>
@@ -6797,9 +6797,9 @@
                                             <div id="financeiro-poupanca-meta-chart" class="poupanca-meta-chart"></div>
                                         </div>
                                         <div class="poupanca-meta-insight">
-                                            <div class="title">Termômetro da meta</div>
+                                            <div class="title">TermÃ´metro da meta</div>
                                             <div class="value">${metaPercent}%</div>
-                                            <p class="meta-sub" style="margin-top:0.25rem;">Faixas: até 29% em azul, de 30% a 99% em amarelo, e meta concluída em verde.</p>
+                                            <p class="meta-sub" style="margin-top:0.25rem;">Faixas: atÃ© 29% em azul, de 30% a 99% em amarelo, e meta concluÃ­da em verde.</p>
                                         </div>
                                     </div>
                                     <div class="poupanca-meta-stats">
@@ -6813,7 +6813,7 @@
                             <div class="module-table-wrap finance-poupanca-table-wrap">
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                                        <thead><tr><th>DescriÃ§Ã£o</th><th>Valor</th><th>Data</th><th>AÃ§Ãµes</th></tr></thead>
                                         <tbody id="financeiro-table-poupanca">${rowsPoupancaHtml}</tbody>
                                     </table>
                                 </div>
@@ -6825,11 +6825,11 @@
                                     <div class="finance-analista-hero__title" style="margin-bottom:0.5rem;display:flex;justify-content:space-between;gap:0.75rem;align-items:center;">
                                         <div>
                                             <span class="finance-analista-card__label">Carregando</span>
-                                            <div class="finance-analista-card__value">Análise em andamento</div>
+                                            <div class="finance-analista-card__value">AnÃ¡lise em andamento</div>
                                         </div>
                                         <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-analista-refresh" style="white-space:nowrap;">Recalcular</button>
                                     </div>
-                                    <div class="finance-analista-card__meta">Calculando mês atual, acumulado anual e projeção do ritmo diário.</div>
+                                    <div class="finance-analista-card__meta">Calculando mÃªs atual, acumulado anual e projeÃ§Ã£o do ritmo diÃ¡rio.</div>
                                 </div>
                             </div>
                         </div>
@@ -6949,7 +6949,7 @@
                     const historicoDetalhado = Array.isArray(analise?.historico_detalhado) ? analise.historico_detalhado : [];
                     const cards = analise?.cards || {};
                     const categoriasAnoNormalizadas = [...categoriasAno].reduce((acc, item) => {
-                        const raw = String(item?.categoria || '—').trim() || '—';
+                        const raw = String(item?.categoria || 'â€”').trim() || 'â€”';
                         const key = normalizeFinanceiroCategoriaText(raw);
                         const current = acc.get(key) || { categoria: canonicalFinanceiroCategoriaLabel(raw), valor: 0 };
                         acc.set(key, {
@@ -6968,7 +6968,7 @@
                     const formatMesReferencia = (mesAnoRef) => {
                         const raw = String(mesAnoRef || '').trim();
                         const match = raw.match(/^(\d{4})-(\d{2})$/);
-                        if (!match) return raw || 'sem histórico';
+                        if (!match) return raw || 'sem histÃ³rico';
                         const ano = Number(match[1]);
                         const mes = Number(match[2]);
                         const dt = new Date(Date.UTC(ano, mes - 1, 1));
@@ -7001,24 +7001,24 @@
                     const mesComMaisFixasFinal = (!cards.mes_com_mais_fixas || isBeforeRecorteMesAno(cards.mes_com_mais_fixas.mes_ano) ? getMaxFixasMonth(historicoMesCards) : cards.mes_com_mais_fixas) || null;
                     const mesComMaisVariaveisFinal = (!cards.mes_com_mais_variaveis || isBeforeRecorteMesAno(cards.mes_com_mais_variaveis.mes_ano) ? getMaxVariaveisMonth(historicoMesCards) : cards.mes_com_mais_variaveis) || null;
                     const cardMonthLabel = String(periodo.mes_ano || mesAno);
-                    const cardBestRef = melhorMesFinalSemJaneiro?.mes_ano ? `Referência: ${formatMesReferencia(melhorMesFinalSemJaneiro.mes_ano)}` : 'Referência: sem histórico';
-                    const cardWorstRef = piorMesFinalSemJaneiro?.mes_ano ? `Referência: ${formatMesReferencia(piorMesFinalSemJaneiro.mes_ano)}` : 'Referência: sem histórico';
-                    const cardTopCategoryRef = `Referência: acumulado do ano`;
-                    const cardBottomCategoryRef = `Referência: acumulado do ano`;
-                    const cardFixedMonthRef = mesComMaisFixasFinal?.mes_ano ? `Referência: ${formatMesReferencia(mesComMaisFixasFinal.mes_ano)}` : 'Referência: sem histórico';
-                    const cardVariableMonthRef = mesComMaisVariaveisFinal?.mes_ano ? `Referência: ${formatMesReferencia(mesComMaisVariaveisFinal.mes_ano)}` : 'Referência: sem histórico';
+                    const cardBestRef = melhorMesFinalSemJaneiro?.mes_ano ? `ReferÃªncia: ${formatMesReferencia(melhorMesFinalSemJaneiro.mes_ano)}` : 'ReferÃªncia: sem histÃ³rico';
+                    const cardWorstRef = piorMesFinalSemJaneiro?.mes_ano ? `ReferÃªncia: ${formatMesReferencia(piorMesFinalSemJaneiro.mes_ano)}` : 'ReferÃªncia: sem histÃ³rico';
+                    const cardTopCategoryRef = `ReferÃªncia: acumulado do ano`;
+                    const cardBottomCategoryRef = `ReferÃªncia: acumulado do ano`;
+                    const cardFixedMonthRef = mesComMaisFixasFinal?.mes_ano ? `ReferÃªncia: ${formatMesReferencia(mesComMaisFixasFinal.mes_ano)}` : 'ReferÃªncia: sem histÃ³rico';
+                    const cardVariableMonthRef = mesComMaisVariaveisFinal?.mes_ano ? `ReferÃªncia: ${formatMesReferencia(mesComMaisVariaveisFinal.mes_ano)}` : 'ReferÃªncia: sem histÃ³rico';
                     const mesMaisPositivo = (!cards.mes_mais_positivo || isBeforeRecorteMesAno(cards.mes_mais_positivo.mes_ano) ? getPositiveMonth(historicoMesCards) : cards.mes_mais_positivo) || null;
                     const mesMaisNegativo = (!cards.mes_mais_negativo || isBeforeRecorteMesAno(cards.mes_mais_negativo.mes_ano) ? getNegativeMonth(historicoMesCards) : cards.mes_mais_negativo) || null;
-                    const cardPositiveRef = mesMaisPositivo?.mes_ano ? `Referência: ${formatMesReferencia(mesMaisPositivo.mes_ano)}` : 'Referência: sem histórico';
-                    const cardNegativeRef = mesMaisNegativo?.mes_ano ? `Referência: ${formatMesReferencia(mesMaisNegativo.mes_ano)}` : 'Referência: sem histórico';
-                    const cardPositiveValue = mesMaisPositivo ? formatPercent(mesMaisPositivo.percentual) : 'Sem histórico suficiente';
-                    const cardNegativeValue = mesMaisNegativo ? formatPercent(mesMaisNegativo.percentual) : 'Sem histórico suficiente';
-                    const cardBestValue = melhorMesFinalSemJaneiro?.mes_ano ? `${this.formatMoneyBr(Number(melhorMesFinalSemJaneiro.saldo || 0))}` : 'Sem histórico suficiente';
-                    const cardWorstValue = piorMesFinalSemJaneiro?.mes_ano ? `${this.formatMoneyBr(Number(piorMesFinalSemJaneiro.saldo || 0))}` : 'Sem histórico suficiente';
+                    const cardPositiveRef = mesMaisPositivo?.mes_ano ? `ReferÃªncia: ${formatMesReferencia(mesMaisPositivo.mes_ano)}` : 'ReferÃªncia: sem histÃ³rico';
+                    const cardNegativeRef = mesMaisNegativo?.mes_ano ? `ReferÃªncia: ${formatMesReferencia(mesMaisNegativo.mes_ano)}` : 'ReferÃªncia: sem histÃ³rico';
+                    const cardPositiveValue = mesMaisPositivo ? formatPercent(mesMaisPositivo.percentual) : 'Sem histÃ³rico suficiente';
+                    const cardNegativeValue = mesMaisNegativo ? formatPercent(mesMaisNegativo.percentual) : 'Sem histÃ³rico suficiente';
+                    const cardBestValue = melhorMesFinalSemJaneiro?.mes_ano ? `${this.formatMoneyBr(Number(melhorMesFinalSemJaneiro.saldo || 0))}` : 'Sem histÃ³rico suficiente';
+                    const cardWorstValue = piorMesFinalSemJaneiro?.mes_ano ? `${this.formatMoneyBr(Number(piorMesFinalSemJaneiro.saldo || 0))}` : 'Sem histÃ³rico suficiente';
                     const cardTopCategory = categoriaMaisGastaAno?.categoria ? `${String(categoriaMaisGastaAno.categoria)} - ${this.formatMoneyBr(Number(categoriaMaisGastaAno.valor || 0))}` : 'Sem categoria suficiente';
                     const cardBottomCategory = categoriaMenosGastaAno?.categoria ? `${String(categoriaMenosGastaAno.categoria)} - ${this.formatMoneyBr(Number(categoriaMenosGastaAno.valor || 0))}` : 'Sem categoria suficiente';
-                    const cardFixedMonth = mesComMaisFixasFinal?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisFixasFinal.despesas_fixas || 0))}` : 'Sem histórico suficiente';
-                    const cardVariableMonth = mesComMaisVariaveisFinal?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisVariaveisFinal.despesas_variadas || 0))}` : 'Sem histórico suficiente';
+                    const cardFixedMonth = mesComMaisFixasFinal?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisFixasFinal.despesas_fixas || 0))}` : 'Sem histÃ³rico suficiente';
+                    const cardVariableMonth = mesComMaisVariaveisFinal?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisVariaveisFinal.despesas_variadas || 0))}` : 'Sem histÃ³rico suficiente';
                     const resumoMesesRows = historicoSemJaneiro.length
                         ? historicoSemJaneiro.map((item) => `
                                 <tr>
@@ -7028,15 +7028,15 @@
                                     <td><span class="finance-analista-value--debito">${escapeHtml(this.formatMoneyBr(Number(item.despesas_variadas || 0)))}</span></td>
                                     <td><span class="finance-analista-value--saldo">${escapeHtml(this.formatMoneyBr(Number(item.saldo || 0)))}</span></td>
                                     <td>${escapeHtml(formatPercent(Number(item.receitas || 0) > 0 ? (Number(item.despesas_totais || 0) / Number(item.receitas || 1)) * 100 : 0))}</td>
-                                    <td>${escapeHtml(String(item.top_categoria || '—'))}</td>
+                                    <td>${escapeHtml(String(item.top_categoria || 'â€”'))}</td>
                                 </tr>
                             `).join('')
-                        : '<tr><td colspan="7">Sem histórico suficiente para montar a tabela de meses.</td></tr>';
+                        : '<tr><td colspan="7">Sem histÃ³rico suficiente para montar a tabela de meses.</td></tr>';
                     const categoriasRows = [...categoriasAnoBaseSemJaneiro]
                         .sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))
                         .map((item) => `
                                 <tr>
-                                    <td>${escapeHtml(String(item?.categoria || '—'))}</td>
+                                    <td>${escapeHtml(String(item?.categoria || 'â€”'))}</td>
                                     <td>${escapeHtml(this.formatMoneyBr(Number(item?.valor || 0)))}</td>
                                     <td>${escapeHtml(formatPercent(yearSummary.despesas_totais > 0 ? (Number(item?.valor || 0) / Number(yearSummary.despesas_totais || 1)) * 100 : 0))}</td>
                                 </tr>
@@ -7051,16 +7051,16 @@
                                     </div>
                                     <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-analista-refresh" style="white-space:nowrap;">Recalcular</button>
                                 </div>
-                                <div class="finance-analista-card__meta">Fonte da verdade: ${escapeHtml(recorteInicioMesAno)} em diante. Janeiro de 2026 nunca entra no cálculo.</div>
+                                <div class="finance-analista-card__meta">Fonte da verdade: ${escapeHtml(recorteInicioMesAno)} em diante. Janeiro de 2026 nunca entra no cÃ¡lculo.</div>
                             </section>
                             <div class="finance-analista-grid">
                                 <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">1 - Melhor mês do ano</span>
+                                    <span class="finance-analista-card__label">1 - Melhor mÃªs do ano</span>
                                     <span class="finance-analista-card__ref">${escapeHtml(cardBestRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardBestValue)}</div>
                                 </article>
                                 <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">2 - Pior mês do ano</span>
+                                    <span class="finance-analista-card__label">2 - Pior mÃªs do ano</span>
                                     <span class="finance-analista-card__ref">${escapeHtml(cardWorstRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardWorstValue)}</div>
                                 </article>
@@ -7075,22 +7075,22 @@
                                     <div class="finance-analista-card__value">${escapeHtml(cardBottomCategory)}</div>
                                 </article>
                                 <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">5 - Mês com mais despesas fixas</span>
+                                    <span class="finance-analista-card__label">5 - MÃªs com mais despesas fixas</span>
                                     <span class="finance-analista-card__ref">${escapeHtml(cardFixedMonthRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardFixedMonth)}</div>
                                 </article>
                                 <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">6 - Mês com mais débito / pix</span>
+                                    <span class="finance-analista-card__label">6 - MÃªs com mais dÃ©bito / pix</span>
                                     <span class="finance-analista-card__ref">${escapeHtml(cardVariableMonthRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardVariableMonth)}</div>
                                 </article>
                                 <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">7 - Mês mais positivo do ano</span>
+                                    <span class="finance-analista-card__label">7 - MÃªs mais positivo do ano</span>
                                     <span class="finance-analista-card__ref">${escapeHtml(cardPositiveRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardPositiveValue)}</div>
                                 </article>
                                 <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">8 - Mês mais negativo do ano</span>
+                                    <span class="finance-analista-card__label">8 - MÃªs mais negativo do ano</span>
                                     <span class="finance-analista-card__ref">${escapeHtml(cardNegativeRef)}</span>
                                     <div class="finance-analista-card__value">${escapeHtml(cardNegativeValue)}</div>
                                 </article>
@@ -7101,13 +7101,13 @@
                                     <table class="finance-analista-table">
                                         <thead>
                                             <tr>
-                                                <th>Mês</th>
+                                                <th>MÃªs</th>
                                                 <th>Receitas</th>
                                                 <th>Fixas</th>
-                                                <th>Débito / Pix</th>
+                                                <th>DÃ©bito / Pix</th>
                                                 <th>Saldo</th>
                                                 <th>Despesa / Receita</th>
-                                                <th>Categoria líder</th>
+                                                <th>Categoria lÃ­der</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -7134,8 +7134,8 @@
                                 </div>
                             </section>
                             <section class="finance-analista-card">
-                                <span class="finance-analista-card__label">Aprendizado do módulo</span>
-                                <span class="finance-analista-card__ref">Referência: modelo adaptativo atual</span>
+                                <span class="finance-analista-card__label">Aprendizado do mÃ³dulo</span>
+                                <span class="finance-analista-card__ref">ReferÃªncia: modelo adaptativo atual</span>
                                 <div class="finance-analista-card__value">${aprendizadoPct.toFixed(1)}%</div>
                                 <div class="finance-analista-progress">
                                     <div class="finance-analista-progress__head">
@@ -7156,7 +7156,7 @@
                                         <tr><td>Ciclos reais</td><td>${Number(aprendizado?.ciclos_aprendizado_reais || aprendizado?.ciclos_processados || 0)}</td></tr>
                                         <tr><td>Snapshots do modelo</td><td>${Number(aprendizado?.snapshots_modelo || 0)}</td></tr>
                                         <tr><td>Meses analisados</td><td>${Number(aprendizado?.meses_analisados || historico.length || 0)}</td></tr>
-                                        <tr><td>Base histórica</td><td>${escapeHtml(historico.length ? `${String(historico[historico.length - 1]?.mes_ano || '')} até ${String(historico[0]?.mes_ano || '')}` : 'Sem histórico suficiente')}</td></tr>
+                                        <tr><td>Base histÃ³rica</td><td>${escapeHtml(historico.length ? `${String(historico[historico.length - 1]?.mes_ano || '')} atÃ© ${String(historico[0]?.mes_ano || '')}` : 'Sem histÃ³rico suficiente')}</td></tr>
                                     </tbody>
                                 </table>
                             </section>
@@ -7171,8 +7171,8 @@
                     panel.innerHTML = `
                         <div class="finance-analista-card">
                             <span class="finance-analista-card__label">Carregando</span>
-                            <div class="finance-analista-card__value">Análise em andamento</div>
-                            <div class="finance-analista-card__meta">Buscando o mês atual e o acumulado do ano.</div>
+                            <div class="finance-analista-card__value">AnÃ¡lise em andamento</div>
+                            <div class="finance-analista-card__meta">Buscando o mÃªs atual e o acumulado do ano.</div>
                         </div>
                     `;
                     try {
@@ -7185,7 +7185,7 @@
                         panel.innerHTML = `
                             <div class="finance-analista-card">
                                 <span class="finance-analista-card__label">Erro</span>
-                                <div class="finance-analista-card__value">Não foi possível gerar a análise</div>
+                                <div class="finance-analista-card__value">NÃ£o foi possÃ­vel gerar a anÃ¡lise</div>
                                 <div class="finance-analista-card__meta">${escapeHtml(err.message || 'Falha ao consultar o endpoint do analista.')}</div>
                             </div>
                         `;
@@ -7435,7 +7435,7 @@
                     renderFinanceiroAnualBarChart(
                         el.querySelector('#financeiro-chart-receitas-anual'),
                         '_financeiroChartReceitasAnual',
-                        'Receitas do ano por mês',
+                        'Receitas do ano por mÃªs',
                         'Receitas',
                         serieReceitasInvertida,
                         '#22c55e',
@@ -7445,7 +7445,7 @@
                     renderFinanceiroAnualBarChart(
                         el.querySelector('#financeiro-chart-despesas-anual'),
                         '_financeiroChartDespesasAnual',
-                        'Despesas totais do ano por mês',
+                        'Despesas totais do ano por mÃªs',
                         'Despesas',
                         serieDespesasInvertida,
                         '#ef4444',
@@ -7514,7 +7514,7 @@
                                     series: [
                                         {},
                                         {
-                                            startAngle: 90 - (phase * 360), // horário
+                                            startAngle: 90 - (phase * 360), // horÃ¡rio
                                             data: [
                                                 { value: arcA, itemStyle: { color: `rgba(224,242,254,${alpha.toFixed(3)})` } },
                                                 { value: rest / 2, itemStyle: { color: 'rgba(0,0,0,0)' } },
@@ -7676,7 +7676,7 @@
                                 panel.innerHTML = `
                                     <div class="finance-analista-card">
                                         <span class="finance-analista-card__label">Erro</span>
-                                        <div class="finance-analista-card__value">Não foi possível recalcular</div>
+                                        <div class="finance-analista-card__value">NÃ£o foi possÃ­vel recalcular</div>
                                         <div class="finance-analista-card__meta">${escapeHtml(err.message || 'Falha ao recalcular o analista financeiro.')}</div>
                                     </div>
                                 `;
@@ -7723,8 +7723,8 @@
                     const mobilePagasEl = el.querySelector('#financeiro-fixas-mobile-pagas-total');
                     if (totalPendentesEl) totalPendentesEl.textContent = this.formatMoneyBr(totalPendentes);
                     if (totalPagasEl) totalPagasEl.textContent = this.formatMoneyBr(totalPagas);
-                    if (mobilePendentesEl) mobilePendentesEl.textContent = `${pendentes.length} item(ns) • ${this.formatMoneyBr(totalPendentes)}`;
-                    if (mobilePagasEl) mobilePagasEl.textContent = `${pagas.length} item(ns) • ${this.formatMoneyBr(totalPagas)}`;
+                    if (mobilePendentesEl) mobilePendentesEl.textContent = `${pendentes.length} item(ns) â€¢ ${this.formatMoneyBr(totalPendentes)}`;
+                    if (mobilePagasEl) mobilePagasEl.textContent = `${pagas.length} item(ns) â€¢ ${this.formatMoneyBr(totalPagas)}`;
                     if (tbodyPendentes) {
                         tbodyPendentes.innerHTML = pendentes.length
                             ? pendentes.map(mkRowFixa).join('')
@@ -7781,7 +7781,7 @@
                         }
                         if (tbody) {
                             if (!selected) {
-                                tbody.innerHTML = gastosVariados.length ? gastosVariados.map(mkRowGastoVariado).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
+                                tbody.innerHTML = gastosVariados.length ? gastosVariados.map(mkRowGastoVariado).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lanÃ§amento em dÃ©bito / pix neste mÃªs.</td></tr>';
                             } else {
                                 tbody.innerHTML = filtered.length ? filtered.map(mkRowGastoVariado).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto nesta categoria.</td></tr>';
                             }
@@ -7852,7 +7852,7 @@
             }
 
             async submitFinanceiroMetaSave(el, { editId = 0, nomeMeta, dataInicio, valorMeta } = {}) {
-                if (!nomeMeta) { alert('Nome da meta é obrigatório'); return false; }
+                if (!nomeMeta) { alert('Nome da meta Ã© obrigatÃ³rio'); return false; }
                 if (!(valorMeta > 0)) { alert('Valor da meta precisa ser maior que zero'); return false; }
                 try {
                     const res = await fetch('/api/financeiro', {
@@ -7876,7 +7876,7 @@
             }
 
             async submitFinanceiroMetaDelete(id, el) {
-                if (!(await this.showConfirm('Excluir meta', 'Tem certeza que deseja excluir esta meta de poupança?'))) return false;
+                if (!(await this.showConfirm('Excluir meta', 'Tem certeza que deseja excluir esta meta de poupanÃ§a?'))) return false;
                 try {
                     const res = await fetch(`/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=meta_poupanca`, { method: 'DELETE' });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir meta'));
@@ -7888,7 +7888,7 @@
                 }
             }
 
-            async readApiErrorMessage(res, fallback = 'Erro na requisição') {
+            async readApiErrorMessage(res, fallback = 'Erro na requisiÃ§Ã£o') {
                 try {
                     const raw = await res.text();
                     if (!raw) return fallback;
@@ -7904,7 +7904,7 @@
                 }
             }
 
-            async readApiJsonOrThrow(res, fallback = 'Erro na requisição') {
+            async readApiJsonOrThrow(res, fallback = 'Erro na requisiÃ§Ã£o') {
                 const raw = await res.text();
                 let data = {};
                 if (raw) {
@@ -7923,19 +7923,19 @@
                 overlay.className = 'app-modal-overlay';
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
-                        <h4>${editId > 0 ? 'Editar meta de poupança' : 'Adicionar meta de poupança'}</h4>
+                        <h4>${editId > 0 ? 'Editar meta de poupanÃ§a' : 'Adicionar meta de poupanÃ§a'}</h4>
                         <div class="app-form">
                             <div class="app-form-row fin-form-grid">
                                 <div class="field">
-                                    <label>Descrição</label>
-                                    <input type="text" id="poupanca-meta-modal-nome" value="${escapeHtml(String(meta?.nome_meta || ''))}" placeholder="Ex: Reserva de emergência" />
+                                    <label>DescriÃ§Ã£o</label>
+                                    <input type="text" id="poupanca-meta-modal-nome" value="${escapeHtml(String(meta?.nome_meta || ''))}" placeholder="Ex: Reserva de emergÃªncia" />
                                 </div>
                                 <div class="field">
                                     <label>Valor (R$)</label>
                                     <input type="number" step="0.01" id="poupanca-meta-modal-valor" value="${editId > 0 ? Number(meta?.valor_meta || 0) : ''}" />
                                 </div>
                                 <div class="field">
-                                    <label>Data de início</label>
+                                    <label>Data de inÃ­cio</label>
                                     <input type="date" id="poupanca-meta-modal-inicio" value="${escapeHtml(String(meta?.data_inicio || this.getBrazilDateIsoFrom(new Date())).slice(0, 10))}" />
                                 </div>
                             </div>
@@ -7962,7 +7962,7 @@
             openFinanceiroFixasListModal(el, { status = 'pendente', rows = [], rowsHtml = '', total = 0, itemMap = new Map() } = {}) {
                 const isPaid = String(status || '').toLowerCase() === 'pago';
                 const title = isPaid ? 'Despesas fixas pagas' : 'Despesas fixas pendentes';
-                const emptyMessage = isPaid ? 'Nenhuma despesa fixa paga neste mês.' : 'Nenhuma despesa fixa pendente neste mês.';
+                const emptyMessage = isPaid ? 'Nenhuma despesa fixa paga neste mÃªs.' : 'Nenhuma despesa fixa pendente neste mÃªs.';
                 const overlay = document.createElement('div');
                 overlay.className = 'app-modal-overlay';
                 overlay.innerHTML = `
@@ -7970,14 +7970,14 @@
                         <div class="finance-fixas-list-head">
                             <div>
                                 <h4 id="finance-fixas-list-title">${title}</h4>
-                                <p class="finance-fixas-list-meta">${rows.length} item(ns) • Total ${this.formatMoneyBr(total)}</p>
+                                <p class="finance-fixas-list-meta">${rows.length} item(ns) â€¢ Total ${this.formatMoneyBr(total)}</p>
                             </div>
                             <button type="button" class="app-btn app-btn-secondary" data-action="modal-close">Fechar</button>
                         </div>
                         <div class="finance-fixas-list-scroll">
                             <table class="module-table">
                                 <thead>
-                                    <tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">Ações</th></tr>
+                                    <tr><th class="col-desc">DescriÃ§Ã£o</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">AÃ§Ãµes</th></tr>
                                 </thead>
                                 <tbody>
                                     ${rowsHtml || `<tr><td colspan="5" class="module-table-empty">${emptyMessage}</td></tr>`}
@@ -8042,25 +8042,25 @@
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
                         <h4>${item ? 'Editar registro financeiro' : 'Novo registro financeiro'}</h4>
-                        <p class="app-form-note" id="financeiro-modal-contexto">Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong></p>
+                        <p class="app-form-note" id="financeiro-modal-contexto">MÃªs de referÃªncia: <strong>${this.formatMesAnoLabel(mesAno)}</strong></p>
                         <div class="app-form">
                             <div class="app-form-row fin-form-grid">
                                 <div class="field"><label>Tipo de registro</label>
                                     <select id="financeiro-modal-tipo">
                                         <option value="despesa_fixa" ${tipoRegistro === 'despesa_fixa' ? 'selected' : ''}>Despesa fixa</option>
-                                        <option value="gasto_variado" ${tipoRegistro === 'gasto_variado' ? 'selected' : ''}>Débito / pix</option>
+                                        <option value="gasto_variado" ${tipoRegistro === 'gasto_variado' ? 'selected' : ''}>DÃ©bito / pix</option>
                                         <option value="receita" ${tipoRegistro === 'receita' ? 'selected' : ''}>Receita</option>
-                                        <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>Poupança</option>
+                                        <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>PoupanÃ§a</option>
                                     </select>
                                 </div>
-                                <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">Mês de competência</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
-                                <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
+                                <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">MÃªs de competÃªncia</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
+                                <div class="field" id="financeiro-descricao-wrap"><label>DescriÃ§Ã£o</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
                                 <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
                                 <div class="field" id="financeiro-metodo-wrap" style="display:none;">
-                                    <label>Método de pagamento</label>
+                                    <label>MÃ©todo de pagamento</label>
                                     <select id="financeiro-modal-metodo">
-                                        <option value="debito_pix" ${metodoPagamentoInit === 'debito_pix' ? 'selected' : ''}>Débito / pix</option>
-                                        <option value="credito" ${metodoPagamentoInit === 'credito' ? 'selected' : ''}>Crédito</option>
+                                        <option value="debito_pix" ${metodoPagamentoInit === 'debito_pix' ? 'selected' : ''}>DÃ©bito / pix</option>
+                                        <option value="credito" ${metodoPagamentoInit === 'credito' ? 'selected' : ''}>CrÃ©dito</option>
                                     </select>
                                 </div>
                                 <div class="field" id="financeiro-conta-fixa-wrap" style="display:none;">
@@ -8072,7 +8072,7 @@
                                 <div class="field" id="financeiro-parcela-atual-field" style="display:none;"><label>Parcela atual</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-atual" value="${parcelasCheckedInit ? String(parcelaAtualInit) : ''}" placeholder="Ex.: 1" /></div>
                                 <div class="field" id="financeiro-parcela-total-field" style="display:none;"><label>Total de parcelas</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-total" value="${parcelasCheckedInit ? String(parcelaTotalInit) : ''}" placeholder="Ex.: 12" /></div>
                                 <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
-                                <div class="field" id="financeiro-data-wrap"><label>Data e hora do lançamento</label><input type="datetime-local" id="financeiro-modal-data" value="${escapeHtml(initialDateTime)}" /></div>
+                                <div class="field" id="financeiro-data-wrap"><label>Data e hora do lanÃ§amento</label><input type="datetime-local" id="financeiro-modal-data" value="${escapeHtml(initialDateTime)}" /></div>
                             </div>
                         </div>
                         <div class="app-modal-actions finance-modal-actions">
@@ -8161,17 +8161,17 @@
                         dataWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
                         const mr = mesForBounds();
-                        if (contextoEl) contextoEl.innerHTML = `A despesa fixa vale para o mês em <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
+                        if (contextoEl) contextoEl.innerHTML = `A despesa fixa vale para o mÃªs em <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
                     } else if (tipo === 'poupanca') {
                         if (descricaoWrap) descricaoWrap.style.display = 'none';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
                         if (metodoWrap) metodoWrap.style.display = tipo === 'gasto_variado' ? '' : 'none';
                         if (metodoWrap) metodoWrap.style.display = 'none';
-                        if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'Poupança';
+                        if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'PoupanÃ§a';
                         dataWrap.style.display = 'none';
                         catWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
-                        if (contextoEl) contextoEl.textContent = 'Registro de poupança (sem filtro mensal).';
+                        if (contextoEl) contextoEl.textContent = 'Registro de poupanÃ§a (sem filtro mensal).';
                     } else {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
@@ -8181,8 +8181,8 @@
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
                         if (item?.categoria) catEl.value = item.categoria;
                         if (contextoEl) contextoEl.innerHTML = tipo === 'gasto_variado'
-                            ? 'Registros em <strong>débito / pix</strong> entram como despesa no mês. Crédito continua sem esse vínculo.'
-                            : 'Escolha <strong>qualquer data</strong>: o lançamento aparece no mês correspondente a essa data.';
+                            ? 'Registros em <strong>dÃ©bito / pix</strong> entram como despesa no mÃªs. CrÃ©dito continua sem esse vÃ­nculo.'
+                            : 'Escolha <strong>qualquer data</strong>: o lanÃ§amento aparece no mÃªs correspondente a essa data.';
                     }
                     syncParcelasUI();
                 };
@@ -8202,7 +8202,7 @@
                     if (tipoVal === 'despesa_fixa') {
                         const v = mesRefEl && mesRefEl.value ? mesRefEl.value.trim() : '';
                         if (!v || !/^\d{4}-\d{2}$/.test(v)) {
-                            alert('Selecione o mês de competência da despesa fixa.');
+                            alert('Selecione o mÃªs de competÃªncia da despesa fixa.');
                             return;
                         }
                         mesAnoPayload = v;
@@ -8210,12 +8210,12 @@
                     } else if (tipoVal === 'gasto_variado') {
                         const dataHoraRaw = String(overlay.querySelector('#financeiro-modal-data')?.value || '').trim();
                         if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(dataHoraRaw)) {
-                            alert('Informe a data e hora do lançamento.');
+                            alert('Informe a data e hora do lanÃ§amento.');
                             return;
                         }
                         dataIso = this.getFinanceiroIsoFromDateTimeLocal(dataHoraRaw);
                         if (!dataIso) {
-                            alert('Data e hora inválidas.');
+                            alert('Data e hora invÃ¡lidas.');
                             return;
                         }
                         dataDate = dataHoraRaw.slice(0, 10);
@@ -8245,7 +8245,7 @@
                             const pa = parseInt(String(overlay.querySelector('#financeiro-modal-parcela-atual')?.value || ''), 10);
                             const pt = parseInt(String(overlay.querySelector('#financeiro-modal-parcela-total')?.value || ''), 10);
                             if (!Number.isFinite(pa) || !Number.isFinite(pt) || pa < 1 || pt < 1 || pa > pt) {
-                                alert('Informe parcela atual e total de parcelas (a atual não pode ser maior que o total).');
+                                alert('Informe parcela atual e total de parcelas (a atual nÃ£o pode ser maior que o total).');
                                 return;
                             }
                             payload.parcela_atual = pa;
@@ -8270,19 +8270,19 @@
                 const categoria = payload?.categoria || null;
                 const dataLanc = String(payload?.data_lancamento || '');
                 const mesAno = payload?.mesAno || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro inválido'); return false; }
-                if (tipoRegistro !== 'poupanca' && !descricao) { alert('Descrição é obrigatória'); return false; }
+                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro invÃ¡lido'); return false; }
+                if (tipoRegistro !== 'poupanca' && !descricao) { alert('DescriÃ§Ã£o Ã© obrigatÃ³ria'); return false; }
                 if (tipoRegistro !== 'despesa_fixa' && tipoRegistro !== 'poupanca') {
                     const [yy, mm] = mesAno.split('-').map(Number);
                     const [dy, dm] = dataLanc.split('-').map(Number);
                     if (dy !== yy || dm !== mm) {
-                        alert('A data do lançamento precisa estar dentro do mês selecionado.');
+                        alert('A data do lanÃ§amento precisa estar dentro do mÃªs selecionado.');
                         return false;
                     }
                 }
                     const requestBody = {
                         tipo_registro: tipoRegistro,
-                        descricao: tipoRegistro === 'poupanca' ? (descricao || 'Poupança') : descricao,
+                        descricao: tipoRegistro === 'poupanca' ? (descricao || 'PoupanÃ§a') : descricao,
                         valor,
                         mes_ano: mesAno,
                     };
@@ -8328,13 +8328,13 @@
                 const labelAtual = this.formatMesAnoLabel(mesAtual);
                 const okConfirm = await this.showConfirm(
                     'Preencher despesas fixas',
-                    `Contas fixas e parcelas já cadastradas no ano serão geradas para ${labelAtual}, com a parcela correta de cada mês. Deseja continuar?`
+                    `Contas fixas e parcelas jÃ¡ cadastradas no ano serÃ£o geradas para ${labelAtual}, com a parcela correta de cada mÃªs. Deseja continuar?`
                 );
                 if (!okConfirm) return;
                 try {
                     await this.refreshAppContent('financeiro');
                 } catch (e) {
-                    alert(e.message || 'Erro ao preencher o mês.');
+                    alert(e.message || 'Erro ao preencher o mÃªs.');
                 }
             }
 
@@ -8402,7 +8402,7 @@
                                 <button type="button" class="flux-toolbar-btn" onclick="openColorModal()" aria-label="Cores" title="Cores">
                                     <i class="fas fa-palette" aria-hidden="true"></i>
                                 </button>
-                                <button type="button" class="flux-toolbar-btn" onclick="addNode()" aria-label="Novo nó" title="Novo nó">
+                                <button type="button" class="flux-toolbar-btn" onclick="addNode()" aria-label="Novo nÃ³" title="Novo nÃ³">
                                     <i class="fas fa-square-plus" aria-hidden="true"></i>
                                 </button>
                                 <button type="button" class="flux-toolbar-btn" onclick="centerView()" aria-label="Centralizar" title="Centralizar">
@@ -8424,7 +8424,7 @@
                                         <span id="flux-currentColorSwatch" class="flux-color-preview-swatch is-empty"></span>
                                         <span id="flux-currentColorText">Sem selecao</span>
                                     </div>
-                                    <div class="flux-color-preview-item" title="Última cor usada">
+                                    <div class="flux-color-preview-item" title="Ãšltima cor usada">
                                         <span id="flux-activeColorSwatch" class="flux-color-preview-swatch"></span>
                                         <span id="flux-activeColorText">#D1D5DB</span>
                                     </div>
@@ -8452,7 +8452,7 @@
                                         <option value="diamond">Losango</option>
                                         <option value="hexagon">Hexagono</option>
                                     </select>
-                                    <label>Conexão</label>
+                                    <label>ConexÃ£o</label>
                                     <select id="flux-connectionTypeSelect">
                                         <option value="arrow">Seta ida</option>
                                         <option value="both">Seta ida/volta</option>
@@ -8466,14 +8466,14 @@
                                         <span id="flux-currentColorSwatch" class="flux-color-preview-swatch is-empty"></span>
                                         <span id="flux-currentColorText">Sem selecao</span>
                                     </span>
-                                    <span class="flux-color-preview-item" title="Última cor usada">
+                                    <span class="flux-color-preview-item" title="Ãšltima cor usada">
                                         <span id="flux-activeColorSwatch" class="flux-color-preview-swatch"></span>
                                         <span id="flux-activeColorText">#D1D5DB</span>
                                     </span>
                                 </div>
                                 <div class="flux-fc-stats">
                                     <span>Nos: <b id="flux-totalNodes">0</b></span>
-                                    <span>Conexões: <b id="flux-totalConnections">0</b></span>
+                                    <span>ConexÃµes: <b id="flux-totalConnections">0</b></span>
                                     <span>Conectados: <b id="flux-connectedNodes">0</b></span>
                                 </div>
                                 <div class="flux-fc-actions">
@@ -8578,7 +8578,7 @@
                             <button type="button" class="app-btn app-btn-secondary lista-toolbar-clear" data-action="lista-delete-all">Apagar todos</button>
                         </div>
                         <div class="lista-compras-cols" id="lista-compras-cols">${colsHtml}</div>
-                        <button type="button" class="lista-compras-fab lista-compras-fab-pulse" data-action="lista-open-modal" aria-label="Adicionar item à lista">+</button>
+                        <button type="button" class="lista-compras-fab lista-compras-fab-pulse" data-action="lista-open-modal" aria-label="Adicionar item Ã  lista">+</button>
                     </div>
                 `;
                 el.querySelector('[data-action="lista-open-modal"]').onclick = () => this.openListaComprasModal(el);
@@ -8643,14 +8643,14 @@
                             <header class="lista-entry-hero">
                                 <span class="lista-entry-hero-badge">Mercado</span>
                                 <div>
-                                    <h3 class="lista-entry-title" id="lista-modal-heading">${item ? 'Editar item' : 'Adicionar à lista'}</h3>
-                                    <p class="lista-entry-sub">${item ? 'Ajuste nome, quantidade ou corredor.' : 'Abra o formulário pelo + e monte o item antes de ir ao mercado.'}</p>
+                                    <h3 class="lista-entry-title" id="lista-modal-heading">${item ? 'Editar item' : 'Adicionar Ã  lista'}</h3>
+                                    <p class="lista-entry-sub">${item ? 'Ajuste nome, quantidade ou corredor.' : 'Abra o formulÃ¡rio pelo + e monte o item antes de ir ao mercado.'}</p>
                                 </div>
                             </header>
                             <div class="lista-entry-grid">
                                 <div class="field lista-field-span-2"><label for="lista-modal-item">Produto</label><input type="text" id="lista-modal-item" value="${initialItem}" placeholder="Ex.: Leite integral, papel toalha..." autocomplete="off" /></div>
                                 <div class="field"><label for="lista-modal-qtd">Quantidade</label><input type="number" min="1" id="lista-modal-qtd" value="${initialQtd}" /></div>
-                                <div class="field"><label for="lista-modal-unidade">Unidade</label><select id="lista-modal-unidade"><option value="">—</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
+                                <div class="field"><label for="lista-modal-unidade">Unidade</label><select id="lista-modal-unidade"><option value="">â€”</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
                             </div>
                             <div class="lista-cat-block">
                                 <span class="lista-cat-heading">Corredor</span>
@@ -8719,7 +8719,7 @@
                 const quantidade = parseInt(payload?.quantidade, 10) || 1;
                 const categoria = payload?.categoria || 'Mantimentos';
                 const unidade = String(payload?.unidade || '').trim();
-                if (!item) { alert('Item é obrigatório'); return false; }
+                if (!item) { alert('Item Ã© obrigatÃ³rio'); return false; }
                 try {
                     if (editId) {
                         const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, item, quantidade, categoria, unidade_medida: unidade }) });
@@ -8744,7 +8744,7 @@
                 } catch (e) { alert(e.message); }
             }
             async submitListaDeleteAll(el) {
-                if (!confirm('Apagar TODOS os itens da lista? Não é possível desfazer.')) return;
+                if (!confirm('Apagar TODOS os itens da lista? NÃ£o Ã© possÃ­vel desfazer.')) return;
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete_all: true }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
@@ -8899,7 +8899,7 @@
                         return ta.localeCompare(tb);
                     });
                 } catch (err) {
-                    console.error('Erro ao carregar notificações de eventos:', err);
+                    console.error('Erro ao carregar notificaÃ§Ãµes de eventos:', err);
                     this.notificationItems = [];
                 }
                 this.refreshNotificationBadge();
@@ -8925,8 +8925,8 @@
                         source: 'sistema',
                         date: '',
                         time: '',
-                        title: 'Nova versão do app disponível',
-                        details: 'Use o botão Atualizar no aviso exibido na tela.'
+                        title: 'Nova versÃ£o do app disponÃ­vel',
+                        details: 'Use o botÃ£o Atualizar no aviso exibido na tela.'
                     });
                 }
                 const overlay = document.createElement('div');
@@ -8940,13 +8940,13 @@
                             return `<li><div><strong>${idx + 1}. ${escapeHtml(item.title || '')}</strong><br/><span style="font-size:0.8rem;color:#9ca3af;">${escapeHtml(detalhes)}</span></div></li>`;
                         }).join('')}
                        </ul>`
-                    : '<p style="font-size:0.9rem;color:var(--text-light);">Nenhum evento para amanhã.</p>';
+                    : '<p style="font-size:0.9rem;color:var(--text-light);">Nenhum evento para amanhÃ£.</p>';
                 overlay.innerHTML = `
                     <div class="app-modal" style="width:min(680px,calc(100vw - 2rem));">
-                        <h4>Notificações de eventos</h4>
+                        <h4>NotificaÃ§Ãµes de eventos</h4>
                         ${content}
                         <div class="app-modal-actions">
-                            ${hasEventItems ? '<button type="button" class="app-btn app-btn-secondary" data-action="clear-notifications">Limpar notificações</button>' : ''}
+                            ${hasEventItems ? '<button type="button" class="app-btn app-btn-secondary" data-action="clear-notifications">Limpar notificaÃ§Ãµes</button>' : ''}
                             <button type="button" class="app-btn app-btn-secondary" data-action="close-notifications">Fechar</button>
                         </div>
                     </div>
@@ -9006,11 +9006,11 @@
             }
 
             // ============================================
-            // MÉTODOS PARA INTEGRAÇÃO COM BACKEND
+            // MÃ‰TODOS PARA INTEGRAÃ‡ÃƒO COM BACKEND
             // ============================================
             
             /**
-             * Método para você chamar quando receber dados do backend
+             * MÃ©todo para vocÃª chamar quando receber dados do backend
              * Exemplo: superApp.setApps(dataFromBackend)
              */
             setApps(apps) {
@@ -9021,7 +9021,7 @@
             }
 
             /**
-             * Método para você chamar quando receber estatísticas do backend
+             * MÃ©todo para vocÃª chamar quando receber estatÃ­sticas do backend
              * Exemplo: superApp.setStatistics(statsFromBackend)
              */
             setStatistics(stats) {
@@ -9029,7 +9029,7 @@
             }
 
             /**
-             * Método para você chamar quando receber roadmap do backend
+             * MÃ©todo para vocÃª chamar quando receber roadmap do backend
              * Exemplo: superApp.setRoadmap(roadmapFromBackend)
              */
             setRoadmap(roadmap) {
@@ -9047,7 +9047,7 @@
         // ============================================
         
         /*
-        // Exemplo 1: Carregar dados quando página carrega
+        // Exemplo 1: Carregar dados quando pÃ¡gina carrega
         window.addEventListener('load', async () => {
             try {
                 const [appsRes, statsRes, roadmapRes] = await Promise.all([
@@ -9075,11 +9075,11 @@
                 const stats = await response.json();
                 superApp.setStatistics(stats);
             } catch (error) {
-                console.error('Erro ao atualizar estatísticas:', error);
+                console.error('Erro ao atualizar estatÃ­sticas:', error);
             }
         }, 30000);
 
-        // Exemplo 3: Usar WebSocket para atualizações em tempo real
+        // Exemplo 3: Usar WebSocket para atualizaÃ§Ãµes em tempo real
         const ws = new WebSocket('ws://seu-backend.com/api/updates');
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -9089,7 +9089,7 @@
         };
         */
 
-        // PWA: instalação no mobile como app (não é atalho)
+        // PWA: instalaÃ§Ã£o no mobile como app (nÃ£o Ã© atalho)
         let deferredInstallPrompt = null;
         const pwaInstallBtn = document.getElementById('pwaInstallBtn');
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -9116,13 +9116,13 @@
                     deferredInstallPrompt = null;
                     if (pwaInstallBtn) pwaInstallBtn.style.display = 'none';
                 } else if (isMobile) {
-                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (? ou ?)\n2. Escolha "Instalar app" ou "Adicionar à tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
+                    alert('Para instalar como app:\n\n1. Toque no menu do navegador (? ou ?)\n2. Escolha "Instalar app" ou "Adicionar Ã  tela inicial"\n\nUse "Instalar app" para abrir em tela cheia, como aplicativo.');
                 }
             });
         }
         updateInstallButton();
 
-        // PWA: registrar SW, detectar mudança de versão (deploy) e atualizar cache
+        // PWA: registrar SW, detectar mudanÃ§a de versÃ£o (deploy) e atualizar cache
         if ('serviceWorker' in navigator) {
             let pendingWorker = null;
             const banner = document.createElement('div');
