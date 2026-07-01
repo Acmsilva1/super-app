@@ -47,7 +47,7 @@ function rowOrFirst(data) {
 function isMissingTableError(error) {
   const code = String(error?.code || '');
   const message = String(error?.message || '').toLowerCase();
-  return code === '42P01' || message.includes('does not exist') || message.includes('não existe');
+  return code === '42P01' || message.includes('does not exist') || message.includes('nao existe');
 }
 
 function normalizeDate(dateLike) {
@@ -84,6 +84,77 @@ function buildDespesaFixaInsertPayloads(basePayload, mesAno) {
     parcela_total: slot.parcela_total,
     created_at: createdAtForMesAno(slot.mes_ano, basePayload.created_at || null),
   }));
+}
+
+function normalizeSerieDescricao(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+function mesAnoFromDateLike(dateLike) {
+  const match = String(dateLike || '').match(/^(\d{4})-(\d{2})/);
+  return match ? `${match[1]}-${match[2]}` : '';
+}
+
+function isParcelaRow(row) {
+  const atual = Number(row?.parcela_atual);
+  const total = Number(row?.parcela_total);
+  return Number.isInteger(atual) && Number.isInteger(total) && atual >= 1 && total >= 1 && atual <= total;
+}
+
+function addMonthsToMesAno(mesAno, offset) {
+  if (!/^\d{4}-\d{2}$/.test(String(mesAno || ''))) return '';
+  const [ano, mes] = String(mesAno).split('-').map(Number);
+  const date = new Date(Date.UTC(ano, mes - 1 + offset, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function buildFutureParcelaSlotsFromRow(row) {
+  if (!isParcelaRow(row)) return [];
+  const currentMesAno = mesAnoFromDateLike(row.created_at);
+  if (!currentMesAno) return [];
+  const atual = Number(row.parcela_atual);
+  const total = Number(row.parcela_total);
+  const startMesAno = addMonthsToMesAno(currentMesAno, -(atual - 1));
+  if (!startMesAno) return [];
+  return buildReplicationSlotsFromStart(startMesAno, {
+    parcelaAtual: 1,
+    parcelaTotal: total,
+  }).filter((slot) => Number(slot.parcela_atual) > atual);
+}
+
+async function findFutureParcelaIds(row) {
+  if (!isParcelaRow(row)) return [];
+  const futureSlots = buildFutureParcelaSlotsFromRow(row);
+  if (!futureSlots.length) return [];
+
+  const { data, error } = await supabase
+    .from(TABLE_DESPESAS_FIXAS)
+    .select('id, descricao, parcela_atual, parcela_total, created_at')
+    .eq('parcela_total', row.parcela_total);
+
+  if (error) throw error;
+
+  const descricaoSerie = normalizeSerieDescricao(row.descricao);
+  const futureSlotKeys = new Set(futureSlots.map((slot) => `${slot.mes_ano}:${slot.parcela_atual}`));
+
+  return (data || [])
+    .filter((candidate) => normalizeSerieDescricao(candidate?.descricao) === descricaoSerie)
+    .filter((candidate) => Number(candidate?.parcela_total) === Number(row.parcela_total))
+    .filter((candidate) => futureSlotKeys.has(`${mesAnoFromDateLike(candidate?.created_at)}:${Number(candidate?.parcela_atual)}`))
+    .map((candidate) => candidate.id)
+    .filter(Boolean);
+}
+
+async function cleanupFutureParcelas(row) {
+  const ids = await findFutureParcelaIds(row);
+  if (!ids.length) return;
+  const { error } = await supabase.from(TABLE_DESPESAS_FIXAS).delete().in('id', ids);
+  if (error) throw error;
 }
 
 export async function materializeDespesasFixasMes(mesAno) {
@@ -248,7 +319,7 @@ export async function obterFinanceiroMes(query = {}) {
               progresso: Math.round(progressoMeta * 10000) / 10000,
               status: statusMeta,
             }
-            : null,
+          : null,
       },
     },
   };
@@ -307,9 +378,30 @@ export async function atualizarRegistroFinanceiro(req) {
       ? TABLE_POUPANCA
       : parsed.tipo_registro === TIPO_REGISTRO_META_POUPANCA
         ? TABLE_POUPANCA_METAS
-      : TABLE_FINANCAS;
+        : TABLE_FINANCAS;
+
+  let existingRow = null;
+  if (parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA) {
+    const { data: currentRow, error: currentErr } = await supabase.from(table).select('*').eq('id', parsed.id).single();
+    if (currentErr) return { status: 500, data: { error: currentErr.message } };
+    existingRow = rowOrFirst(currentRow);
+  }
+
   const { data, error } = await supabase.from(table).update(parsed.payload).eq('id', parsed.id).select().single();
   if (error) return { status: 500, data: { error: error.message } };
+
+  const turningParcelasOff = parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA
+    && body.parcelas !== undefined
+    && !(body.parcelas === true || body.parcelas === 'true');
+
+  if (turningParcelasOff && existingRow && isParcelaRow(existingRow)) {
+    try {
+      await cleanupFutureParcelas(existingRow);
+    } catch (cleanupErr) {
+      return { status: 500, data: { error: cleanupErr.message } };
+    }
+  }
+
   const row = rowOrFirst(data);
   return { status: 200, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
 }
@@ -350,7 +442,7 @@ export async function removerRegistroFinanceiro(req) {
     if (!tipoRegistro) return { status: 404, data: { error: 'registro nao encontrado para exclusao' } };
   }
 
-  if (![
+  if (![ 
     TIPO_REGISTRO_DESPESA_FIXA,
     TIPO_REGISTRO_GASTO_VARIADO,
     TIPO_REGISTRO_RECEITA,
@@ -359,14 +451,32 @@ export async function removerRegistroFinanceiro(req) {
   ].includes(tipoRegistro)) {
     return { status: 400, data: { error: 'tipo_registro invalido' } };
   }
+
   const table = tipoRegistro === TIPO_REGISTRO_DESPESA_FIXA
     ? TABLE_DESPESAS_FIXAS
     : tipoRegistro === TIPO_REGISTRO_POUPANCA
       ? TABLE_POUPANCA
       : tipoRegistro === TIPO_REGISTRO_META_POUPANCA
         ? TABLE_POUPANCA_METAS
-      : TABLE_FINANCAS;
+        : TABLE_FINANCAS;
+
+  let currentDespesaFixa = null;
+  if (tipoRegistro === TIPO_REGISTRO_DESPESA_FIXA) {
+    const { data: currentRow, error: currentErr } = await supabase.from(table).select('*').eq('id', id).single();
+    if (currentErr) return { status: 500, data: { error: currentErr.message } };
+    currentDespesaFixa = rowOrFirst(currentRow);
+  }
+
   const { error } = await supabase.from(table).delete().eq('id', id);
   if (error) return { status: 500, data: { error: error.message } };
+
+  if (currentDespesaFixa && isParcelaRow(currentDespesaFixa)) {
+    try {
+      await cleanupFutureParcelas(currentDespesaFixa);
+    } catch (cleanupErr) {
+      return { status: 500, data: { error: cleanupErr.message } };
+    }
+  }
+
   return { status: 200, data: { ok: true } };
 }
