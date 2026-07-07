@@ -4487,6 +4487,13 @@
             color: #1c1206;
             background: linear-gradient(120deg, rgba(253, 224, 71, 0.95), rgba(245, 158, 11, 0.88));
         }
+        .lista-compras-hero-title {
+            margin: 0;
+            font-size: clamp(1.05rem, 2vw, 1.32rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #fffbeb;
+        }
         .lista-compras-hero-copy h3 {
             margin: 0.6rem 0 0.3rem;
             font-size: clamp(1.02rem, 2vw, 1.28rem);
@@ -8983,7 +8990,6 @@
             renderListaComprasContent(el, data) {
                 const rows = Array.isArray(data.rows) ? data.rows : (Array.isArray(data.itens) ? data.itens : []);
                 const categorias = this.getListaComprasCategorias();
-                const activeCategoria = this.loadListaComprasActiveCategoria();
                 const resumoGeral = rows.reduce((acc, row) => {
                     const cat = this.getListaComprasCategoriaVal(row?.categoria);
                     acc.total += 1;
@@ -8993,11 +8999,10 @@
                 }, { total: 0, comprados: 0, byCat: {} });
                 const pendentes = Math.max(0, resumoGeral.total - resumoGeral.comprados);
                 el._listaComprasRows = rows;
-                el._listaComprasActiveCategoria = activeCategoria;
                 const badgesHtml = categorias.map((cat) => {
                     const stats = this.getListaComprasStats(rows, cat);
                     return `
-                        <button type="button" class="lista-compras-badge${cat === activeCategoria ? ' is-active' : ''}" data-action="lista-open-categoria" data-cat="${escapeHtml(cat)}">
+                        <button type="button" class="lista-compras-badge" data-action="lista-open-categoria" data-cat="${escapeHtml(cat)}">
                             <span>${escapeHtml(cat)}</span>
                             <strong>${stats.total}</strong>
                         </button>`;
@@ -9005,14 +9010,8 @@
                 el.innerHTML = `
                     <div class="lista-compras-module-shell">
                         <section class="lista-compras-hero-card">
-                            <div class="lista-compras-hero-copy">
-                                <span class="lista-compras-hero-kicker">Lista de compras</span>
-                                <h3>Toque em um badge para abrir a categoria no modal</h3>
-                                <p>Assim a lista fica enxuta na tela e você evita aquela rolagem infinita quando marca itens.</p>
-                            </div>
+                            <h3 class="lista-compras-hero-title">Lista de compras</h3>
                             <div class="lista-compras-hero-actions">
-                                <button type="button" class="app-btn app-btn-secondary" data-action="lista-open-current">Abrir categoria</button>
-                                <button type="button" class="app-btn app-btn-secondary lista-reset-category" data-action="lista-reset-category">Desmarcar categoria</button>
                                 <button type="button" class="app-btn app-btn-secondary lista-reset-all" data-action="lista-reset-all">Desmarcar tudo</button>
                                 <button type="button" class="app-btn app-btn-secondary lista-toolbar-clear" data-action="lista-delete-all">Apagar todos</button>
                             </div>
@@ -9030,28 +9029,16 @@
                                 <span>Pendentes</span>
                                 <strong data-lista-summary-pendentes>${pendentes}</strong>
                             </article>
-                            <article class="lista-compras-summary-card lista-compras-summary-card--active">
-                                <span>Categoria ativa</span>
-                                <strong data-lista-active-title>${escapeHtml(activeCategoria)}</strong>
-                                <small data-lista-active-subtitle>${escapeHtml((this.getListaComprasStats(rows, activeCategoria).total) + ' itens nessa categoria')}</small>
-                            </article>
                         </section>
                         <section class="lista-compras-badges-wrap" role="tablist" aria-label="Categorias da lista de compras">
                             ${badgesHtml}
                         </section>
-                        <div class="lista-compras-hint">
-                            Clique em um badge para abrir o modal com os produtos da categoria. Ao fechar, escolha outro badge.
-                        </div>
-                        <button type="button" class="lista-compras-fab lista-compras-fab-pulse" data-action="lista-open-active" aria-label="Abrir categoria ativa">+</button>
                     </div>
                 `;
-                el.querySelector('[data-action="lista-open-current"]').onclick = () => this.openListaComprasCategoriaModal(el, activeCategoria);
-                el.querySelector('[data-action="lista-open-active"]').onclick = () => this.openListaComprasCategoriaModal(el, activeCategoria);
-                el.querySelector('[data-action="lista-reset-category"]').onclick = () => this.submitListaResetChecks(el, activeCategoria);
                 el.querySelector('[data-action="lista-reset-all"]').onclick = () => this.submitListaResetChecks(el);
                 el.querySelector('[data-action="lista-delete-all"]').onclick = () => this.submitListaDeleteAll(el);
                 el.querySelectorAll('[data-action="lista-open-categoria"]').forEach((btn) => {
-                    btn.onclick = () => this.openListaComprasCategoriaModal(el, btn.dataset.cat || activeCategoria);
+                    btn.onclick = () => this.openListaComprasCategoriaModal(el, btn.dataset.cat || null);
                 });
             }
             getListaComprasModalFilterLabel(filter) {
@@ -9090,13 +9077,12 @@
                     el._listaComprasCategoryOverlay.remove();
                     el._listaComprasCategoryOverlay = null;
                 }
-                const activeCategoria = this.getListaComprasCategoriaVal(categoria || el?._listaComprasActiveCategoria || this.loadListaComprasActiveCategoria());
-                this.saveListaComprasActiveCategoria(activeCategoria);
-                if (el) el._listaComprasActiveCategoria = activeCategoria;
+                const activeCategoria = this.getListaComprasCategoriaVal(categoria || this.getListaComprasCategorias()[0]);
                 const stats = this.getListaComprasStats(rows, activeCategoria);
                 const items = rows.filter((r) => this.getListaComprasCategoriaVal(r?.categoria) === activeCategoria);
                 const overlay = document.createElement('div');
                 overlay.className = 'app-modal-overlay lista-compras-category-overlay';
+                overlay._listaComprasCurrentCategory = activeCategoria;
                 overlay._listaComprasModalFilter = ['all', 'pendentes', 'comprados'].includes(modalFilter) ? modalFilter : 'pendentes';
                 overlay.innerHTML = `
                     <div class="app-modal lista-compras-category-modal" role="dialog" aria-modal="true" aria-labelledby="lista-categoria-modal-title">
@@ -9165,8 +9151,8 @@
                 if (el) el._listaComprasCategoryOverlay = overlay;
                 this.applyListaComprasModalFilter(overlay);
             }
-            async refreshListaComprasContent(el, { openCategoryModal = false, categoria = null } = {}) {
-                const activeCategoria = this.getListaComprasCategoriaVal(categoria || el?._listaComprasActiveCategoria || this.loadListaComprasActiveCategoria());
+            async refreshListaComprasContent(el, { openCategoryModal = false, categoria = null, modalFilter = null } = {}) {
+                const activeCategoria = this.getListaComprasCategoriaVal(categoria || this.getListaComprasCategorias()[0]);
                 const previousScrollTop = el ? el.scrollTop || 0 : 0;
                 try {
                     if (el?._listaComprasCategoryOverlay) {
@@ -9181,7 +9167,7 @@
                             el.scrollTop = previousScrollTop;
                         });
                     }
-                    if (openCategoryModal) this.openListaComprasCategoriaModal(el, activeCategoria);
+                    if (openCategoryModal) this.openListaComprasCategoriaModal(el, activeCategoria, modalFilter || 'pendentes');
                 } catch (err) {
                     console.error(err);
                     alert(err.message || 'Erro ao carregar lista de compras');
@@ -9290,13 +9276,13 @@
                     }
                 } catch (e) {
                     alert(e.message);
-                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(el?._listaComprasCategoryOverlay), categoria: el?._listaComprasActiveCategoria || null });
+                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(el?._listaComprasCategoryOverlay), categoria: el?._listaComprasCategoryOverlay?._listaComprasCurrentCategory || null, modalFilter: el?._listaComprasCategoryOverlay?._listaComprasModalFilter || null });
                 }
             }
             syncListaComprasUI(el) {
                 if (!el) return;
                 const rows = Array.isArray(el._listaComprasRows) ? el._listaComprasRows : [];
-                const activeCategoria = this.getListaComprasCategoriaVal(el._listaComprasActiveCategoria || this.loadListaComprasActiveCategoria());
+                const activeCategoria = this.getListaComprasCategoriaVal(el?._listaComprasCategoryOverlay?._listaComprasCurrentCategory || this.getListaComprasCategorias()[0]);
                 const statsAll = rows.reduce((acc, row) => {
                     acc.total += 1;
                     if (row?.comprado) acc.comprados += 1;
@@ -9306,20 +9292,12 @@
                 const totalEl = el.querySelector('[data-lista-summary-total]');
                 const compradosEl = el.querySelector('[data-lista-summary-comprados]');
                 const pendentesEl = el.querySelector('[data-lista-summary-pendentes]');
-                const activeTitleEl = el.querySelector('[data-lista-active-title]');
-                const activeSubtitleEl = el.querySelector('[data-lista-active-subtitle]');
                 if (totalEl) totalEl.textContent = String(statsAll.total);
                 if (compradosEl) compradosEl.textContent = String(statsAll.comprados);
                 if (pendentesEl) pendentesEl.textContent = String(Math.max(0, statsAll.total - statsAll.comprados));
-                if (activeTitleEl) activeTitleEl.textContent = activeCategoria;
-                if (activeSubtitleEl) activeSubtitleEl.textContent = `${statsCategoria.total} itens nessa categoria`;
                 const categoryModal = document.querySelector('.lista-compras-category-overlay');
                 if (categoryModal) {
-                    const title = categoryModal.querySelector('#lista-categoria-modal-title');
-                    const kicker = categoryModal.querySelector('.lista-compras-category-kicker');
                     const subtitle = categoryModal.querySelector('[data-lista-filter-meta]');
-                    if (kicker) kicker.textContent = activeCategoria;
-                    if (title) title.textContent = 'Produtos da categoria';
                     if (subtitle) subtitle.textContent = `${statsCategoria.total} itens, ${statsCategoria.comprados} comprados e ${statsCategoria.pendentes} pendentes.`;
                     this.applyListaComprasModalFilter(categoryModal);
                 }
@@ -9340,8 +9318,9 @@
                         if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     }
                     if (el) {
-                        const keepCategory = el._listaComprasCategoryOverlay ? (el._listaComprasActiveCategoria || categoria) : null;
-                        await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(keepCategory), categoria: keepCategory || categoria });
+                        const keepCategory = el._listaComprasCategoryOverlay ? (el._listaComprasCategoryOverlay._listaComprasCurrentCategory || categoria) : null;
+                        const keepFilter = el._listaComprasCategoryOverlay?._listaComprasModalFilter || null;
+                        await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(keepCategory), categoria: keepCategory || categoria, modalFilter: keepFilter });
                     } else {
                         await this.refreshAppContent('lista_compras');
                     }
@@ -9356,7 +9335,7 @@
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
-                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(el?._listaComprasCategoryOverlay), categoria: el?._listaComprasActiveCategoria || null });
+                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(el?._listaComprasCategoryOverlay), categoria: el?._listaComprasCategoryOverlay?._listaComprasCurrentCategory || null, modalFilter: el?._listaComprasCategoryOverlay?._listaComprasModalFilter || null });
                 } catch (e) { alert(e.message); }
             }
             async submitListaResetChecks(el, categoria = null) {
@@ -9370,7 +9349,7 @@
                     if (targetCategoria) body.categoria = targetCategoria;
                     const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
-                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(targetCategoria || el?._listaComprasCategoryOverlay), categoria: targetCategoria || el?._listaComprasActiveCategoria || null });
+                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(targetCategoria || el?._listaComprasCategoryOverlay), categoria: targetCategoria || el?._listaComprasCategoryOverlay?._listaComprasCurrentCategory || null, modalFilter: el?._listaComprasCategoryOverlay?._listaComprasModalFilter || null });
                 } catch (e) { alert(e.message); }
             }
             async submitListaDeleteAll(el) {
