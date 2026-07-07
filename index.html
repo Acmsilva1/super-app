@@ -4664,6 +4664,10 @@
         .lista-compras-category-list li:last-child {
             border-bottom: none;
         }
+        .lista-compras-category-list .lista-compras-item.is-filter-hidden,
+        .lista-compras-category-list .lista-compras-item[hidden] {
+            display: none !important;
+        }
         .lista-compras-category-overlay .lista-compras-item.comprado {
             opacity: 1;
             background: linear-gradient(135deg, rgba(20, 83, 45, 0.56), rgba(8, 47, 26, 0.84));
@@ -4751,7 +4755,6 @@
             color: rgba(203, 213, 225, 0.88);
         }
         .lista-compras-modal-empty {
-            display: none;
             margin-top: 0.75rem;
             padding: 0.9rem;
             text-align: center;
@@ -4759,6 +4762,9 @@
             border: 1px dashed rgba(96, 165, 250, 0.3);
             color: rgba(203, 213, 225, 0.92);
             background: rgba(15, 23, 42, 0.36);
+        }
+        .lista-compras-modal-empty[hidden] {
+            display: none !important;
         }
         .lista-compras-empty {
             list-style: none;
@@ -8978,6 +8984,16 @@
                 const categorias = this.getListaComprasCategorias();
                 return categorias.includes(categoria) ? categoria : categorias[0];
             }
+            isListaComprasComprado(val) {
+                if (val === true || val === 1 || val === '1') return true;
+                if (val === false || val === 0 || val === '0' || val == null || val === '') return false;
+                if (typeof val === 'string') {
+                    const normalized = val.trim().toLowerCase();
+                    if (normalized === 'true' || normalized === 't') return true;
+                    if (normalized === 'false' || normalized === 'f') return false;
+                }
+                return Boolean(val);
+            }
             getListaComprasStorageKey() {
                 return 'lista_compras_categoria_ativa';
             }
@@ -8999,7 +9015,7 @@
             getListaComprasStats(rows, categoria) {
                 const target = this.getListaComprasCategoriaVal(categoria);
                 const itens = (rows || []).filter((r) => this.getListaComprasCategoriaVal(r?.categoria) === target);
-                const comprados = itens.filter((r) => Boolean(r?.comprado)).length;
+                const comprados = itens.filter((r) => this.isListaComprasComprado(r?.comprado)).length;
                 return {
                     categoria: target,
                     total: itens.length,
@@ -9008,7 +9024,7 @@
                 };
             }
             renderListaComprasItemRow(r) {
-                const comprado = Boolean(r?.comprado);
+                const comprado = this.isListaComprasComprado(r?.comprado);
                 const id = String(r?.id ?? '');
                 const cat = this.getListaComprasCategoriaVal(r?.categoria);
                 const qtd = Math.max(1, Number(r?.quantidade || 1));
@@ -9036,7 +9052,7 @@
                     const cat = this.getListaComprasCategoriaVal(row?.categoria);
                     acc.total += 1;
                     acc.byCat[cat] = (acc.byCat[cat] || 0) + 1;
-                    if (row?.comprado) acc.comprados += 1;
+                    if (this.isListaComprasComprado(row?.comprado)) acc.comprados += 1;
                     return acc;
                 }, { total: 0, comprados: 0, byCat: {} });
                 const pendentes = Math.max(0, resumoGeral.total - resumoGeral.comprados);
@@ -9097,6 +9113,7 @@
                 items.forEach((item) => {
                     const comprado = item.getAttribute('data-comprado') === '1';
                     const show = filter === 'all' ? true : filter === 'comprados' ? comprado : !comprado;
+                    item.classList.toggle('is-filter-hidden', !show);
                     item.hidden = !show;
                     if (show) visible += 1;
                 });
@@ -9311,9 +9328,11 @@
                         if (row) row.comprado = Boolean(comprado);
                         const itemEl = document.querySelector(`.lista-compras-category-overlay .lista-compras-item[data-id="${CSS.escape(String(id))}"]`);
                         if (itemEl) {
-                            itemEl.classList.toggle('comprado', Boolean(comprado));
+                            const isComprado = Boolean(comprado);
+                            itemEl.classList.toggle('comprado', isComprado);
+                            itemEl.setAttribute('data-comprado', isComprado ? '1' : '0');
                             const chk = itemEl.querySelector('.lista-compras-chk');
-                            if (chk) chk.checked = Boolean(comprado);
+                            if (chk) chk.checked = isComprado;
                         }
                         this.syncListaComprasUI(el);
                     }
@@ -9328,7 +9347,7 @@
                 const activeCategoria = this.getListaComprasCategoriaVal(el?._listaComprasCategoryOverlay?._listaComprasCurrentCategory || this.getListaComprasCategorias()[0]);
                 const statsAll = rows.reduce((acc, row) => {
                     acc.total += 1;
-                    if (row?.comprado) acc.comprados += 1;
+                    if (this.isListaComprasComprado(row?.comprado)) acc.comprados += 1;
                     return acc;
                 }, { total: 0, comprados: 0 });
                 const statsCategoria = this.getListaComprasStats(rows, activeCategoria);
