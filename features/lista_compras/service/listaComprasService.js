@@ -1,4 +1,7 @@
 import { ItemLista, CATEGORIAS_LISTA } from '../model/itemLista.js';
+export function normalizarCategoriaLista(categoria, fallback = CATEGORIAS_LISTA[0]) {
+  return CATEGORIAS_LISTA.includes(categoria) ? categoria : fallback;
+}
 
 export function payloadInsert(
   item,
@@ -11,7 +14,7 @@ export function payloadInsert(
     item: (item || '').trim(),
     quantidade: Math.max(1, parseInt(quantidade, 10) || 1),
     comprado: Boolean(comprado),
-    categoria: CATEGORIAS_LISTA.includes(categoria) ? categoria : CATEGORIAS_LISTA[0],
+    categoria: normalizarCategoriaLista(categoria),
   };
   if (unidade_medida != null && String(unidade_medida).trim()) payload.unidade_medida = String(unidade_medida).trim();
   return payload;
@@ -29,7 +32,7 @@ export function payloadUpdate(
   if (quantidade !== undefined) out.quantidade = Math.max(1, parseInt(quantidade, 10));
   if (unidade_medida !== undefined) out.unidade_medida = String(unidade_medida).trim() || null;
   if (comprado !== undefined) out.comprado = Boolean(comprado);
-  if (categoria !== undefined) out.categoria = CATEGORIAS_LISTA.includes(categoria) ? categoria : CATEGORIAS_LISTA[0];
+  if (categoria !== undefined) out.categoria = normalizarCategoriaLista(categoria);
   return out;
 }
 

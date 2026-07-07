@@ -4,6 +4,7 @@ export {
   ItemLista,
 } from './model/itemLista.js';
 export {
+  normalizarCategoriaLista,
   payloadInsert,
   payloadUpdate,
   toggleComprado,

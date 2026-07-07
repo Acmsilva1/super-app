@@ -4458,6 +4458,372 @@
         .lista-compras-col-list li { border-bottom: 1px solid var(--border-color); }
         .lista-compras-col-list li:last-child { border-bottom: none; }
         .lista-compras-cols li.lista-compras-empty { display: block; width: 100%; text-align: center; color: #9ca3af; padding: 0.85rem; font-size: 0.875rem; border: none; list-style: none; }
+        .lista-compras-hero-card {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 1rem 1.05rem;
+            border-radius: 1.05rem;
+            border: 1px solid rgba(251, 191, 36, 0.22);
+            background: linear-gradient(145deg, rgba(21, 28, 47, 0.96), rgba(10, 18, 34, 0.98));
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.34);
+        }
+        .lista-compras-hero-copy {
+            min-width: min(100%, 320px);
+            max-width: 42rem;
+        }
+        .lista-compras-hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.28rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #1c1206;
+            background: linear-gradient(120deg, rgba(253, 224, 71, 0.95), rgba(245, 158, 11, 0.88));
+        }
+        .lista-compras-hero-copy h3 {
+            margin: 0.6rem 0 0.3rem;
+            font-size: clamp(1.02rem, 2vw, 1.28rem);
+            color: #fffbeb;
+            letter-spacing: -0.03em;
+        }
+        .lista-compras-hero-copy p {
+            margin: 0;
+            color: rgba(226, 232, 240, 0.82);
+            line-height: 1.45;
+        }
+        .lista-compras-hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .lista-compras-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.7rem;
+        }
+        .lista-compras-summary-card {
+            padding: 0.85rem 0.9rem;
+            border-radius: 0.95rem;
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            background: rgba(15, 23, 42, 0.72);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            display: grid;
+            gap: 0.3rem;
+        }
+        .lista-compras-summary-card span {
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(148, 163, 184, 0.92);
+        }
+        .lista-compras-summary-card strong {
+            font-size: 1.18rem;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+        .lista-compras-summary-card small {
+            font-size: 0.77rem;
+            color: rgba(226, 232, 240, 0.76);
+            line-height: 1.35;
+        }
+        .lista-compras-summary-card--active {
+            border-color: rgba(245, 158, 11, 0.34);
+            background: linear-gradient(150deg, rgba(58, 32, 12, 0.75), rgba(21, 28, 47, 0.9));
+        }
+        .lista-compras-summary-card--active strong {
+            color: #fde68a;
+        }
+        .lista-compras-badges-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+        }
+        .lista-compras-badge {
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(9, 17, 32, 0.98));
+            color: #dbeafe;
+            border-radius: 999px;
+            padding: 0.6rem 0.8rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            font-family: inherit;
+            font-weight: 700;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
+        }
+        .lista-compras-badge strong {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.95rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.22);
+            color: #bfdbfe;
+            font-size: 0.78rem;
+            font-weight: 800;
+        }
+        .lista-compras-badge:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.04);
+            border-color: rgba(125, 211, 252, 0.42);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.22);
+        }
+        .lista-compras-badge.is-active {
+            background: linear-gradient(135deg, rgba(253, 224, 71, 0.92), rgba(245, 158, 11, 0.9));
+            color: #1c1206;
+            border-color: rgba(253, 224, 71, 0.9);
+            box-shadow: 0 12px 22px rgba(245, 158, 11, 0.2);
+        }
+        .lista-compras-badge.is-active strong {
+            background: rgba(255, 255, 255, 0.22);
+            color: #1c1206;
+        }
+        .lista-compras-hint {
+            font-size: 0.82rem;
+            color: rgba(203, 213, 225, 0.9);
+            line-height: 1.45;
+            padding-left: 0.1rem;
+        }
+        .lista-compras-category-modal {
+            width: min(760px, calc(100vw - 1.2rem));
+            max-height: min(86vh, 820px);
+            overflow: hidden;
+            padding: 1rem;
+        }
+        .lista-compras-category-modal__head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 0.85rem;
+        }
+        .lista-compras-category-kicker {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.28rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #1c1206;
+            background: linear-gradient(120deg, rgba(253, 224, 71, 0.96), rgba(245, 158, 11, 0.92));
+        }
+        .lista-compras-category-modal__head h4 {
+            margin: 0.55rem 0 0.18rem;
+            font-size: 1.08rem;
+            color: #fff7ed;
+        }
+        .lista-compras-category-modal__head p {
+            margin: 0;
+            color: rgba(226, 232, 240, 0.8);
+            font-size: 0.82rem;
+            line-height: 1.45;
+        }
+        .lista-compras-category-modal__actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.85rem;
+        }
+        .lista-compras-category-list {
+            margin: 0;
+            max-height: min(56vh, 560px);
+            overflow: auto;
+            border-radius: 0.95rem;
+            border: 1px solid rgba(96, 165, 250, 0.16);
+            background: rgba(8, 15, 28, 0.72);
+        }
+        .lista-compras-category-list li {
+            padding: 0.85rem 0.95rem;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            border-bottom: 1px solid rgba(96, 165, 250, 0.12);
+        }
+        .lista-compras-category-list li:last-child {
+            border-bottom: none;
+        }
+        .lista-compras-category-overlay .lista-compras-item.comprado {
+            opacity: 1;
+            background: linear-gradient(135deg, rgba(20, 83, 45, 0.56), rgba(8, 47, 26, 0.84));
+            border-left: 4px solid rgba(74, 222, 128, 0.95);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+        .lista-compras-category-overlay .lista-compras-item.comprado .item-text {
+            text-decoration: line-through;
+            text-decoration-thickness: 2px;
+            text-decoration-color: rgba(134, 239, 172, 0.9);
+            color: #dcfce7;
+        }
+        .lista-compras-category-overlay .lista-compras-item.comprado .lista-compras-item-meta {
+            color: rgba(187, 247, 208, 0.82);
+        }
+        .lista-compras-category-overlay .lista-compras-item.comprado .lista-compras-status-badge {
+            background: rgba(74, 222, 128, 0.16);
+            color: #bbf7d0;
+            border-color: rgba(74, 222, 128, 0.35);
+        }
+        .lista-compras-item-main {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            min-width: 0;
+            flex: 1;
+        }
+        .lista-compras-item-copy {
+            display: grid;
+            gap: 0.18rem;
+            min-width: 0;
+        }
+        .lista-compras-item-meta {
+            font-size: 0.76rem;
+            color: rgba(148, 163, 184, 0.92);
+        }
+        .lista-compras-item-actions {
+            flex-shrink: 0;
+        }
+        .lista-compras-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            align-self: flex-start;
+            padding: 0.22rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            background: rgba(34, 197, 94, 0.16);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.28);
+        }
+        .lista-compras-modal-filterbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin-bottom: 0.8rem;
+        }
+        .lista-compras-filter-btn {
+            border: 1px solid rgba(96, 165, 250, 0.22);
+            background: rgba(15, 23, 42, 0.72);
+            color: #dbeafe;
+            border-radius: 999px;
+            padding: 0.42rem 0.7rem;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.74rem;
+            cursor: pointer;
+            transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+        }
+        .lista-compras-filter-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(125, 211, 252, 0.45);
+        }
+        .lista-compras-filter-btn.is-active {
+            background: linear-gradient(135deg, rgba(253, 224, 71, 0.92), rgba(245, 158, 11, 0.9));
+            color: #1c1206;
+            border-color: rgba(253, 224, 71, 0.9);
+        }
+        .lista-compras-modal-filter-meta {
+            margin: 0.1rem 0 0.7rem;
+            font-size: 0.78rem;
+            color: rgba(203, 213, 225, 0.88);
+        }
+        .lista-compras-modal-empty {
+            display: none;
+            margin-top: 0.75rem;
+            padding: 0.9rem;
+            text-align: center;
+            border-radius: 0.9rem;
+            border: 1px dashed rgba(96, 165, 250, 0.3);
+            color: rgba(203, 213, 225, 0.92);
+            background: rgba(15, 23, 42, 0.36);
+        }
+        .lista-compras-empty {
+            list-style: none;
+        }
+        @media (max-width: 640px) {
+            .lista-compras-hero-card,
+            .lista-compras-category-modal__head {
+                flex-direction: column;
+            }
+            .lista-compras-hero-actions,
+            .lista-compras-category-modal__actions {
+                justify-content: flex-start;
+            }
+            .lista-compras-category-modal {
+                width: min(100vw - 1rem, 760px);
+                padding: 0.85rem;
+            }
+            .lista-compras-category-list li {
+                flex-direction: column;
+            }
+        }
+        [data-theme="light"] .lista-compras-hero-card {
+            background: linear-gradient(145deg, rgba(255, 251, 235, 0.98), rgba(255, 255, 255, 0.96));
+            border-color: rgba(251, 191, 36, 0.28);
+        }
+        [data-theme="light"] .lista-compras-hero-copy h3 {
+            color: #78350f;
+        }
+        [data-theme="light"] .lista-compras-hero-copy p,
+        [data-theme="light"] .lista-compras-hint,
+        [data-theme="light"] .lista-compras-category-modal__head p,
+        [data-theme="light"] .lista-compras-item-meta {
+            color: #475569;
+        }
+        [data-theme="light"] .lista-compras-summary-card {
+            background: rgba(255, 255, 255, 0.92);
+            border-color: rgba(148, 163, 184, 0.28);
+        }
+        [data-theme="light"] .lista-compras-summary-card span {
+            color: #64748b;
+        }
+        [data-theme="light"] .lista-compras-summary-card strong {
+            color: #0f172a;
+        }
+        [data-theme="light"] .lista-compras-summary-card--active {
+            background: linear-gradient(150deg, rgba(255, 247, 237, 0.98), rgba(236, 253, 245, 0.96));
+        }
+        [data-theme="light"] .lista-compras-badge {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.98));
+            color: #334155;
+            border-color: rgba(148, 163, 184, 0.24);
+        }
+        [data-theme="light"] .lista-compras-badge strong {
+            background: rgba(59, 130, 246, 0.14);
+            color: #1e3a8a;
+        }
+        [data-theme="light"] .lista-compras-badge.is-active {
+            color: #1c1206;
+        }
+        [data-theme="light"] .lista-compras-category-modal {
+            background: linear-gradient(165deg, rgba(255, 251, 235, 0.98), rgba(255, 255, 255, 0.96));
+        }
+        [data-theme="light"] .lista-compras-category-modal__head h4 {
+            color: #78350f;
+        }
+        [data-theme="light"] .lista-compras-category-list {
+            background: rgba(255, 255, 255, 0.92);
+            border-color: rgba(148, 163, 184, 0.24);
+        }
+        [data-theme="light"] .lista-compras-category-list li {
+            border-bottom-color: rgba(148, 163, 184, 0.18);
+        }
 
         /* Lista de compras — formulário "mercado" (grid + chips, cara própria) */
         .lista-entry-shell { margin-bottom: 1.15rem; }
@@ -4699,6 +5065,31 @@
             color: #365314;
         }
         [data-theme="light"] .lista-btn-main { color: #1c1208; }
+        [data-theme="light"] .lista-compras-filter-btn {
+            background: rgba(255, 255, 255, 0.92);
+            color: #334155;
+            border-color: rgba(148, 163, 184, 0.22);
+        }
+        [data-theme="light"] .lista-compras-filter-btn.is-active {
+            background: linear-gradient(135deg, rgba(254, 243, 199, 0.96), rgba(217, 249, 157, 0.9));
+            color: #365314;
+        }
+        [data-theme="light"] .lista-compras-modal-empty {
+            background: rgba(255, 255, 255, 0.92);
+            color: #475569;
+            border-color: rgba(148, 163, 184, 0.24);
+        }
+        [data-theme="light"] .lista-compras-category-overlay .lista-compras-item.comprado {
+            background: linear-gradient(135deg, rgba(220, 252, 231, 0.96), rgba(187, 247, 208, 0.92));
+            border-left-color: rgba(34, 197, 94, 0.95);
+        }
+        [data-theme="light"] .lista-compras-category-overlay .lista-compras-item.comprado .item-text {
+            color: #14532d;
+            text-decoration-color: rgba(34, 197, 94, 0.75);
+        }
+        [data-theme="light"] .lista-compras-category-overlay .lista-compras-item.comprado .lista-compras-item-meta {
+            color: #166534;
+        }
 
         .df-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem; align-items: start; }
         @media (max-width: 768px) { .df-colunas { grid-template-columns: 1fr; } }
@@ -8531,93 +8922,273 @@
                 el.innerHTML = '<div class="app-error"><i class="fas fa-ban"></i> Modulo Agenda removido definitivamente.</div>';
             }
 
-            renderListaComprasContent(el, data) {
-                const rows = data.rows || data.itens || [];
-                const categorias = ['Mantimentos', 'Higiene / limpeza', 'Feira', 'Carnes'];
-                const LS_COLS = 'lista_compras_colunas_collapsed';
-                let collapsedMap = {};
-                try { collapsedMap = JSON.parse(localStorage.getItem(LS_COLS) || '{}'); } catch (e) { collapsedMap = {}; }
-                const byCat = {};
-                categorias.forEach((c) => { byCat[c] = []; });
-                rows.forEach((r) => {
-                    const c = categorias.includes(r.categoria) ? r.categoria : categorias[0];
-                    byCat[c].push(r);
-                });
-                const itemRow = (r) => `
-                    <li class="${r.comprado ? 'comprado' : ''}" data-id="${r.id}">
-                        <div>
-                            <input type="checkbox" class="app-checkbox lista-compras-chk" data-id="${r.id}" ${r.comprado ? 'checked' : ''} title="Comprado" />
-                            <span class="item-text">${escapeHtml(r.item || '')}</span> ${r.quantidade > 1 ? ' x ' + r.quantidade : ''} ${r.unidade_medida ? escapeHtml(String(r.unidade_medida)) : ''}
+            getListaComprasCategorias() {
+                return ['Mantimentos', 'Higiene / limpeza', 'Feira', 'Carnes'];
+            }
+            getListaComprasCategoriaVal(categoria) {
+                const categorias = this.getListaComprasCategorias();
+                return categorias.includes(categoria) ? categoria : categorias[0];
+            }
+            getListaComprasStorageKey() {
+                return 'lista_compras_categoria_ativa';
+            }
+            loadListaComprasActiveCategoria() {
+                const fallback = this.getListaComprasCategorias()[0];
+                try {
+                    const raw = localStorage.getItem(this.getListaComprasStorageKey());
+                    const value = String(raw || '').trim();
+                    return this.getListaComprasCategoriaVal(value || fallback);
+                } catch (_err) {
+                    return fallback;
+                }
+            }
+            saveListaComprasActiveCategoria(categoria) {
+                try {
+                    localStorage.setItem(this.getListaComprasStorageKey(), this.getListaComprasCategoriaVal(categoria));
+                } catch (_err) {}
+            }
+            getListaComprasStats(rows, categoria) {
+                const target = this.getListaComprasCategoriaVal(categoria);
+                const itens = (rows || []).filter((r) => this.getListaComprasCategoriaVal(r?.categoria) === target);
+                const comprados = itens.filter((r) => Boolean(r?.comprado)).length;
+                return {
+                    categoria: target,
+                    total: itens.length,
+                    comprados,
+                    pendentes: itens.length - comprados,
+                };
+            }
+            renderListaComprasItemRow(r) {
+                const comprado = Boolean(r?.comprado);
+                const id = String(r?.id ?? '');
+                const cat = this.getListaComprasCategoriaVal(r?.categoria);
+                const qtd = Math.max(1, Number(r?.quantidade || 1));
+                const unidade = r?.unidade_medida ? escapeHtml(String(r.unidade_medida)) : '';
+                return `
+                    <li class="lista-compras-item${comprado ? ' comprado' : ''}" data-id="${escapeHtml(id)}" data-categoria="${escapeHtml(cat)}" data-comprado="${comprado ? '1' : '0'}">
+                        <div class="lista-compras-item-main">
+                            <input type="checkbox" class="app-checkbox lista-compras-chk" data-id="${escapeHtml(id)}" ${comprado ? 'checked' : ''} title="Comprado" />
+                            <div class="lista-compras-item-copy">
+                                <span class="item-text">${escapeHtml(r?.item || '')}</span>
+                                <span class="lista-compras-item-meta">${qtd > 1 ? `x ${escapeHtml(String(qtd))}` : ''}${qtd > 1 && unidade ? ' ' : ''}${unidade}</span>
+                                ${comprado ? '<span class="lista-compras-status-badge">Comprado</span>' : ''}
+                            </div>
                         </div>
-                        <div class="app-list-actions">
-                            <button type="button" data-action="lista-edit" data-id="${r.id}">Editar</button>
-                            <button type="button" class="lista-btn-del" data-action="lista-delete-item" data-id="${r.id}">Excluir</button>
+                        <div class="app-list-actions lista-compras-item-actions">
+                            <button type="button" data-action="lista-edit" data-id="${escapeHtml(id)}">Editar</button>
+                            <button type="button" class="lista-btn-del" data-action="lista-delete-item" data-id="${escapeHtml(id)}">Excluir</button>
                         </div>
                     </li>`;
-                const colsHtml = categorias.map((cat) => {
-                    const items = byCat[cat];
-                    const isCollapsed = collapsedMap[cat] === true;
-                    const inner = items.length
-                        ? items.map(itemRow).join('')
-                        : '<li class="lista-compras-empty">Nenhum item nesta categoria.</li>';
-                    const safeAttr = String(cat).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-                    return `<div class="lista-compras-col${isCollapsed ? ' is-collapsed' : ''}" data-lista-categoria="${safeAttr}">
-                        <button type="button" class="lista-compras-col-head" aria-expanded="${!isCollapsed}">
-                            <span class="lista-compras-col-title">${escapeHtml(cat)}</span>
-                            <span class="lista-compras-col-badge">${items.length}</span>
-                            <span class="lista-compras-col-chevron" aria-hidden="true">\u25BC</span>
-                        </button>
-                        <div class="lista-compras-col-body">
-                            <ul class="app-list lista-compras-col-list">${inner}</ul>
-                        </div>
-                    </div>`;
+            }
+            renderListaComprasContent(el, data) {
+                const rows = Array.isArray(data.rows) ? data.rows : (Array.isArray(data.itens) ? data.itens : []);
+                const categorias = this.getListaComprasCategorias();
+                const activeCategoria = this.loadListaComprasActiveCategoria();
+                const resumoGeral = rows.reduce((acc, row) => {
+                    const cat = this.getListaComprasCategoriaVal(row?.categoria);
+                    acc.total += 1;
+                    acc.byCat[cat] = (acc.byCat[cat] || 0) + 1;
+                    if (row?.comprado) acc.comprados += 1;
+                    return acc;
+                }, { total: 0, comprados: 0, byCat: {} });
+                const pendentes = Math.max(0, resumoGeral.total - resumoGeral.comprados);
+                el._listaComprasRows = rows;
+                el._listaComprasActiveCategoria = activeCategoria;
+                const badgesHtml = categorias.map((cat) => {
+                    const stats = this.getListaComprasStats(rows, cat);
+                    return `
+                        <button type="button" class="lista-compras-badge${cat === activeCategoria ? ' is-active' : ''}" data-action="lista-open-categoria" data-cat="${escapeHtml(cat)}">
+                            <span>${escapeHtml(cat)}</span>
+                            <strong>${stats.total}</strong>
+                        </button>`;
                 }).join('');
                 el.innerHTML = `
                     <div class="lista-compras-module-shell">
-                        <div class="lista-compras-toolbar">
-                            <button type="button" class="app-btn app-btn-secondary lista-toolbar-clear" data-action="lista-delete-all">Apagar todos</button>
+                        <section class="lista-compras-hero-card">
+                            <div class="lista-compras-hero-copy">
+                                <span class="lista-compras-hero-kicker">Lista de compras</span>
+                                <h3>Toque em um badge para abrir a categoria no modal</h3>
+                                <p>Assim a lista fica enxuta na tela e você evita aquela rolagem infinita quando marca itens.</p>
+                            </div>
+                            <div class="lista-compras-hero-actions">
+                                <button type="button" class="app-btn app-btn-secondary" data-action="lista-open-current">Abrir categoria</button>
+                                <button type="button" class="app-btn app-btn-secondary lista-reset-category" data-action="lista-reset-category">Desmarcar categoria</button>
+                                <button type="button" class="app-btn app-btn-secondary lista-reset-all" data-action="lista-reset-all">Desmarcar tudo</button>
+                                <button type="button" class="app-btn app-btn-secondary lista-toolbar-clear" data-action="lista-delete-all">Apagar todos</button>
+                            </div>
+                        </section>
+                        <section class="lista-compras-summary-grid">
+                            <article class="lista-compras-summary-card">
+                                <span>Total de itens</span>
+                                <strong data-lista-summary-total>${resumoGeral.total}</strong>
+                            </article>
+                            <article class="lista-compras-summary-card">
+                                <span>Comprados</span>
+                                <strong data-lista-summary-comprados>${resumoGeral.comprados}</strong>
+                            </article>
+                            <article class="lista-compras-summary-card">
+                                <span>Pendentes</span>
+                                <strong data-lista-summary-pendentes>${pendentes}</strong>
+                            </article>
+                            <article class="lista-compras-summary-card lista-compras-summary-card--active">
+                                <span>Categoria ativa</span>
+                                <strong data-lista-active-title>${escapeHtml(activeCategoria)}</strong>
+                                <small data-lista-active-subtitle>${escapeHtml((this.getListaComprasStats(rows, activeCategoria).total) + ' itens nessa categoria')}</small>
+                            </article>
+                        </section>
+                        <section class="lista-compras-badges-wrap" role="tablist" aria-label="Categorias da lista de compras">
+                            ${badgesHtml}
+                        </section>
+                        <div class="lista-compras-hint">
+                            Clique em um badge para abrir o modal com os produtos da categoria. Ao fechar, escolha outro badge.
                         </div>
-                        <div class="lista-compras-cols" id="lista-compras-cols">${colsHtml}</div>
-                        <button type="button" class="lista-compras-fab lista-compras-fab-pulse" data-action="lista-open-modal" aria-label="Adicionar item à lista">+</button>
+                        <button type="button" class="lista-compras-fab lista-compras-fab-pulse" data-action="lista-open-active" aria-label="Abrir categoria ativa">+</button>
                     </div>
                 `;
-                el.querySelector('[data-action="lista-open-modal"]').onclick = () => this.openListaComprasModal(el);
+                el.querySelector('[data-action="lista-open-current"]').onclick = () => this.openListaComprasCategoriaModal(el, activeCategoria);
+                el.querySelector('[data-action="lista-open-active"]').onclick = () => this.openListaComprasCategoriaModal(el, activeCategoria);
+                el.querySelector('[data-action="lista-reset-category"]').onclick = () => this.submitListaResetChecks(el, activeCategoria);
+                el.querySelector('[data-action="lista-reset-all"]').onclick = () => this.submitListaResetChecks(el);
                 el.querySelector('[data-action="lista-delete-all"]').onclick = () => this.submitListaDeleteAll(el);
-                el.querySelectorAll('.lista-compras-col-head').forEach((btn) => {
+                el.querySelectorAll('[data-action="lista-open-categoria"]').forEach((btn) => {
+                    btn.onclick = () => this.openListaComprasCategoriaModal(el, btn.dataset.cat || activeCategoria);
+                });
+            }
+            getListaComprasModalFilterLabel(filter) {
+                if (filter === 'comprados') return 'Comprados';
+                if (filter === 'pendentes') return 'Pendentes';
+                return 'Todos';
+            }
+            applyListaComprasModalFilter(overlay) {
+                if (!overlay) return;
+                const filter = ['all', 'pendentes', 'comprados'].includes(overlay._listaComprasModalFilter) ? overlay._listaComprasModalFilter : 'pendentes';
+                const items = Array.from(overlay.querySelectorAll('.lista-compras-item'));
+                let visible = 0;
+                items.forEach((item) => {
+                    const comprado = item.getAttribute('data-comprado') === '1';
+                    const show = filter === 'all' ? true : filter === 'comprados' ? comprado : !comprado;
+                    item.hidden = !show;
+                    if (show) visible += 1;
+                });
+                const empty = overlay.querySelector('.lista-compras-modal-empty');
+                if (empty) empty.hidden = visible !== 0;
+                overlay.querySelectorAll('.lista-compras-filter-btn').forEach((btn) => {
+                    btn.classList.toggle('is-active', btn.dataset.filter === filter);
+                });
+                const stats = overlay.querySelector('[data-lista-filter-meta]');
+                const total = items.length;
+                const comprados = items.filter((item) => item.getAttribute('data-comprado') === '1').length;
+                const pendentes = total - comprados;
+                if (stats) {
+                    stats.textContent = `${visible} visiveis neste filtro | ${pendentes} pendentes no total | ${comprados} comprados no total`;
+                }
+            }
+            openListaComprasCategoriaModal(el, categoria = null, modalFilter = null) {
+                const categorias = this.getListaComprasCategorias();
+                const rows = Array.isArray(el?._listaComprasRows) ? el._listaComprasRows : [];
+                if (el?._listaComprasCategoryOverlay) {
+                    el._listaComprasCategoryOverlay.remove();
+                    el._listaComprasCategoryOverlay = null;
+                }
+                const activeCategoria = this.getListaComprasCategoriaVal(categoria || el?._listaComprasActiveCategoria || this.loadListaComprasActiveCategoria());
+                this.saveListaComprasActiveCategoria(activeCategoria);
+                if (el) el._listaComprasActiveCategoria = activeCategoria;
+                const stats = this.getListaComprasStats(rows, activeCategoria);
+                const items = rows.filter((r) => this.getListaComprasCategoriaVal(r?.categoria) === activeCategoria);
+                const overlay = document.createElement('div');
+                overlay.className = 'app-modal-overlay lista-compras-category-overlay';
+                overlay._listaComprasModalFilter = ['all', 'pendentes', 'comprados'].includes(modalFilter) ? modalFilter : 'pendentes';
+                overlay.innerHTML = `
+                    <div class="app-modal lista-compras-category-modal" role="dialog" aria-modal="true" aria-labelledby="lista-categoria-modal-title">
+                        <header class="lista-compras-category-modal__head">
+                            <div>
+                                <span class="lista-compras-category-kicker">${escapeHtml(activeCategoria)}</span>
+                                <h4 id="lista-categoria-modal-title">Produtos da categoria</h4>
+                                <p data-lista-filter-meta>${stats.total} itens, ${stats.comprados} comprados e ${stats.pendentes} pendentes.</p>
+                            </div>
+                            <button type="button" class="app-btn app-btn-secondary" data-action="lista-close-category-modal">Fechar</button>
+                        </header>
+                        <div class="lista-compras-modal-filterbar" role="tablist" aria-label="Filtro da categoria">
+                            <button type="button" class="lista-compras-filter-btn" data-filter="pendentes">Pendentes</button>
+                            <button type="button" class="lista-compras-filter-btn" data-filter="all">Todos</button>
+                            <button type="button" class="lista-compras-filter-btn" data-filter="comprados">Comprados</button>
+                        </div>
+                        <div class="lista-compras-category-modal__actions">
+                            <button type="button" class="app-btn app-btn-secondary" data-action="lista-reset-category">Desmarcar categoria</button>
+                            <button type="button" class="app-btn lista-btn-main" data-action="lista-add-item">Adicionar item</button>
+                        </div>
+                        <ul class="app-list lista-compras-category-list">
+                            ${items.length ? items.map((r) => this.renderListaComprasItemRow(r)).join('') : '<li class="lista-compras-empty">Nenhum item nesta categoria.</li>'}
+                        </ul>
+                        <div class="lista-compras-modal-empty" hidden>Sem itens para este filtro.</div>
+                        <div class="lista-compras-category-modal__footer">Feche este modal e escolha outro badge para trocar de categoria.</div>
+                    </div>
+                `;
+                const close = () => {
+                    overlay.remove();
+                    if (el && el._listaComprasCategoryOverlay === overlay) el._listaComprasCategoryOverlay = null;
+                };
+                overlay.querySelector('[data-action="lista-close-category-modal"]').onclick = close;
+                overlay.querySelector('[data-action="lista-reset-category"]').onclick = () => this.submitListaResetChecks(el, activeCategoria);
+                overlay.querySelector('[data-action="lista-add-item"]').onclick = () => this.openListaComprasModal(el, { categoria: activeCategoria });
+                overlay.querySelectorAll('.lista-compras-filter-btn').forEach((btn) => {
                     btn.onclick = () => {
-                        const col = btn.closest('.lista-compras-col');
-                        const cat = col.getAttribute('data-lista-categoria') || '';
-                        col.classList.toggle('is-collapsed');
-                        const nowCollapsed = col.classList.contains('is-collapsed');
-                        btn.setAttribute('aria-expanded', !nowCollapsed);
-                        let m = {};
-                        try { m = JSON.parse(localStorage.getItem(LS_COLS) || '{}'); } catch (e) { m = {}; }
-                        m[cat] = nowCollapsed;
-                        localStorage.setItem(LS_COLS, JSON.stringify(m));
+                        overlay._listaComprasModalFilter = btn.dataset.filter || 'pendentes';
+                        this.applyListaComprasModalFilter(overlay);
                     };
                 });
-                el.querySelectorAll('.lista-compras-chk').forEach((chk) => {
+                overlay.querySelectorAll('.lista-compras-chk').forEach((chk) => {
                     chk.addEventListener('change', (e) => {
                         e.stopPropagation();
                         this.submitListaSetComprado(chk.dataset.id, chk.checked, el);
                     });
                 });
-                el.querySelectorAll('[data-action="lista-edit"]').forEach((btn) => {
+                overlay.querySelectorAll('[data-action="lista-edit"]').forEach((btn) => {
                     btn.onclick = (e) => {
                         e.stopPropagation();
                         const id = btn.dataset.id;
                         const r = rows.find((x) => String(x.id) === String(id));
                         if (!r) return;
-                        this.openListaComprasModal(el, { item: r });
+                        this.openListaComprasModal(el, { item: r, categoria: activeCategoria });
                     };
                 });
-                el.querySelectorAll('[data-action="lista-delete-item"]').forEach((btn) => {
-                    btn.onclick = (e) => { e.stopPropagation(); this.submitListaItemDelete(btn.dataset.id, el); };
+                overlay.querySelectorAll('[data-action="lista-delete-item"]').forEach((btn) => {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        this.submitListaItemDelete(btn.dataset.id, el);
+                    };
                 });
+                overlay.onclick = (evt) => {
+                    if (evt.target === overlay) close();
+                };
+                document.body.appendChild(overlay);
+                if (el) el._listaComprasCategoryOverlay = overlay;
+                this.applyListaComprasModalFilter(overlay);
             }
-
-            openListaComprasModal(el, { item = null } = {}) {
-                const categorias = ['Mantimentos', 'Higiene / limpeza', 'Feira', 'Carnes'];
+            async refreshListaComprasContent(el, { openCategoryModal = false, categoria = null } = {}) {
+                const activeCategoria = this.getListaComprasCategoriaVal(categoria || el?._listaComprasActiveCategoria || this.loadListaComprasActiveCategoria());
+                const previousScrollTop = el ? el.scrollTop || 0 : 0;
+                try {
+                    if (el?._listaComprasCategoryOverlay) {
+                        el._listaComprasCategoryOverlay.remove();
+                        el._listaComprasCategoryOverlay = null;
+                    }
+                    const res = await fetch('/api/lista-compras', { cache: 'no-store' });
+                    const data = await this.readApiJsonOrThrow(res, 'Falha ao carregar lista de compras');
+                    this.renderListaComprasContent(el, data);
+                    if (Number.isFinite(previousScrollTop) && el) {
+                        requestAnimationFrame(() => {
+                            el.scrollTop = previousScrollTop;
+                        });
+                    }
+                    if (openCategoryModal) this.openListaComprasCategoriaModal(el, activeCategoria);
+                } catch (err) {
+                    console.error(err);
+                    alert(err.message || 'Erro ao carregar lista de compras');
+                }
+            }
+            openListaComprasModal(el, { item = null, categoria = null } = {}) {
+                const categorias = this.getListaComprasCategorias();
                 const editId = item?.id != null ? String(item.id) : '';
                 const chipsHtml = categorias.map((c) => {
                     const esc = escapeHtml(c);
@@ -8626,7 +9197,7 @@
                 const catOptionsHtml = categorias.map((c) => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
                 const initialItem = item ? escapeHtml(item.item || '') : '';
                 const initialQtd = item ? Number(item.quantidade || 1) : 1;
-                const initialCat = item && categorias.includes(item.categoria) ? item.categoria : categorias[0];
+                const initialCat = item && categorias.includes(item.categoria) ? item.categoria : this.getListaComprasCategoriaVal(categoria || categorias[0]);
                 const uRaw = item ? String(item.unidade_medida || '').trim() : '';
                 const unidadeOpts = ['Kg', 'L', 'g', 'UN'];
                 let unidadeValue = '';
@@ -8643,14 +9214,14 @@
                             <header class="lista-entry-hero">
                                 <span class="lista-entry-hero-badge">Mercado</span>
                                 <div>
-                                    <h3 class="lista-entry-title" id="lista-modal-heading">${item ? 'Editar item' : 'Adicionar à lista'}</h3>
-                                    <p class="lista-entry-sub">${item ? 'Ajuste nome, quantidade ou corredor.' : 'Abra o formulário pelo + e monte o item antes de ir ao mercado.'}</p>
+                                    <h3 class="lista-entry-title" id="lista-modal-heading">${item ? 'Editar item' : 'Adicionar a lista'}</h3>
+                                    <p class="lista-entry-sub">${item ? 'Ajuste nome, quantidade ou corredor.' : 'Abra o formulario pelo + e monte o item antes de ir ao mercado.'}</p>
                                 </div>
                             </header>
                             <div class="lista-entry-grid">
                                 <div class="field lista-field-span-2"><label for="lista-modal-item">Produto</label><input type="text" id="lista-modal-item" value="${initialItem}" placeholder="Ex.: Leite integral, papel toalha..." autocomplete="off" /></div>
                                 <div class="field"><label for="lista-modal-qtd">Quantidade</label><input type="number" min="1" id="lista-modal-qtd" value="${initialQtd}" /></div>
-                                <div class="field"><label for="lista-modal-unidade">Unidade</label><select id="lista-modal-unidade"><option value="">—</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
+                                <div class="field"><label for="lista-modal-unidade">Unidade</label><select id="lista-modal-unidade"><option value="">-</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
                             </div>
                             <div class="lista-cat-block">
                                 <span class="lista-cat-heading">Corredor</span>
@@ -8695,25 +9266,65 @@
                         categoria: selListaCat ? selListaCat.value : categorias[0],
                         unidade: (overlay.querySelector('#lista-modal-unidade').value || '').trim(),
                     };
-                    const ok = await this.submitListaComprasPayload(payload);
+                    const ok = await this.submitListaComprasPayload(payload, el);
                     if (ok) close();
                 };
                 document.body.appendChild(overlay);
                 const focusEl = overlay.querySelector('#lista-modal-item');
                 if (focusEl) focusEl.focus();
             }
-
             async submitListaSetComprado(id, comprado, el) {
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, comprado }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
-                    await this.refreshAppContent('lista_compras');
+                    if (el && Array.isArray(el._listaComprasRows)) {
+                        const row = el._listaComprasRows.find((r) => String(r.id) === String(id));
+                        if (row) row.comprado = Boolean(comprado);
+                        const itemEl = document.querySelector(`.lista-compras-category-overlay .lista-compras-item[data-id="${CSS.escape(String(id))}"]`);
+                        if (itemEl) {
+                            itemEl.classList.toggle('comprado', Boolean(comprado));
+                            const chk = itemEl.querySelector('.lista-compras-chk');
+                            if (chk) chk.checked = Boolean(comprado);
+                        }
+                        this.syncListaComprasUI(el);
+                    }
                 } catch (e) {
                     alert(e.message);
-                    await this.refreshAppContent('lista_compras');
+                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(el?._listaComprasCategoryOverlay), categoria: el?._listaComprasActiveCategoria || null });
                 }
             }
-            async submitListaComprasPayload(payload) {
+            syncListaComprasUI(el) {
+                if (!el) return;
+                const rows = Array.isArray(el._listaComprasRows) ? el._listaComprasRows : [];
+                const activeCategoria = this.getListaComprasCategoriaVal(el._listaComprasActiveCategoria || this.loadListaComprasActiveCategoria());
+                const statsAll = rows.reduce((acc, row) => {
+                    acc.total += 1;
+                    if (row?.comprado) acc.comprados += 1;
+                    return acc;
+                }, { total: 0, comprados: 0 });
+                const statsCategoria = this.getListaComprasStats(rows, activeCategoria);
+                const totalEl = el.querySelector('[data-lista-summary-total]');
+                const compradosEl = el.querySelector('[data-lista-summary-comprados]');
+                const pendentesEl = el.querySelector('[data-lista-summary-pendentes]');
+                const activeTitleEl = el.querySelector('[data-lista-active-title]');
+                const activeSubtitleEl = el.querySelector('[data-lista-active-subtitle]');
+                if (totalEl) totalEl.textContent = String(statsAll.total);
+                if (compradosEl) compradosEl.textContent = String(statsAll.comprados);
+                if (pendentesEl) pendentesEl.textContent = String(Math.max(0, statsAll.total - statsAll.comprados));
+                if (activeTitleEl) activeTitleEl.textContent = activeCategoria;
+                if (activeSubtitleEl) activeSubtitleEl.textContent = `${statsCategoria.total} itens nessa categoria`;
+                const categoryModal = document.querySelector('.lista-compras-category-overlay');
+                if (categoryModal) {
+                    const title = categoryModal.querySelector('#lista-categoria-modal-title');
+                    const kicker = categoryModal.querySelector('.lista-compras-category-kicker');
+                    const subtitle = categoryModal.querySelector('[data-lista-filter-meta]');
+                    if (kicker) kicker.textContent = activeCategoria;
+                    if (title) title.textContent = 'Produtos da categoria';
+                    if (subtitle) subtitle.textContent = `${statsCategoria.total} itens, ${statsCategoria.comprados} comprados e ${statsCategoria.pendentes} pendentes.`;
+                    this.applyListaComprasModalFilter(categoryModal);
+                }
+            }
+            async submitListaComprasPayload(payload, el) {
                 const editId = String(payload?.editId || '').trim();
                 const item = String(payload?.item || '').trim();
                 const quantidade = parseInt(payload?.quantidade, 10) || 1;
@@ -8728,7 +9339,12 @@
                         const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade, categoria, unidade_medida: unidade || undefined }) });
                         if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     }
-                    await this.refreshAppContent('lista_compras');
+                    if (el) {
+                        const keepCategory = el._listaComprasCategoryOverlay ? (el._listaComprasActiveCategoria || categoria) : null;
+                        await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(keepCategory), categoria: keepCategory || categoria });
+                    } else {
+                        await this.refreshAppContent('lista_compras');
+                    }
                     return true;
                 } catch (e) {
                     alert(e.message);
@@ -8740,15 +9356,29 @@
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
-                    await this.refreshAppContent('lista_compras');
+                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(el?._listaComprasCategoryOverlay), categoria: el?._listaComprasActiveCategoria || null });
+                } catch (e) { alert(e.message); }
+            }
+            async submitListaResetChecks(el, categoria = null) {
+                const targetCategoria = categoria ? this.getListaComprasCategoriaVal(categoria) : null;
+                const confirmMsg = targetCategoria
+                    ? `Desmarcar todos os itens da categoria ${targetCategoria}?`
+                    : 'Desmarcar todos os itens da lista?';
+                if (!confirm(confirmMsg)) return;
+                try {
+                    const body = { reset_checks: true };
+                    if (targetCategoria) body.categoria = targetCategoria;
+                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
+                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(targetCategoria || el?._listaComprasCategoryOverlay), categoria: targetCategoria || el?._listaComprasActiveCategoria || null });
                 } catch (e) { alert(e.message); }
             }
             async submitListaDeleteAll(el) {
-                if (!confirm('Apagar TODOS os itens da lista? Não é possível desfazer.')) return;
+                if (!confirm('Apagar TODOS os itens da lista? Nao é possivel desfazer.')) return;
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete_all: true }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
-                    await this.refreshAppContent('lista_compras');
+                    await this.refreshListaComprasContent(el, { openCategoryModal: false });
                 } catch (e) { alert(e.message); }
             }
 

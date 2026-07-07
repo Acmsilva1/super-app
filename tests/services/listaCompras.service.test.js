@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   contarComprados,
   contarPendentes,
+  normalizarCategoriaLista,
   ordenarPorCategoria,
   payloadInsert,
   toggleComprado,
@@ -26,6 +27,11 @@ describe('listaComprasService', () => {
     const rows = [{ comprado: true }, { comprado: false }, { comprado: false }];
     expect(contarComprados(rows)).toBe(1);
     expect(contarPendentes(rows)).toBe(2);
+  });
+
+  it('normaliza categoria com fallback seguro', () => {
+    expect(normalizarCategoriaLista('Feira')).toBe('Feira');
+    expect(normalizarCategoriaLista('Inexistente')).toBe('Mantimentos');
   });
 
   it('ordena por categoria e data', () => {

@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase.js';
 import {
   TABLE_NAME,
+  CATEGORIAS_LISTA,
   payloadInsert,
   payloadUpdate,
   toggleComprado,
@@ -38,11 +39,21 @@ export default async function handler(req, res) {
     const { id, toggle, reset_checks, item, quantidade, unidade_medida, comprado, categoria } = body;
     if (!id && !reset_checks) return json(res, 400, { error: 'id ou reset_checks obrigatorio' });
     if (reset_checks) {
+      const categoriaRaw = body.categoria != null ? String(body.categoria).trim() : '';
+      if (categoriaRaw && !CATEGORIAS_LISTA.includes(categoriaRaw)) {
+        return json(res, 400, { error: 'categoria invalida' });
+      }
+      const payload = resetChecksPayload();
+      const query = supabase.from(TABLE_NAME).update(payload);
+      if (categoriaRaw) {
+        const { data, error } = await query.eq('categoria', categoriaRaw).select();
+        if (error) return json(res, 500, { error: error.message });
+        return json(res, 200, { updated: data?.length ?? 0 });
+      }
       const { data: rows } = await supabase.from(TABLE_NAME).select('id');
       const ids = (rows || []).map((r) => r.id).filter(Boolean);
       if (ids.length === 0) return json(res, 200, { updated: 0 });
-      const payload = resetChecksPayload();
-      const { data, error } = await supabase.from(TABLE_NAME).update(payload).in('id', ids).select();
+      const { data, error } = await query.in('id', ids).select();
       if (error) return json(res, 500, { error: error.message });
       return json(res, 200, { updated: data?.length ?? 0 });
     }
