@@ -4777,7 +4777,49 @@
                 padding: 0.85rem;
             }
             .lista-compras-category-list li {
-                flex-direction: column;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.65rem;
+                padding: 0.72rem 0.78rem;
+            }
+            .lista-compras-item-main {
+                align-items: center;
+                gap: 0.5rem;
+                min-width: 0;
+                flex: 1 1 auto;
+            }
+            .lista-compras-item-copy {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 0.35rem;
+                min-width: 0;
+                flex-wrap: nowrap;
+            }
+            .lista-compras-item-copy .item-text {
+                min-width: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .lista-compras-item-meta {
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+            .lista-compras-item-actions {
+                display: flex;
+                align-items: center;
+                gap: 0.35rem;
+                flex-shrink: 0;
+            }
+            .lista-compras-item-actions button {
+                white-space: nowrap;
+                padding: 0.3rem 0.5rem;
+                font-size: 0.7rem;
+            }
+            .lista-compras-status-badge {
+                display: none;
             }
         }
         [data-theme="light"] .lista-compras-hero-card {
@@ -9775,5 +9817,6 @@
     </script>
 </body>
 </html>
+
 
 
