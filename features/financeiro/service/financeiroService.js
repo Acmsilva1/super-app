@@ -1,6 +1,9 @@
 import {
+  METODO_COMPRA_A_VISTA,
+  METODO_COMPRA_PARCELADO,
   STATUS_PAGO,
   STATUS_PENDENTE,
+  TIPO_REGISTRO_COMPRA,
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
   TIPO_REGISTRO_META_POUPANCA,
@@ -18,6 +21,18 @@ export function normalizeFinanceiroMetodoPagamento(value) {
   if (raw.includes('credito')) return 'credito';
   if (raw.includes('debito') || raw.includes('pix')) return 'debito_pix';
   return raw;
+}
+
+export function normalizeCompraMetodoPagamento(value) {
+  const raw = String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '');
+  if (!raw) return '';
+  if (raw === 'avista' || raw === 'avist') return METODO_COMPRA_A_VISTA;
+  if (raw === 'parcelado') return METODO_COMPRA_PARCELADO;
+  return '';
 }
 
 export function normalizeFinanceiroCategoriaText(value) {
@@ -341,6 +356,22 @@ export function payloadInsertFinanceiro(body = {}) {
     };
   }
 
+  if (tipoRegistro === TIPO_REGISTRO_COMPRA) {
+    if (!(body.descricao != null && String(body.descricao).trim() !== '')) return { error: 'descricao obrigatoria' };
+    const metodo = normalizeCompraMetodoPagamento(body.metodo_pagamento || METODO_COMPRA_A_VISTA);
+    if (!metodo) return { error: 'metodo_pagamento invalido' };
+    return {
+      tipo_registro: tipoRegistro,
+      payload: {
+        descricao: String(body.descricao || '').trim(),
+        valor: Math.round((Number(body.valor) || 0) * 100) / 100,
+        metodo_pagamento: metodo,
+        data_lancamento: body.data_lancamento || getBrazilTodayIso(),
+        ...(body.created_at !== undefined ? { created_at: String(body.created_at || '').trim() || null } : {}),
+      },
+    };
+  }
+
   if (tipoRegistro === TIPO_REGISTRO_META_POUPANCA) {
     const nomeMeta = String(body.nome_meta || body.descricao || '').trim();
     if (!nomeMeta) return { error: 'nome_meta obrigatorio' };
@@ -424,6 +455,24 @@ export function payloadUpdateFinanceiro(body = {}) {
     const out = {};
     if (body.descricao !== undefined) out.descricao = String(body.descricao || 'Poupança').trim() || 'Poupança';
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
+    if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
+    if (body.created_at !== undefined) out.created_at = String(body.created_at || '').trim() || null;
+    if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
+    return { tipo_registro: tipoRegistro, id: body.id, payload: out };
+  }
+
+  if (tipoRegistro === TIPO_REGISTRO_COMPRA) {
+    const out = {};
+    if (body.descricao !== undefined) {
+      out.descricao = String(body.descricao || '').trim();
+      if (!out.descricao) return { error: 'descricao obrigatoria' };
+    }
+    if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
+    if (body.metodo_pagamento !== undefined) {
+      const metodo = normalizeCompraMetodoPagamento(body.metodo_pagamento);
+      if (!metodo) return { error: 'metodo_pagamento invalido' };
+      out.metodo_pagamento = metodo;
+    }
     if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
     if (body.created_at !== undefined) out.created_at = String(body.created_at || '').trim() || null;
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };

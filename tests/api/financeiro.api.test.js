@@ -127,6 +127,50 @@ describe('API do financeiro', () => {
     expect(res.body.tipo_registro).toBe('gasto_variado');
   });
 
+  it('cria um registro de compra em tb_compras', async () => {
+    const compraInsert = vi.fn((payload) => ({
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 12,
+            ...payload,
+          },
+          error: null,
+        }),
+      })),
+    }));
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_compras') {
+        return {
+          insert: compraInsert,
+        };
+      }
+      throw new Error(`Tabela inesperada: ${table}`);
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .post('/api/test')
+      .send({
+        tipo_registro: 'compra',
+        descricao: 'Geladeira',
+        valor: 2800,
+        metodo_pagamento: 'a_vista',
+        data_lancamento: '2026-07-10',
+        created_at: '2026-07-10T15:00:00.000Z',
+      });
+
+    expect(res.status).toBe(201);
+    expect(compraInsert).toHaveBeenCalledWith(expect.objectContaining({
+      descricao: 'Geladeira',
+      valor: 2800,
+      metodo_pagamento: 'a_vista',
+      data_lancamento: '2026-07-10',
+    }));
+    expect(res.body.tipo_registro).toBe('compra');
+  });
+
   it('atualiza um registro financeiro sem chamar a tabela de saldo', async () => {
     const financeUpdate = vi.fn(() => ({
       eq: vi.fn(() => ({

@@ -209,6 +209,46 @@ describe('financeiroService', () => {
     expect(out.error).toBe('tipo_registro invalido');
   });
 
+  it('grava compra com metodo a_vista ou parcelado', () => {
+    const ins = payloadInsertFinanceiro({
+      tipo_registro: 'compra',
+      descricao: 'Notebook',
+      valor: 3200.5,
+      metodo_pagamento: 'parcelado',
+      data_lancamento: '2026-07-10',
+    });
+    expect(ins.error).toBeUndefined();
+    expect(ins.tipo_registro).toBe('compra');
+    expect(ins.payload).toMatchObject({
+      descricao: 'Notebook',
+      valor: 3200.5,
+      metodo_pagamento: 'parcelado',
+      data_lancamento: '2026-07-10',
+    });
+    expect(ins.payload.tipo).toBeUndefined();
+    expect(ins.payload.categoria).toBeUndefined();
+
+    const upd = payloadUpdateFinanceiro({
+      id: 7,
+      tipo_registro: 'compra',
+      metodo_pagamento: 'à vista',
+      valor: 100,
+    });
+    expect(upd.error).toBeUndefined();
+    expect(upd.payload.metodo_pagamento).toBe('a_vista');
+    expect(upd.payload.valor).toBe(100);
+  });
+
+  it('rejeita metodo_pagamento invalido em compra', () => {
+    const out = payloadInsertFinanceiro({
+      tipo_registro: 'compra',
+      descricao: 'Sofá',
+      valor: 900,
+      metodo_pagamento: 'credito',
+    });
+    expect(out.error).toBe('metodo_pagamento invalido');
+  });
+
   it('rejeita saldo de conta corrente como tipo invalido', () => {
     const insert = payloadInsertFinanceiro({
       tipo_registro: 'saldo_conta_corrente',
