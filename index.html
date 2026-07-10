@@ -7102,21 +7102,18 @@
                     return 'À vista';
                 };
                 const rowsComprasHtml = comprasLogs.length
-                    ? comprasLogs.map((r) => {
-                        const hora = fmtHoraBrasilia(r.created_at);
-                        return `<tr>
+                    ? comprasLogs.map((r) => `<tr>
                             <td><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong></td>
                             <td style="color:#ef4444">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                             <td>${escapeHtml(labelMetodoCompra(r.metodo_pagamento))}</td>
-                            <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
+                            <td>${escapeHtml(fmtDataBr(lancDate(r)))}</td>
                             <td class="col-actions">
                                 <div class="app-list-actions">
                                     <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="compra">Editar</button>
                                     <button type="button" data-action="financeiro-delete" data-id="${r.id}" data-tipo-registro="compra">Excluir</button>
                                 </div>
                             </td>
-                        </tr>`;
-                    }).join('')
+                        </tr>`).join('')
                     : '<tr><td colspan="5" class="module-table-empty">Nenhuma compra neste mês.</td></tr>';
                 const metaNome = String(poupancaMetaAtiva?.nome_meta || '').trim();
                 const metaId = Number(poupancaMetaAtiva?.id || 0);
