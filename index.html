@@ -6077,6 +6077,15 @@
                     ...(this.uiState.appMeta[appId] || {}),
                     ...patch,
                 };
+                if (this.uiState.checkpoint && typeof this.uiState.checkpoint === 'object') {
+                    if (!this.uiState.checkpoint.appMeta || typeof this.uiState.checkpoint.appMeta !== 'object') {
+                        this.uiState.checkpoint.appMeta = {};
+                    }
+                    this.uiState.checkpoint.appMeta[appId] = {
+                        ...(this.uiState.checkpoint.appMeta[appId] || {}),
+                        ...patch,
+                    };
+                }
                 this.saveUiState();
             }
 
@@ -6816,10 +6825,21 @@
                 let mesAno = contentEl.getAttribute('data-mes-ano');
                 if (appId === 'financeiro' && !mesAno) mesAno = this.getMesAnoAtual();
                 if (appId === 'financeiro') {
-                    const financeCheckpoint = this.uiState.checkpoint?.appMeta?.financeiro || this.uiState.appMeta?.financeiro || {};
+                    const financeCheckpoint = {
+                        ...(this.uiState.checkpoint?.appMeta?.financeiro || {}),
+                        ...(this.uiState.appMeta?.financeiro || {}),
+                    };
                     if (!mesAno && financeCheckpoint.mesAno) mesAno = financeCheckpoint.mesAno;
-                    contentEl.setAttribute('data-active-tab', financeCheckpoint.activeTab || 'data');
-                    if (financeCheckpoint.activeDataFilter) contentEl.setAttribute('data-active-data-filter', financeCheckpoint.activeDataFilter);
+                    const validTabs = ['summary', 'data', 'poupanca', 'compras'];
+                    const tabFromDom = String(contentEl.getAttribute('data-active-tab') || '').toLowerCase();
+                    const tabFromMeta = String(financeCheckpoint.activeTab || '').toLowerCase();
+                    const resolvedTab = validTabs.includes(tabFromDom)
+                        ? tabFromDom
+                        : (validTabs.includes(tabFromMeta) ? tabFromMeta : 'data');
+                    contentEl.setAttribute('data-active-tab', resolvedTab);
+                    if (financeCheckpoint.activeDataFilter) {
+                        contentEl.setAttribute('data-active-data-filter', financeCheckpoint.activeDataFilter);
+                    }
                 }
                 try {
                     let url = '/api/' + path;
@@ -6841,7 +6861,20 @@
                 const win = this.openWindows.get(appId);
                 if (win) {
                     const contentEl = win.querySelector('.window-content');
-                    if (contentEl) await this.loadAppContent(appId, contentEl);
+                    if (contentEl) {
+                        if (appId === 'financeiro') {
+                            const validTabs = ['summary', 'data', 'poupanca', 'compras'];
+                            const tab = String(contentEl.getAttribute('data-active-tab') || '').toLowerCase();
+                            if (validTabs.includes(tab)) {
+                                this.rememberAppCheckpoint('financeiro', {
+                                    activeTab: tab,
+                                    activeDataFilter: contentEl.getAttribute('data-active-data-filter') || '',
+                                    mesAno: contentEl.getAttribute('data-mes-ano') || this.getMesAnoAtual(),
+                                });
+                            }
+                        }
+                        await this.loadAppContent(appId, contentEl);
+                    }
                 }
             }
 
@@ -8184,10 +8217,10 @@
                 const refreshMesAno = () => {
                     const m = el.querySelector('#financeiro-mes').value;
                     const a = el.querySelector('#financeiro-ano').value;
+                    const currentTab = el.getAttribute('data-active-tab') || 'data';
                     el.setAttribute('data-mes-ano', `${a}-${String(m).padStart(2, '0')}`);
-                    setTab('data');
                     this.rememberAppCheckpoint('financeiro', {
-                        activeTab: 'data',
+                        activeTab: currentTab,
                         activeDataFilter: el.getAttribute('data-active-data-filter') || '',
                         mesAno: el.getAttribute('data-mes-ano') || `${a}-${String(m).padStart(2, '0')}`,
                     });
