@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
@@ -149,7 +149,7 @@
         /* Global Select/Menu Styles */
         select { color-scheme: dark; }
         [data-theme="light"] select { color-scheme: light; }
-        
+
         option {
             background: #0f172a;
             color: #f1f5f9;
@@ -2778,6 +2778,7 @@
             backdrop-filter: blur(4px);
         }
         .finance-sticky-head > .module-tabbar,
+        .finance-sticky-head > .module-tab-select-wrap,
         .finance-sticky-head > .finance-data-jump-bar {
             grid-column: 1 / -1;
         }
@@ -2832,6 +2833,33 @@
         .module-tab-btn:not(.is-active):hover {
             color: #d8e8ff;
             transform: translateY(-1px);
+        }
+        .module-tab-select-wrap {
+            display: none;
+        }
+        .module-tab-select-label {
+            display: block;
+            margin-bottom: 0.28rem;
+            color: #9fb6d8;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .module-tab-select {
+            width: 100%;
+            min-height: 2.55rem;
+            border: 1px solid rgba(96, 136, 194, 0.48);
+            border-radius: 0.72rem;
+            padding: 0 2.35rem 0 0.85rem;
+            background:
+                linear-gradient(135deg, rgba(15, 27, 48, 0.96), rgba(10, 24, 45, 0.96)),
+                #0f1b30;
+            color: #eaf4ff;
+            font-size: 0.88rem;
+            font-weight: 800;
+            outline: none;
+            box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.08);
         }
         .module-tab-panel {
             display: grid;
@@ -3593,6 +3621,40 @@
             width: 1%;
             white-space: nowrap;
         }
+        .finance-row-actions {
+            justify-content: flex-end;
+            gap: 0.38rem;
+        }
+        .app-list-actions .finance-icon-action {
+            display: inline-grid;
+            place-items: center;
+            width: 2rem;
+            height: 2rem;
+            padding: 0;
+            border-radius: 0.55rem;
+            border: 1px solid rgba(99, 139, 198, 0.38);
+            background: rgba(12, 24, 46, 0.86);
+            color: #dceafe;
+            cursor: pointer;
+            transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+        }
+        .app-list-actions .finance-icon-action:hover {
+            transform: translateY(-1px);
+            border-color: rgba(56, 189, 248, 0.55);
+            background: rgba(22, 40, 68, 0.96);
+            color: #ffffff;
+        }
+        .app-list-actions .finance-icon-action--delete {
+            color: #fecaca;
+        }
+        .app-list-actions .finance-icon-action--delete:hover {
+            border-color: rgba(248, 113, 113, 0.56);
+            background: rgba(127, 29, 29, 0.46);
+            color: #fff1f2;
+        }
+        .finance-limited-table-wrap .finance-table-scroll {
+            max-height: calc(2.35rem + (6 * 3.05rem));
+        }
         .module-table-empty {
             text-align: center;
             color: #9ca3af;
@@ -3746,10 +3808,13 @@
                 font-size: 0.78rem;
             }
             .finance-sticky-head > .module-tabbar {
+                display: none;
+            }
+            .finance-sticky-head > .module-tab-select-wrap {
+                display: block;
                 grid-column: 1 / -1;
                 grid-row: 2;
                 order: unset;
-                display: flex;
                 width: 100%;
             }
             .finance-sticky-head > .finance-data-jump-bar {
@@ -3859,6 +3924,34 @@
                 flex: 1 1 auto;
                 min-height: 0;
                 max-height: none;
+            }
+            .window-content[data-active-tab="compras"] {
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+            }
+            .window-content[data-active-tab="compras"] .finance-module-shell {
+                flex: 1 1 auto;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                padding-bottom: 4.75rem;
+            }
+            .window-content[data-active-tab="compras"] .finance-sticky-head,
+            .window-content[data-active-tab="compras"] .app-totais {
+                flex-shrink: 0;
+            }
+            .window-content[data-active-tab="compras"] .module-tab-panel[data-tab-panel="compras"] {
+                flex: 1 1 auto;
+                min-height: 0;
+                display: flex !important;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            .window-content[data-active-tab="compras"] .finance-limited-table-wrap {
+                flex: 0 1 auto;
+                min-height: 0;
             }
             .module-tabbar {
                 width: 100%;
@@ -6976,6 +7069,14 @@
                     neutro: 'neutro',
                 }[key] || 'neutro');
 
+                const financeRowActions = (id, tipoRegistro) => {
+                    const safeId = escapeHtml(String(id ?? ''));
+                    const safeTipo = escapeHtml(String(tipoRegistro || ''));
+                    return `<div class="app-list-actions finance-row-actions">
+                        <button type="button" class="finance-icon-action finance-icon-action--edit" data-action="financeiro-edit" data-id="${safeId}" data-tipo-registro="${safeTipo}" aria-label="Editar" title="Editar"><i class="fas fa-pen"></i></button>
+                        <button type="button" class="finance-icon-action finance-icon-action--delete" data-action="financeiro-delete" data-id="${safeId}" data-tipo-registro="${safeTipo}" aria-label="Excluir" title="Excluir"><i class="fas fa-trash"></i></button>
+                    </div>`;
+                };
                 const mkRowFixa = (r) => {
                     const statusRaw = String(r.status || 'pendente').toLowerCase();
                     const statusLabel = statusRaw === 'pago' ? 'Pago' : 'Pendente';
@@ -6995,10 +7096,7 @@
                         <td class="col-valor" style="color:${statusRaw === 'pago' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td class="col-categoria">${escapeHtml(fixaCategoriaLabel(categoriaKey))}</td>
                         <td class="col-actions">
-                            <div class="app-list-actions">
-                                <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="despesa_fixa">Editar</button>
-                                <button type="button" data-action="financeiro-delete" data-id="${r.id}" data-tipo-registro="despesa_fixa">Excluir</button>
-                            </div>
+${financeRowActions(r.id, 'despesa_fixa')}
                         </td>
                     </tr>`;
                 };
@@ -7010,10 +7108,7 @@
                         <td class="col-valor" style="color:${String(r.tipo_registro) === 'receita' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td class="col-categoria">${escapeHtml(canonicalFinanceiroCategoriaLabel(r.categoria || '--'))}</td>
                         <td class="col-actions">
-                            <div class="app-list-actions">
-                                <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="${escapeHtml(r.tipo_registro || 'gasto_variado')}">Editar</button>
-                                <button type="button" data-action="financeiro-delete" data-id="${r.id}" data-tipo-registro="${escapeHtml(r.tipo_registro || 'gasto_variado')}">Excluir</button>
-                            </div>
+${financeRowActions(r.id, r.tipo_registro || 'gasto_variado')}
                         </td>
                     </tr>`;
                 };
@@ -7023,10 +7118,7 @@
                         <td class="col-valor" style="color:#22c55e">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td class="col-categoria">${escapeHtml(canonicalFinanceiroCategoriaLabel(r.categoria || '--'))}</td>
                         <td class="col-actions">
-                            <div class="app-list-actions">
-                                <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="${escapeHtml(r.tipo_registro || 'receita')}">Editar</button>
-                                <button type="button" data-action="financeiro-delete" data-id="${r.id}" data-tipo-registro="${escapeHtml(r.tipo_registro || 'receita')}">Excluir</button>
-                            </div>
+${financeRowActions(r.id, r.tipo_registro || 'receita')}
                         </td>
                     </tr>`;
                 const resumoFinanceiro = data?.dashboard || {};
@@ -7038,7 +7130,7 @@
                 const pendenteVal = Number(pagosPendentes.pendente) || 0;
 
                 const stampFixa = (r) => String(r?.created_at || r?.data_lancamento || '');
-                
+
                 const sortByValorDesc = (rows) => [...rows].sort((a, b) => {
                     const da = stampFixa(a);
                     const db = stampFixa(b);
@@ -7088,10 +7180,7 @@
                             <td style="color:#22c55e">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                             <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
                             <td class="col-actions">
-                                <div class="app-list-actions">
-                                    <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="poupanca">Editar</button>
-                                    <button type="button" data-action="financeiro-delete" data-id="${r.id}" data-tipo-registro="poupanca">Excluir</button>
-                                </div>
+${financeRowActions(r.id, 'poupanca')}
                             </td>
                         </tr>`;
                     }).join('')
@@ -7108,10 +7197,7 @@
                             <td>${escapeHtml(labelMetodoCompra(r.metodo_pagamento))}</td>
                             <td>${escapeHtml(fmtDataBr(lancDate(r)))}</td>
                             <td class="col-actions">
-                                <div class="app-list-actions">
-                                    <button type="button" data-action="financeiro-edit" data-id="${r.id}" data-tipo-registro="compra">Editar</button>
-                                    <button type="button" data-action="financeiro-delete" data-id="${r.id}" data-tipo-registro="compra">Excluir</button>
-                                </div>
+${financeRowActions(r.id, 'compra')}
                             </td>
                         </tr>`).join('')
                     : '<tr><td colspan="5" class="module-table-empty">Nenhuma compra neste mês.</td></tr>';
@@ -7132,10 +7218,19 @@
                                 <select id="financeiro-mes">${meses.map((m, i) => `<option value="${i + 1}" ${(i + 1 === mes) ? 'selected' : ''}>${m}</option>`).join('')}</select>
                                 <select id="financeiro-ano">${anos.map((a) => `<option value="${a}" ${(a === ano) ? 'selected' : ''}>${a}</option>`).join('')}</select>
                             </div>
+                            <div class="module-tab-select-wrap">
+                                <label class="module-tab-select-label" for="financeiro-tab-select">Aba</label>
+                                <select id="financeiro-tab-select" class="module-tab-select" aria-label="Escolher aba de financeiro">
+                                    <option value="data" ${activeTab === 'data' ? 'selected' : ''}>Dados</option>
+                                    <option value="summary" ${activeTab === 'summary' ? 'selected' : ''}>Dashboards</option>
+                                    <option value="poupanca" ${activeTab === 'poupanca' ? 'selected' : ''}>Poupan&ccedil;a</option>
+                                    <option value="compras" ${activeTab === 'compras' ? 'selected' : ''}>Compras</option>
+                                </select>
+                            </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Dashboards</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupança</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupan&ccedil;a</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}">Compras</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
@@ -7312,7 +7407,7 @@
                                     </div>
                                 </div>
                             ` : ''}
-                            <div class="module-table-wrap finance-poupanca-table-wrap">
+                            <div class="module-table-wrap finance-poupanca-table-wrap finance-limited-table-wrap">
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
                                         <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
@@ -7326,7 +7421,7 @@
                                 <div class="totais-card"><div class="val" style="color:#ef4444">${this.formatMoneyBr(comprasTotal)}</div><div class="stat-label">Total em compras neste mês</div></div>
                             </div>
                             ${comprasConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_compras` não encontrada no Supabase. Crie a tabela para habilitar este módulo.</p>'}
-                            <div class="module-table-wrap finance-poupanca-table-wrap">
+                            <div class="module-table-wrap finance-poupanca-table-wrap finance-limited-table-wrap">
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
                                         <thead><tr><th>Item</th><th>Valor</th><th>Pagamento</th><th>Data</th><th>Ações</th></tr></thead>
@@ -8157,6 +8252,8 @@
                         btn.classList.toggle('is-active', active);
                         btn.setAttribute('aria-selected', active ? 'true' : 'false');
                     });
+                    const tabSelect = el.querySelector('#financeiro-tab-select');
+                    if (tabSelect && tabSelect.value !== tab) tabSelect.value = tab;
                     el.querySelectorAll('[data-tab-panel]').forEach((panel) => {
                         panel.classList.toggle('hidden', panel.dataset.tabPanel !== tab);
                     });
@@ -8180,6 +8277,14 @@
                         if (t === 'data') applyFinanceDataFilter(el.getAttribute('data-active-data-filter') || '');
                     };
                 });
+                const tabSelect = el.querySelector('#financeiro-tab-select');
+                if (tabSelect) {
+                    tabSelect.onchange = () => {
+                        const t = tabSelect.value || 'data';
+                        setTab(t);
+                        if (t === 'data') applyFinanceDataFilter(el.getAttribute('data-active-data-filter') || '');
+                    };
+                }
                 if (!el._financeiroAnalistaRefreshBound) {
                     el._financeiroAnalistaRefreshBound = true;
                     el.addEventListener('click', async (event) => {
@@ -8593,7 +8698,7 @@
                             </div>
                         </div>
                         <div class="app-modal-actions finance-modal-actions">
-                            
+
                             <div class="finance-modal-actions-right">
                                 <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
                                 <button type="button" class="app-btn" data-action="modal-save">${item ? 'Salvar' : 'Registrar'}</button>
@@ -8632,7 +8737,7 @@
                     dataEl.addEventListener('change', keepFixedFinanceiroTime);
                     dataEl.addEventListener('blur', keepFixedFinanceiroTime);
                 }
-                
+
                 const syncParcelasUI = () => {
                     const t = tipoEl.value;
                     const showBlk = t === 'despesa_fixa';
@@ -9786,7 +9891,7 @@
             // ============================================
             // MÉTODOS PARA INTEGRAÇÃO COM BACKEND
             // ============================================
-            
+
             /**
              * Método para você chamar quando receber dados do backend
              * Exemplo: superApp.setApps(dataFromBackend)
@@ -9823,7 +9928,7 @@
         // ============================================
         // EXEMPLO DE COMO INTEGRAR COM BACKEND
         // ============================================
-        
+
         /*
         // Exemplo 1: Carregar dados quando página carrega
         window.addEventListener('load', async () => {
@@ -9943,6 +10048,3 @@
     </script>
 </body>
 </html>
-
-
-
