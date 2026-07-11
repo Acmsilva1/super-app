@@ -3181,6 +3181,45 @@
         .finance-data-jump-bar[role='tablist'] {
             outline: none;
         }
+        .finance-data-jump-select-wrap {
+            display: none;
+            flex: 1 1 100%;
+            min-width: 0;
+        }
+        .finance-data-jump-select-label {
+            display: block;
+            margin-bottom: 0.28rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #9fb4d6;
+        }
+        .finance-data-jump-select {
+            width: 100%;
+            min-width: 0;
+            padding: 0.62rem 0.75rem;
+            border-radius: 0.72rem;
+            border: 1px solid rgba(96, 165, 250, 0.34);
+            background: rgba(9, 18, 34, 0.92);
+            color: #e8f1ff;
+            font: inherit;
+            font-size: 0.88rem;
+            font-weight: 700;
+            line-height: 1.2;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+        [data-theme="light"] .finance-data-jump-select-label {
+            color: #64748b;
+        }
+        [data-theme="light"] .finance-data-jump-select {
+            background: rgba(255, 255, 255, 0.96);
+            color: #0f172a;
+            border-color: rgba(148, 163, 184, 0.34);
+        }
         .finance-filter-chip {
             position: relative;
             cursor: pointer;
@@ -4053,7 +4092,13 @@
             .finance-data-jump-bar::-webkit-scrollbar {
                 display: none;
             }
+            .finance-data-jump-select-wrap {
+                display: block;
+                grid-column: 1 / -1;
+                order: -1;
+            }
             .finance-filter-chip {
+                display: none;
                 min-height: 0;
                 padding: 0.5rem 0.45rem;
                 border-radius: 0.68rem;
@@ -7185,22 +7230,16 @@ ${financeRowActions(r.id, 'poupanca')}
                         </tr>`;
                     }).join('')
                     : '<tr><td colspan="4" class="module-table-empty">Nenhum lançamento em poupança.</td></tr>';
-                const labelMetodoCompra = (metodo) => {
-                    const m = String(metodo || '').toLowerCase();
-                    if (m === 'parcelado') return 'Parcelado';
-                    return 'À vista';
-                };
                 const rowsComprasHtml = comprasLogs.length
                     ? comprasLogs.map((r) => `<tr>
                             <td><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong></td>
-                            <td style="color:#ef4444">${this.formatMoneyBr(Number(r.valor || 0))}</td>
-                            <td>${escapeHtml(labelMetodoCompra(r.metodo_pagamento))}</td>
+                            <td style="color:#f97316">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                             <td>${escapeHtml(fmtDataBr(lancDate(r)))}</td>
                             <td class="col-actions">
 ${financeRowActions(r.id, 'compra')}
                             </td>
                         </tr>`).join('')
-                    : '<tr><td colspan="5" class="module-table-empty">Nenhuma compra neste mês.</td></tr>';
+                    : '<tr><td colspan="4" class="module-table-empty">Nenhuma compra neste mês.</td></tr>';
                 const metaNome = String(poupancaMetaAtiva?.nome_meta || '').trim();
                 const metaId = Number(poupancaMetaAtiva?.id || 0);
                 const metaValor = Number(poupancaMetaAtiva?.valor_meta || 0);
@@ -7234,6 +7273,15 @@ ${financeRowActions(r.id, 'compra')}
                                 <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}">Compras</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
+                                <div class="finance-data-jump-select-wrap">
+                                    <label class="finance-data-jump-select-label" for="financeiro-data-filter-select">Tabela</label>
+                                    <select id="financeiro-data-filter-select" class="finance-data-jump-select" aria-label="Escolher tabela de dados">
+                                        <option value="" ${!activeDataFilter ? 'selected' : ''}>Escolha a tabela</option>
+                                        <option value="despesas_fixas" ${activeDataFilter === 'despesas_fixas' ? 'selected' : ''}>Despesas fixas</option>
+                                        <option value="gastos_variados" ${activeDataFilter === 'gastos_variados' ? 'selected' : ''}>Débito / pix</option>
+                                        <option value="receitas" ${activeDataFilter === 'receitas' ? 'selected' : ''}>Receitas</option>
+                                    </select>
+                                </div>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--fixas" data-action="financeiro-data-filter" data-target="despesas_fixas" role="tab" aria-selected="false">
                                     <span class="finance-filter-chip-label">Ver só</span>
                                     <span class="finance-filter-chip-title">Despesas fixas</span>
@@ -7424,7 +7472,7 @@ ${financeRowActions(r.id, 'compra')}
                             <div class="module-table-wrap finance-poupanca-table-wrap finance-limited-table-wrap">
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th>Item</th><th>Valor</th><th>Pagamento</th><th>Data</th><th>Ações</th></tr></thead>
+                                        <thead><tr><th>Item</th><th>Valor</th><th>Data</th><th>A??es</th></tr></thead>
                                         <tbody id="financeiro-table-compras">${rowsComprasHtml}</tbody>
                                     </table>
                                 </div>
@@ -8277,6 +8325,13 @@ ${financeRowActions(r.id, 'compra')}
                         if (t === 'data') applyFinanceDataFilter(el.getAttribute('data-active-data-filter') || '');
                     };
                 });
+                const dataFilterSelect = el.querySelector('#financeiro-data-filter-select');
+                if (dataFilterSelect) {
+                    dataFilterSelect.onchange = () => {
+                        setTab('data');
+                        applyFinanceDataFilter(dataFilterSelect.value || '');
+                    };
+                }
                 const tabSelect = el.querySelector('#financeiro-tab-select');
                 if (tabSelect) {
                     tabSelect.onchange = () => {
@@ -8817,7 +8872,7 @@ ${financeRowActions(r.id, 'compra')}
                     } else if (tipo === 'compra') {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
-                        if (metodoWrap) metodoWrap.style.display = '';
+                        if (metodoWrap) metodoWrap.style.display = 'none';
                         dataWrap.style.display = '';
                         catWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
@@ -8879,8 +8934,8 @@ ${financeRowActions(r.id, 'compra')}
                         tipo_registro: tipoVal,
                         descricao: overlay.querySelector('#financeiro-modal-descricao').value.trim(),
                         valor: Number(overlay.querySelector('#financeiro-modal-valor').value || 0),
-                        metodo_pagamento: (tipoVal === 'gasto_variado' || tipoVal === 'compra')
-                            ? String(metodoEl?.value || (tipoVal === 'compra' ? 'a_vista' : 'debito_pix'))
+                        metodo_pagamento: tipoVal === 'gasto_variado'
+                            ? String(metodoEl?.value || 'debito_pix')
                             : null,
                         categoria: catEl.value || null,
                         data_lancamento: dataDate,
@@ -8908,8 +8963,6 @@ ${financeRowActions(r.id, 'compra')}
                     if (tipoVal === 'gasto_variado' && metodoEl && !metodoEl.value) {
                         metodoEl.value = 'debito_pix';
                     }
-                    if (tipoVal === 'compra' && metodoEl && !metodoEl.value) {
-                        metodoEl.value = 'a_vista';
                     }
                     const ok = await this.submitFinanceiroSave(el, payload);
                     if (ok) close();
@@ -8946,9 +8999,6 @@ ${financeRowActions(r.id, 'compra')}
                 if (tipoRegistro === 'despesa_fixa' && !editId) requestBody.status = 'pendente';
                 else if (tipoRegistro === 'poupanca' || tipoRegistro === 'compra') {
                     requestBody.data_lancamento = dataLanc;
-                    if (tipoRegistro === 'compra') {
-                        requestBody.metodo_pagamento = String(payload?.metodo_pagamento || 'a_vista').trim() || 'a_vista';
-                    }
                 } else if (tipoRegistro !== 'despesa_fixa') {
                     requestBody.categoria = categoria;
                     requestBody.data_lancamento = dataLanc;

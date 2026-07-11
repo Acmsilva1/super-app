@@ -146,7 +146,7 @@ describe('API do financeiro', () => {
           insert: compraInsert,
         };
       }
-      throw new Error(`Tabela inesperada: ${table}`);
+      throw new Error('Tabela inesperada: ' + table);
     });
 
     const app = createApp(financeiroHandler);
@@ -156,7 +156,6 @@ describe('API do financeiro', () => {
         tipo_registro: 'compra',
         descricao: 'Geladeira',
         valor: 2800,
-        metodo_pagamento: 'a_vista',
         data_lancamento: '2026-07-10',
         created_at: '2026-07-10T15:00:00.000Z',
       });
@@ -165,12 +164,10 @@ describe('API do financeiro', () => {
     expect(compraInsert).toHaveBeenCalledWith(expect.objectContaining({
       descricao: 'Geladeira',
       valor: 2800,
-      metodo_pagamento: 'a_vista',
       data_lancamento: '2026-07-10',
     }));
     expect(res.body.tipo_registro).toBe('compra');
   });
-
   it('atualiza um registro financeiro sem chamar a tabela de saldo', async () => {
     const financeUpdate = vi.fn(() => ({
       eq: vi.fn(() => ({
