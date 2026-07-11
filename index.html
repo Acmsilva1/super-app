@@ -8963,7 +8963,6 @@ ${financeRowActions(r.id, 'compra')}
                     if (tipoVal === 'gasto_variado' && metodoEl && !metodoEl.value) {
                         metodoEl.value = 'debito_pix';
                     }
-                    }
                     const ok = await this.submitFinanceiroSave(el, payload);
                     if (ok) close();
                 };
