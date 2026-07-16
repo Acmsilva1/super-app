@@ -9,11 +9,20 @@ import {
 
 import {
     sanitizeFilename, getNodeWidth, getNodeHeight, updateNodeMetrics,
-    getConnectionGeometry, getNodeConnectionPoint,
+    getConnectionGeometry, getNodeConnectionPoint, getConnectorPoint,
     pointToSegmentDistance, pointToCubicDistance,
     getTextColorByFill, drawNodeShape, drawArrowHead, drawLinesCentered,
     getNodeHandles, getNodePorts, getNearestNodePort
 } from './service/flowchartService.js';
+
+import {
+    EXPORT_PADDING,
+    MAX_EXPORT_CANVAS_EDGE,
+    buildExportFileName,
+    getExportPageRects,
+    getGraphContentBounds,
+    shouldSplitIntoTwoPages
+} from './service/exportPngService.js';
 
 const el = id => document.getElementById("flux-" + id);
 function fluxRoot() {
@@ -1112,10 +1121,217 @@ function showStatus(msg, type) {
     statusTimer = setTimeout(() => s.classList.remove("active"), 3200);
 }
 
-function exportToPNG() {
-    drawCanvas(); const c = el("canvas"), a = document.createElement("a");
-    a.href = c.toDataURL("image/png"); a.download = `${sanitizeFilename(state.projectName)}.png`; a.click();
-    showStatus("PNG exportado.", "success");
+function downloadDataUrl(dataUrl, fileName) {
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = fileName;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+function drawExportScene(ctx, cameraX, cameraY, worldWidth, worldHeight) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    const bg = ctx.createLinearGradient(0, 0, worldWidth, worldHeight);
+    bg.addColorStop(0, "#020816");
+    bg.addColorStop(0.55, "#050d1f");
+    bg.addColorStop(1, "#081528");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, worldWidth, worldHeight);
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
+    ctx.lineWidth = 1;
+    const grid = 52;
+    const startX = -((cameraX % grid) + grid) % grid;
+    const startY = -((cameraY % grid) + grid) % grid;
+    for (let x = startX; x < worldWidth; x += grid) {
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, worldHeight);
+        ctx.stroke();
+    }
+    for (let y = startY; y < worldHeight; y += grid) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + 0.5);
+        ctx.lineTo(worldWidth, y + 0.5);
+        ctx.stroke();
+    }
+    ctx.restore();
+
+    state.nodes.forEach(n => updateNodeMetrics(ctx, n));
+    state.texts.forEach(t => updateTextMetrics(ctx, t));
+
+    state.connections.forEach((cn) => {
+        const g = getConnectionGeometry(state, cn);
+        if (!g) return;
+        const fx = g.x1 - cameraX, fy = g.y1 - cameraY, tx = g.x2 - cameraX, ty = g.y2 - cameraY;
+        const c1x = g.c1x - cameraX, c1y = g.c1y - cameraY, c2x = g.c2x - cameraX, c2y = g.c2y - cameraY;
+        const type = cn.type || "line";
+        const base = "rgba(34, 197, 94, 0.98)";
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = base;
+        ctx.lineWidth = 2.8;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = "rgba(34, 197, 94, 0.35)";
+        ctx.beginPath();
+        ctx.moveTo(fx, fy);
+        if (type === "curve") ctx.bezierCurveTo(c1x, c1y, c2x, c2y, tx, ty);
+        else ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.fillStyle = base;
+        const endA = type === "curve" ? Math.atan2(ty - c2y, tx - c2x) : Math.atan2(ty - fy, tx - fx);
+        const startA = type === "curve" ? Math.atan2(c1y - fy, c1x - fx) : endA + Math.PI;
+        if (type === "arrow" || type === "both" || type === "curve") drawArrowHead(ctx, tx, ty, endA, 12);
+        if (type === "both") drawArrowHead(ctx, fx, fy, startA, 12);
+        ctx.restore();
+    });
+
+    state.nodes.forEach(n => {
+        const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - cameraX, sy = n.y - cameraY;
+        if (sx + nw < 0 || sy + nh < 0 || sx > worldWidth || sy > worldHeight) return;
+        const accent = getNodeAccent(n);
+        const body = ctx.createLinearGradient(sx, sy, sx + nw, sy + nh);
+        body.addColorStop(0, "rgba(255,255,255,0.11)");
+        body.addColorStop(0.2, "rgba(255,255,255,0.06)");
+        body.addColorStop(1, "rgba(4, 10, 24, 0.9)");
+        ctx.save();
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = `${accent}55`;
+        ctx.fillStyle = body;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 2;
+        drawNodeShape(ctx, n.shape || "rect", sx, sy, nw, nh);
+        ctx.fillStyle = "#f8fbff";
+        ctx.font = "700 16px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.shadowBlur = 0;
+        drawLinesCentered(ctx, n._lines, sx + nw / 2, sy + nh / 2, NODE_LINE_HEIGHT);
+        ctx.restore();
+    });
+
+    state.texts.forEach(t => {
+        const sx = t.x - cameraX, sy = t.y - cameraY, tw = Number(t.w) || 0, th = Number(t.h) || 0;
+        if (sx + tw < 0 || sy + th < 0 || sx > worldWidth || sy > worldHeight) return;
+        ctx.font = getTextFont(t);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = t.color || "#1a1f28";
+        ctx.fillText(t.text || "Texto", sx, sy);
+    });
+}
+
+function buildFullDiagramExportCanvas() {
+    const bounds = getGraphContentBounds(state.nodes, state.texts, getNodeWidth, getNodeHeight);
+    let worldW;
+    let worldH;
+    let cameraX;
+    let cameraY;
+
+    if (!bounds) {
+        worldW = Math.max(320, state.viewportWidth || 1200);
+        worldH = Math.max(260, state.viewportHeight || 700);
+        cameraX = state.cameraX;
+        cameraY = state.cameraY;
+    } else {
+        cameraX = bounds.minX - EXPORT_PADDING;
+        cameraY = bounds.minY - EXPORT_PADDING;
+        worldW = Math.ceil((bounds.maxX - bounds.minX) + EXPORT_PADDING * 2);
+        worldH = Math.ceil((bounds.maxY - bounds.minY) + EXPORT_PADDING * 2);
+    }
+
+    worldW = Math.max(1, worldW);
+    worldH = Math.max(1, worldH);
+    const scale = Math.min(1, MAX_EXPORT_CANVAS_EDGE / Math.max(worldW, worldH));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.floor(worldW * scale));
+    canvas.height = Math.max(1, Math.floor(worldH * scale));
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    drawExportScene(ctx, cameraX, cameraY, worldW, worldH);
+    return canvas;
+}
+
+function splitCanvasLocally(sourceCanvas) {
+    const rects = getExportPageRects(sourceCanvas.width, sourceCanvas.height);
+    const base = sanitizeFilename(state.projectName);
+    return rects.map((rect) => {
+        const page = document.createElement("canvas");
+        page.width = rect.width;
+        page.height = rect.height;
+        const ctx = page.getContext("2d");
+        ctx.drawImage(
+            sourceCanvas,
+            rect.x, rect.y, rect.width, rect.height,
+            0, 0, rect.width, rect.height
+        );
+        return {
+            page: rect.page,
+            fileName: buildExportFileName(base, rect.page, rects.length),
+            imageBase64: page.toDataURL("image/png")
+        };
+    });
+}
+
+async function requestServerPngSplit(fullDataUrl) {
+    const res = await fetch("/api/fluxograma-export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            imageBase64: fullDataUrl,
+            fileName: sanitizeFilename(state.projectName)
+        })
+    });
+    const text = await res.text();
+    let data = {};
+    if (text) {
+        try { data = JSON.parse(text); } catch { data = {}; }
+    }
+    if (!res.ok) throw new Error(data.error || res.statusText || "Falha no export");
+    if (!Array.isArray(data.pages) || !data.pages.length) throw new Error("Resposta de export invalida");
+    return data.pages;
+}
+
+async function exportToPNG() {
+    try {
+        showStatus("Gerando PNG da tela inteira…", "info");
+        const full = buildFullDiagramExportCanvas();
+        const fullDataUrl = full.toDataURL("image/png");
+        let pages;
+        if (shouldSplitIntoTwoPages(full.width, full.height)) {
+            try {
+                pages = await requestServerPngSplit(fullDataUrl);
+            } catch (err) {
+                console.warn("Export Node falhou; usando split local.", err);
+                pages = splitCanvasLocally(full);
+            }
+        } else {
+            pages = [{
+                page: 1,
+                fileName: buildExportFileName(sanitizeFilename(state.projectName), 1, 1),
+                imageBase64: fullDataUrl
+            }];
+        }
+        for (let i = 0; i < pages.length; i++) {
+            const p = pages[i];
+            downloadDataUrl(p.imageBase64, p.fileName || buildExportFileName(sanitizeFilename(state.projectName), p.page || i + 1, pages.length));
+            if (i < pages.length - 1) await new Promise(r => setTimeout(r, 180));
+        }
+        showStatus(
+            pages.length > 1
+                ? `PNG exportado em ${pages.length} páginas.`
+                : "PNG da tela inteira exportado.",
+            "success"
+        );
+    } catch (e) {
+        console.error(e);
+        showStatus(e?.message || "Falha ao exportar PNG.", "error");
+    }
 }
 
 function setupCanvasInteractions() {
@@ -1302,7 +1518,7 @@ window.addTextLabel = addTextLabel;
 window.toggleConnectionFromMenu = toggleConnectionFromMenu;
 window.centerView = centerView;
 window.deleteNode = deleteNode;
-window.exportToPNG = exportToPNG;
+window.exportToPNG = () => { void exportToPNG(); };
 window.renameProject = renameProject;
 window.toggleViewMode = toggleViewMode;
 window.toggleDisconnectFromMenu = toggleDisconnectFromMenu;
