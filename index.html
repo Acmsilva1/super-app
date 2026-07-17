@@ -9027,16 +9027,21 @@ ${financeRowActions(r.id, 'compra')}
                         if (contextoEl) contextoEl.innerHTML = 'Auditoria de itens adquiridos no mês da <strong>data</strong> informada (não entra em despesas).';
                     } else {
                         if (descricaoWrap) descricaoWrap.style.display = '';
-                        if (mesRefWrap) mesRefWrap.style.display = 'none';
+                        if (mesRefWrap) mesRefWrap.style.display = tipo === 'receita' ? '' : 'none';
                         if (metodoWrap) metodoWrap.style.display = 'none';
                         dataWrap.style.display = showDateTime ? '' : 'none';
                         catWrap.style.display = '';
                         const categories = tipo === 'receita' ? receitaCategorias : gastoCategorias;
                         catEl.innerHTML = `<option value="">--</option>${categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}`;
                         if (item?.categoria) catEl.value = item.categoria;
-                        if (contextoEl) contextoEl.innerHTML = tipo === 'gasto_variado'
-                            ? 'Registros em <strong>débito / pix</strong> entram como despesa no mês. Crédito continua sem esse vínculo.'
-                            : 'Escolha <strong>qualquer data</strong>: o lançamento aparece no mês correspondente a essa data.';
+                        if (contextoEl) {
+                            if (tipo === 'gasto_variado') {
+                                contextoEl.innerHTML = 'Registros em <strong>debito / pix</strong> entram como despesa no mes. Credito continua sem esse vinculo.';
+                            } else {
+                                const mr = mesForBounds();
+                                contextoEl.innerHTML = `Receita vinculada ao mes de <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
+                            }
+                        }
                     }
                     syncParcelasUI();
                 };
@@ -9053,10 +9058,10 @@ ${financeRowActions(r.id, 'compra')}
                     const tipoVal = tipoEl.value;
                     let dataDate = defaultHiddenDate;
                     let dataIso = null;
-                    if (tipoVal === 'despesa_fixa') {
+                    if (tipoVal === 'despesa_fixa' || tipoVal === 'receita') {
                         const v = mesRefEl && mesRefEl.value ? mesRefEl.value.trim() : '';
                         if (!v || !/^\d{4}-\d{2}$/.test(v)) {
-                            alert('Selecione o mês de competência da despesa fixa.');
+                            alert(tipoVal === 'receita' ? 'Selecione o mes de competencia da receita.' : 'Selecione o mes de competencia da despesa fixa.');
                             return;
                         }
                         mesAnoPayload = v;
