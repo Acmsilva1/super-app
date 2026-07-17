@@ -462,11 +462,83 @@ function selectItemsInRect(box) {
     if (!rect) return;
     const nodeIds = state.nodes.filter((n) => rectsIntersect(rect, getNodeWorldRect(n))).map((n) => n.id);
     const textIds = state.texts.filter((t) => rectsIntersect(rect, getTextWorldRect(t))).map((t) => t.id);
+    const connectionIndexes = state.connections
+        .map((cn, idx) => ({ idx, bounds: getConnectionWorldBounds(cn) }))
+        .filter((item) => item.bounds && rectsIntersect(rect, item.bounds))
+        .map((item) => item.idx);
     clearSelectionState();
     state.selectedNodeIds = uniqueIds(nodeIds);
     state.selectedTextIds = uniqueIds(textIds);
+    state.selectedConnectionIndexes = uniqueIds(connectionIndexes);
     state.selectedNode = state.selectedNodeIds[0] ?? null;
     state.selectedTextId = state.selectedTextIds[0] ?? null;
+    state.selectedConnectionIndex = state.selectedConnectionIndexes[0] ?? null;
+}
+
+function getConnectionWorldBounds(cn) {
+    const g = getConnectionGeometry(state, cn);
+    if (!g) return null;
+    return {
+        x1: Math.min(g.x1, g.x2, g.c1x, g.c2x),
+        y1: Math.min(g.y1, g.y2, g.c1y, g.c2y),
+        x2: Math.max(g.x1, g.x2, g.c1x, g.c2x),
+        y2: Math.max(g.y1, g.y2, g.c1y, g.c2y)
+    };
+}
+
+function getSelectionGroupBounds() {
+    const parts = [];
+    for (const id of getSelectedNodeIds()) {
+        const n = state.nodes.find((item) => item.id === id);
+        if (n) parts.push(getNodeWorldRect(n));
+    }
+    for (const id of getSelectedTextIds()) {
+        const t = state.texts.find((item) => item.id === id);
+        if (t) parts.push(getTextWorldRect(t));
+    }
+    for (const idx of getSelectedConnectionIndexes()) {
+        const cn = state.connections[idx];
+        const bounds = cn ? getConnectionWorldBounds(cn) : null;
+        if (bounds) parts.push(bounds);
+    }
+    if (!parts.length) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const b of parts) {
+        minX = Math.min(minX, b.x1);
+        minY = Math.min(minY, b.y1);
+        maxX = Math.max(maxX, b.x2);
+        maxY = Math.max(maxY, b.y2);
+    }
+    const pad = 16;
+    return { x1: minX - pad, y1: minY - pad, x2: maxX + pad, y2: maxY + pad };
+}
+
+function hasGroupSelection() {
+    return getSelectedNodeIds().length + getSelectedTextIds().length + getSelectedConnectionIndexes().length > 1;
+}
+
+function drawSelectionGroupBounds(ctx, bounds, cameraX, cameraY) {
+    const x = bounds.x1 - cameraX;
+    const y = bounds.y1 - cameraY;
+    const w = bounds.x2 - bounds.x1;
+    const h = bounds.y2 - bounds.y1;
+    ctx.save();
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = 'rgba(125, 211, 252, 0.22)';
+    ctx.fillStyle = 'rgba(125, 211, 252, 0.08)';
+    ctx.strokeStyle = '#7dd3fc';
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([8, 5]);
+    if (typeof ctx.roundRect === 'function') {
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 16);
+        ctx.fill();
+        ctx.stroke();
+    } else {
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeRect(x, y, w, h);
+    }
+    ctx.restore();
 }
 
 function updateDisconnectActionBtn() {
@@ -832,6 +904,7 @@ function drawCanvas(time = performance.now()) {
     const zoom = normalizeCanvasZoom(state.zoom || 1);
     const worldWidth = state.viewportWidth / zoom;
     const worldHeight = state.viewportHeight / zoom;
+    const groupSelectionActive = hasGroupSelection();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, c.width, c.height);
     ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, 0, 0);
@@ -976,7 +1049,7 @@ function drawCanvas(time = performance.now()) {
         ctx.textBaseline = "middle";
         ctx.shadowBlur = 0;
         drawLinesCentered(ctx, n._lines, sx + nw / 2, sy + nh / 2, NODE_LINE_HEIGHT);
-        if (sel && !state.isViewMode) {
+        if (sel && !state.isViewMode && !groupSelectionActive) {
             const hs = NODE_HANDLE_SIZE;
             ctx.fillStyle = "#e0f2fe";
             ctx.strokeStyle = "#7dd3fc";
@@ -1051,6 +1124,10 @@ function drawCanvas(time = performance.now()) {
             ctx.restore();
         }
     });
+    if (groupSelectionActive) {
+        const bounds = getSelectionGroupBounds();
+        if (bounds) drawSelectionGroupBounds(ctx, bounds, state.cameraX, state.cameraY);
+    }
     if (state.selectionBox && !state.isViewMode) {
         const box = normalizeSelectionRect(state.selectionBox);
         if (box) {
@@ -1544,7 +1621,7 @@ async function exportToPNG() {
 
 function setupCanvasInteractions() {
     const c = el("canvas"), i = el("nodeEditText"), tInput = el("freeTextEdit");
-    let activePointerId = null, startX = 0, startY = 0, downNodeId = null, downTextId = null, downConnectionIndex = null, wasSelectedOnDown = false, wasTextSelectedOnDown = false, isPanning = false, panStartClientX = 0, panStartClientY = 0, panStartCameraX = 0, panStartCameraY = 0, isResizing = false, resizeNodeId = null, resizeHandle = null, resizeStart = { x: 0, y: 0, w: 0, h: 0, nx: 0, ny: 0 }, pointerMap = new Map(), isPinching = false, pinchNodeId = null, pinchStartDist = 0, pinchStart = { w: 0, h: 0, x: 0, y: 0 }, isSelectingBox = false;
+    let activePointerId = null, startX = 0, startY = 0, downNodeId = null, downTextId = null, downConnectionIndex = null, wasSelectedOnDown = false, wasTextSelectedOnDown = false, isPanning = false, panStartClientX = 0, panStartClientY = 0, panStartCameraX = 0, panStartCameraY = 0, isResizing = false, resizeNodeId = null, resizeHandle = null, resizeStart = { x: 0, y: 0, w: 0, h: 0, nx: 0, ny: 0 }, pointerMap = new Map(), isPinching = false, pinchNodeId = null, pinchStartDist = 0, pinchStart = { w: 0, h: 0, x: 0, y: 0 }, isSelectingBox = false, isDraggingSelectionGroup = false, selectionGroupSnapshot = null;
     i.addEventListener("input", onNodeTextInput); i.addEventListener("blur", () => hideInlineEditor(true)); i.addEventListener("pointerdown", e => e.stopPropagation());
     tInput.addEventListener("input", onInlineTextInput); tInput.addEventListener("blur", () => hideInlineTextEditor(true)); tInput.addEventListener("pointerdown", e => e.stopPropagation());
     c.addEventListener("contextmenu", e => e.preventDefault());
@@ -1619,6 +1696,29 @@ function setupCanvasInteractions() {
                 if (in1 && in2) { isPinching = true; pinchNodeId = sn.id; pinchStartDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1; pinchStart = { w: w, h: h, x: sn.x, y: sn.y }; sn.manualSize = true; setCanvasCursor(c, "grabbing"); return; }
             }
         }
+        const groupBounds = getSelectionGroupBounds();
+        const canGroupMove = getSelectedNodeIds().length + getSelectedTextIds().length > 0;
+        if (!n && !t && groupBounds && canGroupMove && point.x >= groupBounds.x1 && point.x <= groupBounds.x2 && point.y >= groupBounds.y1 && point.y <= groupBounds.y2) {
+            isDraggingSelectionGroup = true;
+            selectionGroupSnapshot = {
+                nodes: getSelectedNodeIds().map((id) => {
+                    const item = state.nodes.find((node) => node.id === id);
+                    return item ? { id: item.id, x: item.x, y: item.y } : null;
+                }).filter(Boolean),
+                texts: getSelectedTextIds().map((id) => {
+                    const item = state.texts.find((text) => text.id === id);
+                    return item ? { id: item.id, x: item.x, y: item.y } : null;
+                }).filter(Boolean)
+            };
+            activePointerId = e.pointerId;
+            panStartClientX = point.x;
+            panStartClientY = point.y;
+            c.setPointerCapture(e.pointerId);
+            setCanvasCursor(c, "grabbing");
+            hideInlineEditor(true);
+            hideInlineTextEditor(true);
+            return;
+        }
         if (!n && !t) {
             downConnectionIndex = getConnectionAtPosition(point.x, point.y);
             activePointerId = e.pointerId;
@@ -1643,6 +1743,25 @@ function setupCanvasInteractions() {
         if (t) {
             if (state.inlineEditTextId !== t.id) hideInlineTextEditor(true);
             hideInlineEditor(true);
+            if (hasGroupSelection() && isTextSelected(t) && canGroupMove) {
+                isDraggingSelectionGroup = true;
+                selectionGroupSnapshot = {
+                    nodes: getSelectedNodeIds().map((id) => {
+                        const item = state.nodes.find((node) => node.id === id);
+                        return item ? { id: item.id, x: item.x, y: item.y } : null;
+                    }).filter(Boolean),
+                    texts: getSelectedTextIds().map((id) => {
+                        const item = state.texts.find((text) => text.id === id);
+                        return item ? { id: item.id, x: item.x, y: item.y } : null;
+                    }).filter(Boolean)
+                };
+                activePointerId = e.pointerId;
+                panStartClientX = point.x;
+                panStartClientY = point.y;
+                c.setPointerCapture(e.pointerId);
+                setCanvasCursor(c, "grabbing");
+                return;
+            }
             setTextSelection([t.id]);
             state.draggingTextId = t.id;
             state.dragOffsetX = point.x - t.x;
@@ -1656,6 +1775,25 @@ function setupCanvasInteractions() {
         }
         if (state.inlineEditNodeId !== n.id) hideInlineEditor(true);
         hideInlineTextEditor(true);
+        if (hasGroupSelection() && isNodeSelected(n) && canGroupMove) {
+            isDraggingSelectionGroup = true;
+            selectionGroupSnapshot = {
+                nodes: getSelectedNodeIds().map((id) => {
+                    const item = state.nodes.find((node) => node.id === id);
+                    return item ? { id: item.id, x: item.x, y: item.y } : null;
+                }).filter(Boolean),
+                texts: getSelectedTextIds().map((id) => {
+                    const item = state.texts.find((text) => text.id === id);
+                    return item ? { id: item.id, x: item.x, y: item.y } : null;
+                }).filter(Boolean)
+            };
+            activePointerId = e.pointerId;
+            panStartClientX = point.x;
+            panStartClientY = point.y;
+            c.setPointerCapture(e.pointerId);
+            setCanvasCursor(c, "grabbing");
+            return;
+        }
         if (state.selectedNode !== n.id) setNodeSelection([n.id]);
         state.selectedConnectionIndex = null;
         state.selectedConnectionIndexes = [];
@@ -1674,6 +1812,28 @@ function setupCanvasInteractions() {
             ? getMagnetPortAtPosition(hoverPoint.x, hoverPoint.y, state.connectingFrom, PORT_MAGNET_RADIUS)
             : getMagnetPortAtPosition(hoverPoint.x, hoverPoint.y, null, PORT_HOVER_RADIUS);
         state.hoveredPort = hoverPortMatch ? { nodeId: hoverPortMatch.nodeId, side: hoverPortMatch.side } : null;
+        if (isDraggingSelectionGroup && activePointerId === e.pointerId && selectionGroupSnapshot) {
+            const dx = hoverPoint.x - panStartClientX;
+            const dy = hoverPoint.y - panStartClientY;
+            for (const snap of selectionGroupSnapshot.nodes) {
+                const item = state.nodes.find((node) => node.id === snap.id);
+                if (!item) continue;
+                item.x = snap.x + dx;
+                item.y = snap.y + dy;
+            }
+            for (const snap of selectionGroupSnapshot.texts) {
+                const item = state.texts.find((text) => text.id === snap.id);
+                if (!item) continue;
+                item.x = snap.x + dx;
+                item.y = snap.y + dy;
+            }
+            positionInlineEditor();
+            positionInlineTextEditor();
+            state.hasDragged = true;
+            setCanvasCursor(c, "grabbing");
+            drawCanvas();
+            return;
+        }
         if (isSelectingBox && activePointerId === e.pointerId && state.selectionBox) {
             state.selectionBox.x2 = hoverPoint.x;
             state.selectionBox.y2 = hoverPoint.y;
@@ -1725,6 +1885,38 @@ function setupCanvasInteractions() {
     const endPointer = (e) => {
         pointerMap.delete(e.pointerId); if (isPinching && pointerMap.size < 2) { isPinching = false; pinchNodeId = null; saveToLocalStorage(); drawCanvas(); return; }
         if (activePointerId !== e.pointerId) return;
+        if (isDraggingSelectionGroup) {
+            const point = getCanvasPoint(e);
+            const moved = Math.hypot(point.x - startX, point.y - startY) > 4;
+            if (moved && selectionGroupSnapshot) {
+                const dx = point.x - startX;
+                const dy = point.y - startY;
+                for (const snap of selectionGroupSnapshot.nodes) {
+                    const item = state.nodes.find((node) => node.id === snap.id);
+                    if (!item) continue;
+                    item.x = snap.x + dx;
+                    item.y = snap.y + dy;
+                }
+                for (const snap of selectionGroupSnapshot.texts) {
+                    const item = state.texts.find((text) => text.id === snap.id);
+                    if (!item) continue;
+                    item.x = snap.x + dx;
+                    item.y = snap.y + dy;
+                }
+                saveToLocalStorage();
+            }
+            isDraggingSelectionGroup = false;
+            selectionGroupSnapshot = null;
+            activePointerId = null;
+            downNodeId = null;
+            downTextId = null;
+            downConnectionIndex = null;
+            wasSelectedOnDown = false;
+            wasTextSelectedOnDown = false;
+            updateUI();
+            setCanvasCursor(c, "grab");
+            return;
+        }
         if (isSelectingBox) {
             const rect = state.selectionBox ? normalizeSelectionRect(state.selectionBox) : null;
             const moved = rect ? Math.hypot(rect.x2 - rect.x1, rect.y2 - rect.y1) > 6 : false;
@@ -1772,7 +1964,7 @@ function setupCanvasInteractions() {
         state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; setCanvasCursor(c, "grab");
     };
     c.addEventListener("pointerup", endPointer); c.addEventListener("pointercancel", endPointer);
-    c.addEventListener("lostpointercapture", () => { state.selectionBox = null; isSelectingBox = false; state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; isPanning = false; isResizing = false; isPinching = false; resizeNodeId = null; resizeHandle = null; pinchNodeId = null; pointerMap.clear(); setCanvasCursor(c, "grab"); });
+    c.addEventListener("lostpointercapture", () => { state.selectionBox = null; isSelectingBox = false; isDraggingSelectionGroup = false; selectionGroupSnapshot = null; state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; isPanning = false; isResizing = false; isPinching = false; resizeNodeId = null; resizeHandle = null; pinchNodeId = null; pointerMap.clear(); setCanvasCursor(c, "grab"); });
 }
 
 // Global Exports for HTML
