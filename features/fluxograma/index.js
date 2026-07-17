@@ -58,9 +58,6 @@ function normalizeHexColor(value, fallback = "#000000") {
     return hex;
 }
 
-function getNodeAccent(node) {
-    return normalizeHexColor(node?.color || state.activeColor || DEFAULT_ACTIVE_COLOR, DEFAULT_ACTIVE_COLOR);
-}
 
 function ensureActiveColor() {
     state.activeColor = normalizeHexColor(state.activeColor || DEFAULT_ACTIVE_COLOR, DEFAULT_ACTIVE_COLOR);
@@ -1003,52 +1000,13 @@ function drawCanvas(time = performance.now()) {
     state.nodes.forEach(n => {
         const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
         if (sx + nw < 0 || sy + nh < 0 || sx > worldWidth || sy > worldHeight) return;
-        const sel = isNodeSelected(n), from = n.id === state.connectingFrom, accent = getNodeAccent(n);
-        const glow = sel ? "rgba(125, 211, 252, 0.34)" : from ? "rgba(34, 197, 94, 0.34)" : `${accent}55`;
-        const body = ctx.createLinearGradient(sx, sy, sx + nw, sy + nh);
-        body.addColorStop(0, "rgba(255,255,255,0.11)");
-        body.addColorStop(0.2, "rgba(255,255,255,0.06)");
-        body.addColorStop(1, "rgba(4, 10, 24, 0.9)");
+        const sel = isNodeSelected(n), from = n.id === state.connectingFrom;
         ctx.save();
-        ctx.shadowBlur = sel ? 30 : from ? 24 : 18;
-        ctx.shadowColor = glow;
-        ctx.fillStyle = body;
-        ctx.strokeStyle = sel ? "#93c5fd" : from ? "#86efac" : accent;
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(15, 23, 42, 0.96)";
+        ctx.strokeStyle = sel ? "#93c5fd" : from ? "#86efac" : "#64748b";
         ctx.lineWidth = sel ? 2.6 : 2;
         drawNodeShape(ctx, n.shape || "rect", sx, sy, nw, nh);
-        ctx.save();
-        ctx.clip();
-        const sheen = ctx.createLinearGradient(sx, sy, sx + nw, sy + nh);
-        sheen.addColorStop(0, "rgba(255,255,255,0.18)");
-        sheen.addColorStop(0.35, "rgba(255,255,255,0.05)");
-        sheen.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle = sheen;
-        ctx.fillRect(sx, sy, nw, nh);
-        ctx.restore();
-        ctx.save();
-        ctx.globalAlpha = 0.92;
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(255,255,255,0.1)";
-        drawNodeShape(ctx, n.shape || "rect", sx + 1.1, sy + 1.1, nw - 2.2, nh - 2.2);
-        ctx.restore();
-        ctx.save();
-        ctx.globalAlpha = 0.95;
-        ctx.fillStyle = accent;
-        const accentBandH = Math.max(8, Math.min(14, Math.round(nh * 0.1)));
-        if (n.shape === "ellipse") {
-            ctx.beginPath();
-            ctx.arc(sx + nw * 0.33, sy + nh * 0.32, Math.max(10, Math.min(nw, nh) * 0.12), 0, Math.PI * 2);
-            ctx.fill();
-        } else {
-            ctx.beginPath();
-            if (typeof ctx.roundRect === "function") {
-                ctx.roundRect(sx + 10, sy + 10, Math.max(18, nw * 0.22), accentBandH, accentBandH / 2);
-            } else {
-                ctx.rect(sx + 10, sy + 10, Math.max(18, nw * 0.22), accentBandH);
-            }
-            ctx.fill();
-        }
-        ctx.restore();
         ctx.fillStyle = "#f8fbff";
         ctx.font = "700 16px Segoe UI";
         ctx.textAlign = "center";
@@ -1170,7 +1128,7 @@ function renderReadOnlyView() {
     state.nodes.forEach(n => {
         const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
         if (sx + nw < 0 || sy + nh < 0 || sx > state.viewportWidth || sy > state.viewportHeight) return;
-        const g = document.createElementNS(ns, "g"), t = document.createElementNS(ns, "text"), lines = (n._lines && n._lines.length) ? n._lines : ["Nó sem texto"], shape = (n.shape || "rect"), accent = getNodeAccent(n);
+        const g = document.createElementNS(ns, "g"), t = document.createElementNS(ns, "text"), lines = (n._lines && n._lines.length) ? n._lines : ["Nó sem texto"], shape = (n.shape || "rect");
         let shp;
         if (shape === "ellipse") {
             shp = document.createElementNS(ns, "ellipse");
@@ -1193,18 +1151,10 @@ function renderReadOnlyView() {
             shp.setAttribute("height", String(nh));
             shp.setAttribute("rx", "14");
         }
-        shp.setAttribute("fill", "rgba(4, 10, 24, 0.9)");
-        shp.setAttribute("stroke", accent);
+        shp.setAttribute("fill", "rgba(15, 23, 42, 0.96)");
+        shp.setAttribute("stroke", "#64748b");
         shp.setAttribute("stroke-width", "2.2");
         shp.setAttribute("opacity", "0.96");
-        const accentMark = document.createElementNS(ns, "rect");
-        accentMark.setAttribute("x", String(sx + 10));
-        accentMark.setAttribute("y", String(sy + 10));
-        accentMark.setAttribute("width", String(Math.max(18, nw * 0.22)));
-        accentMark.setAttribute("height", String(Math.max(8, Math.min(14, Math.round(nh * 0.1)))));
-        accentMark.setAttribute("rx", "999");
-        accentMark.setAttribute("fill", accent);
-        accentMark.setAttribute("opacity", "0.95");
         t.setAttribute("x", String(sx + nw / 2));
         t.setAttribute("text-anchor", "middle");
         t.setAttribute("fill", "#f8fbff");
@@ -1220,7 +1170,6 @@ function renderReadOnlyView() {
             t.appendChild(sp);
         }
         g.appendChild(shp);
-        if (shape === "rect") g.appendChild(accentMark);
         g.appendChild(t);
         svg.appendChild(g);
     });
@@ -1485,16 +1434,10 @@ function drawExportScene(ctx, cameraX, cameraY, worldWidth, worldHeight) {
     state.nodes.forEach(n => {
         const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - cameraX, sy = n.y - cameraY;
         if (sx + nw < 0 || sy + nh < 0 || sx > worldWidth || sy > worldHeight) return;
-        const accent = getNodeAccent(n);
-        const body = ctx.createLinearGradient(sx, sy, sx + nw, sy + nh);
-        body.addColorStop(0, "rgba(255,255,255,0.11)");
-        body.addColorStop(0.2, "rgba(255,255,255,0.06)");
-        body.addColorStop(1, "rgba(4, 10, 24, 0.9)");
         ctx.save();
-        ctx.shadowBlur = 14;
-        ctx.shadowColor = `${accent}55`;
-        ctx.fillStyle = body;
-        ctx.strokeStyle = accent;
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(15, 23, 42, 0.96)";
+        ctx.strokeStyle = "#64748b";
         ctx.lineWidth = 2;
         drawNodeShape(ctx, n.shape || "rect", sx, sy, nw, nh);
         ctx.fillStyle = "#f8fbff";
