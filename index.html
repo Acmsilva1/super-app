@@ -8173,8 +8173,7 @@ ${financeRowActions(r.id, 'compra')}
                     const labelsAnuaisInvertidos = [...labelsAnuais].reverse();
                     const serieReceitas = labelsAnuais.map((_, idx) => Number(graficosAnuais[idx]?.receitas || 0));
                     const serieDespesas = labelsAnuais.map((_, idx) => Number(graficosAnuais[idx]?.despesas || 0));
-                    const serieReceitasInvertida = [...serieReceitas].reverse();
-                    const serieDespesasInvertida = [...serieDespesas].reverse();
+                    const mesReferenciaAtual = Math.max(1, Math.min(12, Number(mes) || 1));
                     const makePulseGradient = (baseColor, glowColor) => (phase) => {
                         const p = ((phase % 1) + 1) % 1;
                         const m = 1 - p;
@@ -8193,14 +8192,35 @@ ${financeRowActions(r.id, 'compra')}
                             { offset: 1, color: baseColor },
                         ]);
                     };
-                    const renderFinanceiroAnualBarChart = (chartNode, chartRef, title, seriesName, dataSeries, color, shadowColor, labelColor) => {
+                    const makeAnnualBarData = (values, activeColor, inactiveColor, activeShadowColor, phase = null) => {
+                        const source = [...values].reverse();
+                        const pulseColor = phase !== null ? makePulseGradient(activeColor, inactiveColor)(phase) : activeColor;
+                        return source.map((value, idx) => {
+                            const monthNumber = 12 - idx;
+                            const reachedMonth = monthNumber <= mesReferenciaAtual;
+                            return {
+                                value,
+                                itemStyle: {
+                                    color: reachedMonth ? pulseColor : inactiveColor,
+                                    opacity: reachedMonth ? 1 : 0.28,
+                                    borderRadius: [8, 8, 0, 0],
+                                    shadowBlur: reachedMonth ? 14 : 0,
+                                    shadowColor: reachedMonth ? activeShadowColor : 'rgba(0,0,0,0)',
+                                },
+                                label: {
+                                    color: reachedMonth ? activeColor : 'rgba(203, 213, 225, 0.42)',
+                                },
+                            };
+                        });
+                    };
+                    const renderFinanceiroAnualBarChart = (chartNode, chartRef, title, seriesName, dataSeries, activeColor, inactiveColor, shadowColor, labelColor) => {
                         if (!chartNode) return;
                         let chart = el[chartRef];
                         if (!chart || chart.isDisposed?.()) {
                             chart = echarts.init(chartNode);
                             el[chartRef] = chart;
                         }
-                        const maxAnual = Math.max(...dataSeries, 0);
+                        const maxAnual = Math.max(...dataSeries.map((item) => Number(item?.value ?? item ?? 0)), 0);
                         const eixoMax = maxAnual > 0 ? Math.ceil((maxAnual * 1.18) / 100) * 100 : undefined;
                         chart.setOption({
                             animationDuration: 800,
@@ -8241,12 +8261,7 @@ ${financeRowActions(r.id, 'compra')}
                                     color: labelColor,
                                     formatter: ({ value }) => (Number(value || 0) > 0 ? this.formatMoneyBr(Number(value || 0)) : ''),
                                 },
-                                itemStyle: {
-                                    color,
-                                    borderRadius: [8, 8, 0, 0],
-                                    shadowBlur: 12,
-                                    shadowColor,
-                                },
+
                             }],
                         });
                         chart.resize();
@@ -8256,9 +8271,10 @@ ${financeRowActions(r.id, 'compra')}
                         '_financeiroChartReceitasAnual',
                         'Receitas do ano por mês',
                         'Receitas',
-                        serieReceitasInvertida,
+                        makeAnnualBarData(serieReceitas, '#22c55e', 'rgba(34, 197, 94, 0.24)', 'rgba(34, 197, 94, 0.28)'),
                         '#22c55e',
-                        'rgba(34, 197, 94, 0.25)',
+                        'rgba(34, 197, 94, 0.24)',
+                        'rgba(34, 197, 94, 0.28)',
                         '#86efac',
                     );
                     renderFinanceiroAnualBarChart(
@@ -8266,13 +8282,12 @@ ${financeRowActions(r.id, 'compra')}
                         '_financeiroChartDespesasAnual',
                         'Despesas totais do ano por mês',
                         'Despesas',
-                        serieDespesasInvertida,
+                        makeAnnualBarData(serieDespesas, '#ef4444', 'rgba(239, 68, 68, 0.24)', 'rgba(239, 68, 68, 0.24)'),
                         '#ef4444',
-                        'rgba(239, 68, 68, 0.22)',
+                        'rgba(239, 68, 68, 0.24)',
+                        'rgba(239, 68, 68, 0.24)',
                         '#fca5a5',
                     );
-                    const receitasPulseGradient = makePulseGradient('#22c55e', '#86efac');
-                    const despesasPulseGradient = makePulseGradient('#ef4444', '#fca5a5');
                     const startResumoGlow = () => {
                         if (el._financeiroResumoGlowTimer) clearInterval(el._financeiroResumoGlowTimer);
                         let phase = 0;
@@ -8307,9 +8322,7 @@ ${financeRowActions(r.id, 'compra')}
                             if (receitasChart && !receitasChart.isDisposed?.()) {
                                 receitasChart.setOption({
                                     series: [{
-                                        itemStyle: {
-                                            color: receitasPulseGradient(phase),
-                                        },
+                                        data: makeAnnualBarData(serieReceitas, '#22c55e', 'rgba(34, 197, 94, 0.24)', 'rgba(34, 197, 94, 0.28)', phase),
                                     }],
                                 });
                             }
@@ -8317,9 +8330,7 @@ ${financeRowActions(r.id, 'compra')}
                             if (despesasChart && !despesasChart.isDisposed?.()) {
                                 despesasChart.setOption({
                                     series: [{
-                                        itemStyle: {
-                                            color: despesasPulseGradient(phase),
-                                        },
+                                        data: makeAnnualBarData(serieDespesas, '#ef4444', 'rgba(239, 68, 68, 0.24)', 'rgba(239, 68, 68, 0.24)', phase),
                                     }],
                                 });
                             }
