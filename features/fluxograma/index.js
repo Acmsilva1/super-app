@@ -36,6 +36,14 @@ const FLUX_PALETTE = [
     "#22c55e", "#84cc16", "#65a30d", "#1f2937"
 ];
 const DEFAULT_ACTIVE_COLOR = "#d1d5db";
+const DEFAULT_NODE_SHAPE = "rect";
+const NODE_SHAPE_LABELS = {
+    rect: "Retangulo",
+    ellipse: "Elipse",
+    diamond: "Losango",
+    hexagon: "Hexagono"
+};
+const NODE_SHAPE_OPTIONS = ["rect", "ellipse", "diamond", "hexagon"];
 const MIN_CANVAS_ZOOM = 0.65;
 const MAX_CANVAS_ZOOM = 1.85;
 const CANVAS_ZOOM_STEP = 0.12;
@@ -67,6 +75,15 @@ function normalizeCanvasZoom(value) {
 function isPaletteColor(value) {
     const hex = normalizeHexColor(value, "");
     return FLUX_PALETTE.includes(hex);
+}
+
+function normalizeNodeShape(value, fallback = DEFAULT_NODE_SHAPE) {
+    const shape = String(value || "").trim().toLowerCase();
+    return NODE_SHAPE_OPTIONS.includes(shape) ? shape : fallback;
+}
+
+function getShapeLabel(shape) {
+    return NODE_SHAPE_LABELS[normalizeNodeShape(shape)] || NODE_SHAPE_LABELS[DEFAULT_NODE_SHAPE];
 }
 
 function getSelectedConnection() {
@@ -245,12 +262,12 @@ function addNode() {
         w: NODE_MIN_WIDTH,
         h: NODE_MIN_HEIGHT,
         manualSize: false,
-        shape: "rect",
+        shape: state.defaultNodeShape || DEFAULT_NODE_SHAPE,
         color: state.activeColor || DEFAULT_ACTIVE_COLOR
     };
     state.nodes.push(n);
     state.nextId++;
-    state.selectedNode = n.id;
+    setNodeSelection([n.id]);
     saveToLocalStorage();
     updateUI();
     startInlineEdit(n.id);
@@ -285,9 +302,7 @@ function addTextLabel() {
     updateTextMetrics(ctx, t);
     state.texts.push(t);
     state.nextId++;
-    state.selectedNode = null;
-    state.selectedConnectionIndex = null;
-    state.selectedTextId = t.id;
+    setTextSelection([t.id]);
     saveToLocalStorage();
     updateUI();
     startInlineTextEdit(t.id);
@@ -327,35 +342,212 @@ function getSelectedText() {
     return state.selectedTextId === null ? null : state.texts.find(t => t.id === state.selectedTextId) || null;
 }
 
+function uniqueIds(values) {
+    return [...new Set((Array.isArray(values) ? values : []).filter((v) => Number.isInteger(v)))];
+}
+
+function getSelectedNodeIds() {
+    const ids = uniqueIds(state.selectedNodeIds);
+    if (ids.length) return ids;
+    return state.selectedNode === null ? [] : [state.selectedNode];
+}
+
+function getSelectedTextIds() {
+    const ids = uniqueIds(state.selectedTextIds);
+    if (ids.length) return ids;
+    return state.selectedTextId === null ? [] : [state.selectedTextId];
+}
+
+function getSelectedConnectionIndexes() {
+    const indexes = uniqueIds(state.selectedConnectionIndexes);
+    if (indexes.length) return indexes;
+    return state.selectedConnectionIndex === null ? [] : [state.selectedConnectionIndex];
+}
+
+function clearSelectionState() {
+    state.selectedNode = null;
+    state.selectedTextId = null;
+    state.selectedConnectionIndex = null;
+    state.selectedNodeIds = [];
+    state.selectedTextIds = [];
+    state.selectedConnectionIndexes = [];
+}
+
+function setNodeSelection(ids = []) {
+    const uniq = uniqueIds(ids);
+    state.selectedNodeIds = uniq;
+    state.selectedNode = uniq[0] ?? null;
+    state.selectedTextId = null;
+    state.selectedTextIds = [];
+    state.selectedConnectionIndex = null;
+    state.selectedConnectionIndexes = [];
+}
+
+function setTextSelection(ids = []) {
+    const uniq = uniqueIds(ids);
+    state.selectedTextIds = uniq;
+    state.selectedTextId = uniq[0] ?? null;
+    state.selectedNode = null;
+    state.selectedNodeIds = [];
+    state.selectedConnectionIndex = null;
+    state.selectedConnectionIndexes = [];
+}
+
+function setConnectionSelection(indexes = []) {
+    const uniq = uniqueIds(indexes);
+    state.selectedConnectionIndexes = uniq;
+    state.selectedConnectionIndex = uniq[0] ?? null;
+    state.selectedNode = null;
+    state.selectedNodeIds = [];
+    state.selectedTextId = null;
+    state.selectedTextIds = [];
+}
+
+function isNodeSelected(nodeOrId) {
+    const id = typeof nodeOrId === "object" ? nodeOrId?.id : nodeOrId;
+    return getSelectedNodeIds().includes(id);
+}
+
+function isTextSelected(textOrId) {
+    const id = typeof textOrId === "object" ? textOrId?.id : textOrId;
+    return getSelectedTextIds().includes(id);
+}
+
+function applyShapeToSelectedNodes(shape) {
+    const nextShape = normalizeNodeShape(shape);
+    const ids = getSelectedNodeIds();
+    if (ids.length) {
+        const selected = new Set(ids);
+        state.nodes.forEach((node) => {
+            if (selected.has(node.id)) node.shape = nextShape;
+        });
+    }
+    state.defaultNodeShape = nextShape;
+}
+
+function normalizeSelectionRect(box) {
+    if (!box) return null;
+    const x1 = Math.min(box.x1, box.x2);
+    const y1 = Math.min(box.y1, box.y2);
+    const x2 = Math.max(box.x1, box.x2);
+    const y2 = Math.max(box.y1, box.y2);
+    return { x1, y1, x2, y2 };
+}
+
+function getNodeWorldRect(n) {
+    return {
+        x1: n.x,
+        y1: n.y,
+        x2: n.x + getNodeWidth(n),
+        y2: n.y + getNodeHeight(n)
+    };
+}
+
+function getTextWorldRect(t) {
+    return {
+        x1: t.x,
+        y1: t.y,
+        x2: t.x + (Number(t.w) || 0),
+        y2: t.y + (Number(t.h) || 0)
+    };
+}
+
+function rectsIntersect(a, b) {
+    if (!a || !b) return false;
+    return !(a.x2 < b.x1 || a.x1 > b.x2 || a.y2 < b.y1 || a.y1 > b.y2);
+}
+
+function selectItemsInRect(box) {
+    const rect = normalizeSelectionRect(box);
+    if (!rect) return;
+    const nodeIds = state.nodes.filter((n) => rectsIntersect(rect, getNodeWorldRect(n))).map((n) => n.id);
+    const textIds = state.texts.filter((t) => rectsIntersect(rect, getTextWorldRect(t))).map((t) => t.id);
+    clearSelectionState();
+    state.selectedNodeIds = uniqueIds(nodeIds);
+    state.selectedTextIds = uniqueIds(textIds);
+    state.selectedNode = state.selectedNodeIds[0] ?? null;
+    state.selectedTextId = state.selectedTextIds[0] ?? null;
+}
+
 function updateDisconnectActionBtn() {
     const b = el("disconnectActionBtn");
     if (!b) return;
     b.textContent = state.isDisconnecting ? "Cancelar desconexao" : "Desconectar nos";
-    b.disabled = state.isViewMode || (!state.isDisconnecting && state.selectedNode === null && state.selectedConnectionIndex === null);
+    b.disabled = state.isViewMode || (!state.isDisconnecting && getSelectedNodeIds().length === 0 && getSelectedConnectionIndexes().length === 0);
 }
 
 function updateMenuForSelection() {
     ensureActiveColor();
-    const n = getSelectedNode(), shapeEl = el("nodeShapeSelect"), connEl = el("connectionTypeSelect"), selectedConn = getSelectedConnection(), paletteEl = el("colorPalette");
-    if (!shapeEl || !connEl) return;
-    shapeEl.disabled = !n || state.isViewMode;
+    const shapeBtn = el("shapeMenuBtn");
+    const shapeMenu = el("shapeMenu");
+    const connEl = el("connectionTypeSelect");
+    const selectedConn = getSelectedConnection();
+    const paletteEl = el("colorPalette");
     if (paletteEl) paletteEl.classList.toggle("is-disabled", !!state.isViewMode);
-    connEl.disabled = state.isViewMode;
-    if (selectedConn) {
-        connEl.value = selectedConn.type || "arrow";
-    } else if (n) {
-        shapeEl.value = n.shape || "rect";
+    if (connEl) {
+        connEl.disabled = state.isViewMode;
+        if (selectedConn) connEl.value = selectedConn.type || "arrow";
+    }
+    if (shapeBtn) {
+        const currentShape = normalizeNodeShape(state.defaultNodeShape || DEFAULT_NODE_SHAPE);
+        shapeBtn.disabled = state.isViewMode;
+        shapeBtn.innerHTML = '<i class="fas fa-shapes" aria-hidden="true"></i><span>' + getShapeLabel(currentShape) + '</span>';
+        shapeBtn.setAttribute("aria-expanded", shapeMenu && !shapeMenu.hidden ? "true" : "false");
+    }
+    if (shapeMenu) {
+        const currentShape = normalizeNodeShape(state.defaultNodeShape || DEFAULT_NODE_SHAPE);
+        shapeMenu.querySelectorAll("[data-flux-shape]").forEach((btn) => {
+            const nextShape = normalizeNodeShape(btn.getAttribute("data-flux-shape"), DEFAULT_NODE_SHAPE);
+            const isActive = nextShape === currentShape;
+            btn.classList.toggle("is-active", isActive);
+            btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
     }
     syncColorPaletteUI();
 }
 
 function setSelectedNodeShape(v) {
-    const n = getSelectedNode();
-    if (!n || state.isViewMode) return;
-    n.shape = v;
+    if (state.isViewMode) return;
+    const nextShape = normalizeNodeShape(v, state.defaultNodeShape || DEFAULT_NODE_SHAPE);
+    applyShapeToSelectedNodes(nextShape);
     saveToLocalStorage();
-    drawCanvas();
-    if (state.isViewMode) renderReadOnlyView();
+    updateUI();
+    showStatus(
+        getSelectedNodeIds().length ? "Forma aplicada: " + getShapeLabel(nextShape) + "." : "Forma padrao definida: " + getShapeLabel(nextShape) + ".",
+        "success"
+    );
+    closeShapeMenu();
+}
+
+function closeShapeMenu() {
+    const menu = el("shapeMenu");
+    const btn = el("shapeMenuBtn");
+    if (menu) menu.hidden = true;
+    if (btn) btn.setAttribute("aria-expanded", "false");
+    if (menu && menu._fluxOutsideClose) {
+        document.removeEventListener("pointerdown", menu._fluxOutsideClose, true);
+        menu._fluxOutsideClose = null;
+    }
+}
+
+function toggleShapeMenu() {
+    if (state.isViewMode) return;
+    const menu = el("shapeMenu");
+    const btn = el("shapeMenuBtn");
+    if (!menu) return;
+    const willOpen = menu.hidden;
+    closeShapeMenu();
+    if (!willOpen) return;
+    menu.hidden = false;
+    if (btn) btn.setAttribute("aria-expanded", "true");
+    const onOutsideClick = (e) => {
+        if (menu.contains(e.target) || btn?.contains(e.target)) return;
+        closeShapeMenu();
+    };
+    menu._fluxOutsideClose = onOutsideClick;
+    requestAnimationFrame(() => {
+        document.addEventListener("pointerdown", onOutsideClick, true);
+    });
 }
 
 function setSelectedNodeColor(v) {
@@ -413,37 +605,35 @@ function toggleDisconnectFromMenu() {
 }
 
 function deleteNode() {
-    if (state.selectedConnectionIndex !== null && state.connections[state.selectedConnectionIndex]) {
-        state.connections.splice(state.selectedConnectionIndex, 1);
-        state.selectedConnectionIndex = null;
-        saveToLocalStorage();
-        updateUI();
-        showStatus("Conexão excluída.", "success");
-        return;
+    const selectedConnectionIndexes = getSelectedConnectionIndexes();
+    const selectedTextIds = getSelectedTextIds();
+    const selectedNodeIds = getSelectedNodeIds();
+    if (selectedConnectionIndexes.length) {
+        const indexes = [...selectedConnectionIndexes].sort((a, b) => b - a);
+        for (const idx of indexes) {
+            if (state.connections[idx]) state.connections.splice(idx, 1);
+        }
     }
-    if (state.selectedTextId !== null) {
-        state.texts = state.texts.filter(t => t.id !== state.selectedTextId);
-        state.selectedTextId = null;
+    if (selectedTextIds.length) {
+        const keep = new Set(selectedTextIds);
+        state.texts = state.texts.filter((t) => !keep.has(t.id));
         hideInlineTextEditor(false);
-        saveToLocalStorage();
-        updateUI();
-        showStatus("Texto excluído.", "success");
-        return;
     }
-    if (state.selectedNode === null) return;
-    const id = state.selectedNode;
-    state.nodes = state.nodes.filter(n => n.id !== id);
-    state.connections = state.connections.filter(c => c.from !== id && c.to !== id);
-    state.selectedNode = null;
-    state.selectedConnectionIndex = null;
+    if (selectedNodeIds.length) {
+        const keep = new Set(selectedNodeIds);
+        state.nodes = state.nodes.filter((n) => !keep.has(n.id));
+        state.connections = state.connections.filter((c) => !keep.has(c.from) && !keep.has(c.to));
+        hideInlineEditor(false);
+    }
+    if (!selectedConnectionIndexes.length && !selectedTextIds.length && !selectedNodeIds.length) return;
+    clearSelectionState();
     state.isConnecting = false;
     state.connectingFrom = null;
     state.isDisconnecting = false;
     state.disconnectFrom = null;
-    hideInlineEditor(false);
     saveToLocalStorage();
     updateUI();
-    showStatus("Nó excluído.", "success");
+    showStatus(selectedNodeIds.length ? "N?(s) exclu?do(s)." : selectedTextIds.length ? "Texto(s) exclu?do(s)." : "Conex?o(?es) exclu?da(s).", "success");
 }
 
 function startConnection() {
@@ -734,7 +924,7 @@ function drawCanvas(time = performance.now()) {
     state.nodes.forEach(n => {
         const nw = getNodeWidth(n), nh = getNodeHeight(n), sx = n.x - state.cameraX, sy = n.y - state.cameraY;
         if (sx + nw < 0 || sy + nh < 0 || sx > worldWidth || sy > worldHeight) return;
-        const sel = n.id === state.selectedNode, from = n.id === state.connectingFrom, accent = getNodeAccent(n);
+        const sel = isNodeSelected(n), from = n.id === state.connectingFrom, accent = getNodeAccent(n);
         const glow = sel ? "rgba(125, 211, 252, 0.34)" : from ? "rgba(34, 197, 94, 0.34)" : `${accent}55`;
         const body = ctx.createLinearGradient(sx, sy, sx + nw, sy + nh);
         body.addColorStop(0, "rgba(255,255,255,0.11)");
@@ -853,7 +1043,7 @@ function drawCanvas(time = performance.now()) {
         ctx.textBaseline = "top";
         ctx.fillStyle = t.color || "#1a1f28";
         ctx.fillText(t.text || "Texto", sx, sy);
-        if (t.id === state.selectedTextId && !state.isViewMode) {
+        if (isTextSelected(t) && !state.isViewMode) {
             ctx.save();
             ctx.strokeStyle = "#214f83";
             ctx.setLineDash([5, 4]);
@@ -861,6 +1051,23 @@ function drawCanvas(time = performance.now()) {
             ctx.restore();
         }
     });
+    if (state.selectionBox && !state.isViewMode) {
+        const box = normalizeSelectionRect(state.selectionBox);
+        if (box) {
+            const x = box.x1 - state.cameraX;
+            const y = box.y1 - state.cameraY;
+            const w = box.x2 - box.x1;
+            const h = box.y2 - box.y1;
+            ctx.save();
+            ctx.fillStyle = "rgba(125, 211, 252, 0.12)";
+            ctx.strokeStyle = "rgba(125, 211, 252, 0.95)";
+            ctx.lineWidth = 1.4;
+            ctx.setLineDash([6, 4]);
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeRect(x, y, w, h);
+            ctx.restore();
+        }
+    }
 }
 
 function renderReadOnlyView() {
@@ -1066,6 +1273,7 @@ function syncTopActions() {
 }
 
 function openColorModal() {
+    closeShapeMenu();
     const modal = el("colorModal");
     if (!modal) return;
     modal.style.display = "flex";
@@ -1336,31 +1544,44 @@ async function exportToPNG() {
 
 function setupCanvasInteractions() {
     const c = el("canvas"), i = el("nodeEditText"), tInput = el("freeTextEdit");
-    let activePointerId = null, startX = 0, startY = 0, downNodeId = null, downTextId = null, downConnectionIndex = null, wasSelectedOnDown = false, wasTextSelectedOnDown = false, isPanning = false, panStartClientX = 0, panStartClientY = 0, panStartCameraX = 0, panStartCameraY = 0, isResizing = false, resizeNodeId = null, resizeHandle = null, resizeStart = { x: 0, y: 0, w: 0, h: 0, nx: 0, ny: 0 }, pointerMap = new Map(), isPinching = false, pinchNodeId = null, pinchStartDist = 0, pinchStart = { w: 0, h: 0, x: 0, y: 0 };
+    let activePointerId = null, startX = 0, startY = 0, downNodeId = null, downTextId = null, downConnectionIndex = null, wasSelectedOnDown = false, wasTextSelectedOnDown = false, isPanning = false, panStartClientX = 0, panStartClientY = 0, panStartCameraX = 0, panStartCameraY = 0, isResizing = false, resizeNodeId = null, resizeHandle = null, resizeStart = { x: 0, y: 0, w: 0, h: 0, nx: 0, ny: 0 }, pointerMap = new Map(), isPinching = false, pinchNodeId = null, pinchStartDist = 0, pinchStart = { w: 0, h: 0, x: 0, y: 0 }, isSelectingBox = false;
     i.addEventListener("input", onNodeTextInput); i.addEventListener("blur", () => hideInlineEditor(true)); i.addEventListener("pointerdown", e => e.stopPropagation());
     tInput.addEventListener("input", onInlineTextInput); tInput.addEventListener("blur", () => hideInlineTextEditor(true)); tInput.addEventListener("pointerdown", e => e.stopPropagation());
+    c.addEventListener("contextmenu", e => e.preventDefault());
     c.addEventListener("pointerdown", e => {
         if (state.isViewMode) return;
-        pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY }); const { x, y } = getCanvasPoint(e), n = getNodeAtPosition(x, y), t = n ? null : getTextAtPosition(x, y);
-        const portMatch = getMagnetPortAtPosition(x, y);
-        startX = x; startY = y; downNodeId = n ? n.id : null; downTextId = t ? t.id : null; wasSelectedOnDown = !!n && state.selectedNode === n.id; wasTextSelectedOnDown = !!t && state.selectedTextId === t.id;
+        if (e.button === 2) {
+            activePointerId = e.pointerId;
+            panStartClientX = e.clientX;
+            panStartClientY = e.clientY;
+            panStartCameraX = state.cameraX;
+            panStartCameraY = state.cameraY;
+            c.setPointerCapture(e.pointerId);
+            isPanning = true;
+            setCanvasCursor(c, "grabbing");
+            return;
+        }
+        pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const point = getCanvasPoint(e), n = getNodeAtPosition(point.x, point.y), t = n ? null : getTextAtPosition(point.x, point.y);
+        const portMatch = getMagnetPortAtPosition(point.x, point.y);
+        startX = point.x; startY = point.y; downNodeId = n ? n.id : null; downTextId = t ? t.id : null; wasSelectedOnDown = !!n && state.selectedNode === n.id; wasTextSelectedOnDown = !!t && state.selectedTextId === t.id;
         if (state.isConnecting) {
             if (state.connectingFrom === null) {
                 if (portMatch) {
                     state.connectingFrom = portMatch.nodeId;
                     state.connectingFromSide = portMatch.side;
-                    state.connectionPointerX = x;
-                    state.connectionPointerY = y;
+                    state.connectionPointerX = point.x;
+                    state.connectionPointerY = point.y;
                     state.hoveredPort = { nodeId: portMatch.nodeId, side: portMatch.side };
                 } else {
-                    showStatus("Escolha um ponto de saída para começar.", "info");
+                    showStatus("Escolha um ponto de sa?da para come?ar.", "info");
                     return;
                 }
             }
             activePointerId = e.pointerId;
             c.setPointerCapture(e.pointerId);
-            state.connectionPointerX = x;
-            state.connectionPointerY = y;
+            state.connectionPointerX = point.x;
+            state.connectionPointerY = point.y;
             setCanvasCursor(c, "grabbing");
             drawCanvas();
             return;
@@ -1368,14 +1589,12 @@ function setupCanvasInteractions() {
         if (portMatch) {
             hideInlineEditor(true);
             hideInlineTextEditor(true);
-            state.selectedNode = portMatch.nodeId;
-            state.selectedTextId = null;
-            state.selectedConnectionIndex = null;
+            setNodeSelection([portMatch.nodeId]);
             state.isConnecting = true;
             state.connectingFrom = portMatch.nodeId;
             state.connectingFromSide = portMatch.side;
-            state.connectionPointerX = x;
-            state.connectionPointerY = y;
+            state.connectionPointerX = point.x;
+            state.connectionPointerY = point.y;
             state.hoveredPort = { nodeId: portMatch.nodeId, side: portMatch.side };
             ensureActiveColor();
             activePointerId = e.pointerId;
@@ -1384,13 +1603,16 @@ function setupCanvasInteractions() {
             updateUI();
             return;
         }
-        if (state.isDisconnecting) { if (n) finishDisconnect(n.id); else showStatus("Toque em um nó para desconectar.", "info"); return; }
+        if (state.isDisconnecting) {
+            if (n) finishDisconnect(n.id); else showStatus("Toque em um n? para desconectar.", "info");
+            return;
+        }
         if (pointerMap.size === 2 && state.selectedNode !== null) {
             const sn = state.nodes.find(v => v.id === state.selectedNode);
             if (sn) {
                 const pts = [...pointerMap.values()];
-                const p1 = { x: pts[0].x - el("canvas").getBoundingClientRect().left + state.cameraX, y: pts[0].y - el("canvas").getBoundingClientRect().top + state.cameraY };
-                const p2 = { x: pts[1].x - el("canvas").getBoundingClientRect().left + state.cameraX, y: pts[1].y - el("canvas").getBoundingClientRect().top + state.cameraY };
+                const p1 = { x: pts[0].x - c.getBoundingClientRect().left + state.cameraX, y: pts[0].y - c.getBoundingClientRect().top + state.cameraY };
+                const p2 = { x: pts[1].x - c.getBoundingClientRect().left + state.cameraX, y: pts[1].y - c.getBoundingClientRect().top + state.cameraY };
                 const w = getNodeWidth(sn), h = getNodeHeight(sn);
                 const in1 = p1.x >= sn.x && p1.x <= sn.x + w && p1.y >= sn.y && p1.y <= sn.y + h;
                 const in2 = p2.x >= sn.x && p2.x <= sn.x + w && p2.y >= sn.y && p2.y <= sn.y + h;
@@ -1398,19 +1620,33 @@ function setupCanvasInteractions() {
             }
         }
         if (!n && !t) {
-            downConnectionIndex = getConnectionAtPosition(x, y); activePointerId = e.pointerId; panStartClientX = e.clientX; panStartClientY = e.clientY; panStartCameraX = state.cameraX; panStartCameraY = state.cameraY; c.setPointerCapture(e.pointerId);
-            if (downConnectionIndex !== null) { setCanvasCursor(c, "grab"); return; }
-            state.selectedNode = null; state.selectedTextId = null; state.selectedConnectionIndex = null; hideInlineEditor(true); hideInlineTextEditor(true); updateUI(); isPanning = true; setCanvasCursor(c, "grabbing"); return;
+            downConnectionIndex = getConnectionAtPosition(point.x, point.y);
+            activePointerId = e.pointerId;
+            panStartClientX = e.clientX;
+            panStartClientY = e.clientY;
+            panStartCameraX = state.cameraX;
+            panStartCameraY = state.cameraY;
+            c.setPointerCapture(e.pointerId);
+            if (downConnectionIndex !== null) {
+                setCanvasCursor(c, "grab");
+                return;
+            }
+            clearSelectionState();
+            hideInlineEditor(true);
+            hideInlineTextEditor(true);
+            updateUI();
+            isSelectingBox = true;
+            state.selectionBox = { x1: point.x, y1: point.y, x2: point.x, y2: point.y };
+            setCanvasCursor(c, "crosshair");
+            return;
         }
         if (t) {
             if (state.inlineEditTextId !== t.id) hideInlineTextEditor(true);
             hideInlineEditor(true);
-            state.selectedNode = null;
-            state.selectedConnectionIndex = null;
-            state.selectedTextId = t.id;
+            setTextSelection([t.id]);
             state.draggingTextId = t.id;
-            state.dragOffsetX = x - t.x;
-            state.dragOffsetY = y - t.y;
+            state.dragOffsetX = point.x - t.x;
+            state.dragOffsetY = point.y - t.y;
             state.hasDragged = false;
             activePointerId = e.pointerId;
             c.setPointerCapture(e.pointerId);
@@ -1420,22 +1656,31 @@ function setupCanvasInteractions() {
         }
         if (state.inlineEditNodeId !== n.id) hideInlineEditor(true);
         hideInlineTextEditor(true);
+        if (state.selectedNode !== n.id) setNodeSelection([n.id]);
         state.selectedConnectionIndex = null;
-        state.selectedTextId = null;
+        state.selectedConnectionIndexes = [];
         if (state.selectedNode === n.id) {
-            const handle = getResizeHandleAt(n, x, y);
-            if (handle) { isResizing = true; resizeNodeId = n.id; resizeHandle = handle; resizeStart = { x, y, w: getNodeWidth(n), h: getNodeHeight(n), nx: n.x, ny: n.y }; n.manualSize = true; activePointerId = e.pointerId; c.setPointerCapture(e.pointerId); setCanvasCursor(c, "nwse-resize"); return; }
+            const handle = getResizeHandleAt(n, point.x, point.y);
+            if (handle) { isResizing = true; resizeNodeId = n.id; resizeHandle = handle; resizeStart = { x: point.x, y: point.y, w: getNodeWidth(n), h: getNodeHeight(n), nx: n.x, ny: n.y }; n.manualSize = true; activePointerId = e.pointerId; c.setPointerCapture(e.pointerId); setCanvasCursor(c, "nwse-resize"); return; }
         }
-        state.draggingNodeId = n.id; state.dragOffsetX = x - n.x; state.dragOffsetY = y - n.y; state.hasDragged = false; activePointerId = e.pointerId; c.setPointerCapture(e.pointerId); setCanvasCursor(c, "grabbing");
+        state.draggingNodeId = n.id; state.dragOffsetX = point.x - n.x; state.dragOffsetY = point.y - n.y; state.hasDragged = false; activePointerId = e.pointerId; c.setPointerCapture(e.pointerId); setCanvasCursor(c, "grabbing");
     });
     c.addEventListener("pointermove", e => {
-        const r = c.getBoundingClientRect(); if (pointerMap.has(e.pointerId)) pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const r = c.getBoundingClientRect();
+        if (pointerMap.has(e.pointerId)) pointerMap.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (state.isViewMode) return;
         const hoverPoint = getCanvasPoint(e);
         const hoverPortMatch = state.isConnecting
             ? getMagnetPortAtPosition(hoverPoint.x, hoverPoint.y, state.connectingFrom, PORT_MAGNET_RADIUS)
             : getMagnetPortAtPosition(hoverPoint.x, hoverPoint.y, null, PORT_HOVER_RADIUS);
         state.hoveredPort = hoverPortMatch ? { nodeId: hoverPortMatch.nodeId, side: hoverPortMatch.side } : null;
+        if (isSelectingBox && activePointerId === e.pointerId && state.selectionBox) {
+            state.selectionBox.x2 = hoverPoint.x;
+            state.selectionBox.y2 = hoverPoint.y;
+            setCanvasCursor(c, "crosshair");
+            drawCanvas();
+            return;
+        }
         if (!isPanning && !isResizing && state.draggingNodeId === null && state.draggingTextId === null) {
             setCanvasCursor(c, hoverPortMatch ? "copy" : "grab");
         }
@@ -1452,7 +1697,7 @@ function setupCanvasInteractions() {
             const nw = Math.max(NODE_MIN_WIDTH, Math.min(NODE_MAX_WIDTH_MANUAL, pinchStart.w * scale));
             const nh = Math.max(NODE_MIN_HEIGHT, Math.min(NODE_MAX_HEIGHT_MANUAL, pinchStart.h * scale));
             const cx = pinchStart.x + pinchStart.w / 2, cy = pinchStart.y + pinchStart.h / 2;
-            n.w = nw; n.h = nh; n.x = cx - nw / 2; n.y = cy - nh / 2; updateNodeMetrics(el("canvas").getContext("2d"), n); positionInlineEditor(); drawCanvas(); return;
+            n.w = nw; n.h = nh; n.x = cx - nw / 2; n.y = cy - nh / 2; updateNodeMetrics(c.getContext("2d"), n); positionInlineEditor(); drawCanvas(); return;
         }
         if (activePointerId !== e.pointerId) return;
         if (!isPanning && downConnectionIndex !== null) { const moved = Math.hypot(e.clientX - panStartClientX, e.clientY - panStartClientY) > 6; if (moved) { isPanning = true; setCanvasCursor(c, "grabbing"); } }
@@ -1465,24 +1710,40 @@ function setupCanvasInteractions() {
             if (resizeHandle === "sw") { w = resizeStart.w - dx; h = resizeStart.h + dy; x = resizeStart.nx + dx; }
             if (resizeHandle === "ne") { w = resizeStart.w + dx; h = resizeStart.h - dy; y = resizeStart.ny + dy; }
             if (resizeHandle === "nw") { w = resizeStart.w - dx; h = resizeStart.h - dy; x = resizeStart.nx + dx; y = resizeStart.ny + dy; }
-            n.w = Math.max(NODE_MIN_WIDTH, Math.min(NODE_MAX_WIDTH_MANUAL, w)); n.h = Math.max(NODE_MIN_HEIGHT, Math.min(NODE_MAX_HEIGHT_MANUAL, h)); n.x = x; n.y = y; updateNodeMetrics(el("canvas").getContext("2d"), n); positionInlineEditor(); drawCanvas(); return;
+            n.w = Math.max(NODE_MIN_WIDTH, Math.min(NODE_MAX_WIDTH_MANUAL, w)); n.h = Math.max(NODE_MIN_HEIGHT, Math.min(NODE_MAX_HEIGHT_MANUAL, h)); n.x = x; n.y = y; updateNodeMetrics(c.getContext("2d"), n); positionInlineEditor(); drawCanvas(); return;
         }
         if (state.draggingTextId !== null) {
             const t = state.texts.find(x => x.id === state.draggingTextId); if (!t) return;
-            const { x, y } = getCanvasPoint(e), nx = x - state.dragOffsetX, ny = y - state.dragOffsetY;
+            const point2 = getCanvasPoint(e), nx = point2.x - state.dragOffsetX, ny = point2.y - state.dragOffsetY;
             if (Math.abs(t.x - nx) > 1 || Math.abs(t.y - ny) > 1) state.hasDragged = true; t.x = nx; t.y = ny; positionInlineTextEditor(); drawCanvas(); return;
         }
         if (state.draggingNodeId === null) return;
         const n = state.nodes.find(x => x.id === state.draggingNodeId); if (!n) return;
-        const { x, y } = getCanvasPoint(e), nx = x - state.dragOffsetX, ny = y - state.dragOffsetY;
+        const point2 = getCanvasPoint(e), nx = point2.x - state.dragOffsetX, ny = point2.y - state.dragOffsetY;
         if (Math.abs(n.x - nx) > 1 || Math.abs(n.y - ny) > 1) state.hasDragged = true; n.x = nx; n.y = ny; positionInlineEditor(); drawCanvas();
     });
     const endPointer = (e) => {
         pointerMap.delete(e.pointerId); if (isPinching && pointerMap.size < 2) { isPinching = false; pinchNodeId = null; saveToLocalStorage(); drawCanvas(); return; }
         if (activePointerId !== e.pointerId) return;
+        if (isSelectingBox) {
+            const rect = state.selectionBox ? normalizeSelectionRect(state.selectionBox) : null;
+            const moved = rect ? Math.hypot(rect.x2 - rect.x1, rect.y2 - rect.y1) > 6 : false;
+            state.selectionBox = null;
+            isSelectingBox = false;
+            activePointerId = null;
+            downNodeId = null;
+            downTextId = null;
+            downConnectionIndex = null;
+            wasSelectedOnDown = false;
+            wasTextSelectedOnDown = false;
+            if (moved && rect) selectItemsInRect(rect); else clearSelectionState();
+            updateUI();
+            setCanvasCursor(c, "grab");
+            return;
+        }
         if (state.isConnecting && state.connectingFrom !== null) {
-            const p = getCanvasPoint(e);
-            const targetPort = getMagnetPortAtPosition(p.x, p.y, state.connectingFrom, PORT_MAGNET_RADIUS);
+            const point = getCanvasPoint(e);
+            const targetPort = getMagnetPortAtPosition(point.x, point.y, state.connectingFrom, PORT_MAGNET_RADIUS);
             if (targetPort) {
                 finishConnection(targetPort.nodeId, targetPort.side);
             }
@@ -1498,18 +1759,20 @@ function setupCanvasInteractions() {
         }
         if (isPanning) { isPanning = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; setCanvasCursor(c, "grab"); return; }
         if (isResizing) { isResizing = false; resizeNodeId = null; resizeHandle = null; activePointerId = null; saveToLocalStorage(); drawCanvas(); setCanvasCursor(c, "grab"); return; }
-        const p = getCanvasPoint(e), moved = Math.hypot(p.x - startX, p.y - startY) > 6; if ((state.draggingNodeId !== null || state.draggingTextId !== null) && state.hasDragged) saveToLocalStorage();
+        const point = getCanvasPoint(e), moved = Math.hypot(point.x - startX, point.y - startY) > 6; if ((state.draggingNodeId !== null || state.draggingTextId !== null) && state.hasDragged) saveToLocalStorage();
         if (!moved && downConnectionIndex !== null && !state.isViewMode && !state.isConnecting) {
-            hideInlineEditor(false); hideInlineTextEditor(false); state.selectedNode = null; state.selectedTextId = null; state.selectedConnectionIndex = downConnectionIndex; updateUI();
+            clearSelectionState();
+            setConnectionSelection([downConnectionIndex]);
+            updateUI();
         } else if (!moved && downTextId !== null && !state.isViewMode && !state.isConnecting) {
-            if (wasTextSelectedOnDown) { startInlineTextEdit(downTextId); } else { hideInlineEditor(false); hideInlineTextEditor(false); state.selectedNode = null; state.selectedTextId = downTextId; state.selectedConnectionIndex = null; updateUI(); }
+            if (wasTextSelectedOnDown) { startInlineTextEdit(downTextId); } else { clearSelectionState(); setTextSelection([downTextId]); updateUI(); }
         } else if (!moved && downNodeId !== null && !state.isViewMode && !state.isConnecting) {
-            if (wasSelectedOnDown) { startInlineEdit(downNodeId); } else { hideInlineEditor(false); hideInlineTextEditor(false); state.selectedNode = downNodeId; state.selectedTextId = null; state.selectedConnectionIndex = null; updateUI(); }
+            if (wasSelectedOnDown) { startInlineEdit(downNodeId); } else { clearSelectionState(); setNodeSelection([downNodeId]); updateUI(); }
         }
         state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; setCanvasCursor(c, "grab");
     };
     c.addEventListener("pointerup", endPointer); c.addEventListener("pointercancel", endPointer);
-    c.addEventListener("lostpointercapture", () => { state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; isPanning = false; isResizing = false; isPinching = false; resizeNodeId = null; resizeHandle = null; pinchNodeId = null; pointerMap.clear(); setCanvasCursor(c, "grab"); });
+    c.addEventListener("lostpointercapture", () => { state.selectionBox = null; isSelectingBox = false; state.draggingNodeId = null; state.draggingTextId = null; state.hasDragged = false; activePointerId = null; downNodeId = null; downTextId = null; downConnectionIndex = null; wasSelectedOnDown = false; wasTextSelectedOnDown = false; isPanning = false; isResizing = false; isPinching = false; resizeNodeId = null; resizeHandle = null; pinchNodeId = null; pointerMap.clear(); setCanvasCursor(c, "grab"); });
 }
 
 // Global Exports for HTML
@@ -1524,6 +1787,9 @@ window.toggleViewMode = toggleViewMode;
 window.toggleDisconnectFromMenu = toggleDisconnectFromMenu;
 window.openColorModal = openColorModal;
 window.closeColorModal = closeColorModal;
+window.toggleShapeMenu = toggleShapeMenu;
+window.setNodeShape = setSelectedNodeShape;
+window.closeShapeMenu = closeShapeMenu;
 window.resetActiveColor = resetActiveColor;
 window.closeRenameModal = closeRenameModal;
 window.saveProjectName = saveProjectName;

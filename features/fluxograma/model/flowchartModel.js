@@ -19,6 +19,9 @@ export const state = {
     selectedNode: null,
     selectedTextId: null,
     selectedConnectionIndex: null,
+    selectedNodeIds: [],
+    selectedTextIds: [],
+    selectedConnectionIndexes: [],
     nextId: 1,
     isConnecting: false,
     connectingFrom: null,
@@ -41,10 +44,12 @@ export const state = {
     cameraY: 0,
     zoom: 1,
     activeColor: "#d1d5db",
+    defaultNodeShape: "rect",
     defaultConnectionType: "line",
     connectionPointerX: 0,
     connectionPointerY: 0,
     hoveredPort: null,
+    selectionBox: null,
     inlineEditNodeId: null,
     inlineEditTextId: null,
     draggingTextId: null
@@ -76,6 +81,7 @@ function clearInteractionState() {
     state.draggingTextId = null;
     state.hasDragged = false;
     state.hoveredPort = null;
+    state.selectionBox = null;
 }
 
 /** Snapshot do grafo (localStorage / coluna dados no Supabase). */
@@ -111,6 +117,7 @@ export function getGraphPayload() {
         nextId: state.nextId,
         projectName: state.projectName,
         activeColor: state.activeColor || "#d1d5db",
+        defaultNodeShape: state.defaultNodeShape || "rect",
         cameraX: state.cameraX,
         cameraY: state.cameraY,
         zoom: Number(state.zoom) || 1
@@ -155,6 +162,9 @@ export function applyPersistedData(d) {
     state.activeColor = typeof d.activeColor === "string" && d.activeColor.trim()
         ? d.activeColor.trim()
         : "#d1d5db";
+    state.defaultNodeShape = typeof d.defaultNodeShape === "string" && d.defaultNodeShape.trim()
+        ? d.defaultNodeShape.trim()
+        : "rect";
     state.cameraX = Number(d.cameraX) || 0;
     state.cameraY = Number(d.cameraY) || 0;
     state.zoom = Number(d.zoom) > 0 ? Number(d.zoom) : 1;
@@ -169,6 +179,7 @@ export function resetGraphState() {
     state.nextId = 1;
     state.projectName = "Novo Fluxograma";
     state.activeColor = "#d1d5db";
+    state.defaultNodeShape = "rect";
     state.cameraX = 0;
     state.cameraY = 0;
     state.zoom = 1;

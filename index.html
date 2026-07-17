@@ -1698,7 +1698,9 @@
         [data-theme="dark"] .fluxograma-root .menu-tools { background: #131d2a; border-color: #2b3745; }
         [data-theme="dark"] .fluxograma-root .menu-tools label { color: #b6c2d0; }
         [data-theme="dark"] .fluxograma-root .menu-tools select,
-        [data-theme="dark"] .fluxograma-root .menu-tools .flux-color-preview-item { background: #0f1720; color: #e5e7eb; border-color: #2b3745; }
+        [data-theme="dark"] .fluxograma-root .menu-tools .flux-color-preview-item,
+        [data-theme="dark"] .fluxograma-root .shape-menu-btn { background: #0f1720; color: #e5e7eb; border-color: #2b3745; }
+        [data-theme="dark"] .fluxograma-root .shape-menu { background: #0f1720; border-color: #2b3745; }
         [data-theme="dark"] .fluxograma-root .flux-color-preview-swatch { border-color: rgba(148, 163, 184, .5); }
         [data-theme="dark"] .fluxograma-root .flux-color-palette { background: #0f1720; border-color: #2b3745; }
         [data-theme="dark"] .fluxograma-root .flux-color-swatch { border-color: rgba(148, 163, 184, .35); }
@@ -2218,6 +2220,13 @@
             text-transform: uppercase;
             letter-spacing: 0.1em;
         }
+        .fluxograma-root .shape-menu-wrap {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: .35rem;
+        }
+        .fluxograma-root .shape-menu-btn,
         .fluxograma-root .menu-tools select,
         .fluxograma-root .menu-tools .flux-color-preview-item {
             height: 38px;
@@ -2227,6 +2236,56 @@
             color: var(--flux-text);
             font-size: 0.8rem;
             padding: 0 0.75rem;
+        }
+        .fluxograma-root .shape-menu-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .5rem;
+            min-width: 180px;
+            cursor: pointer;
+        }
+        .fluxograma-root .shape-menu-btn > i:first-child { color: #7dd3fc; }
+        .fluxograma-root .shape-menu-btn .fa-chevron-down { font-size: .72rem; opacity: .8; }
+        .fluxograma-root .shape-menu {
+            position: absolute;
+            top: calc(100% + .35rem);
+            left: 0;
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            gap: .25rem;
+            min-width: 220px;
+            padding: .55rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 1rem;
+            background: rgba(8, 14, 28, 0.98);
+            box-shadow: 0 20px 45px rgba(2, 6, 23, 0.4);
+            backdrop-filter: blur(18px);
+        }
+        .fluxograma-root .shape-menu[hidden] { display: none !important; }
+        .fluxograma-root .shape-menu-item {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            width: 100%;
+            border: 0;
+            border-radius: .8rem;
+            background: transparent;
+            color: var(--flux-text);
+            padding: .55rem .65rem;
+            text-align: left;
+            cursor: pointer;
+        }
+        .fluxograma-root .shape-menu-item:hover,
+        .fluxograma-root .shape-menu-item.is-active {
+            background: rgba(33, 79, 131, 0.18);
+        }
+        .fluxograma-root .shape-menu-glyph {
+            width: 1.25rem;
+            text-align: center;
+            font-size: 1rem;
+            opacity: .9;
         }
         .fluxograma-root .menu-tools .mini {
             height: 38px;
@@ -9156,13 +9215,20 @@ ${financeRowActions(r.id, 'compra')}
                                     <p>Organize suas ideias</p>
                                 </div>
                                 <div class="menu-tools">
-                                    <label>Forma</label>
-                                    <select id="flux-nodeShapeSelect">
-                                        <option value="rect">Retangulo</option>
-                                        <option value="ellipse">Elipse</option>
-                                        <option value="diamond">Losango</option>
-                                        <option value="hexagon">Hexagono</option>
-                                    </select>
+                                    <div class="shape-menu-wrap">
+                                        <label>Forma</label>
+                                        <button type="button" class="shape-menu-btn" id="flux-shapeMenuBtn" onclick="toggleShapeMenu()" aria-haspopup="menu" aria-expanded="false">
+                                            <i class="fas fa-shapes" aria-hidden="true"></i>
+                                            <span>Retangulo</span>
+                                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                        </button>
+                                        <div id="flux-shapeMenu" class="shape-menu" hidden role="menu" aria-label="Selecionar forma">
+                                            <button type="button" class="shape-menu-item" onclick="setNodeShape('rect')"><span class="shape-menu-glyph" aria-hidden="true">?</span><span>Retangulo</span></button>
+                                            <button type="button" class="shape-menu-item" onclick="setNodeShape('ellipse')"><span class="shape-menu-glyph" aria-hidden="true">?</span><span>Elipse</span></button>
+                                            <button type="button" class="shape-menu-item" onclick="setNodeShape('diamond')"><span class="shape-menu-glyph" aria-hidden="true">?</span><span>Losango</span></button>
+                                            <button type="button" class="shape-menu-item" onclick="setNodeShape('hexagon')"><span class="shape-menu-glyph" aria-hidden="true">?</span><span>Hexagono</span></button>
+                                        </div>
+                                    </div>
                                     <label>Conexão</label>
                                     <select id="flux-connectionTypeSelect">
                                         <option value="arrow">Seta ida</option>
