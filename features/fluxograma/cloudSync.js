@@ -34,6 +34,14 @@ async function fetchJson(url, opts) {
     return data;
 }
 
+function escapeHtmlText(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
 function setAutosaveStatus(text, isErr) {
     const el = ce("autosave-status");
     if (!el) return;
@@ -55,10 +63,7 @@ function askProjectName({
     placeholder = "Nome do projeto"
 } = {}) {
     return new Promise((resolve) => {
-        const safeInitialValue = String(initialValue || "")
-            .replace(/&/g, "&amp;")
-            .replace(/"/g, "&quot;")
-            .replace(/</g, "&lt;");
+        const safeInitialValue = escapeHtmlText(initialValue);
         const overlay = document.createElement("div");
         overlay.className = "app-modal-overlay flux-project-name-overlay";
         overlay.innerHTML = `
@@ -119,6 +124,57 @@ function askProjectName({
             input?.focus();
             if (typeof input?.select === "function") input.select();
         });
+    });
+}
+
+function askConfirm({
+    title = "Confirmar acao",
+    message = "Tem certeza que deseja continuar?",
+    confirmLabel = "Confirmar",
+    cancelLabel = "Cancelar",
+    tone = "danger"
+} = {}) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement("div");
+        overlay.className = "app-modal-overlay flux-confirm-overlay";
+        const safeTone = escapeHtmlText(tone);
+        overlay.innerHTML = [
+            '<div class="app-modal flux-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="flux-confirm-title" aria-describedby="flux-confirm-message">',
+            '<div class="flux-confirm-head">',
+            '<div class="flux-confirm-icon" aria-hidden="true"><i class="fas fa-triangle-exclamation"></i></div>',
+            '<div><span class="flux-project-name-kicker">Fluxograma</span><h4 id="flux-confirm-title">' + escapeHtmlText(title) + '</h4></div>',
+            '</div>',
+            '<p id="flux-confirm-message" class="flux-confirm-copy">' + escapeHtmlText(message) + '</p>',
+            '<div class="app-modal-actions flux-confirm-actions">',
+            '<button type="button" class="app-btn app-btn-secondary" data-action="cancel">' + escapeHtmlText(cancelLabel) + '</button>',
+            '<button type="button" class="app-btn flux-confirm-primary flux-confirm-primary--' + safeTone + '" data-action="confirm">' + escapeHtmlText(confirmLabel) + '</button>',
+            '</div>',
+            '</div>'
+        ].join("");
+
+        const close = (value) => {
+            overlay.remove();
+            resolve(value);
+        };
+
+        overlay.querySelector('[data-action="cancel"]').onclick = () => close(false);
+        overlay.querySelector('[data-action="confirm"]').onclick = () => close(true);
+        overlay.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                close(false);
+            }
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                close(true);
+            }
+        });
+        overlay.onclick = (e) => {
+            if (e.target === overlay) close(false);
+        };
+
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => overlay.querySelector('[data-action="cancel"]')?.focus());
     });
 }
 
@@ -296,8 +352,15 @@ export async function initFluxogramaApp(mod) {
         }
     }
 
-    async function deleteProject(pid) {
-        if (!confirm("Excluir este projeto da nuvem? Esta ação não pode ser desfeita.")) return;
+    async function deleteProject(pid, projectName = "") {
+        const label = projectName ? ` o projeto "${projectName}"` : " este projeto";
+        const confirmed = await askConfirm({
+            title: "Excluir projeto?",
+            message: `Voce vai excluir${label} da nuvem. Esta acao nao pode ser desfeita.`,
+            confirmLabel: "Excluir",
+            cancelLabel: "Manter"
+        });
+        if (!confirmed) return;
         const errEl = document.getElementById("flux-hub-error");
         try {
             await fetchJson("/api/fluxograma?id=" + encodeURIComponent(pid), { method: "DELETE" });
@@ -356,7 +419,7 @@ export async function initFluxogramaApp(mod) {
             del.addEventListener("click", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                deleteProject(p.id);
+                deleteProject(p.id, p.nome || "");
             });
             actions.append(edit, del);
             card.append(title, meta, actions);
