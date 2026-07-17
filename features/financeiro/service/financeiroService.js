@@ -465,6 +465,8 @@ export function payloadUpdateFinanceiro(body = {}) {
       if (!out.descricao) return { error: 'descricao obrigatoria' };
     }
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
+    if (body.data_lancamento !== undefined) out.data_lancamento = body.data_lancamento || null;
+    if (body.created_at !== undefined) out.created_at = String(body.created_at || '').trim() || null;
     if (Object.keys(out).length === 0) return { error: 'nada para atualizar' };
     return { tipo_registro: tipoRegistro, id: body.id, payload: out };
   }

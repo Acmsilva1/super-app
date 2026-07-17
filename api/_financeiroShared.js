@@ -403,6 +403,37 @@ export async function atualizarRegistroFinanceiro(req) {
   if (parsed.error) return { status: 400, data: { error: parsed.error } };
 
   const table = tableForTipoRegistro(parsed.tipo_registro);
+  const originalTipoRegistro = body.original_tipo_registro
+    ? inferTipoRegistro({ tipo_registro: body.original_tipo_registro })
+    : parsed.tipo_registro;
+  const originalTable = tableForTipoRegistro(originalTipoRegistro);
+
+  if (originalTipoRegistro && originalTable !== table) {
+    const insertParsed = payloadInsertFinanceiro({ ...body, id: undefined, tipo_registro: parsed.tipo_registro });
+    if (insertParsed.error) return { status: 400, data: { error: insertParsed.error } };
+
+    let insertedRow = null;
+    if (insertParsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA && body.mes_ano && /^\d{4}-\d{2}$/.test(String(body.mes_ano))) {
+      const mesAno = String(body.mes_ano);
+      const insertPayloads = buildDespesaFixaInsertPayloads({ ...insertParsed.payload }, mesAno);
+      const { data: insertedRows, error: insertErr } = await supabase
+        .from(table)
+        .insert(insertPayloads)
+        .select();
+      if (insertErr) return { status: 500, data: { error: insertErr.message } };
+      const rows = Array.isArray(insertedRows) ? insertedRows : (insertedRows ? [insertedRows] : []);
+      insertedRow = rows.find((item) => String(item?.created_at || '').slice(0, 7) === mesAno) || rows[0] || null;
+    } else {
+      const { data: inserted, error: insertErr } = await supabase.from(table).insert(insertParsed.payload).select().single();
+      if (insertErr) return { status: 500, data: { error: insertErr.message } };
+      insertedRow = rowOrFirst(inserted);
+    }
+
+    const { error: deleteErr } = await supabase.from(originalTable).delete().eq('id', parsed.id);
+    if (deleteErr) return { status: 500, data: { error: deleteErr.message } };
+
+    return { status: 200, data: { ...(insertedRow || {}), tipo_registro: parsed.tipo_registro, realocado: true } };
+  }
 
   let existingRow = null;
   if (parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA) {

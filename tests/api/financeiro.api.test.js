@@ -211,6 +211,90 @@ describe('API do financeiro', () => {
     expect(res.body.tipo_registro).toBe('receita');
   });
 
+  it('realoca uma compra para debito pix criando em financas e removendo de compras', async () => {
+    const financeInsert = vi.fn((payload) => ({
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 88, ...payload },
+          error: null,
+        }),
+      })),
+    }));
+    const compraDeleteEq = vi.fn().mockResolvedValue({ error: null });
+    const compraDelete = vi.fn(() => ({ eq: compraDeleteEq }));
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_financas') return { insert: financeInsert };
+      if (table === 'tb_compras') return { delete: compraDelete };
+      throw new Error(`Tabela inesperada: ${table}`);
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .patch('/api/test')
+      .send({
+        id: 12,
+        original_tipo_registro: 'compra',
+        tipo_registro: 'gasto_variado',
+        descricao: 'Mercado corrigido',
+        valor: 145.5,
+        metodo_pagamento: 'debito_pix',
+        categoria: 'Compras',
+        data_lancamento: '2026-07-10',
+        created_at: '2026-07-10T15:00:00.000Z',
+      });
+
+    expect(res.status).toBe(200);
+    expect(financeInsert).toHaveBeenCalledWith(expect.objectContaining({
+      descricao: 'Mercado corrigido',
+      tipo: 'despesa',
+      metodo_pagamento: 'debito_pix',
+    }));
+    expect(compraDeleteEq).toHaveBeenCalledWith('id', 12);
+    expect(res.body).toMatchObject({ tipo_registro: 'gasto_variado', realocado: true });
+  });
+
+  it('realoca uma despesa fixa para compras criando em compras e removendo da origem', async () => {
+    const compraInsert = vi.fn((payload) => ({
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 77, ...payload },
+          error: null,
+        }),
+      })),
+    }));
+    const fixaDeleteEq = vi.fn().mockResolvedValue({ error: null });
+    const fixaDelete = vi.fn(() => ({ eq: fixaDeleteEq }));
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_compras') return { insert: compraInsert };
+      if (table === 'tb_despesas_fixas') return { delete: fixaDelete };
+      throw new Error(`Tabela inesperada: ${table}`);
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .patch('/api/test')
+      .send({
+        id: 34,
+        original_tipo_registro: 'despesa_fixa',
+        tipo_registro: 'compra',
+        descricao: 'Monitor',
+        valor: 900,
+        data_lancamento: '2026-07-12',
+        created_at: '2026-07-12T12:00:00.000Z',
+      });
+
+    expect(res.status).toBe(200);
+    expect(compraInsert).toHaveBeenCalledWith(expect.objectContaining({
+      descricao: 'Monitor',
+      valor: 900,
+      data_lancamento: '2026-07-12',
+    }));
+    expect(fixaDeleteEq).toHaveBeenCalledWith('id', 34);
+    expect(res.body).toMatchObject({ tipo_registro: 'compra', realocado: true });
+  });
+
   it('remove um registro financeiro sem tocar no ledger paralelo', async () => {
     const financeDelete = vi.fn(() => ({
       eq: vi.fn().mockResolvedValue({

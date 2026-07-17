@@ -9084,6 +9084,7 @@ ${financeRowActions(r.id, 'compra')}
                     }
                     const payload = {
                         editId: item?.id || '',
+                        original_tipo_registro: item?.tipo_registro || '',
                         tipo_registro: tipoVal,
                         descricao: overlay.querySelector('#financeiro-modal-descricao').value.trim(),
                         valor: Number(overlay.querySelector('#financeiro-modal-valor').value || 0),
@@ -9143,6 +9144,7 @@ ${financeRowActions(r.id, 'compra')}
                 }
                     const requestBody = {
                         tipo_registro: tipoRegistro,
+                        original_tipo_registro: payload?.original_tipo_registro || '',
                         descricao: tipoRegistro === 'poupanca' ? (descricao || 'Poupança') : descricao,
                         valor,
                         mes_ano: mesAno,
