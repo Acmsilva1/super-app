@@ -212,11 +212,20 @@ export async function garantirDespesasFixasMes(mesAno) {
   await materializeDespesasFixasMes(mesAno);
 }
 
+async function garantirDespesasFixasAno(ano) {
+  const year = Number(ano);
+  if (!Number.isInteger(year) || year < 1900) return;
+  await Promise.all(Array.from({ length: 12 }, (_, idx) => {
+    const month = idx + 1;
+    return materializeDespesasFixasMes(`${year}-${String(month).padStart(2, '0')}`);
+  }));
+}
+
 export async function obterFinanceiroMes(query = {}) {
   const { ano, mes } = parseMesAno(query.mes_ano);
   const { start, end, mes_ano } = rangeMes(ano, mes);
 
-  await garantirDespesasFixasMes(mes_ano);
+  await garantirDespesasFixasAno(ano);
 
   const { data: allFinancasRows, error: errFin } = await supabase
     .from(TABLE_FINANCAS)
@@ -231,6 +240,16 @@ export async function obterFinanceiroMes(query = {}) {
     .lte('created_at', end)
     .order('created_at', { ascending: false });
   if (errFixas) return { error: errFixas.message, status: 500 };
+
+  const yearStart = new Date(ano, 0, 1, 0, 0, 0, 0).toISOString();
+  const yearEnd = new Date(ano, 11, 31, 23, 59, 59, 999).toISOString();
+  const { data: despesasFixasAnoRowsRaw, error: errFixasAno } = await supabase
+    .from(TABLE_DESPESAS_FIXAS)
+    .select('*')
+    .gte('created_at', yearStart)
+    .lte('created_at', yearEnd)
+    .order('created_at', { ascending: false });
+  if (errFixasAno) return { error: errFixasAno.message, status: 500 };
 
   let poupancaRowsRaw = [];
   let poupancaConfigured = true;
@@ -307,7 +326,7 @@ export async function obterFinanceiroMes(query = {}) {
   const graficosAnuais = calcularGraficosAnuais({
     ano,
     rows: allFinancasRows || [],
-    despesasFixasRows: despesasFixasRowsRaw || [],
+    despesasFixasRows: despesasFixasAnoRowsRaw || [],
   });
 
   const poupancaTotal = Math.round((poupancaRowsRaw || []).reduce((acc, r) => acc + (Number(r?.valor) || 0), 0) * 100) / 100;
