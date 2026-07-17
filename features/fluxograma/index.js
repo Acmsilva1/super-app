@@ -562,8 +562,14 @@ function updateMenuForSelection() {
     }
     if (shapeBtn) {
         const currentShape = normalizeNodeShape(state.defaultNodeShape || DEFAULT_NODE_SHAPE);
+        const shapeLabel = getShapeLabel(currentShape);
+        const isTopbarTrigger = shapeBtn.classList.contains("shape-menu-trigger");
         shapeBtn.disabled = state.isViewMode;
-        shapeBtn.innerHTML = '<i class="fas fa-shapes" aria-hidden="true"></i><span>' + getShapeLabel(currentShape) + '</span>';
+        shapeBtn.innerHTML = isTopbarTrigger
+            ? '<i class="fas fa-shapes" aria-hidden="true"></i>'
+            : '<i class="fas fa-shapes" aria-hidden="true"></i><span>' + shapeLabel + '</span>';
+        shapeBtn.title = "Formas: " + shapeLabel;
+        shapeBtn.setAttribute("aria-label", "Formas: " + shapeLabel);
         shapeBtn.setAttribute("aria-expanded", shapeMenu && !shapeMenu.hidden ? "true" : "false");
     }
     if (shapeMenu) {

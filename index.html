@@ -2226,6 +2226,20 @@
             flex-direction: column;
             gap: .35rem;
         }
+        .fluxograma-root .shape-menu-wrap--topbar {
+            display: inline-flex;
+            flex-direction: row;
+            gap: 0;
+        }
+        .fluxograma-root .shape-menu-wrap--topbar .shape-menu {
+            top: calc(100% + .55rem);
+            left: 0;
+        }
+        .fluxograma-root .shape-menu-trigger[aria-expanded="true"] {
+            color: #38bdf8;
+            border-color: rgba(56, 189, 248, 0.45);
+            background: rgba(14, 165, 233, 0.14);
+        }
         .fluxograma-root .shape-menu-btn,
         .fluxograma-root .menu-tools select,
         .fluxograma-root .menu-tools .flux-color-preview-item {
@@ -9169,6 +9183,17 @@ ${financeRowActions(r.id, 'compra')}
                                 <button type="button" class="flux-toolbar-btn" onclick="openColorModal()" aria-label="Cores" title="Cores">
                                     <i class="fas fa-palette" aria-hidden="true"></i>
                                 </button>
+                                <div class="shape-menu-wrap shape-menu-wrap--topbar">
+                                    <button type="button" class="flux-toolbar-btn shape-menu-trigger" id="flux-shapeMenuBtn" onclick="toggleShapeMenu()" aria-label="Formas" title="Formas" aria-haspopup="menu" aria-expanded="false">
+                                        <i class="fas fa-shapes" aria-hidden="true"></i>
+                                    </button>
+                                    <div id="flux-shapeMenu" class="shape-menu" hidden role="menu" aria-label="Selecionar forma">
+                                        <button type="button" class="shape-menu-item" data-flux-shape="rect" onclick="setNodeShape('rect')"><i class="far fa-square" aria-hidden="true"></i><span>Retangulo</span></button>
+                                        <button type="button" class="shape-menu-item" data-flux-shape="ellipse" onclick="setNodeShape('ellipse')"><i class="far fa-circle" aria-hidden="true"></i><span>Elipse</span></button>
+                                        <button type="button" class="shape-menu-item" data-flux-shape="diamond" onclick="setNodeShape('diamond')"><i class="far fa-gem" aria-hidden="true"></i><span>Losango</span></button>
+                                        <button type="button" class="shape-menu-item" data-flux-shape="hexagon" onclick="setNodeShape('hexagon')"><i class="fas fa-certificate" aria-hidden="true"></i><span>Hexagono</span></button>
+                                    </div>
+                                </div>
                                 <button type="button" class="flux-toolbar-btn" onclick="addNode()" aria-label="Novo nó" title="Novo nó">
                                     <i class="fas fa-square-plus" aria-hidden="true"></i>
                                 </button>
@@ -9215,20 +9240,6 @@ ${financeRowActions(r.id, 'compra')}
                                     <p>Organize suas ideias</p>
                                 </div>
                                 <div class="menu-tools">
-                                    <div class="shape-menu-wrap">
-                                        <label>Forma</label>
-                                        <button type="button" class="shape-menu-btn" id="flux-shapeMenuBtn" onclick="toggleShapeMenu()" aria-haspopup="menu" aria-expanded="false">
-                                            <i class="fas fa-shapes" aria-hidden="true"></i>
-                                            <span>Retangulo</span>
-                                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                        </button>
-                                        <div id="flux-shapeMenu" class="shape-menu" hidden role="menu" aria-label="Selecionar forma">
-                                            <button type="button" class="shape-menu-item" onclick="setNodeShape('rect')"><span class="shape-menu-glyph" aria-hidden="true">?</span><span>Retangulo</span></button>
-                                            <button type="button" class="shape-menu-item" onclick="setNodeShape('ellipse')"><span class="shape-menu-glyph" aria-hidden="true">?</span><span>Elipse</span></button>
-                                            <button type="button" class="shape-menu-item" onclick="setNodeShape('diamond')"><span class="shape-menu-glyph" aria-hidden="true">?</span><span>Losango</span></button>
-                                            <button type="button" class="shape-menu-item" onclick="setNodeShape('hexagon')"><span class="shape-menu-glyph" aria-hidden="true">?</span><span>Hexagono</span></button>
-                                        </div>
-                                    </div>
                                     <label>Conexão</label>
                                     <select id="flux-connectionTypeSelect">
                                         <option value="arrow">Seta ida</option>
