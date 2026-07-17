@@ -3738,9 +3738,19 @@
         .module-table .col-actions {
             width: 1%;
             white-space: nowrap;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .module-table th.col-actions {
+            text-align: center;
+        }
+        .module-table td.col-actions {
+            padding-left: 0.65rem;
+            padding-right: 0.65rem;
         }
         .finance-row-actions {
-            justify-content: flex-end;
+            justify-content: center;
+            align-items: center;
             gap: 0.38rem;
         }
         .app-list-actions .finance-icon-action {
@@ -6162,11 +6172,12 @@
             }
             .finance-table-scroll .module-table .col-actions .app-list-actions {
                 flex-direction: column;
-                align-items: stretch;
+                align-items: center;
+                justify-content: center;
                 gap: 0.25rem;
             }
             .finance-table-scroll .module-table .col-actions .app-list-actions button {
-                width: 100%;
+                width: 2rem;
                 text-align: center;
             }
             .finance-table-scroll .finance-desc-text {
@@ -7383,8 +7394,11 @@ ${financeRowActions(r.id, 'poupanca')}
                             <td><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong></td>
                             <td style="color:#f97316">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                             <td>${escapeHtml(fmtDataBr(lancDate(r)))}</td>
+                            <td class="col-actions">
+${financeRowActions(r.id, 'compra')}
+                            </td>
                         </tr>`).join('')
-                    : '<tr><td colspan="3" class="module-table-empty">Nenhuma compra de eletro/moveis neste mes.</td></tr>';
+                    : '<tr><td colspan="4" class="module-table-empty">Nenhuma compra de eletro/moveis neste mes.</td></tr>';
                 const metaNome = String(poupancaMetaAtiva?.nome_meta || '').trim();
                 const metaId = Number(poupancaMetaAtiva?.id || 0);
                 const metaValor = Number(poupancaMetaAtiva?.valor_meta || 0);
@@ -7617,7 +7631,7 @@ ${financeRowActions(r.id, 'poupanca')}
                             <div class="module-table-wrap finance-poupanca-table-wrap finance-limited-table-wrap">
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th>Item</th><th>Valor</th><th>Data</th></tr></thead>
+                                        <thead><tr><th>Item</th><th>Valor</th><th>Data</th><th class="col-actions">CRUD</th></tr></thead>
                                         <tbody id="financeiro-table-compras">${rowsComprasHtml}</tbody>
                                     </table>
                                 </div>
