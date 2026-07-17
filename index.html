@@ -8046,19 +8046,13 @@ ${financeRowActions(r.id, 'compra')}
                             }
                             const barGlowGradient = (phase) => {
                                 const p = ((phase % 1) + 1) % 1;
-                                const m = 1 - p;
-                                const leftA = Math.max(0, p - 0.14);
-                                const rightA = Math.min(1, p + 0.14);
-                                const leftB = Math.max(0, m - 0.14);
-                                const rightB = Math.min(1, m + 0.14);
+                                const left = Math.max(0, p - 0.16);
+                                const right = Math.min(1, p + 0.16);
                                 return new echarts.graphic.LinearGradient(0, 0, 1, 0, [
                                     { offset: 0, color: '#2563eb' },
-                                    { offset: leftA, color: '#38bdf8' },
+                                    { offset: left, color: '#38bdf8' },
                                     { offset: p, color: '#e0f2fe' },
-                                    { offset: rightA, color: '#38bdf8' },
-                                    { offset: leftB, color: '#38bdf8' },
-                                    { offset: m, color: '#e0f2fe' },
-                                    { offset: rightB, color: '#38bdf8' },
+                                    { offset: right, color: '#38bdf8' },
                                     { offset: 1, color: '#2563eb' },
                                 ]);
                             };
@@ -8176,19 +8170,13 @@ ${financeRowActions(r.id, 'compra')}
                     const mesReferenciaAtual = Math.max(1, Math.min(12, Number(mes) || 1));
                     const makePulseGradient = (baseColor, glowColor) => (phase) => {
                         const p = ((phase % 1) + 1) % 1;
-                        const m = 1 - p;
-                        const leftA = Math.max(0, p - 0.14);
-                        const rightA = Math.min(1, p + 0.14);
-                        const leftB = Math.max(0, m - 0.14);
-                        const rightB = Math.min(1, m + 0.14);
+                        const left = Math.max(0, p - 0.16);
+                        const right = Math.min(1, p + 0.16);
                         return new echarts.graphic.LinearGradient(0, 0, 1, 0, [
                             { offset: 0, color: baseColor },
-                            { offset: leftA, color: glowColor },
+                            { offset: left, color: glowColor },
                             { offset: p, color: '#e0f2fe' },
-                            { offset: rightA, color: glowColor },
-                            { offset: leftB, color: glowColor },
-                            { offset: m, color: '#e0f2fe' },
-                            { offset: rightB, color: glowColor },
+                            { offset: right, color: glowColor },
                             { offset: 1, color: baseColor },
                         ]);
                     };
@@ -8296,22 +8284,16 @@ ${financeRowActions(r.id, 'compra')}
                             const barChart = el._financeiroChartCategoria;
                             if (barChart && !barChart.isDisposed?.()) {
                                 const p = ((phase % 1) + 1) % 1;
-                                const m = 1 - p;
-                                const leftA = Math.max(0, p - 0.14);
-                                const rightA = Math.min(1, p + 0.14);
-                                const leftB = Math.max(0, m - 0.14);
-                                const rightB = Math.min(1, m + 0.14);
+                                const left = Math.max(0, p - 0.16);
+                                const right = Math.min(1, p + 0.16);
                                 barChart.setOption({
                                     series: [{
                                         itemStyle: {
                                             color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
                                                 { offset: 0, color: '#2563eb' },
-                                                { offset: leftA, color: '#38bdf8' },
+                                                { offset: left, color: '#38bdf8' },
                                                 { offset: p, color: '#e0f2fe' },
-                                                { offset: rightA, color: '#38bdf8' },
-                                                { offset: leftB, color: '#38bdf8' },
-                                                { offset: m, color: '#e0f2fe' },
-                                                { offset: rightB, color: '#38bdf8' },
+                                                { offset: right, color: '#38bdf8' },
                                                 { offset: 1, color: '#2563eb' },
                                             ]),
                                         },
