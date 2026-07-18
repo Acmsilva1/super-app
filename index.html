@@ -7501,14 +7501,14 @@ ${financeRowActions(r.id, 'compra')}
                                     <option value="data" ${activeTab === 'data' ? 'selected' : ''}>📂 Dados</option>
                                     <option value="summary" ${activeTab === 'summary' ? 'selected' : ''}>📊 Dashboards</option>
                                     <option value="poupanca" ${activeTab === 'poupanca' ? 'selected' : ''}>🐷 Poupan&ccedil;a</option>
-                                    <option value="compras" ${activeTab === 'compras' ? 'selected' : ''}>🛍️ Compras maiores</option>
+                                    <option value="compras" ${activeTab === 'compras' ? 'selected' : ''}>🛒 Compras maiores</option>
                                 </select>
                             </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--float" aria-hidden="true">📂</span>Dados</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--bounce" aria-hidden="true">📊</span>Dashboards</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">🐷</span>Poupan&ccedil;a</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--swing" aria-hidden="true">🛍️</span>Compras maiores</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--swing" aria-hidden="true">🛒</span>Compras maiores</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <div class="finance-data-jump-select-wrap">
@@ -8866,7 +8866,7 @@ ${financeRowActions(r.id, 'compra')}
                                         <option value="gasto_variado" ${tipoRegistro === 'gasto_variado' ? 'selected' : ''}>⚡ Débito / pix</option>
                                         <option value="receita" ${tipoRegistro === 'receita' ? 'selected' : ''}>💰 Receita</option>
                                         <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>🐷 Poupança</option>
-                                        <option value="compra" ${tipoRegistro === 'compra' ? 'selected' : ''}>🛍️ Compra maior</option>
+                                        <option value="compra" ${tipoRegistro === 'compra' ? 'selected' : ''}>🛒 Compra maior</option>
                                     </select>
                                 </div>
                                 <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref"><span class="finance-emoji finance-emoji--float" aria-hidden="true">🗓️</span>Mês de competência</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
@@ -9020,7 +9020,7 @@ ${financeRowActions(r.id, 'compra')}
                         dataWrap.style.display = '';
                         catWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
-                        if (contextoEl) contextoEl.innerHTML = '🛍️ Auditoria de itens adquiridos no mês da <strong>data</strong> informada (não entra em despesas).';
+                        if (contextoEl) contextoEl.innerHTML = '🛒 Auditoria de itens adquiridos no mês da <strong>data</strong> informada (não entra em despesas).';
                     } else {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = tipo === 'receita' ? '' : 'none';
