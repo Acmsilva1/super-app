@@ -7248,7 +7248,7 @@
                         lazer: 'Lazer',
                         saude: 'Sa\u00fade',
                         ticket: 'Ticket',
-                        compras: 'Eletro/moveis',
+                        compras: 'Compras maiores',
                         contas: 'Contas',
                         outros: 'Outros',
                         outro: 'Outro',
@@ -7398,7 +7398,7 @@ ${financeRowActions(r.id, 'poupanca')}
 ${financeRowActions(r.id, 'compra')}
                             </td>
                         </tr>`).join('')
-                    : '<tr><td colspan="4" class="module-table-empty">Nenhuma compra de eletro/moveis neste mes.</td></tr>';
+                    : '<tr><td colspan="4" class="module-table-empty">Nenhuma compra maior neste mes.</td></tr>';
                 const metaNome = String(poupancaMetaAtiva?.nome_meta || '').trim();
                 const metaId = Number(poupancaMetaAtiva?.id || 0);
                 const metaValor = Number(poupancaMetaAtiva?.valor_meta || 0);
@@ -7422,14 +7422,14 @@ ${financeRowActions(r.id, 'compra')}
                                     <option value="data" ${activeTab === 'data' ? 'selected' : ''}>Dados</option>
                                     <option value="summary" ${activeTab === 'summary' ? 'selected' : ''}>Dashboards</option>
                                     <option value="poupanca" ${activeTab === 'poupanca' ? 'selected' : ''}>Poupan&ccedil;a</option>
-                                    <option value="compras" ${activeTab === 'compras' ? 'selected' : ''}>Eletro/moveis</option>
+                                    <option value="compras" ${activeTab === 'compras' ? 'selected' : ''}>Compras maiores</option>
                                 </select>
                             </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Dashboards</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupan&ccedil;a</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}">Eletro/moveis</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}">Compras maiores</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <div class="finance-data-jump-select-wrap">
@@ -7625,7 +7625,7 @@ ${financeRowActions(r.id, 'compra')}
                         </div>
                         <div class="module-tab-panel ${activeTab === 'compras' ? '' : 'hidden'}" data-tab-panel="compras">
                             <div class="app-totais">
-                                <div class="totais-card"><div class="val" style="color:#ef4444">${this.formatMoneyBr(comprasTotal)}</div><div class="stat-label">Total em eletro/moveis neste mes</div></div>
+                                <div class="totais-card"><div class="val" style="color:#ef4444">${this.formatMoneyBr(comprasTotal)}</div><div class="stat-label">Total em compras maiores neste mes</div></div>
                             </div>
                             ${comprasConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_compras` não encontrada no Supabase. Crie a tabela para habilitar este módulo.</p>'}
                             <div class="module-table-wrap finance-poupanca-table-wrap finance-limited-table-wrap">
@@ -8783,7 +8783,7 @@ ${financeRowActions(r.id, 'compra')}
                                         <option value="gasto_variado" ${tipoRegistro === 'gasto_variado' ? 'selected' : ''}>Débito / pix</option>
                                         <option value="receita" ${tipoRegistro === 'receita' ? 'selected' : ''}>Receita</option>
                                         <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>Poupança</option>
-                                        <option value="compra" ${tipoRegistro === 'compra' ? 'selected' : ''}>Compra de eletro/moveis</option>
+                                        <option value="compra" ${tipoRegistro === 'compra' ? 'selected' : ''}>Compra maior</option>
                                     </select>
                                 </div>
                                 <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">Mês de competência</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>

@@ -53,7 +53,7 @@ export function canonicalFinanceiroCategoriaLabel(value) {
     lazer: 'Lazer',
     saude: 'Sa\u00fade',
     ticket: 'Ticket',
-    compras: 'Eletro/moveis',
+    compras: 'Compras maiores',
     contas: 'Contas',
     outros: 'Outros',
     outro: 'Outro',
