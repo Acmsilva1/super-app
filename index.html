@@ -8046,13 +8046,13 @@ ${financeRowActions(r.id, 'compra')}
                             }
                             const barGlowGradient = (phase) => {
                                 const p = ((phase % 1) + 1) % 1;
-                                const left = Math.max(0, p - 0.22);
-                                const right = Math.min(1, p + 0.22);
+                                const left = Math.max(0, p - 0.12);
+                                const right = Math.min(1, p + 0.12);
                                 return new echarts.graphic.LinearGradient(0, 0, 1, 0, [
                                     { offset: 0, color: '#1d4ed8' },
-                                    { offset: left, color: '#7dd3fc' },
-                                    { offset: p, color: '#ffffff' },
-                                    { offset: right, color: '#7dd3fc' },
+                                    { offset: left, color: '#3b82f6' },
+                                    { offset: p, color: '#93c5fd' },
+                                    { offset: right, color: '#3b82f6' },
                                     { offset: 1, color: '#1d4ed8' },
                                 ]);
                             };
@@ -8091,8 +8091,8 @@ ${financeRowActions(r.id, 'compra')}
                                     itemStyle: {
                                         borderRadius: [8, 8, 8, 8],
                                         color: barGlowGradient(0.18),
-                                        shadowBlur: 20,
-                                        shadowColor: 'rgba(125, 211, 252, 0.55)',
+                                        shadowBlur: 10,
+                                        shadowColor: 'rgba(125, 211, 252, 0.22)',
                                     },
                                     label: {
                                         show: true,
@@ -8170,21 +8170,23 @@ ${financeRowActions(r.id, 'compra')}
                     const serieReceitas = labelsAnuais.map((_, idx) => Number(graficosAnuais[idx]?.receitas || 0));
                     const serieDespesas = labelsAnuais.map((_, idx) => Number(graficosAnuais[idx]?.despesas || 0));
                     const mesReferenciaAtual = Math.max(1, Math.min(12, Number(mes) || 1));
-                    const makePulseGradient = (baseColor, glowColor) => (phase) => {
+                    const makePulseGradient = (baseColor, glowColor, peakColor) => (phase) => {
                         const p = ((phase % 1) + 1) % 1;
-                        const left = Math.max(0, p - 0.22);
-                        const right = Math.min(1, p + 0.22);
+                        const left = Math.max(0, p - 0.12);
+                        const right = Math.min(1, p + 0.12);
                         return new echarts.graphic.LinearGradient(0, 0, 1, 0, [
                             { offset: 0, color: baseColor },
                             { offset: left, color: glowColor },
-                            { offset: p, color: '#ffffff' },
+                            { offset: p, color: peakColor || glowColor },
                             { offset: right, color: glowColor },
                             { offset: 1, color: baseColor },
                         ]);
                     };
-                    const makeAnnualBarData = (values, activeColor, inactiveColor, activeShadowColor, phase = null) => {
+                    const makeAnnualBarData = (values, activeColor, inactiveColor, activeShadowColor, phase = null, peakColor = null) => {
                         const source = [...values].reverse();
-                        const pulseColor = phase !== null ? makePulseGradient(activeColor, inactiveColor)(phase) : activeColor;
+                        const pulseColor = phase !== null
+                            ? makePulseGradient(activeColor, peakColor || inactiveColor, peakColor || inactiveColor)(phase)
+                            : activeColor;
                         return source.map((value, idx) => {
                             const monthNumber = 12 - idx;
                             const reachedMonth = monthNumber <= mesReferenciaAtual;
@@ -8194,7 +8196,7 @@ ${financeRowActions(r.id, 'compra')}
                                     color: reachedMonth ? pulseColor : inactiveColor,
                                     opacity: reachedMonth ? 1 : 0.28,
                                     borderRadius: [8, 8, 0, 0],
-                                    shadowBlur: reachedMonth ? 22 : 0,
+                                    shadowBlur: reachedMonth ? 10 : 0,
                                     shadowColor: reachedMonth ? activeShadowColor : 'rgba(0,0,0,0)',
                                 },
                                 label: {
@@ -8261,10 +8263,10 @@ ${financeRowActions(r.id, 'compra')}
                         '_financeiroChartReceitasAnual',
                         'Receitas do ano por mês',
                         'Receitas',
-                        makeAnnualBarData(serieReceitas, '#22c55e', 'rgba(34, 197, 94, 0.24)', 'rgba(34, 197, 94, 0.28)'),
+                        makeAnnualBarData(serieReceitas, '#22c55e', 'rgba(34, 197, 94, 0.24)', 'rgba(34, 197, 94, 0.16)'),
                         '#22c55e',
                         'rgba(34, 197, 94, 0.24)',
-                        'rgba(34, 197, 94, 0.28)',
+                        'rgba(34, 197, 94, 0.16)',
                         '#86efac',
                     );
                     renderFinanceiroAnualBarChart(
@@ -8272,34 +8274,34 @@ ${financeRowActions(r.id, 'compra')}
                         '_financeiroChartDespesasAnual',
                         'Despesas totais do ano por mês',
                         'Despesas',
-                        makeAnnualBarData(serieDespesas, '#ef4444', 'rgba(239, 68, 68, 0.24)', 'rgba(239, 68, 68, 0.24)'),
+                        makeAnnualBarData(serieDespesas, '#ef4444', 'rgba(239, 68, 68, 0.24)', 'rgba(239, 68, 68, 0.14)'),
                         '#ef4444',
                         'rgba(239, 68, 68, 0.24)',
-                        'rgba(239, 68, 68, 0.24)',
+                        'rgba(239, 68, 68, 0.14)',
                         '#fca5a5',
                     );
                     const startResumoGlow = () => {
                         if (el._financeiroResumoGlowTimer) clearInterval(el._financeiroResumoGlowTimer);
                         let phase = 0;
                         el._financeiroResumoGlowTimer = setInterval(() => {
-                            phase += 0.012;
+                            phase += 0.0045;
                             const barChart = el._financeiroChartCategoria;
                             if (barChart && !barChart.isDisposed?.()) {
                                 const p = ((phase % 1) + 1) % 1;
-                                const left = Math.max(0, p - 0.22);
-                                const right = Math.min(1, p + 0.22);
+                                const left = Math.max(0, p - 0.12);
+                                const right = Math.min(1, p + 0.12);
                                 barChart.setOption({
                                     series: [{
                                         itemStyle: {
                                             color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
                                                 { offset: 0, color: '#1d4ed8' },
-                                                { offset: left, color: '#7dd3fc' },
-                                                { offset: p, color: '#ffffff' },
-                                                { offset: right, color: '#7dd3fc' },
+                                                { offset: left, color: '#3b82f6' },
+                                                { offset: p, color: '#93c5fd' },
+                                                { offset: right, color: '#3b82f6' },
                                                 { offset: 1, color: '#1d4ed8' },
                                             ]),
-                                            shadowBlur: 20,
-                                            shadowColor: 'rgba(125, 211, 252, 0.55)',
+                                            shadowBlur: 10,
+                                            shadowColor: 'rgba(125, 211, 252, 0.22)',
                                         },
                                     }],
                                 });
@@ -8308,7 +8310,14 @@ ${financeRowActions(r.id, 'compra')}
                             if (receitasChart && !receitasChart.isDisposed?.()) {
                                 receitasChart.setOption({
                                     series: [{
-                                        data: makeAnnualBarData(serieReceitas, '#22c55e', 'rgba(34, 197, 94, 0.24)', 'rgba(34, 197, 94, 0.28)', phase),
+                                        data: makeAnnualBarData(
+                                            serieReceitas,
+                                            '#22c55e',
+                                            'rgba(34, 197, 94, 0.24)',
+                                            'rgba(34, 197, 94, 0.16)',
+                                            phase,
+                                            '#86efac',
+                                        ),
                                     }],
                                 });
                             }
@@ -8316,7 +8325,14 @@ ${financeRowActions(r.id, 'compra')}
                             if (despesasChart && !despesasChart.isDisposed?.()) {
                                 despesasChart.setOption({
                                     series: [{
-                                        data: makeAnnualBarData(serieDespesas, '#ef4444', 'rgba(239, 68, 68, 0.24)', 'rgba(239, 68, 68, 0.24)', phase),
+                                        data: makeAnnualBarData(
+                                            serieDespesas,
+                                            '#ef4444',
+                                            'rgba(239, 68, 68, 0.24)',
+                                            'rgba(239, 68, 68, 0.14)',
+                                            phase,
+                                            '#fca5a5',
+                                        ),
                                     }],
                                 });
                             }
@@ -8341,7 +8357,7 @@ ${financeRowActions(r.id, 'compra')}
                                     ],
                                 });
                             }
-                        }, 70);
+                        }, 110);
                     };
                     startResumoGlow();
                     animateSummaryCards();
