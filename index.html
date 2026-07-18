@@ -3984,6 +3984,9 @@
                 gap: 0.45rem;
                 align-items: stretch;
                 padding-top: 0.25rem;
+                padding-left: 0.12rem;
+                padding-right: 0.12rem;
+                overflow: visible;
             }
             .finance-sticky-head > .finance-balance-strip {
                 grid-column: 1;
@@ -4048,6 +4051,16 @@
             }
             .finance-data-jump-select {
                 box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+            }
+            .module-tab-select:focus,
+            .module-tab-select:focus-visible,
+            .finance-data-jump-select:focus,
+            .finance-data-jump-select:focus-visible {
+                outline: none;
+                border-color: rgba(125, 211, 252, 0.9);
+                box-shadow:
+                    inset 0 0 0 2px rgba(56, 189, 248, 0.72),
+                    0 8px 22px rgba(2, 8, 23, 0.24);
             }
             .finance-sticky-head > .finance-data-jump-bar {
                 grid-column: 1 / -1;
@@ -4275,10 +4288,10 @@
                 grid-auto-flow: column;
                 grid-auto-columns: minmax(7.2rem, 1fr);
                 gap: 0.45rem;
-                padding: 0.15rem 0 0.4rem;
+                padding: 0.15rem 0.1rem 0.4rem;
                 align-items: stretch;
-                overflow-x: auto;
-                scroll-snap-type: x proximity;
+                overflow: visible;
+                scroll-snap-type: none;
                 scrollbar-width: none;
                 -ms-overflow-style: none;
             }
