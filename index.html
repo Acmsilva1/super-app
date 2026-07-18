@@ -6223,6 +6223,9 @@
             gap: 0.75rem;
             margin: 0.35rem 0 0.95rem;
         }
+        .finance-fixas-mobile-donut {
+            display: none;
+        }
         .finance-despesas-fixas-mobile-actions .finance-fixas-mobile-btn {
             display: flex;
             flex-direction: column;
@@ -6395,6 +6398,18 @@
             .finance-despesas-fixas-mobile-actions {
                 display: grid;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .finance-fixas-mobile-donut {
+                display: block;
+                margin: 0 0 0.85rem;
+            }
+            .finance-fixas-mobile-donut.is-empty {
+                display: none;
+            }
+            .finance-fixas-mobile-donut > p {
+                font-size: 0.875rem;
+                font-weight: 600;
+                margin: 0 0 0.5rem;
             }
             .finance-despesas-fixas-grid {
                 display: none;
@@ -7424,6 +7439,7 @@
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
                 if (el._financeiroChartCategoria) { try { el._financeiroChartCategoria.dispose(); } catch (_) {} el._financeiroChartCategoria = null; }
                 if (el._financeiroChartStatus) { try { el._financeiroChartStatus.dispose(); } catch (_) {} el._financeiroChartStatus = null; }
+                if (el._financeiroChartStatusMobile) { try { el._financeiroChartStatusMobile.dispose(); } catch (_) {} el._financeiroChartStatusMobile = null; }
                 if (el._financeiroChartReceitasAnual) { try { el._financeiroChartReceitasAnual.dispose(); } catch (_) {} el._financeiroChartReceitasAnual = null; }
                 if (el._financeiroChartDespesasAnual) { try { el._financeiroChartDespesasAnual.dispose(); } catch (_) {} el._financeiroChartDespesasAnual = null; }
                 if (el._financeiroAnalistaChartMonth) { try { el._financeiroAnalistaChartMonth.dispose(); } catch (_) {} el._financeiroAnalistaChartMonth = null; }
@@ -7757,6 +7773,10 @@ ${financeRowActions(r.id, 'compra')}
                                         <span class="finance-fixas-mobile-total" id="financeiro-fixas-mobile-pagas-total">${despesasFixasPagas.length} item(ns) • ${this.formatMoneyBr(totalPagoFixas)}</span>
                                         <em class="finance-fixas-mobile-hint">Toque para abrir</em>
                                     </button>
+                                </div>
+                                <div class="finance-fixas-mobile-donut app-chart-wrap ${(totalPagoFixas > 0 || totalPendenteFixas > 0) ? '' : 'is-empty'}">
+                                    <p>Despesas fixas: pagos x pendentes</p>
+                                    <div id="financeiro-chart-status-mobile" style="height:280px;"></div>
                                 </div>
                                 <div class="finance-despesas-fixas-grid">
                                     <details class="finance-despesas-col" ${detailsAttr}>
@@ -8260,6 +8280,69 @@ ${financeRowActions(r.id, 'compra')}
                     }
                 };
 
+                const renderPagosPendentesDonut = (chartNode, chartRef, pagoValor, pendenteValor) => {
+                    if (!chartNode) return false;
+                    const pago = Number(pagoValor) || 0;
+                    const pendente = Number(pendenteValor) || 0;
+                    if (!(pago > 0 || pendente > 0)) return false;
+                    if (typeof echarts === 'undefined') {
+                        this.ensureVisualizationLibraries().then(() => this.refreshAppContent('financeiro')).catch(() => {});
+                        return false;
+                    }
+                    let chart = el[chartRef];
+                    if (!chart || chart.isDisposed?.()) {
+                        chart = echarts.init(chartNode);
+                        el[chartRef] = chart;
+                    }
+                    chart.setOption({
+                        animationDuration: 850,
+                        animationEasing: 'cubicOut',
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: ({ name, value, percent }) => `${name}: ${this.formatMoneyBr(Number(value || 0))} (${percent}%)`
+                        },
+                        legend: {
+                            bottom: 0,
+                            textStyle: { color: '#cbd5e1' }
+                        },
+                        series: [{
+                            type: 'pie',
+                            radius: ['50%', '74%'],
+                            center: ['50%', '42%'],
+                            itemStyle: {
+                                borderRadius: 8,
+                                borderColor: 'rgba(15,23,42,0.55)',
+                                borderWidth: 2,
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(224, 242, 254, 0.18)',
+                            },
+                            label: { color: '#e2e8f0', formatter: '{d}%' },
+                            data: [
+                                { value: pago, name: 'Pago', itemStyle: { color: '#22c55e' } },
+                                { value: pendente, name: 'Pendente', itemStyle: { color: '#ef4444' } },
+                            ]
+                        }]
+                    });
+                    chart.resize();
+                    return true;
+                };
+                const ensureFixasMobileDonut = (pagoValor = totalPagoFixas, pendenteValor = totalPendenteFixas) => {
+                    const wrap = el.querySelector('.finance-fixas-mobile-donut');
+                    const chartNode = el.querySelector('#financeiro-chart-status-mobile');
+                    if (!wrap || !chartNode) return;
+                    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+                    const onFixas = (el.getAttribute('data-active-tab') || '') === 'data'
+                        && (el.getAttribute('data-active-data-filter') || '') === 'despesas_fixas';
+                    if (!isMobile || !onFixas) return;
+                    const ok = renderPagosPendentesDonut(chartNode, '_financeiroChartStatusMobile', pagoValor, pendenteValor);
+                    wrap.classList.toggle('is-empty', !ok);
+                    if (ok) {
+                        requestAnimationFrame(() => {
+                            try { el._financeiroChartStatusMobile?.resize?.(); } catch (_) {}
+                        });
+                    }
+                };
+
                 const ensureCharts = () => {
                     const summaryPanel = el.querySelector('[data-tab-panel="summary"]');
                     if (!summaryPanel || summaryPanel.classList.contains('hidden')) return;
@@ -8348,45 +8431,12 @@ ${financeRowActions(r.id, 'compra')}
                     }
                     const chartStatusNode = el.querySelector('#financeiro-chart-status');
                     if (chartStatusNode) {
-                        const pago = Number(pagosPendentes.pago) || 0;
-                        const pendente = Number(pagosPendentes.pendente) || 0;
-                        if (pago > 0 || pendente > 0) {
-                            let chart = el._financeiroChartStatus;
-                            if (!chart || chart.isDisposed?.()) {
-                                chart = echarts.init(chartStatusNode);
-                                el._financeiroChartStatus = chart;
-                            }
-                            chart.setOption({
-                                animationDuration: 850,
-                                animationEasing: 'cubicOut',
-                                tooltip: {
-                                    trigger: 'item',
-                                    formatter: ({ name, value, percent }) => `${name}: ${this.formatMoneyBr(Number(value || 0))} (${percent}%)`
-                                },
-                                legend: {
-                                    bottom: 0,
-                                    textStyle: { color: '#cbd5e1' }
-                                },
-                                series: [{
-                                    type: 'pie',
-                                    radius: ['50%', '74%'],
-                                    center: ['50%', '42%'],
-                                    itemStyle: {
-                                        borderRadius: 8,
-                                        borderColor: 'rgba(15,23,42,0.55)',
-                                        borderWidth: 2,
-                                        shadowBlur: 10,
-                                        shadowColor: 'rgba(224, 242, 254, 0.18)',
-                                    },
-                                    label: { color: '#e2e8f0', formatter: '{d}%' },
-                                    data: [
-                                        { value: pago, name: 'Pago', itemStyle: { color: '#22c55e' } },
-                                        { value: pendente, name: 'Pendente', itemStyle: { color: '#ef4444' } },
-                                    ]
-                                }]
-                            });
-                            chart.resize();
-                        }
+                        renderPagosPendentesDonut(
+                            chartStatusNode,
+                            '_financeiroChartStatus',
+                            Number(pagosPendentes.pago) || 0,
+                            Number(pagosPendentes.pendente) || 0,
+                        );
                     }
                     const labelsAnuais = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                     const labelsAnuaisInvertidos = [...labelsAnuais].reverse();
@@ -8588,9 +8638,21 @@ ${financeRowActions(r.id, 'compra')}
                     if (emptyEl) emptyEl.style.display = normalizedTarget ? 'none' : '';
                     if (hintBar) hintBar.style.display = normalizedTarget ? 'none' : '';
                     el._syncFinanceStickyOffset?.();
+                    if (normalizedTarget === 'despesas_fixas') {
+                        const selected = el.querySelector('#financeiro-filter-categoria-fixas')?.value || '';
+                        const filterRow = (r) => !selected || fixaCategoriaKey(r) === selected;
+                        const pendentes = despesasFixasPendentes.filter(filterRow);
+                        const pagas = despesasFixasPagas.filter(filterRow);
+                        const totalPendentes = pendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+                        const totalPagas = pagas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+                        ensureFixasMobileDonut(totalPagas, totalPendentes);
+                    }
                     requestAnimationFrame(() => {
                         el._syncFinanceStickyOffset?.();
                         if (window.innerWidth <= 768 && normalizedTarget) el.scrollTop = 0;
+                        if (normalizedTarget === 'despesas_fixas') {
+                            try { el._financeiroChartStatusMobile?.resize?.(); } catch (_) {}
+                        }
                     });
                 };
 
@@ -8618,6 +8680,9 @@ ${financeRowActions(r.id, 'compra')}
                     if (mesAnoBar) mesAnoBar.style.display = tab === 'poupanca' ? 'none' : '';
                     if (tab === 'summary') ensureCharts();
                     if (tab === 'poupanca') ensurePoupancaMetaChart();
+                    if (tab === 'data' && (el.getAttribute('data-active-data-filter') || '') === 'despesas_fixas') {
+                        ensureFixasMobileDonut();
+                    }
                 };
 
                 el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
@@ -8704,6 +8769,7 @@ ${financeRowActions(r.id, 'compra')}
                     if (totalPagasEl) totalPagasEl.textContent = this.formatMoneyBr(totalPagas);
                     if (mobilePendentesEl) mobilePendentesEl.textContent = `${pendentes.length} item(ns) • ${this.formatMoneyBr(totalPendentes)}`;
                     if (mobilePagasEl) mobilePagasEl.textContent = `${pagas.length} item(ns) • ${this.formatMoneyBr(totalPagas)}`;
+                    ensureFixasMobileDonut(totalPagas, totalPendentes);
                     if (tbodyPendentes) {
                         tbodyPendentes.innerHTML = pendentes.length
                             ? pendentes.map(mkRowFixa).join('')
