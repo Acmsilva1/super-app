@@ -7436,22 +7436,22 @@ ${financeRowActions(r.id, 'compra')}
                                     <label class="finance-data-jump-select-label" for="financeiro-data-filter-select">Tabela</label>
                                     <select id="financeiro-data-filter-select" class="finance-data-jump-select" aria-label="Escolher tabela de dados">
                                         <option value="" ${!activeDataFilter ? 'selected' : ''}>Escolha a tabela</option>
-                                        <option value="despesas_fixas" ${activeDataFilter === 'despesas_fixas' ? 'selected' : ''}>Despesas fixas</option>
-                                        <option value="gastos_variados" ${activeDataFilter === 'gastos_variados' ? 'selected' : ''}>Débito / pix</option>
-                                        <option value="receitas" ${activeDataFilter === 'receitas' ? 'selected' : ''}>Receitas</option>
+                                        <option value="despesas_fixas" ${activeDataFilter === 'despesas_fixas' ? 'selected' : ''}>🏠 Despesas fixas</option>
+                                        <option value="gastos_variados" ${activeDataFilter === 'gastos_variados' ? 'selected' : ''}>⚡ Débito / pix</option>
+                                        <option value="receitas" ${activeDataFilter === 'receitas' ? 'selected' : ''}>💰 Receitas</option>
                                     </select>
                                 </div>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--fixas" data-action="financeiro-data-filter" data-target="despesas_fixas" role="tab" aria-selected="false">
                                     <span class="finance-filter-chip-label">Ver só</span>
-                                    <span class="finance-filter-chip-title">Despesas fixas</span>
+                                    <span class="finance-filter-chip-title">🏠 Despesas fixas</span>
                                 </button>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--variadas" data-action="financeiro-data-filter" data-target="gastos_variados" role="tab" aria-selected="false">
                                     <span class="finance-filter-chip-label">Ver só</span>
-                                    <span class="finance-filter-chip-title">Débito / pix</span>
+                                    <span class="finance-filter-chip-title">⚡ Débito / pix</span>
                                 </button>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--receitas" data-action="financeiro-data-filter" data-target="receitas" role="tab" aria-selected="false">
                                     <span class="finance-filter-chip-label">Ver só</span>
-                                    <span class="finance-filter-chip-title">Receitas</span>
+                                    <span class="finance-filter-chip-title">💰 Receitas</span>
                                 </button>
                             </div>
                         </div>
