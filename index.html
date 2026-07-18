@@ -8732,26 +8732,28 @@ ${financeRowActions(r.id, 'compra')}
                 overlay.className = 'app-modal-overlay';
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
-                        <h4>${editId > 0 ? 'Editar meta de poupança' : 'Adicionar meta de poupança'}</h4>
+                        <h4>${editId > 0
+                            ? '<span class="finance-emoji finance-emoji--tilt" aria-hidden="true">✏️</span>Editar meta de poupança'
+                            : '<span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">🐷</span>Adicionar meta de poupança'}</h4>
                         <div class="app-form">
                             <div class="app-form-row fin-form-grid">
                                 <div class="field">
-                                    <label>Descrição</label>
+                                    <label><span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">✍️</span>Descrição</label>
                                     <input type="text" id="poupanca-meta-modal-nome" value="${escapeHtml(String(meta?.nome_meta || ''))}" placeholder="Ex: Reserva de emergência" />
                                 </div>
                                 <div class="field">
-                                    <label>Valor (R$)</label>
+                                    <label><span class="finance-emoji finance-emoji--coin" aria-hidden="true">💵</span>Valor (R$)</label>
                                     <input type="number" step="0.01" id="poupanca-meta-modal-valor" value="${editId > 0 ? Number(meta?.valor_meta || 0) : ''}" />
                                 </div>
                                 <div class="field">
-                                    <label>Data de início</label>
+                                    <label><span class="finance-emoji finance-emoji--float" aria-hidden="true">📅</span>Data de início</label>
                                     <input type="date" id="poupanca-meta-modal-inicio" value="${escapeHtml(String(meta?.data_inicio || this.getBrazilDateIsoFrom(new Date())).slice(0, 10))}" />
                                 </div>
                             </div>
                         </div>
                         <div class="app-modal-actions">
-                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
-                            <button type="button" class="app-btn" data-action="modal-save-meta">${editId > 0 ? 'Salvar' : 'Adicionar meta'}</button>
+                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel"><span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">🚫</span>Cancelar</button>
+                            <button type="button" class="app-btn" data-action="modal-save-meta"><span class="finance-emoji finance-emoji--pop" aria-hidden="true">${editId > 0 ? '💾' : '✅'}</span>${editId > 0 ? 'Salvar' : 'Adicionar meta'}</button>
                         </div>
                     </div>
                 `;
@@ -8852,43 +8854,45 @@ ${financeRowActions(r.id, 'compra')}
                 const defaultHiddenDate = initialDateTime.slice(0, 10) || this.getBrazilNowDateTime().date;
                 overlay.innerHTML = `
                     <div class="app-modal finance-entry-modal">
-                        <h4>${item ? 'Editar registro financeiro' : 'Novo registro financeiro'}</h4>
+                        <h4>${item
+                            ? '<span class="finance-emoji finance-emoji--tilt" aria-hidden="true">✏️</span>Editar registro financeiro'
+                            : '<span class="finance-emoji finance-emoji--pop" aria-hidden="true">✨</span>Novo registro financeiro'}</h4>
                         <p class="app-form-note" id="financeiro-modal-contexto">Mês de referência: <strong>${this.formatMesAnoLabel(mesAno)}</strong></p>
                         <div class="app-form">
                             <div class="app-form-row fin-form-grid">
-                                <div class="field"><label>Tipo de registro</label>
+                                <div class="field"><label><span class="finance-emoji finance-emoji--bounce" aria-hidden="true">🗂️</span>Tipo de registro</label>
                                     <select id="financeiro-modal-tipo">
-                                        <option value="despesa_fixa" ${tipoRegistro === 'despesa_fixa' ? 'selected' : ''}>Despesa fixa</option>
-                                        <option value="gasto_variado" ${tipoRegistro === 'gasto_variado' ? 'selected' : ''}>Débito / pix</option>
-                                        <option value="receita" ${tipoRegistro === 'receita' ? 'selected' : ''}>Receita</option>
-                                        <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>Poupança</option>
-                                        <option value="compra" ${tipoRegistro === 'compra' ? 'selected' : ''}>Compra maior</option>
+                                        <option value="despesa_fixa" ${tipoRegistro === 'despesa_fixa' ? 'selected' : ''}>🏠 Despesa fixa</option>
+                                        <option value="gasto_variado" ${tipoRegistro === 'gasto_variado' ? 'selected' : ''}>⚡ Débito / pix</option>
+                                        <option value="receita" ${tipoRegistro === 'receita' ? 'selected' : ''}>💰 Receita</option>
+                                        <option value="poupanca" ${tipoRegistro === 'poupanca' ? 'selected' : ''}>🐷 Poupança</option>
+                                        <option value="compra" ${tipoRegistro === 'compra' ? 'selected' : ''}>🛍️ Compra maior</option>
                                     </select>
                                 </div>
-                                <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref">Mês de competência</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
-                                <div class="field" id="financeiro-descricao-wrap"><label>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
-                                <div class="field"><label>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
+                                <div class="field" id="financeiro-mes-ref-wrap"><label for="financeiro-modal-mes-ref"><span class="finance-emoji finance-emoji--float" aria-hidden="true">🗓️</span>Mês de competência</label><input type="month" id="financeiro-modal-mes-ref" value="${escapeHtml(initialMesRef)}" /></div>
+                                <div class="field" id="financeiro-descricao-wrap"><label><span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">✍️</span>Descrição</label><input type="text" id="financeiro-modal-descricao" value="${escapeHtml(item?.descricao || '')}" /></div>
+                                <div class="field"><label><span class="finance-emoji finance-emoji--coin" aria-hidden="true">💵</span>Valor (R$)</label><input type="number" step="0.01" id="financeiro-modal-valor" value="${item ? Number(item.valor || 0) : ''}" /></div>
                                 <div class="field" id="financeiro-metodo-wrap" style="display:none;">
-                                    <label>Método de pagamento</label>
+                                    <label><span class="finance-emoji finance-emoji--zap" aria-hidden="true">💳</span>Método de pagamento</label>
                                     <select id="financeiro-modal-metodo"></select>
                                 </div>
                                 <div class="field" id="financeiro-conta-fixa-wrap" style="display:none;">
-                                    <label class="finance-conta-fixa-check"><input type="checkbox" id="financeiro-modal-conta-fixa" ${item?.conta_fixa ? 'checked' : ''} /> Conta fixa</label>
+                                    <label class="finance-conta-fixa-check"><input type="checkbox" id="financeiro-modal-conta-fixa" ${item?.conta_fixa ? 'checked' : ''} /> <span class="finance-emoji finance-emoji--float" aria-hidden="true">🏠</span>Conta fixa</label>
                                 </div>
                                 <div class="field" id="financeiro-parcelas-wrap" style="display:none;">
-                                    <label class="finance-parcelas-check"><input type="checkbox" id="financeiro-modal-parcelas" ${parcelasCheckedInit ? 'checked' : ''} /> Parcelas</label>
+                                    <label class="finance-parcelas-check"><input type="checkbox" id="financeiro-modal-parcelas" ${parcelasCheckedInit ? 'checked' : ''} /> <span class="finance-emoji finance-emoji--bounce" aria-hidden="true">📑</span>Parcelas</label>
                                 </div>
-                                <div class="field" id="financeiro-parcela-atual-field" style="display:none;"><label>Parcela atual</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-atual" value="${parcelasCheckedInit ? String(parcelaAtualInit) : ''}" placeholder="Ex.: 1" /></div>
-                                <div class="field" id="financeiro-parcela-total-field" style="display:none;"><label>Total de parcelas</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-total" value="${parcelasCheckedInit ? String(parcelaTotalInit) : ''}" placeholder="Ex.: 12" /></div>
-                                <div class="field" id="financeiro-categoria-wrap"><label>Categoria</label><select id="financeiro-modal-categoria"></select></div>
-                                <div class="field" id="financeiro-data-wrap"><label>Data e hora do lançamento</label><input type="datetime-local" id="financeiro-modal-data" value="${escapeHtml(initialDateTime)}" /></div>
+                                <div class="field" id="financeiro-parcela-atual-field" style="display:none;"><label><span class="finance-emoji finance-emoji--tilt" aria-hidden="true">1️⃣</span>Parcela atual</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-atual" value="${parcelasCheckedInit ? String(parcelaAtualInit) : ''}" placeholder="Ex.: 1" /></div>
+                                <div class="field" id="financeiro-parcela-total-field" style="display:none;"><label><span class="finance-emoji finance-emoji--tilt" aria-hidden="true">🔢</span>Total de parcelas</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-total" value="${parcelasCheckedInit ? String(parcelaTotalInit) : ''}" placeholder="Ex.: 12" /></div>
+                                <div class="field" id="financeiro-categoria-wrap"><label><span class="finance-emoji finance-emoji--swing" aria-hidden="true">🏷️</span>Categoria</label><select id="financeiro-modal-categoria"></select></div>
+                                <div class="field" id="financeiro-data-wrap"><label><span class="finance-emoji finance-emoji--float" aria-hidden="true">📅</span>Data e hora do lançamento</label><input type="datetime-local" id="financeiro-modal-data" value="${escapeHtml(initialDateTime)}" /></div>
                             </div>
                         </div>
                         <div class="app-modal-actions finance-modal-actions">
 
                             <div class="finance-modal-actions-right">
-                                <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
-                                <button type="button" class="app-btn" data-action="modal-save">${item ? 'Salvar' : 'Registrar'}</button>
+                                <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel"><span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">🚫</span>Cancelar</button>
+                                <button type="button" class="app-btn" data-action="modal-save"><span class="finance-emoji finance-emoji--pop" aria-hidden="true">${item ? '💾' : '✅'}</span>${item ? 'Salvar' : 'Registrar'}</button>
                             </div>
                         </div>
                     </div>
@@ -8963,22 +8967,30 @@ ${financeRowActions(r.id, 'compra')}
                 const setTipoUI = (tipo) => {
                     const showDateTime = tipo === 'gasto_variado' || tipo === 'compra';
                     const descricaoLabel = descricaoWrap ? descricaoWrap.querySelector('label') : null;
-                    if (descricaoLabel) descricaoLabel.textContent = tipo === 'compra' ? 'Nome do item' : 'Descrição';
+                    if (descricaoLabel) {
+                        descricaoLabel.innerHTML = tipo === 'compra'
+                            ? '<span class="finance-emoji finance-emoji--tilt" aria-hidden="true">🏷️</span>Nome do item'
+                            : '<span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">✍️</span>Descrição';
+                    }
                     const metodoLabel = metodoWrap ? metodoWrap.querySelector('label') : null;
-                    if (metodoLabel) metodoLabel.textContent = tipo === 'compra' ? 'Como foi pago' : 'Método de pagamento';
+                    if (metodoLabel) {
+                        metodoLabel.innerHTML = tipo === 'compra'
+                            ? '<span class="finance-emoji finance-emoji--zap" aria-hidden="true">💳</span>Como foi pago'
+                            : '<span class="finance-emoji finance-emoji--zap" aria-hidden="true">💳</span>Método de pagamento';
+                    }
                     if (metodoEl) {
                         if (tipo === 'compra') {
                             const current = String(metodoEl.value || metodoPagamentoInit || 'a_vista');
                             metodoEl.innerHTML = `
-                                <option value="a_vista">À vista</option>
-                                <option value="parcelado">Parcelado</option>
+                                <option value="a_vista">💵 À vista</option>
+                                <option value="parcelado">📑 Parcelado</option>
                             `;
                             metodoEl.value = (current === 'parcelado') ? 'parcelado' : 'a_vista';
                         } else {
                             const current = String(metodoEl.value || metodoPagamentoInit || 'debito_pix');
                             metodoEl.innerHTML = `
-                                <option value="debito_pix">Débito / pix</option>
-                                <option value="credito">Crédito</option>
+                                <option value="debito_pix">⚡ Débito / pix</option>
+                                <option value="credito">💳 Crédito</option>
                             `;
                             metodoEl.value = (current === 'credito') ? 'credito' : 'debito_pix';
                         }
@@ -8991,7 +9003,7 @@ ${financeRowActions(r.id, 'compra')}
                         dataWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
                         const mr = mesForBounds();
-                        if (contextoEl) contextoEl.innerHTML = `A despesa fixa vale para o mês em <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
+                        if (contextoEl) contextoEl.innerHTML = `🏠 A despesa fixa vale para o mês em <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
                     } else if (tipo === 'poupanca') {
                         if (descricaoWrap) descricaoWrap.style.display = 'none';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
@@ -9000,7 +9012,7 @@ ${financeRowActions(r.id, 'compra')}
                         dataWrap.style.display = 'none';
                         catWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
-                        if (contextoEl) contextoEl.textContent = 'Registro de poupança (sem filtro mensal).';
+                        if (contextoEl) contextoEl.textContent = '🐷 Registro de poupança (sem filtro mensal).';
                     } else if (tipo === 'compra') {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
@@ -9008,7 +9020,7 @@ ${financeRowActions(r.id, 'compra')}
                         dataWrap.style.display = '';
                         catWrap.style.display = 'none';
                         catEl.innerHTML = '<option value="">--</option>';
-                        if (contextoEl) contextoEl.innerHTML = 'Auditoria de itens adquiridos no mês da <strong>data</strong> informada (não entra em despesas).';
+                        if (contextoEl) contextoEl.innerHTML = '🛍️ Auditoria de itens adquiridos no mês da <strong>data</strong> informada (não entra em despesas).';
                     } else {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = tipo === 'receita' ? '' : 'none';
@@ -9020,10 +9032,10 @@ ${financeRowActions(r.id, 'compra')}
                         if (item?.categoria) catEl.value = item.categoria;
                         if (contextoEl) {
                             if (tipo === 'gasto_variado') {
-                                contextoEl.innerHTML = 'Registros em <strong>debito / pix</strong> entram como despesa no mes. Credito continua sem esse vinculo.';
+                                contextoEl.innerHTML = '⚡ Registros em <strong>débito / pix</strong> entram como despesa no mês. Crédito continua sem esse vínculo.';
                             } else {
                                 const mr = mesForBounds();
-                                contextoEl.innerHTML = `Receita vinculada ao mes de <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
+                                contextoEl.innerHTML = `💰 Receita vinculada ao mês de <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
                             }
                         }
                     }
