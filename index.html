@@ -3380,6 +3380,85 @@
             opacity: 0.92;
             color: inherit;
         }
+        .finance-emoji {
+            display: inline-block;
+            transform-origin: center;
+            will-change: transform;
+            margin-right: 0.18em;
+            vertical-align: -0.08em;
+        }
+        .finance-emoji--float {
+            animation: financeEmojiFloat 2.4s ease-in-out infinite;
+        }
+        .finance-emoji--bounce {
+            animation: financeEmojiBounce 1.7s ease-in-out infinite;
+        }
+        .finance-emoji--wiggle {
+            animation: financeEmojiWiggle 1.9s ease-in-out infinite;
+        }
+        .finance-emoji--swing {
+            animation: financeEmojiSwing 2.2s ease-in-out infinite;
+        }
+        .finance-emoji--zap {
+            animation: financeEmojiZap 1.5s ease-in-out infinite;
+        }
+        .finance-emoji--coin {
+            animation: financeEmojiCoin 2s ease-in-out infinite;
+        }
+        .finance-emoji--tilt {
+            animation: financeEmojiTilt 2.6s ease-in-out infinite;
+        }
+        .finance-emoji--pop {
+            animation: financeEmojiPop 1.8s ease-in-out infinite;
+        }
+        .finance-emoji--spin {
+            animation: financeEmojiSpin 2.8s linear infinite;
+        }
+        @keyframes financeEmojiFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        @keyframes financeEmojiBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            40% { transform: translateY(-4px) scale(1.08); }
+            60% { transform: translateY(0) scale(0.96); }
+        }
+        @keyframes financeEmojiWiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+        @keyframes financeEmojiSwing {
+            0%, 100% { transform: rotate(-8deg); }
+            50% { transform: rotate(8deg); }
+        }
+        @keyframes financeEmojiZap {
+            0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+            35% { transform: scale(1.18) rotate(-8deg); filter: brightness(1.25); }
+            55% { transform: scale(0.94) rotate(6deg); filter: brightness(1.1); }
+        }
+        @keyframes financeEmojiCoin {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            30% { transform: translateY(-4px) rotate(-12deg); }
+            60% { transform: translateY(1px) rotate(10deg); }
+        }
+        @keyframes financeEmojiTilt {
+            0%, 100% { transform: rotate(-4deg); }
+            50% { transform: rotate(4deg); }
+        }
+        @keyframes financeEmojiPop {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.14); }
+        }
+        @keyframes financeEmojiSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .finance-emoji {
+                animation: none !important;
+            }
+        }
         .finance-data-empty-state {
             margin-top: 0.5rem;
             padding: 2.25rem 1.25rem;
@@ -7426,10 +7505,10 @@ ${financeRowActions(r.id, 'compra')}
                                 </select>
                             </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
-                                <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">📂 Dados</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">📊 Dashboards</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">🐷 Poupan&ccedil;a</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}">🛍️ Compras maiores</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--float" aria-hidden="true">📂</span>Dados</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--bounce" aria-hidden="true">📊</span>Dashboards</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">🐷</span>Poupan&ccedil;a</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--swing" aria-hidden="true">🛍️</span>Compras maiores</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <div class="finance-data-jump-select-wrap">
@@ -7443,29 +7522,29 @@ ${financeRowActions(r.id, 'compra')}
                                 </div>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--fixas" data-action="financeiro-data-filter" data-target="despesas_fixas" role="tab" aria-selected="false">
                                     <span class="finance-filter-chip-label">Ver só</span>
-                                    <span class="finance-filter-chip-title">🏠 Despesas fixas</span>
+                                    <span class="finance-filter-chip-title"><span class="finance-emoji finance-emoji--float" aria-hidden="true">🏠</span>Despesas fixas</span>
                                 </button>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--variadas" data-action="financeiro-data-filter" data-target="gastos_variados" role="tab" aria-selected="false">
                                     <span class="finance-filter-chip-label">Ver só</span>
-                                    <span class="finance-filter-chip-title">⚡ Débito / pix</span>
+                                    <span class="finance-filter-chip-title"><span class="finance-emoji finance-emoji--zap" aria-hidden="true">⚡</span>Débito / pix</span>
                                 </button>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--receitas" data-action="financeiro-data-filter" data-target="receitas" role="tab" aria-selected="false">
                                     <span class="finance-filter-chip-label">Ver só</span>
-                                    <span class="finance-filter-chip-title">💰 Receitas</span>
+                                    <span class="finance-filter-chip-title"><span class="finance-emoji finance-emoji--coin" aria-hidden="true">💰</span>Receitas</span>
                                 </button>
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
                             <div class="app-totais app-totais--financeiro">
                                 <p class="totais-group-title">Valores brutos</p>
-                                <div class="totais-card totais-card--main totais-card--receitas"><div class="val">${this.formatMoneyBr(receitasVal)}</div><div class="stat-label">💰 Receitas</div></div>
-                                <div class="totais-card totais-card--main totais-card--despesas-total"><div class="val">${this.formatMoneyBr(despesasTotalVal)}</div><div class="stat-label">🧾 Total despesas</div></div>
+                                <div class="totais-card totais-card--main totais-card--receitas"><div class="val">${this.formatMoneyBr(receitasVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--coin" aria-hidden="true">💰</span>Receitas</div></div>
+                                <div class="totais-card totais-card--main totais-card--despesas-total"><div class="val">${this.formatMoneyBr(despesasTotalVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--tilt" aria-hidden="true">🧾</span>Total despesas</div></div>
                                 <p class="totais-group-title">Resumo de despesas</p>
-                                <div class="totais-card totais-card--despesas-fixas"><div class="val">${this.formatMoneyBr(despesasFixasVal)}</div><div class="stat-label">🏠 Despesas fixas</div></div>
-                                <div class="totais-card totais-card--despesas-variadas"><div class="val">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label">⚡ Débito / pix</div></div>
+                                <div class="totais-card totais-card--despesas-fixas"><div class="val">${this.formatMoneyBr(despesasFixasVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--float" aria-hidden="true">🏠</span>Despesas fixas</div></div>
+                                <div class="totais-card totais-card--despesas-variadas"><div class="val">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--zap" aria-hidden="true">⚡</span>Débito / pix</div></div>
                                 <p class="totais-group-title">Status das despesas</p>
-                                <div class="totais-card totais-card--pago"><div class="val">${this.formatMoneyBr(pagoVal)}</div><div class="stat-label">✅ PAGO</div></div>
-                                <div class="totais-card totais-card--pendente"><div class="val">${this.formatMoneyBr(pendenteVal)}</div><div class="stat-label">⏳ PENDENTE</div></div>
+                                <div class="totais-card totais-card--pago"><div class="val">${this.formatMoneyBr(pagoVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--pop" aria-hidden="true">✅</span>PAGO</div></div>
+                                <div class="totais-card totais-card--pendente"><div class="val">${this.formatMoneyBr(pendenteVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--spin" aria-hidden="true">⏳</span>PENDENTE</div></div>
                             </div>
                             <div class="app-charts">
                                 <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias de gastos</p><div id="financeiro-chart-categorias" style="height:280px;"></div></div>
