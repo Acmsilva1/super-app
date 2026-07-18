@@ -4033,18 +4033,45 @@
                 font-size: 0.78rem;
                 letter-spacing: 0.1em;
             }
+            .module-tab-select-wrap,
+            .finance-data-jump-select-wrap {
+                position: relative;
+            }
+            .module-tab-select-wrap::after,
+            .finance-data-jump-select-wrap::after {
+                content: '';
+                position: absolute;
+                right: 1.05rem;
+                bottom: 1.2rem;
+                width: 0.72rem;
+                height: 0.72rem;
+                border-right: 2.5px solid #7dd3fc;
+                border-bottom: 2.5px solid #7dd3fc;
+                border-radius: 0 0 2px 0;
+                transform: rotate(45deg);
+                pointer-events: none;
+                box-shadow: 0 0 10px rgba(125, 211, 252, 0.35);
+                animation: financeSelectChevronBounce 1.4s ease-in-out infinite;
+            }
+            @keyframes financeSelectChevronBounce {
+                0%, 100% { transform: rotate(45deg) translate(0, 0); opacity: 0.85; }
+                50% { transform: rotate(45deg) translate(2px, 4px); opacity: 1; }
+            }
             .module-tab-select,
             .finance-data-jump-select {
                 min-height: 3.55rem;
-                padding: 0.85rem 2.6rem 0.85rem 1rem;
+                padding: 0.85rem 2.85rem 0.85rem 1rem;
                 border-radius: 0.95rem;
                 font-size: 1.18rem;
                 font-weight: 800;
                 line-height: 1.25;
                 letter-spacing: 0.01em;
+                appearance: none;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                background-image: none;
             }
             .module-tab-select {
-                padding-right: 2.75rem;
                 box-shadow:
                     inset 0 0 0 1px rgba(125, 211, 252, 0.12),
                     0 8px 22px rgba(2, 8, 23, 0.22);
@@ -4061,6 +4088,18 @@
                 box-shadow:
                     inset 0 0 0 2px rgba(56, 189, 248, 0.72),
                     0 8px 22px rgba(2, 8, 23, 0.24);
+            }
+            .module-tab-select-wrap:focus-within::after,
+            .finance-data-jump-select-wrap:focus-within::after {
+                border-color: #bae6fd;
+                box-shadow: 0 0 14px rgba(186, 230, 253, 0.55);
+                animation-duration: 0.9s;
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .module-tab-select-wrap::after,
+                .finance-data-jump-select-wrap::after {
+                    animation: none;
+                }
             }
             .finance-sticky-head > .finance-data-jump-bar {
                 grid-column: 1 / -1;
