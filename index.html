@@ -7419,17 +7419,17 @@ ${financeRowActions(r.id, 'compra')}
                             <div class="module-tab-select-wrap">
                                 <label class="module-tab-select-label" for="financeiro-tab-select">Aba</label>
                                 <select id="financeiro-tab-select" class="module-tab-select" aria-label="Escolher aba de financeiro">
-                                    <option value="data" ${activeTab === 'data' ? 'selected' : ''}>Dados</option>
-                                    <option value="summary" ${activeTab === 'summary' ? 'selected' : ''}>Dashboards</option>
-                                    <option value="poupanca" ${activeTab === 'poupanca' ? 'selected' : ''}>Poupan&ccedil;a</option>
-                                    <option value="compras" ${activeTab === 'compras' ? 'selected' : ''}>Compras maiores</option>
+                                    <option value="data" ${activeTab === 'data' ? 'selected' : ''}>📂 Dados</option>
+                                    <option value="summary" ${activeTab === 'summary' ? 'selected' : ''}>📊 Dashboards</option>
+                                    <option value="poupanca" ${activeTab === 'poupanca' ? 'selected' : ''}>🐷 Poupan&ccedil;a</option>
+                                    <option value="compras" ${activeTab === 'compras' ? 'selected' : ''}>🛍️ Compras maiores</option>
                                 </select>
                             </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
-                                <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">Dados</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">Dashboards</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">Poupan&ccedil;a</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}">Compras maiores</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}">📂 Dados</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}">📊 Dashboards</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}">🐷 Poupan&ccedil;a</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}">🛍️ Compras maiores</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <div class="finance-data-jump-select-wrap">
