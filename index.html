@@ -6226,6 +6226,9 @@
         .finance-fixas-mobile-donut {
             display: none;
         }
+        .finance-fixas-mobile-thermo {
+            display: none;
+        }
         .finance-despesas-fixas-mobile-actions .finance-fixas-mobile-btn {
             display: flex;
             flex-direction: column;
@@ -6400,16 +6403,111 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
             .finance-fixas-mobile-donut {
-                display: block;
-                margin: 0 0 0.85rem;
-            }
-            .finance-fixas-mobile-donut.is-empty {
                 display: none;
             }
-            .finance-fixas-mobile-donut > p {
+            .finance-fixas-mobile-thermo {
+                display: block;
+                margin: 0 0 0.95rem;
+                padding: 0.95rem 1rem 1rem;
+                border-radius: 1rem;
+                border: 1px solid rgba(89, 132, 194, 0.28);
+                background:
+                    radial-gradient(120% 90% at 50% 0%, rgba(56, 189, 248, 0.08), transparent 55%),
+                    linear-gradient(160deg, rgba(14, 28, 52, 0.96), rgba(8, 16, 32, 0.98));
+                box-shadow: 0 12px 28px rgba(2, 8, 23, 0.22);
+            }
+            .finance-fixas-mobile-thermo.is-empty {
+                display: none;
+            }
+            .finance-fixas-mobile-thermo__title {
                 font-size: 0.875rem;
-                font-weight: 600;
-                margin: 0 0 0.5rem;
+                font-weight: 700;
+                margin: 0 0 0.85rem;
+                color: #e2e8f0;
+            }
+            .finance-fixas-thermo-scale {
+                display: flex;
+                justify-content: space-between;
+                gap: 0.75rem;
+                margin-bottom: 0.55rem;
+            }
+            .finance-fixas-thermo-scale__item {
+                display: flex;
+                flex-direction: column;
+                gap: 0.12rem;
+                min-width: 0;
+            }
+            .finance-fixas-thermo-scale__item--pago {
+                align-items: flex-start;
+            }
+            .finance-fixas-thermo-scale__item--pendente {
+                align-items: flex-end;
+                text-align: right;
+            }
+            .finance-fixas-thermo-scale__label {
+                font-size: 0.68rem;
+                font-weight: 800;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: #94a3b8;
+            }
+            .finance-fixas-thermo-scale__item--pago .finance-fixas-thermo-scale__label {
+                color: #86efac;
+            }
+            .finance-fixas-thermo-scale__item--pendente .finance-fixas-thermo-scale__label {
+                color: #fca5a5;
+            }
+            .finance-fixas-thermo-scale__pct {
+                font-size: 1.35rem;
+                font-weight: 900;
+                line-height: 1;
+                letter-spacing: -0.02em;
+            }
+            .finance-fixas-thermo-scale__item--pago .finance-fixas-thermo-scale__pct {
+                color: #22c55e;
+            }
+            .finance-fixas-thermo-scale__item--pendente .finance-fixas-thermo-scale__pct {
+                color: #ef4444;
+            }
+            .finance-fixas-thermo-track {
+                position: relative;
+                display: flex;
+                width: 100%;
+                height: 1.55rem;
+                border-radius: 999px;
+                overflow: hidden;
+                background: rgba(15, 23, 42, 0.72);
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+            }
+            .finance-fixas-thermo-seg {
+                height: 100%;
+                min-width: 0;
+                transition: flex-basis 0.55s cubic-bezier(.2,.8,.2,1), width 0.55s cubic-bezier(.2,.8,.2,1);
+            }
+            .finance-fixas-thermo-seg--pago {
+                background: linear-gradient(90deg, #15803d 0%, #22c55e 55%, #4ade80 100%);
+                box-shadow: inset 0 0 0 1px rgba(187, 247, 208, 0.25);
+            }
+            .finance-fixas-thermo-seg--pendente {
+                background: linear-gradient(90deg, #f87171 0%, #ef4444 45%, #b91c1c 100%);
+                box-shadow: inset 0 0 0 1px rgba(254, 202, 202, 0.22);
+            }
+            .finance-fixas-thermo-meta {
+                display: flex;
+                justify-content: space-between;
+                gap: 0.75rem;
+                margin-top: 0.55rem;
+                font-size: 0.72rem;
+                font-weight: 700;
+                color: #94a3b8;
+            }
+            .finance-fixas-thermo-meta__pago {
+                color: #86efac;
+            }
+            .finance-fixas-thermo-meta__pendente {
+                color: #fca5a5;
+                text-align: right;
             }
             .finance-despesas-fixas-grid {
                 display: none;
@@ -7439,7 +7537,6 @@
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
                 if (el._financeiroChartCategoria) { try { el._financeiroChartCategoria.dispose(); } catch (_) {} el._financeiroChartCategoria = null; }
                 if (el._financeiroChartStatus) { try { el._financeiroChartStatus.dispose(); } catch (_) {} el._financeiroChartStatus = null; }
-                if (el._financeiroChartStatusMobile) { try { el._financeiroChartStatusMobile.dispose(); } catch (_) {} el._financeiroChartStatusMobile = null; }
                 if (el._financeiroChartReceitasAnual) { try { el._financeiroChartReceitasAnual.dispose(); } catch (_) {} el._financeiroChartReceitasAnual = null; }
                 if (el._financeiroChartDespesasAnual) { try { el._financeiroChartDespesasAnual.dispose(); } catch (_) {} el._financeiroChartDespesasAnual = null; }
                 if (el._financeiroAnalistaChartMonth) { try { el._financeiroAnalistaChartMonth.dispose(); } catch (_) {} el._financeiroAnalistaChartMonth = null; }
@@ -7774,9 +7871,26 @@ ${financeRowActions(r.id, 'compra')}
                                         <em class="finance-fixas-mobile-hint">Toque para abrir</em>
                                     </button>
                                 </div>
-                                <div class="finance-fixas-mobile-donut app-chart-wrap ${(totalPagoFixas > 0 || totalPendenteFixas > 0) ? '' : 'is-empty'}">
-                                    <p>Despesas fixas: pagos x pendentes</p>
-                                    <div id="financeiro-chart-status-mobile" style="height:280px;"></div>
+                                <div class="finance-fixas-mobile-thermo ${(totalPagoFixas > 0 || totalPendenteFixas > 0) ? '' : 'is-empty'}" id="financeiro-fixas-mobile-thermo">
+                                    <p class="finance-fixas-mobile-thermo__title">Despesas fixas: pagos x pendentes</p>
+                                    <div class="finance-fixas-thermo-scale">
+                                        <div class="finance-fixas-thermo-scale__item finance-fixas-thermo-scale__item--pago">
+                                            <span class="finance-fixas-thermo-scale__label">✅ Pago</span>
+                                            <strong class="finance-fixas-thermo-scale__pct" data-thermo-pago-pct>${((totalPagoFixas + totalPendenteFixas) > 0 ? (totalPagoFixas / (totalPagoFixas + totalPendenteFixas)) * 100 : 0).toFixed(1)}%</strong>
+                                        </div>
+                                        <div class="finance-fixas-thermo-scale__item finance-fixas-thermo-scale__item--pendente">
+                                            <span class="finance-fixas-thermo-scale__label">⏳ Pendente</span>
+                                            <strong class="finance-fixas-thermo-scale__pct" data-thermo-pendente-pct>${((totalPagoFixas + totalPendenteFixas) > 0 ? (totalPendenteFixas / (totalPagoFixas + totalPendenteFixas)) * 100 : 0).toFixed(1)}%</strong>
+                                        </div>
+                                    </div>
+                                    <div class="finance-fixas-thermo-track" role="img" aria-label="Disputa entre pagos e pendentes">
+                                        <div class="finance-fixas-thermo-seg finance-fixas-thermo-seg--pago" data-thermo-pago-seg style="flex: ${Math.max(0, totalPagoFixas)} 1 0%;"></div>
+                                        <div class="finance-fixas-thermo-seg finance-fixas-thermo-seg--pendente" data-thermo-pendente-seg style="flex: ${Math.max(0, totalPendenteFixas)} 1 0%;"></div>
+                                    </div>
+                                    <div class="finance-fixas-thermo-meta">
+                                        <span class="finance-fixas-thermo-meta__pago" data-thermo-pago-val>${this.formatMoneyBr(totalPagoFixas)}</span>
+                                        <span class="finance-fixas-thermo-meta__pendente" data-thermo-pendente-val>${this.formatMoneyBr(totalPendenteFixas)}</span>
+                                    </div>
                                 </div>
                                 <div class="finance-despesas-fixas-grid">
                                     <details class="finance-despesas-col" ${detailsAttr}>
@@ -8326,21 +8440,33 @@ ${financeRowActions(r.id, 'compra')}
                     chart.resize();
                     return true;
                 };
-                const ensureFixasMobileDonut = (pagoValor = totalPagoFixas, pendenteValor = totalPendenteFixas) => {
-                    const wrap = el.querySelector('.finance-fixas-mobile-donut');
-                    const chartNode = el.querySelector('#financeiro-chart-status-mobile');
-                    if (!wrap || !chartNode) return;
+                const ensureFixasMobileThermo = (pagoValor = totalPagoFixas, pendenteValor = totalPendenteFixas) => {
+                    const wrap = el.querySelector('#financeiro-fixas-mobile-thermo');
+                    if (!wrap) return;
                     const isMobile = window.matchMedia('(max-width: 768px)').matches;
                     const onFixas = (el.getAttribute('data-active-tab') || '') === 'data'
                         && (el.getAttribute('data-active-data-filter') || '') === 'despesas_fixas';
                     if (!isMobile || !onFixas) return;
-                    const ok = renderPagosPendentesDonut(chartNode, '_financeiroChartStatusMobile', pagoValor, pendenteValor);
-                    wrap.classList.toggle('is-empty', !ok);
-                    if (ok) {
-                        requestAnimationFrame(() => {
-                            try { el._financeiroChartStatusMobile?.resize?.(); } catch (_) {}
-                        });
-                    }
+                    const pago = Math.max(0, Number(pagoValor) || 0);
+                    const pendente = Math.max(0, Number(pendenteValor) || 0);
+                    const total = pago + pendente;
+                    const hasData = total > 0;
+                    wrap.classList.toggle('is-empty', !hasData);
+                    if (!hasData) return;
+                    const pagoPct = (pago / total) * 100;
+                    const pendentePct = (pendente / total) * 100;
+                    const pagoPctEl = wrap.querySelector('[data-thermo-pago-pct]');
+                    const pendentePctEl = wrap.querySelector('[data-thermo-pendente-pct]');
+                    const pagoSeg = wrap.querySelector('[data-thermo-pago-seg]');
+                    const pendenteSeg = wrap.querySelector('[data-thermo-pendente-seg]');
+                    const pagoValEl = wrap.querySelector('[data-thermo-pago-val]');
+                    const pendenteValEl = wrap.querySelector('[data-thermo-pendente-val]');
+                    if (pagoPctEl) pagoPctEl.textContent = `${pagoPct.toFixed(1)}%`;
+                    if (pendentePctEl) pendentePctEl.textContent = `${pendentePct.toFixed(1)}%`;
+                    if (pagoSeg) pagoSeg.style.flex = `${pago} 1 0%`;
+                    if (pendenteSeg) pendenteSeg.style.flex = `${pendente} 1 0%`;
+                    if (pagoValEl) pagoValEl.textContent = this.formatMoneyBr(pago);
+                    if (pendenteValEl) pendenteValEl.textContent = this.formatMoneyBr(pendente);
                 };
 
                 const ensureCharts = () => {
@@ -8645,14 +8771,11 @@ ${financeRowActions(r.id, 'compra')}
                         const pagas = despesasFixasPagas.filter(filterRow);
                         const totalPendentes = pendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                         const totalPagas = pagas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
-                        ensureFixasMobileDonut(totalPagas, totalPendentes);
+                        ensureFixasMobileThermo(totalPagas, totalPendentes);
                     }
                     requestAnimationFrame(() => {
                         el._syncFinanceStickyOffset?.();
                         if (window.innerWidth <= 768 && normalizedTarget) el.scrollTop = 0;
-                        if (normalizedTarget === 'despesas_fixas') {
-                            try { el._financeiroChartStatusMobile?.resize?.(); } catch (_) {}
-                        }
                     });
                 };
 
@@ -8681,7 +8804,7 @@ ${financeRowActions(r.id, 'compra')}
                     if (tab === 'summary') ensureCharts();
                     if (tab === 'poupanca') ensurePoupancaMetaChart();
                     if (tab === 'data' && (el.getAttribute('data-active-data-filter') || '') === 'despesas_fixas') {
-                        ensureFixasMobileDonut();
+                        ensureFixasMobileThermo();
                     }
                 };
 
@@ -8769,7 +8892,7 @@ ${financeRowActions(r.id, 'compra')}
                     if (totalPagasEl) totalPagasEl.textContent = this.formatMoneyBr(totalPagas);
                     if (mobilePendentesEl) mobilePendentesEl.textContent = `${pendentes.length} item(ns) • ${this.formatMoneyBr(totalPendentes)}`;
                     if (mobilePagasEl) mobilePagasEl.textContent = `${pagas.length} item(ns) • ${this.formatMoneyBr(totalPagas)}`;
-                    ensureFixasMobileDonut(totalPagas, totalPendentes);
+                    ensureFixasMobileThermo(totalPagas, totalPendentes);
                     if (tbodyPendentes) {
                         tbodyPendentes.innerHTML = pendentes.length
                             ? pendentes.map(mkRowFixa).join('')
