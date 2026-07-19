@@ -971,6 +971,17 @@
             font-size: 1.15rem;
         }
 
+        .auth-legal-card h4 {
+            margin: 1rem 0 0.4rem;
+            color: #f8fafc;
+            font-size: 0.92rem;
+            font-weight: 800;
+        }
+
+        .auth-legal-card h4:first-of-type {
+            margin-top: 0.75rem;
+        }
+
         .auth-legal-card p,
         .auth-legal-card li {
             color: #cbd5e1;
@@ -979,7 +990,7 @@
         }
 
         .auth-legal-card ul {
-            margin: 0.6rem 0 0.9rem;
+            margin: 0.35rem 0 0.55rem;
             padding-left: 1.1rem;
         }
 
@@ -1031,7 +1042,8 @@
             color: #0f172a;
         }
 
-        [data-theme="light"] .auth-legal-card h3 {
+        [data-theme="light"] .auth-legal-card h3,
+        [data-theme="light"] .auth-legal-card h4 {
             color: #0f172a;
         }
 
@@ -7015,12 +7027,12 @@
                     <div class="auth-password-wrap"><input id="signupPassword" name="password" type="password" autocomplete="new-password" required minlength="6" /><button type="button" class="auth-password-toggle" data-password-toggle="signupPassword" aria-label="Mostrar senha" aria-pressed="false"><i class="fas fa-eye"></i></button></div>
                 </div>
                 <div class="auth-privacy-note">
-                    Você está entrando em um teste privado. Seus dados ficam separados dos outros usuários e são usados para o app funcionar.
-                    <button type="button" class="auth-link" data-auth-legal-open>Ver resumo</button>
+                    Ao criar sua conta, você concorda com o tratamento dos seus dados para uso do SUPERAPP, conforme os Termos e a Política de Privacidade.
+                    <button type="button" class="auth-link" data-auth-legal-open>Ler documento</button>
                 </div>
                 <label class="auth-consent">
                     <input id="signupConsent" name="consent" type="checkbox" required />
-                    <span>Li e aceito o <button type="button" class="auth-link" data-auth-legal-open>resumo de privacidade</button>.</span>
+                    <span>Li e aceito os <button type="button" class="auth-link" data-auth-legal-open>Termos de Uso e a Política de Privacidade</button>.</span>
                 </label>
                 <button type="submit" class="auth-submit">Criar cadastro</button>
             </form>
@@ -7044,18 +7056,61 @@
 
     <div id="authLegalModal" class="auth-legal-modal" hidden role="dialog" aria-modal="true" aria-labelledby="authLegalTitle">
         <section class="auth-legal-card">
-            <h3 id="authLegalTitle">Privacidade no beta</h3>
-            <p>Este app ainda está em teste. Para criar sua conta e usar o Financeiro, precisamos guardar algumas informações básicas.</p>
+            <h3 id="authLegalTitle">Termos de Uso e Política de Privacidade</h3>
+            <p>Ao criar uma conta no SUPERAPP, você declara ter lido e concordado com este documento. Ele resume como tratamos suas informações enquanto o serviço estiver em fase de acesso privado.</p>
+
+            <h4>1. Conta e responsabilidade</h4>
             <ul>
-                <li>Usamos seu nome e email para identificar sua conta.</li>
-                <li>Sua senha é protegida pelo serviço de login e não aparece para nós.</li>
-                <li>O que você lançar no Financeiro fica separado dos dados de outros usuários.</li>
-                <li>O responsável pelo app pode acessar configurações técnicas para corrigir problemas.</li>
-                <li>Evite colocar informações muito sensíveis enquanto o app estiver em teste.</li>
+                <li>Você é responsável por manter a confidencialidade da sua senha e por toda atividade realizada na sua conta.</li>
+                <li>As informações fornecidas no cadastro devem ser verdadeiras e atualizadas.</li>
+                <li>O SUPERAPP destina-se a uso pessoal para organização financeira e demais recursos liberados ao seu perfil.</li>
             </ul>
-            <p>Ao criar cadastro, você concorda com esse uso básico dos dados para o app funcionar.</p>
+
+            <h4>2. Dados que coletamos</h4>
+            <ul>
+                <li>Dados de conta: nome e e-mail.</li>
+                <li>Dados de uso: informações que você registra no aplicativo, como lançamentos financeiros e preferências.</li>
+                <li>Dados técnicos necessários ao funcionamento do serviço, como identificação da sessão de login.</li>
+            </ul>
+
+            <h4>3. Como usamos seus dados</h4>
+            <ul>
+                <li>Para criar e manter sua conta, autenticar o acesso e prestar o serviço solicitado.</li>
+                <li>Para melhorar a estabilidade, a segurança e a experiência do aplicativo.</li>
+                <li>Para cumprir obrigações legais, quando aplicável.</li>
+            </ul>
+
+            <h4>4. Privacidade e acesso</h4>
+            <ul>
+                <li>No aplicativo, seus dados ficam associados à sua conta e não são exibidos a outros usuários.</li>
+                <li>A senha de acesso é armazenada de forma protegida e não é consultável em texto legível pela equipe do SUPERAPP.</li>
+                <li>A operação do serviço pode exigir acesso administrativo aos dados armazenados para manutenção, suporte, segurança, correção de falhas e continuidade da plataforma. Esse acesso é restrito e destinado exclusivamente a essas finalidades.</li>
+                <li>Não vendemos seus dados pessoais a terceiros.</li>
+            </ul>
+
+            <h4>5. Compartilhamento</h4>
+            <ul>
+                <li>Podemos utilizar prestadores de serviço essenciais ao funcionamento do app (por exemplo, hospedagem e autenticação), apenas na medida necessária para operar a plataforma.</li>
+                <li>Esses prestadores devem tratar as informações conforme suas respectivas políticas e a legislação aplicável.</li>
+            </ul>
+
+            <h4>6. Seus direitos</h4>
+            <ul>
+                <li>Você pode solicitar acesso, correção ou exclusão dos seus dados, bem como o encerramento da conta, pelos canais de contato do SUPERAPP.</li>
+                <li>Responderemos às solicitações dentro do razoável e em conformidade com a legislação vigente.</li>
+            </ul>
+
+            <h4>7. Fase de acesso privado</h4>
+            <ul>
+                <li>O serviço está em evolução. Recursos, disponibilidade e condições podem mudar sem aviso prévio amplo.</li>
+                <li>Recomendamos não utilizar o app como único registro de informações críticas ou irrecuperáveis.</li>
+            </ul>
+
+            <h4>8. Aceite</h4>
+            <p>Ao marcar a opção de aceite e concluir o cadastro, você confirma que compreendeu estas condições e autoriza o tratamento dos seus dados para as finalidades descritas neste documento.</p>
+
             <footer>
-                <button type="button" class="auth-legal-close" id="authLegalClose">Entendi</button>
+                <button type="button" class="auth-legal-close" id="authLegalClose">Concordo</button>
             </footer>
         </section>
     </div>
@@ -7350,7 +7405,7 @@
                     const password = String(form.get('password') || '');
                     const consent = Boolean(form.get('consent'));
                     if (!name) return this.setMessage('Informe seu nome.', 'error');
-                    if (!consent) return this.setMessage('Aceite o resumo de privacidade para criar o cadastro.', 'error');
+                    if (!consent) return this.setMessage('Aceite os Termos de Uso e a Política de Privacidade para criar o cadastro.', 'error');
                     this.setMessage('Criando cadastro...');
                     const { data, error } = await this.client.auth.signUp({
                         email,
