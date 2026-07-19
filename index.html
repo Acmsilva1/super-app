@@ -848,6 +848,103 @@
             color: #fecaca;
         }
 
+        .auth-consent {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.55rem;
+            color: #cbd5e1;
+            font-size: 0.84rem;
+            line-height: 1.45;
+        }
+
+        .auth-consent input {
+            margin-top: 0.2rem;
+            accent-color: #22c55e;
+        }
+
+        .auth-link {
+            border: 0;
+            padding: 0;
+            background: transparent;
+            color: #7dd3fc;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 800;
+            text-decoration: underline;
+            text-underline-offset: 0.16rem;
+        }
+
+        .auth-privacy-note {
+            border: 1px solid rgba(125, 211, 252, 0.2);
+            border-radius: 0.75rem;
+            background: rgba(14, 165, 233, 0.09);
+            color: #cbd5e1;
+            font-size: 0.82rem;
+            line-height: 1.45;
+            padding: 0.75rem;
+        }
+
+        .auth-legal-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: grid;
+            place-items: center;
+            padding: 1rem;
+            background: rgba(2, 6, 23, 0.74);
+            backdrop-filter: blur(8px);
+        }
+
+        .auth-legal-modal[hidden] {
+            display: none;
+        }
+
+        .auth-legal-card {
+            width: min(560px, 100%);
+            max-height: min(82vh, 680px);
+            overflow: auto;
+            border: 1px solid rgba(125, 211, 252, 0.28);
+            border-radius: 1rem;
+            background: linear-gradient(160deg, rgba(8, 17, 34, 0.98), rgba(12, 35, 58, 0.96));
+            color: #e2e8f0;
+            box-shadow: 0 24px 70px rgba(2, 6, 23, 0.55);
+            padding: 1.1rem;
+        }
+
+        .auth-legal-card h3 {
+            margin: 0 0 0.65rem;
+            color: #ffffff;
+            font-size: 1.15rem;
+        }
+
+        .auth-legal-card p,
+        .auth-legal-card li {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .auth-legal-card ul {
+            margin: 0.6rem 0 0.9rem;
+            padding-left: 1.1rem;
+        }
+
+        .auth-legal-card footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+
+        .auth-legal-close {
+            border: 1px solid rgba(125, 211, 252, 0.38);
+            border-radius: 0.65rem;
+            background: linear-gradient(135deg, #0ea5e9, #22c55e);
+            color: #ffffff;
+            cursor: pointer;
+            font-weight: 900;
+            padding: 0.7rem 1rem;
+        }
+
         [data-theme="light"] .auth-card {
             background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(232, 244, 255, 0.94));
             color: #0f172a;
@@ -865,6 +962,22 @@
 
         [data-theme="light"] .auth-field input {
             background: rgba(255, 255, 255, 0.9);
+            color: #0f172a;
+        }
+
+        [data-theme="light"] .auth-consent,
+        [data-theme="light"] .auth-privacy-note,
+        [data-theme="light"] .auth-legal-card p,
+        [data-theme="light"] .auth-legal-card li {
+            color: #334155;
+        }
+
+        [data-theme="light"] .auth-legal-card {
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(232, 244, 255, 0.96));
+            color: #0f172a;
+        }
+
+        [data-theme="light"] .auth-legal-card h3 {
             color: #0f172a;
         }
 
@@ -6847,6 +6960,10 @@
                     <label for="signupPassword">Senha</label>
                     <input id="signupPassword" name="password" type="password" autocomplete="new-password" required minlength="6" />
                 </div>
+                <label class="auth-consent">
+                    <input id="signupConsent" name="consent" type="checkbox" required />
+                    <span>Li e aceito os <button type="button" class="auth-link" data-auth-legal-open>termos e privacidade</button>, incluindo o uso dos meus dados para operar o SUPERAPP.</span>
+                </label>
                 <button type="submit" class="auth-submit">Criar cadastro</button>
             </form>
 
@@ -6862,9 +6979,32 @@
                 <button type="submit" class="auth-submit">Atualizar senha</button>
             </form>
 
+            <div class="auth-privacy-note">
+                Ao entrar ou criar cadastro, voce acessa um beta privado. Seus dados ficam vinculados ao seu usuário e protegidos por permissões e RLS no Supabase.
+                <button type="button" class="auth-link" data-auth-legal-open>Ver termos resumidos</button>
+            </div>
+
             <p id="authMessage" class="auth-message"></p>
         </section>
     </main>
+
+    <div id="authLegalModal" class="auth-legal-modal" hidden role="dialog" aria-modal="true" aria-labelledby="authLegalTitle">
+        <section class="auth-legal-card">
+            <h3 id="authLegalTitle">Termos e privacidade do beta</h3>
+            <p>Este SUPERAPP esta em fase beta. Use apenas se concordar com o tratamento basico dos dados necessarios para autenticar sua conta e operar os modulos liberados.</p>
+            <ul>
+                <li>Coletamos nome, email e dados inseridos por voce nos modulos do app.</li>
+                <li>Sua senha fica sob responsabilidade do Supabase Auth e nao e salva em texto aberto pelo SUPERAPP.</li>
+                <li>Os dados financeiros ficam vinculados ao seu usuário e isolados por permissões/RLS.</li>
+                <li>O owner do app pode administrar a plataforma e corrigir problemas tecnicos quando necessario.</li>
+                <li>Evite inserir dados sensiveis desnecessarios durante o beta.</li>
+            </ul>
+            <p>Ao criar cadastro, voce declara ciencia de que o app esta em validacao e autoriza o uso desses dados para disponibilizar a aplicacao.</p>
+            <footer>
+                <button type="button" class="auth-legal-close" id="authLegalClose">Entendi</button>
+            </footer>
+        </section>
+    </div>
 
     <!-- HEADER -->
     <header>
@@ -7110,6 +7250,20 @@
                     btn.addEventListener('click', () => this.setMode(btn.dataset.authTab));
                 });
 
+                document.querySelectorAll('[data-auth-legal-open]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        document.getElementById('authLegalModal').hidden = false;
+                    });
+                });
+
+                document.getElementById('authLegalClose')?.addEventListener('click', () => {
+                    document.getElementById('authLegalModal').hidden = true;
+                });
+
+                document.getElementById('authLegalModal')?.addEventListener('click', (event) => {
+                    if (event.target?.id === 'authLegalModal') event.currentTarget.hidden = true;
+                });
+
                 document.getElementById('loginForm')?.addEventListener('submit', async (event) => {
                     event.preventDefault();
                     const form = new FormData(event.currentTarget);
@@ -7128,7 +7282,9 @@
                     const name = String(form.get('name') || '').trim();
                     const email = String(form.get('email') || '').trim();
                     const password = String(form.get('password') || '');
+                    const consent = Boolean(form.get('consent'));
                     if (!name) return this.setMessage('Informe seu nome.', 'error');
+                    if (!consent) return this.setMessage('Aceite os termos e privacidade para criar o cadastro.', 'error');
                     this.setMessage('Criando cadastro...');
                     const { data, error } = await this.client.auth.signUp({
                         email,
