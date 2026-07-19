@@ -7341,17 +7341,6 @@
                 }, 50);
             },
 
-            updateTipRobotFromFinanceiro(data) {
-                try {
-                    const build = window.buildDicasFinanceiroFromData;
-                    if (typeof build !== 'function' || !window.TipRobot?.mount) return;
-                    const messages = build(data || {}, {
-                        formatMoney: (n) => this.formatMoneyBr(n),
-                    });
-                    this.mountTipRobot(messages);
-                } catch (_) {}
-            },
-
             showApp() {
                 document.body.classList.remove('auth-locked');
                 document.body.classList.add('auth-ready');
@@ -8037,6 +8026,17 @@
 
             formatMoneyBr(value) {
                 return `R$ ${Number(value || 0).toFixed(2)}`;
+            }
+
+            updateTipRobotFromFinanceiro(data) {
+                try {
+                    const build = window.buildDicasFinanceiroFromData;
+                    if (typeof build !== 'function' || !window.TipRobot?.mount) return;
+                    const messages = build(data || {}, {
+                        formatMoney: (n) => this.formatMoneyBr(n),
+                    });
+                    SuperAppAuth.mountTipRobot(messages);
+                } catch (_) {}
             }
 
             downloadHtmlReport(filenameBase, htmlContent) {
