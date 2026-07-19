@@ -6503,6 +6503,63 @@
                 max-width: 100%;
             }
 
+            body.view-apps {
+                min-height: auto;
+            }
+
+            body.view-apps header {
+                padding-top: max(0.55rem, env(safe-area-inset-top));
+                padding-bottom: 0.55rem;
+            }
+
+            body.view-apps .apps-section {
+                padding: 0.65rem 0.5rem 0.5rem;
+            }
+
+            body.view-apps .container {
+                padding-left: max(0.55rem, env(safe-area-inset-left));
+                padding-right: max(0.55rem, env(safe-area-inset-right));
+            }
+
+            body.view-apps .section-title {
+                margin-bottom: 0.45rem;
+                font-size: 0.95rem;
+                letter-spacing: 0.04em;
+            }
+
+            body.view-apps .apps-grid {
+                margin-top: 0.45rem;
+                gap: 0.38rem;
+            }
+
+            body.view-apps .app-card {
+                min-height: 68px;
+                padding: 0.26rem 0.24rem 0.22rem;
+                border-radius: 0.78rem;
+            }
+
+            body.view-apps .app-header {
+                margin-bottom: 0.2rem;
+            }
+
+            body.view-apps .app-icon-box {
+                width: 2.35rem;
+                height: 2.35rem;
+                min-height: 2.35rem;
+                border-radius: 0.65rem;
+            }
+
+            body.view-apps .app-card-title {
+                padding-top: 0.18rem;
+                font-size: 0.5rem;
+                line-height: 1.1;
+            }
+
+            body.view-apps .app-open-hint {
+                padding-top: 0.18rem;
+                font-size: 0.42rem;
+                line-height: 1;
+            }
         }
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -6962,7 +7019,7 @@
                 </div>
                 <label class="auth-consent">
                     <input id="signupConsent" name="consent" type="checkbox" required />
-                    <span>Li e aceito os <button type="button" class="auth-link" data-auth-legal-open>termos e privacidade</button>, incluindo o uso dos meus dados para operar o SUPERAPP.</span>
+                    <span>Li e aceito o <button type="button" class="auth-link" data-auth-legal-open>resumo de privacidade</button>.</span>
                 </label>
                 <button type="submit" class="auth-submit">Criar cadastro</button>
             </form>
@@ -6980,8 +7037,8 @@
             </form>
 
             <div class="auth-privacy-note">
-                Ao entrar ou criar cadastro, voce acessa um beta privado. Seus dados ficam vinculados ao seu usuário e protegidos por permissões e RLS no Supabase.
-                <button type="button" class="auth-link" data-auth-legal-open>Ver termos resumidos</button>
+                Ao entrar ou criar cadastro, você participa de um teste privado. Suas informações ficam separadas das outras contas e são usadas para manter o app funcionando.
+                <button type="button" class="auth-link" data-auth-legal-open>Ver resumo</button>
             </div>
 
             <p id="authMessage" class="auth-message"></p>
@@ -6990,16 +7047,16 @@
 
     <div id="authLegalModal" class="auth-legal-modal" hidden role="dialog" aria-modal="true" aria-labelledby="authLegalTitle">
         <section class="auth-legal-card">
-            <h3 id="authLegalTitle">Termos e privacidade do beta</h3>
-            <p>Este SUPERAPP esta em fase beta. Use apenas se concordar com o tratamento basico dos dados necessarios para autenticar sua conta e operar os modulos liberados.</p>
+            <h3 id="authLegalTitle">Privacidade no beta</h3>
+            <p>Este app ainda está em teste. Para criar sua conta e usar o Financeiro, precisamos guardar algumas informações básicas.</p>
             <ul>
-                <li>Coletamos nome, email e dados inseridos por voce nos modulos do app.</li>
-                <li>Sua senha fica sob responsabilidade do Supabase Auth e nao e salva em texto aberto pelo SUPERAPP.</li>
-                <li>Os dados financeiros ficam vinculados ao seu usuário e isolados por permissões/RLS.</li>
-                <li>O owner do app pode administrar a plataforma e corrigir problemas tecnicos quando necessario.</li>
-                <li>Evite inserir dados sensiveis desnecessarios durante o beta.</li>
+                <li>Usamos seu nome e email para identificar sua conta.</li>
+                <li>Sua senha é protegida pelo serviço de login e não aparece para nós.</li>
+                <li>O que você lançar no Financeiro fica separado dos dados de outros usuários.</li>
+                <li>O responsável pelo app pode acessar configurações técnicas para corrigir problemas.</li>
+                <li>Evite colocar informações muito sensíveis enquanto o app estiver em teste.</li>
             </ul>
-            <p>Ao criar cadastro, voce declara ciencia de que o app esta em validacao e autoriza o uso desses dados para disponibilizar a aplicacao.</p>
+            <p>Ao criar cadastro, você concorda com esse uso básico dos dados para o app funcionar.</p>
             <footer>
                 <button type="button" class="auth-legal-close" id="authLegalClose">Entendi</button>
             </footer>
@@ -7284,7 +7341,7 @@
                     const password = String(form.get('password') || '');
                     const consent = Boolean(form.get('consent'));
                     if (!name) return this.setMessage('Informe seu nome.', 'error');
-                    if (!consent) return this.setMessage('Aceite os termos e privacidade para criar o cadastro.', 'error');
+                    if (!consent) return this.setMessage('Aceite o resumo de privacidade para criar o cadastro.', 'error');
                     this.setMessage('Criando cadastro...');
                     const { data, error } = await this.client.auth.signUp({
                         email,
