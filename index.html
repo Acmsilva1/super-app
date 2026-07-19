@@ -1128,7 +1128,7 @@
             grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
             gap: 1rem;
             margin-top: 1rem;
-            animation: riseIn 0.45s ease both;
+            animation: none;
         }
 
         @media (min-width: 1200px) {
@@ -1146,7 +1146,7 @@
             min-height: 222px;
             padding: 0.95rem 0.9rem 0.88rem;
             box-shadow: var(--shadow-sm);
-            transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, filter 0.22s ease;
+            transition: none;
             cursor: pointer;
             display: flex;
             flex-direction: column;
@@ -1189,10 +1189,10 @@
         }
 
         .app-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 22px 38px rgba(2, 10, 22, 0.56);
-            border-color: rgba(56, 189, 248, 0.58);
-            filter: saturate(1.08);
+            transform: none;
+            box-shadow: var(--shadow-sm);
+            border-color: rgba(98, 136, 194, 0.34);
+            filter: none;
         }
 
         .app-header {
@@ -1268,7 +1268,7 @@
             align-items: center;
             justify-content: center;
             padding: 0;
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            transition: none;
             box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
             position: relative;
             overflow: hidden;
@@ -1289,14 +1289,14 @@
             z-index: 1;
             filter: drop-shadow(0 2px 6px rgba(2, 10, 22, 0.36));
             transform-origin: center;
-            animation: appIconFloat 4.8s ease-in-out infinite;
-            animation-delay: calc(var(--card-i, 0) * 170ms);
-            will-change: transform;
+            animation: none;
+            animation-delay: 0ms;
+            will-change: auto;
         }
 
         .app-card:hover .app-icon-box {
-            transform: scale(1.1) rotate(-3deg);
-            box-shadow: 0 14px 28px rgba(14, 165, 233, 0.48), inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+            transform: none;
+            box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
         }
 
         .app-card .badge {
@@ -1380,10 +1380,10 @@
         .app-open-hint i {
             font-size: 0.7rem;
             transform: translateX(0);
-            transition: transform 0.22s ease;
+            transition: none;
         }
         .app-card:hover .app-open-hint i {
-            transform: translateX(3px);
+            transform: none;
         }
         .home-finance-fab {
             z-index: 1150;
@@ -1415,8 +1415,8 @@
             }
         }
         .app-card {
-            animation: appCardIn 0.42s cubic-bezier(.22,.91,.33,1) both;
-            animation-delay: calc(var(--card-i, 0) * 45ms);
+            animation: none;
+            animation-delay: 0ms;
         }
         @keyframes appCardIn {
             from { opacity: 0; transform: translateY(12px) scale(0.98); filter: blur(2px); }
@@ -7707,7 +7707,7 @@
                         <span class="app-open-hint">Abrir modulo <i class="fas fa-arrow-right"></i></span>
                     </div>
                 `).join('');
-                this.animateAppCards();
+                // Cards da home ficam estaticos para evitar movimento excessivo no mobile.
                 this.refreshAppApiStatuses();
             }
 
