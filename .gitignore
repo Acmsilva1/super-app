@@ -1,4 +1,15 @@
 .env
 .env.*
 !.env.example
-
+# ---------------------------------------------------------------------------
+# Mensageria Telegram (DEV/protótipo local — NÃO sobe para produção/Git)
+# ---------------------------------------------------------------------------
+skills.md
+scripts/telegram-config.cjs
+scripts/mensageria.cjs
+scripts/receptor.cjs
+scripts/listener.cjs
+scripts/mensageria.js
+scripts/receptor.js
+scripts/telegram-config.js
+.mensageria/
