@@ -1,4 +1,4 @@
-import { createBalaoDica, createMascoteDicas, getPrimeiroNome } from './mascoteDicas.js';
+import { createBalaoDica, createMascoteDicas } from './mascoteDicas.js';
 import { HIDDEN_MS, VISIBLE_MS, normalizeMessages, pickNextTip, sameList } from './tipRobotCore.js';
 
 const state = {
@@ -39,7 +39,7 @@ function renderBalao() {
   state.balaoHost.innerHTML = '';
   if (!state.tip || state.open) return;
   state.balaoHost.appendChild(
-    createBalaoDica({ tip: state.tip, userName: state.userName, id: 'dica-automatica' }),
+    createBalaoDica({ tip: state.tip, id: 'dica-automatica' }),
   );
   if (state.triggerBtn) {
     state.triggerBtn.setAttribute('aria-describedby', 'dica-automatica');
@@ -116,15 +116,13 @@ function renderPanel() {
   const sub = state.pool.length
     ? `Dica ${state.panelIndex + 1} de ${state.pool.length}`
     : 'Sem dicas';
-  const firstName = getPrimeiroNome(state.userName);
-
   panel.innerHTML = `
     <div class="dicas-robot-panel-inner">
       <div class="dicas-robot-panel-head">
         <div class="dicas-robot-panel-avatar" data-avatar></div>
         <div>
           <p class="dicas-robot-panel-title">Assistente de dicas</p>
-          <p class="dicas-robot-panel-sub">${escapeHtml(sub)}${firstName ? ` · ${escapeHtml(firstName)}` : ''}</p>
+          <p class="dicas-robot-panel-sub">${escapeHtml(sub)}</p>
         </div>
         <button type="button" data-close aria-label="Fechar dicas">Fechar</button>
       </div>

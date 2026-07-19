@@ -1,5 +1,4 @@
-const GREETINGS_WITH_NAME = ['Olá, {name}!', 'Ei, {name}!', 'Oi, {name}!'];
-const GREETINGS_WITHOUT_NAME = ['Olá!', 'Ei!', 'Oi!'];
+const GREETING = 'Olá, tudo bem?';
 
 export function getPrimeiroNome(fullName) {
   const first = String(fullName || '')
@@ -10,19 +9,12 @@ export function getPrimeiroNome(fullName) {
   return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
 }
 
-function pickGreeting(userName) {
-  const name = getPrimeiroNome(userName);
-  const pool = name ? GREETINGS_WITH_NAME : GREETINGS_WITHOUT_NAME;
-  const template = pool[Math.floor(Math.random() * pool.length)] ?? pool[0];
-  return name ? template.replace('{name}', name) : template;
-}
-
-export function createBalaoDica({ tip, userName = '', id = 'dica-automatica' }) {
+export function createBalaoDica({ tip, id = 'dica-automatica' }) {
   const wrap = document.createElement('span');
   wrap.id = id;
   wrap.className = 'dicas-robot-balao';
   wrap.setAttribute('role', 'note');
-  const greeting = pickGreeting(userName);
+  const greeting = GREETING;
   wrap.innerHTML = `
     <svg viewBox="0 0 240 132" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
       <path d="M18 4 H210 Q232 4 232 26 V78 Q232 100 210 100 H168 L198 126 L142 100 H18 Q4 100 4 78 V26 Q4 4 18 4 Z"
