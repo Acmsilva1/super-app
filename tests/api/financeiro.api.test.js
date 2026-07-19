@@ -445,4 +445,84 @@ describe('API do financeiro', () => {
     expect(tableMock.deleteIn).toHaveBeenCalledWith('id', [303, 404]);
     expect(res.body.ok).toBe(true);
   });
+
+  function createThenableQuery({ data = [], track } = {}) {
+    const result = Promise.resolve({ data, error: null });
+    const builder = {
+      select: vi.fn((cols) => {
+        track?.selects?.push(cols);
+        return builder;
+      }),
+      eq: vi.fn(() => builder),
+      gte: vi.fn((col, value) => {
+        track?.filters?.push({ op: 'gte', col, value });
+        return builder;
+      }),
+      lte: vi.fn((col, value) => {
+        track?.filters?.push({ op: 'lte', col, value });
+        return builder;
+      }),
+      or: vi.fn((expr) => {
+        track?.ors?.push(expr);
+        return builder;
+      }),
+      order: vi.fn(() => builder),
+      limit: vi.fn(() => builder),
+      insert: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      then: result.then.bind(result),
+      catch: result.catch.bind(result),
+    };
+    return builder;
+  }
+
+  it('GET do mes materializa so o mes aberto e filtra periodos no SQL', async () => {
+    const track = {
+      tables: [],
+      selects: [],
+      filters: [],
+      ors: [],
+    };
+
+    fromMock.mockImplementation((table) => {
+      track.tables.push(table);
+      return createThenableQuery({
+        data: [],
+        track,
+      });
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app).get('/api/test?mes_ano=2026-07&bi=1');
+
+    expect(res.status).toBe(200);
+    expect(res.body.mes_ano).toBe('2026-07');
+    expect(Array.isArray(res.body.graficos_anuais)).toBe(true);
+    expect(res.body.graficos_anuais).toHaveLength(12);
+
+    const despesasCalls = track.tables.filter((t) => t === 'tb_despesas_fixas').length;
+    // materializacao (ano+mes) + leitura do mes + leitura leve do ano = 4 (nao 24+)
+    expect(despesasCalls).toBeLessThanOrEqual(4);
+    expect(despesasCalls).toBeGreaterThanOrEqual(3);
+
+    expect(track.ors.length).toBeGreaterThan(0);
+    expect(track.selects.some((cols) => String(cols).includes('tipo') && String(cols).includes('valor'))).toBe(true);
+  });
+
+  it('GET sem bi nao busca dataset anual leve', async () => {
+    const track = { tables: [], selects: [], filters: [], ors: [] };
+
+    fromMock.mockImplementation((table) => {
+      track.tables.push(table);
+      return createThenableQuery({ data: [], track });
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app).get('/api/test?mes_ano=2026-07');
+
+    expect(res.status).toBe(200);
+    expect(res.body.graficos_anuais).toHaveLength(12);
+    const lightAnnualSelects = track.selects.filter((cols) => cols === 'tipo, valor, data_lancamento, created_at'
+      || cols === 'valor, created_at');
+    expect(lightAnnualSelects).toHaveLength(0);
+  });
 });

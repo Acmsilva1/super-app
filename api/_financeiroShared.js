@@ -185,6 +185,29 @@ async function cleanupFutureParcelas(row, context = {}) {
   if (error) throw error;
 }
 
+const DESPESA_FIXA_SERIES_COLUMNS = 'descricao, valor, status, conta_fixa, parcela_atual, parcela_total, created_at';
+const FINANCAS_ANUAL_COLUMNS = 'tipo, valor, data_lancamento, created_at';
+const DESPESA_FIXA_ANUAL_COLUMNS = 'valor, created_at';
+
+function wantsGraficosAnuais(query = {}) {
+  const bi = String(query?.bi ?? '').toLowerCase();
+  const flag = String(query?.incluir_anuais ?? '').toLowerCase();
+  return bi === '1' || bi === 'true' || flag === '1' || flag === 'true';
+}
+
+function rangeDiasMes(ano, mes) {
+  const lastDay = new Date(ano, mes, 0).getDate();
+  const mm = String(mes).padStart(2, '0');
+  return {
+    dayStart: `${ano}-${mm}-01`,
+    dayEnd: `${ano}-${mm}-${String(lastDay).padStart(2, '0')}`,
+  };
+}
+
+function periodOrFilter({ dayStart, dayEnd, start, end }) {
+  return `and(data_lancamento.gte.${dayStart},data_lancamento.lte.${dayEnd}),and(created_at.gte.${start},created_at.lte.${end})`;
+}
+
 export async function materializeDespesasFixasMes(mesAno, context = {}) {
   if (!mesAno || !/^\d{4}-\d{2}$/.test(mesAno)) return;
   const { ano, mes } = parseMesAno(mesAno);
@@ -193,7 +216,7 @@ export async function materializeDespesasFixasMes(mesAno, context = {}) {
 
   const { data: yearRows, error: yearErr } = await scopeQueryByUser(supabase
     .from(TABLE_DESPESAS_FIXAS)
-    .select('*')
+    .select(DESPESA_FIXA_SERIES_COLUMNS)
     .gte('created_at', yearStart)
     .lte('created_at', yearEnd), context);
 
@@ -205,7 +228,7 @@ export async function materializeDespesasFixasMes(mesAno, context = {}) {
   const { start, end } = rangeMes(ano, mes);
   const { data: monthRows, error: monthErr } = await scopeQueryByUser(supabase
     .from(TABLE_DESPESAS_FIXAS)
-    .select('*')
+    .select(DESPESA_FIXA_SERIES_COLUMNS)
     .gte('created_at', start)
     .lte('created_at', end), context);
 
@@ -230,100 +253,137 @@ export async function garantirDespesasFixasMes(mesAno, context = {}) {
   await materializeDespesasFixasMes(mesAno, context);
 }
 
-async function garantirDespesasFixasAno(ano, context = {}) {
-  const year = Number(ano);
-  if (!Number.isInteger(year) || year < 1900) return;
-  await Promise.all(Array.from({ length: 12 }, (_, idx) => {
-    const month = idx + 1;
-    return materializeDespesasFixasMes(`${year}-${String(month).padStart(2, '0')}`, context);
-  }));
-}
-
 export async function obterFinanceiroMes(query = {}, context = {}) {
   const { ano, mes } = parseMesAno(query.mes_ano);
   const { start, end, mes_ano } = rangeMes(ano, mes);
-
-  await garantirDespesasFixasAno(ano, context);
-
-  const { data: allFinancasRows, error: errFin } = await scopeQueryByUser(supabase
-    .from(TABLE_FINANCAS)
-    .select('*')
-    .order('created_at', { ascending: false }), context);
-  if (errFin) return { error: errFin.message, status: 500 };
-
-  const { data: despesasFixasRowsRaw, error: errFixas } = await scopeQueryByUser(supabase
-    .from(TABLE_DESPESAS_FIXAS)
-    .select('*')
-    .gte('created_at', start)
-    .lte('created_at', end)
-    .order('created_at', { ascending: false }), context);
-  if (errFixas) return { error: errFixas.message, status: 500 };
-
+  const { dayStart, dayEnd } = rangeDiasMes(ano, mes);
+  const includeAnuais = wantsGraficosAnuais(query);
   const yearStart = new Date(ano, 0, 1, 0, 0, 0, 0).toISOString();
   const yearEnd = new Date(ano, 11, 31, 23, 59, 59, 999).toISOString();
-  const { data: despesasFixasAnoRowsRaw, error: errFixasAno } = await scopeQueryByUser(supabase
-    .from(TABLE_DESPESAS_FIXAS)
-    .select('*')
-    .gte('created_at', yearStart)
-    .lte('created_at', yearEnd)
-    .order('created_at', { ascending: false }), context);
-  if (errFixasAno) return { error: errFixasAno.message, status: 500 };
+  const yearDayStart = `${ano}-01-01`;
+  const yearDayEnd = `${ano}-12-31`;
+  const monthPeriodFilter = periodOrFilter({ dayStart, dayEnd, start, end });
+  const yearPeriodFilter = periodOrFilter({
+    dayStart: yearDayStart,
+    dayEnd: yearDayEnd,
+    start: yearStart,
+    end: yearEnd,
+  });
+
+  // Materializa apenas o mês aberto (não os 12 meses do ano).
+  await garantirDespesasFixasMes(mes_ano, context);
+
+  const [
+    financasMesResult,
+    financasAnoResult,
+    despesasFixasMesResult,
+    despesasFixasAnoResult,
+    poupancaResult,
+    metaResult,
+    comprasResult,
+  ] = await Promise.all([
+    scopeQueryByUser(supabase
+      .from(TABLE_FINANCAS)
+      .select('*')
+      .or(monthPeriodFilter)
+      .order('created_at', { ascending: false }), context),
+    includeAnuais
+      ? scopeQueryByUser(supabase
+        .from(TABLE_FINANCAS)
+        .select(FINANCAS_ANUAL_COLUMNS)
+        .or(yearPeriodFilter)
+        .order('created_at', { ascending: false }), context)
+      : Promise.resolve({ data: [], error: null }),
+    scopeQueryByUser(supabase
+      .from(TABLE_DESPESAS_FIXAS)
+      .select('*')
+      .gte('created_at', start)
+      .lte('created_at', end)
+      .order('created_at', { ascending: false }), context),
+    includeAnuais
+      ? scopeQueryByUser(supabase
+        .from(TABLE_DESPESAS_FIXAS)
+        .select(DESPESA_FIXA_ANUAL_COLUMNS)
+        .gte('created_at', yearStart)
+        .lte('created_at', yearEnd)
+        .order('created_at', { ascending: false }), context)
+      : Promise.resolve({ data: [], error: null }),
+    scopeQueryByUser(supabase
+      .from(TABLE_POUPANCA)
+      .select('*')
+      .order('created_at', { ascending: false }), context),
+    scopeQueryByUser(supabase
+      .from(TABLE_POUPANCA_METAS)
+      .select('*')
+      .eq('ativa', true)
+      .order('created_at', { ascending: false })
+      .limit(1), context),
+    scopeQueryByUser(supabase
+      .from(TABLE_COMPRAS)
+      .select('*')
+      .or(monthPeriodFilter)
+      .order('created_at', { ascending: false }), context),
+  ]);
+
+  if (financasMesResult.error) return { error: financasMesResult.error.message, status: 500 };
+  if (financasAnoResult.error) return { error: financasAnoResult.error.message, status: 500 };
+  if (despesasFixasMesResult.error) return { error: despesasFixasMesResult.error.message, status: 500 };
+  if (despesasFixasAnoResult.error) return { error: despesasFixasAnoResult.error.message, status: 500 };
 
   let poupancaRowsRaw = [];
   let poupancaConfigured = true;
-  const { data: poupaData, error: errPoupa } = await scopeQueryByUser(supabase
-    .from(TABLE_POUPANCA)
-    .select('*')
-    .order('created_at', { ascending: false }), context);
-  if (errPoupa) {
-    if (isMissingTableError(errPoupa)) {
+  if (poupancaResult.error) {
+    if (isMissingTableError(poupancaResult.error)) {
       poupancaConfigured = false;
-      poupancaRowsRaw = [];
     } else {
-      return { error: errPoupa.message, status: 500 };
+      return { error: poupancaResult.error.message, status: 500 };
     }
   } else {
-    poupancaRowsRaw = poupaData || [];
+    poupancaRowsRaw = poupancaResult.data || [];
   }
 
   let poupancaMetaAtiva = null;
   let poupancaMetaConfigured = true;
-  const { data: metaRows, error: errMeta } = await scopeQueryByUser(supabase
-    .from(TABLE_POUPANCA_METAS)
-    .select('*')
-    .eq('ativa', true)
-    .order('created_at', { ascending: false })
-    .limit(1), context);
-  if (errMeta) {
-    if (isMissingTableError(errMeta)) {
+  if (metaResult.error) {
+    if (isMissingTableError(metaResult.error)) {
       poupancaMetaConfigured = false;
     } else {
-      return { error: errMeta.message, status: 500 };
+      return { error: metaResult.error.message, status: 500 };
     }
   } else {
+    const metaRows = metaResult.data;
     poupancaMetaAtiva = Array.isArray(metaRows) && metaRows.length > 0 ? metaRows[0] : null;
   }
 
   let comprasRowsRaw = [];
   let comprasConfigured = true;
-  const { data: comprasData, error: errCompras } = await scopeQueryByUser(supabase
-    .from(TABLE_COMPRAS)
-    .select('*')
-    .order('created_at', { ascending: false }), context);
-  if (errCompras) {
-    if (isMissingTableError(errCompras)) {
+  if (comprasResult.error) {
+    if (isMissingTableError(comprasResult.error)) {
       comprasConfigured = false;
-      comprasRowsRaw = [];
     } else {
-      return { error: errCompras.message, status: 500 };
+      return { error: comprasResult.error.message, status: 500 };
     }
   } else {
-    comprasRowsRaw = comprasData || [];
+    comprasRowsRaw = comprasResult.data || [];
   }
 
-  const financasMes = filtrarFinancasPorMes(allFinancasRows || [], ano, mes);
+  const despesasFixasRowsRaw = despesasFixasMesResult.data || [];
+  const despesasFixasAnoRowsRaw = despesasFixasAnoResult.data || [];
+
+  const financasMes = filtrarFinancasPorMes(financasMesResult.data || [], ano, mes);
   const { receitas, gastosVariados } = classificarFinancas(financasMes);
   const comprasMes = filtrarFinancasPorMes(comprasRowsRaw || [], ano, mes);
+
+  // Para gráficos anuais, usa o conjunto do ano (leve), não o histórico completo.
+  const financasParaAnual = includeAnuais
+    ? (financasAnoResult.data || []).filter((row) => {
+      const raw = String(row?.data_lancamento || row?.created_at || '').trim();
+      const match = raw.match(/^(\d{4})/);
+      if (match) return Number(match[1]) === ano;
+      const date = new Date(raw);
+      return !Number.isNaN(date.getTime()) && date.getUTCFullYear() === ano;
+    })
+    : [];
 
   const receitasTabela = montarTabelaFinanceiroRows(receitas, TIPO_REGISTRO_RECEITA);
   const gastosVariadosTabela = montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO)
@@ -341,11 +401,13 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
     gastosRows: gastosVariados,
     despesasFixasRows: despesasFixasRowsRaw || [],
   });
-  const graficosAnuais = calcularGraficosAnuais({
-    ano,
-    rows: allFinancasRows || [],
-    despesasFixasRows: despesasFixasAnoRowsRaw || [],
-  });
+  const graficosAnuais = includeAnuais
+    ? calcularGraficosAnuais({
+      ano,
+      rows: financasParaAnual,
+      despesasFixasRows: despesasFixasAnoRowsRaw || [],
+    })
+    : calcularGraficosAnuais({ ano, rows: [], despesasFixasRows: [] });
 
   const poupancaTotal = Math.round((poupancaRowsRaw || []).reduce((acc, r) => acc + (Number(r?.valor) || 0), 0) * 100) / 100;
   const comprasTotal = Math.round((comprasMes || []).reduce((acc, r) => acc + (Number(r?.valor) || 0), 0) * 100) / 100;
