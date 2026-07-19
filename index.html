@@ -25,8 +25,14 @@
     <link rel="stylesheet" href="./components/robo/robo.css">
     <script type="module" src="./components/robo/tipRobot.js"></script>
     <script type="module">
-      import { DICAS_FINANCEIRO } from './components/robo/dicasFinanceiro.js';
+      import {
+        DICAS_FINANCEIRO,
+        DICAS_FINANCEIRO_FALLBACK,
+        buildDicasFinanceiroFromData,
+      } from './components/robo/dicasFinanceiro.js';
       window.DICAS_FINANCEIRO = DICAS_FINANCEIRO;
+      window.DICAS_FINANCEIRO_FALLBACK = DICAS_FINANCEIRO_FALLBACK;
+      window.buildDicasFinanceiroFromData = buildDicasFinanceiroFromData;
     </script>
     <style>
         * {
@@ -7312,13 +7318,16 @@
                 return String(meta.name || meta.nome || (user?.email || '').split('@')[0] || '').trim();
             },
 
-            mountTipRobot() {
+            mountTipRobot(messages) {
+                const list = Array.isArray(messages) && messages.length
+                    ? messages
+                    : (window.DICAS_FINANCEIRO || []);
                 const mount = () => {
-                    if (!window.TipRobot?.mount || !Array.isArray(window.DICAS_FINANCEIRO)) return false;
+                    if (!window.TipRobot?.mount || !list.length) return false;
                     window.TipRobot.mount({
                         enabled: true,
                         userName: this.resolveTipUserName(),
-                        messages: window.DICAS_FINANCEIRO,
+                        messages: list,
                         accentColor: '#0ea5e9',
                         label: 'DICAS',
                     });
@@ -7330,6 +7339,17 @@
                     tries += 1;
                     if (mount() || tries >= 20) window.clearInterval(timer);
                 }, 50);
+            },
+
+            updateTipRobotFromFinanceiro(data) {
+                try {
+                    const build = window.buildDicasFinanceiroFromData;
+                    if (typeof build !== 'function' || !window.TipRobot?.mount) return;
+                    const messages = build(data || {}, {
+                        formatMoney: (n) => this.formatMoneyBr(n),
+                    });
+                    this.mountTipRobot(messages);
+                } catch (_) {}
             },
 
             showApp() {
@@ -8452,6 +8472,8 @@
                 }
                 el._financeiroAnualCacheHit = null;
                 el._financeiroAnualFetchWithBi = false;
+
+                this.updateTipRobotFromFinanceiro(data);
 
                 const mesAno = mesAnoEarly;
                 const [ano, mes] = mesAno.split('-').map(Number);
