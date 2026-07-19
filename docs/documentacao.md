@@ -190,5 +190,23 @@ npm install
 2. Adicionar exemplos de payload/request/response por endpoint.
 3. Criar um diagrama de arquitetura versionado (mermaid) no proprio repositrio.
 4. Documentar politicas de erro e codigos de resposta por modulo.
+## 14. Checkpoint - Auth, RLS e permissoes por usuario
+Data: 2026-07-18
 
+Alteracoes planejadas/implementadas nesta etapa:
+- Supabase Auth passa a ser o controle principal de login, cadastro e troca de senha.
+- Frontend exibe tela de entrada, cadastro e formulario de nova senha quando o link de recovery retorna para o app.
+- APIs passam a exigir token Bearer do usuario autenticado, exceto health checks pontuais.
+- Catalogo `/api/apps` retorna todos os modulos para owner/admin e apenas Financeiro para usuario beta comum.
+- Dados financeiros passam a ser escopados por `user_id` no backend e no RLS do Supabase.
+- Migration principal: `sql/20260718_enable_rls_user_permissions.sql`.
+- Rollback/cryptonita: `sql/20260718_rollback_rls_user_permissions.sql`.
 
+Variaveis obrigatorias na Vercel:
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Checkpoint tecnico:
+- Ultimo commit remoto conhecido antes desta etapa: `7165b0c`.
+- Validacao local: `npm run test` com 64 testes aprovados; `npm run build` aprovado.

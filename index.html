@@ -674,6 +674,200 @@
             display: none;
         }
 
+        .auth-shell {
+            display: none;
+            min-height: 100dvh;
+            padding: max(1.25rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+            align-items: center;
+            justify-content: center;
+        }
+
+        body.auth-locked > header,
+        body.auth-locked > .apps-section,
+        body.auth-locked > #windowsContainer,
+        body.auth-locked > #homeFinanceFab {
+            display: none !important;
+        }
+
+        body.auth-locked .auth-shell {
+            display: flex;
+        }
+
+        .auth-card {
+            width: min(460px, 100%);
+            border: 1px solid rgba(125, 211, 252, 0.32);
+            border-radius: 0.9rem;
+            background: linear-gradient(160deg, rgba(8, 17, 34, 0.94), rgba(12, 35, 58, 0.92));
+            box-shadow: 0 24px 60px rgba(2, 6, 23, 0.46);
+            padding: 1.15rem;
+            color: #e2ecff;
+        }
+
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .auth-brand-icon {
+            width: 3rem;
+            height: 3rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.8rem;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.88), rgba(34, 197, 94, 0.86));
+            color: #fff;
+            font-size: 1.35rem;
+            box-shadow: 0 14px 34px rgba(14, 165, 233, 0.24);
+        }
+
+        .auth-brand h2 {
+            margin: 0;
+            font-size: 1.35rem;
+            line-height: 1.1;
+            color: #f8fafc;
+        }
+
+        .auth-brand p {
+            margin: 0.2rem 0 0;
+            color: #94a9cd;
+            font-size: 0.9rem;
+        }
+
+        .auth-tabs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.35rem;
+            padding: 0.25rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 0.65rem;
+            background: rgba(2, 6, 23, 0.34);
+            margin-bottom: 1rem;
+        }
+
+        .auth-tab {
+            border: 0;
+            border-radius: 0.5rem;
+            padding: 0.65rem 0.75rem;
+            background: transparent;
+            color: #b6c7e3;
+            cursor: pointer;
+            font-weight: 900;
+        }
+
+        .auth-tab.active {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.34), rgba(34, 197, 94, 0.25));
+            color: #ffffff;
+        }
+
+        .auth-form {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .auth-form[hidden] {
+            display: none;
+        }
+
+        .auth-field {
+            display: grid;
+            gap: 0.35rem;
+        }
+
+        .auth-field label {
+            font-weight: 800;
+            color: #cbd5e1;
+            font-size: 0.88rem;
+        }
+
+        .auth-field input {
+            width: 100%;
+            min-height: 2.75rem;
+            border-radius: 0.65rem;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            background: rgba(2, 6, 23, 0.42);
+            color: #f8fafc;
+            padding: 0.75rem 0.85rem;
+            font: inherit;
+        }
+
+        .auth-field input:focus {
+            outline: none;
+            border-color: rgba(56, 189, 248, 0.72);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+        }
+
+        .auth-submit,
+        .auth-secondary,
+        .auth-logout {
+            min-height: 2.8rem;
+            border-radius: 0.65rem;
+            border: 1px solid rgba(125, 211, 252, 0.45);
+            cursor: pointer;
+            font-weight: 900;
+        }
+
+        .auth-submit {
+            background: linear-gradient(135deg, #22c55e, #0ea5e9);
+            color: #ffffff;
+            box-shadow: 0 14px 28px rgba(14, 165, 233, 0.22);
+        }
+
+        .auth-secondary {
+            background: transparent;
+            color: #bae6fd;
+            border-color: rgba(125, 211, 252, 0.24);
+        }
+
+        .auth-logout {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            min-height: auto;
+            padding: 0.5rem 0.72rem;
+            background: rgba(15, 40, 74, 0.45);
+            color: #ddf4ff;
+            font-size: 0.95rem;
+        }
+
+        body.auth-ready .auth-logout {
+            display: inline-flex;
+        }
+
+        .auth-message {
+            min-height: 1.3rem;
+            color: #bae6fd;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .auth-message.error {
+            color: #fecaca;
+        }
+
+        [data-theme="light"] .auth-card {
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(232, 244, 255, 0.94));
+            color: #0f172a;
+        }
+
+        [data-theme="light"] .auth-brand h2,
+        [data-theme="light"] .auth-field label {
+            color: #0f172a;
+        }
+
+        [data-theme="light"] .auth-brand p,
+        [data-theme="light"] .auth-message {
+            color: #334155;
+        }
+
+        [data-theme="light"] .auth-field input {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0f172a;
+        }
+
         @media (max-width: 768px) {
             .menu-toggle {
                 display: block;
@@ -6612,6 +6806,66 @@
     </style>
 </head>
 <body class="view-apps">
+    <main id="authShell" class="auth-shell" aria-live="polite">
+        <section class="auth-card" aria-labelledby="authTitle">
+            <div class="auth-brand">
+                <div class="auth-brand-icon" aria-hidden="true"><i class="fas fa-rocket"></i></div>
+                <div>
+                    <h2 id="authTitle">SUPERAPP</h2>
+                    <p id="authSubtitle">Entre para acessar seus dados.</p>
+                </div>
+            </div>
+
+            <div id="authTabs" class="auth-tabs">
+                <button type="button" class="auth-tab active" data-auth-tab="login">Entrar</button>
+                <button type="button" class="auth-tab" data-auth-tab="signup">Cadastrar</button>
+            </div>
+
+            <form id="loginForm" class="auth-form">
+                <div class="auth-field">
+                    <label for="loginEmail">Email</label>
+                    <input id="loginEmail" name="email" type="email" autocomplete="email" required />
+                </div>
+                <div class="auth-field">
+                    <label for="loginPassword">Senha</label>
+                    <input id="loginPassword" name="password" type="password" autocomplete="current-password" required minlength="6" />
+                </div>
+                <button type="submit" class="auth-submit">Entrar</button>
+                <button type="button" id="forgotPasswordBtn" class="auth-secondary">Esqueci minha senha</button>
+            </form>
+
+            <form id="signupForm" class="auth-form" hidden>
+                <div class="auth-field">
+                    <label for="signupName">Nome</label>
+                    <input id="signupName" name="name" type="text" autocomplete="name" required maxlength="120" />
+                </div>
+                <div class="auth-field">
+                    <label for="signupEmail">Email</label>
+                    <input id="signupEmail" name="email" type="email" autocomplete="email" required />
+                </div>
+                <div class="auth-field">
+                    <label for="signupPassword">Senha</label>
+                    <input id="signupPassword" name="password" type="password" autocomplete="new-password" required minlength="6" />
+                </div>
+                <button type="submit" class="auth-submit">Criar cadastro</button>
+            </form>
+
+            <form id="resetPasswordForm" class="auth-form" hidden>
+                <div class="auth-field">
+                    <label for="newPassword">Nova senha</label>
+                    <input id="newPassword" name="password" type="password" autocomplete="new-password" required minlength="6" />
+                </div>
+                <div class="auth-field">
+                    <label for="confirmPassword">Confirmar nova senha</label>
+                    <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required minlength="6" />
+                </div>
+                <button type="submit" class="auth-submit">Atualizar senha</button>
+            </form>
+
+            <p id="authMessage" class="auth-message"></p>
+        </section>
+    </main>
+
     <!-- HEADER -->
     <header>
         <div class="container">
@@ -6637,6 +6891,10 @@
                     </button>
                     <button class="header-btn" id="darkModeToggle" title="Modo escuro (alternar)" aria-label="Alternar modo escuro">
                         <i class="fas fa-moon" id="darkModeIcon"></i>
+                    </button>
+                    <button class="auth-logout" id="authLogoutBtn" title="Sair" aria-label="Sair">
+                        <i class="fas fa-right-from-bracket"></i>
+                        <span class="header-btn-label">Sair</span>
                     </button>
                     <button class="header-btn" id="notificationsBtn" title="Notificações" style="position: relative;">
                         <i class="fas fa-bell"></i>
@@ -6699,6 +6957,222 @@
             return div.innerHTML;
         }
 
+        const SuperAppAuth = {
+            client: null,
+            session: null,
+            initialized: false,
+            recoveryMode: false,
+            originalFetch: window.fetch.bind(window),
+
+            async loadSupabaseSdk() {
+                if (window.supabase?.createClient) return true;
+                await new Promise((resolve, reject) => {
+                    const existing = document.querySelector('script[data-auth-sdk="supabase"]');
+                    if (existing) {
+                        existing.addEventListener('load', resolve, { once: true });
+                        existing.addEventListener('error', reject, { once: true });
+                        return;
+                    }
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js';
+                    script.async = true;
+                    script.dataset.authSdk = 'supabase';
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('Falha ao carregar Supabase Auth'));
+                    document.head.appendChild(script);
+                });
+                return Boolean(window.supabase?.createClient);
+            },
+
+            async configureClient() {
+                if (this.client) return this.client;
+                const response = await this.originalFetch('/api/auth-config', { cache: 'no-store' });
+                if (!response.ok) throw new Error('Supabase Auth nao esta configurado na Vercel');
+                const config = await response.json();
+                await this.loadSupabaseSdk();
+                this.client = window.supabase.createClient(config.url, config.anonKey, {
+                    auth: {
+                        persistSession: true,
+                        autoRefreshToken: true,
+                        detectSessionInUrl: true,
+                    },
+                });
+                return this.client;
+            },
+
+            setMessage(message, type = 'info') {
+                const el = document.getElementById('authMessage');
+                if (!el) return;
+                el.textContent = message || '';
+                el.classList.toggle('error', type === 'error');
+            },
+
+            setMode(mode) {
+                const isReset = mode === 'reset';
+                document.getElementById('loginForm').hidden = mode !== 'login';
+                document.getElementById('signupForm').hidden = mode !== 'signup';
+                document.getElementById('resetPasswordForm').hidden = !isReset;
+                document.getElementById('authTabs').hidden = isReset;
+                document.getElementById('authSubtitle').textContent = isReset
+                    ? 'Defina uma nova senha para continuar.'
+                    : 'Entre para acessar seus dados.';
+                document.querySelectorAll('[data-auth-tab]').forEach((btn) => {
+                    btn.classList.toggle('active', btn.dataset.authTab === mode);
+                });
+                this.setMessage('');
+            },
+
+            showGate(mode = 'login', message = '') {
+                document.body.classList.add('auth-locked');
+                document.body.classList.remove('auth-ready');
+                this.setMode(mode);
+                this.setMessage(message);
+            },
+
+            showApp() {
+                document.body.classList.remove('auth-locked');
+                document.body.classList.add('auth-ready');
+            },
+
+            async init() {
+                try {
+                    await this.configureClient();
+                    await this.consumeRecoveryUrl();
+                    this.bindEvents();
+                    this.installFetchAuth();
+                    const { data } = await this.client.auth.getSession();
+                    this.session = data?.session || null;
+
+                    if (this.recoveryMode) {
+                        this.showGate('reset');
+                        return false;
+                    }
+
+                    if (!this.session) {
+                        this.showGate('login');
+                        return false;
+                    }
+
+                    this.showApp();
+                    return true;
+                } catch (error) {
+                    this.showGate('login', error?.message || 'Nao foi possivel iniciar o login.');
+                    return false;
+                }
+            },
+
+            async consumeRecoveryUrl() {
+                const url = new URL(window.location.href);
+                const params = url.searchParams;
+                const hashParams = new URLSearchParams((url.hash || '').replace(/^#/, ''));
+                const error = params.get('error_description') || hashParams.get('error_description');
+                if (error) {
+                    this.recoveryMode = false;
+                    this.showGate('login', error.replace(/\+/g, ' '));
+                    return;
+                }
+
+                if (params.get('code')) {
+                    await this.client.auth.exchangeCodeForSession(params.get('code'));
+                    this.recoveryMode = params.get('type') === 'recovery' || params.get('auth') === 'recovery';
+                    history.replaceState({}, document.title, window.location.pathname + '?auth=recovery');
+                    return;
+                }
+
+                this.recoveryMode = params.get('auth') === 'recovery' || hashParams.get('type') === 'recovery';
+            },
+
+            bindEvents() {
+                if (this.initialized) return;
+                this.initialized = true;
+
+                document.querySelectorAll('[data-auth-tab]').forEach((btn) => {
+                    btn.addEventListener('click', () => this.setMode(btn.dataset.authTab));
+                });
+
+                document.getElementById('loginForm')?.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    const form = new FormData(event.currentTarget);
+                    this.setMessage('Entrando...');
+                    const { error } = await this.client.auth.signInWithPassword({
+                        email: String(form.get('email') || '').trim(),
+                        password: String(form.get('password') || ''),
+                    });
+                    if (error) return this.setMessage(error.message, 'error');
+                    window.location.replace(window.location.pathname);
+                });
+
+                document.getElementById('signupForm')?.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    const form = new FormData(event.currentTarget);
+                    const name = String(form.get('name') || '').trim();
+                    const email = String(form.get('email') || '').trim();
+                    const password = String(form.get('password') || '');
+                    if (!name) return this.setMessage('Informe seu nome.', 'error');
+                    this.setMessage('Criando cadastro...');
+                    const { data, error } = await this.client.auth.signUp({
+                        email,
+                        password,
+                        options: {
+                            data: { name, nome: name },
+                            emailRedirectTo: window.location.origin + window.location.pathname,
+                        },
+                    });
+                    if (error) return this.setMessage(error.message, 'error');
+                    if (data?.session) window.location.replace(window.location.pathname);
+                    else this.setMessage('Cadastro criado. Confira seu email para confirmar o acesso.');
+                });
+
+                document.getElementById('forgotPasswordBtn')?.addEventListener('click', async () => {
+                    const email = String(document.getElementById('loginEmail')?.value || '').trim();
+                    if (!email) return this.setMessage('Digite seu email para receber o link.', 'error');
+                    this.setMessage('Enviando link de recuperacao...');
+                    const { error } = await this.client.auth.resetPasswordForEmail(email, {
+                        redirectTo: window.location.origin + window.location.pathname + '?auth=recovery',
+                    });
+                    if (error) return this.setMessage(error.message, 'error');
+                    this.setMessage('Link enviado. Confira seu email para trocar a senha.');
+                });
+
+                document.getElementById('resetPasswordForm')?.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    const form = new FormData(event.currentTarget);
+                    const password = String(form.get('password') || '');
+                    const confirmPassword = String(form.get('confirmPassword') || '');
+                    if (password.length < 6) return this.setMessage('A senha precisa ter pelo menos 6 caracteres.', 'error');
+                    if (password !== confirmPassword) return this.setMessage('As senhas nao conferem.', 'error');
+                    this.setMessage('Atualizando senha...');
+                    const { error } = await this.client.auth.updateUser({ password });
+                    if (error) return this.setMessage(error.message, 'error');
+                    this.setMessage('Senha atualizada. Entrando...');
+                    window.location.replace(window.location.pathname);
+                });
+
+                document.getElementById('authLogoutBtn')?.addEventListener('click', async () => {
+                    await this.client.auth.signOut();
+                    window.location.replace(window.location.pathname);
+                });
+            },
+
+            installFetchAuth() {
+                if (window.__superappAuthFetchInstalled) return;
+                window.__superappAuthFetchInstalled = true;
+                window.fetch = async (input, init = {}) => {
+                    const requestUrl = typeof input === 'string' ? input : input?.url;
+                    const isApi = typeof requestUrl === 'string' && (requestUrl.startsWith('/api/') || requestUrl.startsWith(window.location.origin + '/api/'));
+                    if (!isApi || requestUrl.includes('/api/auth-config')) {
+                        return this.originalFetch(input, init);
+                    }
+                    const { data } = await this.client.auth.getSession();
+                    const token = data?.session?.access_token;
+                    if (!token) return this.originalFetch(input, init);
+                    const headers = new Headers(init.headers || (typeof input !== 'string' ? input.headers : undefined) || {});
+                    headers.set('Authorization', `Bearer ${token}`);
+                    return this.originalFetch(input, { ...init, headers });
+                };
+            },
+        };
+
         class SuperApp {
             constructor() {
                 this.apps = [];
@@ -6724,6 +7198,8 @@
                 if ('scrollRestoration' in history) {
                     history.scrollRestoration = 'manual';
                 }
+                const canOpenApp = await SuperAppAuth.init();
+                if (!canOpenApp) return;
                 this.setupEventListeners();
                 await this.ensureVisualizationLibraries();
                 this.loadData();

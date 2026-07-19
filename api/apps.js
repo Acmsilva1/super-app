@@ -1,3 +1,5 @@
+import { requireUser } from '../lib/auth.js';
+
 /**
  * Lista de aplicacoes do Super App (usada pelo index.html no Vercel).
  * Cada app costuma ter uma API, exceto fluxograma (so front + localStorage).
@@ -51,5 +53,10 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET');
     return json(res, 405, { error: 'Method Not Allowed' });
   }
-  return json(res, 200, APPS);
+
+  const auth = await requireUser(req);
+  if (!auth.ok) return json(res, auth.status, auth.data);
+
+  if (auth.isAdmin) return json(res, 200, APPS);
+  return json(res, 200, APPS.filter((app) => app.id === 'financeiro'));
 }

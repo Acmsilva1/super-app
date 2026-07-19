@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase.js';
+import { requireUser } from '../lib/auth.js';
 
 const TABLE_MISSOES = 'tb_missoes_treino';
 const TABLE_ITENS = 'tb_missoes_treino_itens';
@@ -802,10 +803,14 @@ async function completePenalty(missedDate) {
 
 export default async function handler(req, res) {
   try {
+    if (req.method === 'GET' && req.query?.health === '1') {
+      return json(res, 200, { ok: true, service: 'missoes_treino' });
+    }
+
+    const auth = await requireUser(req, { appId: 'missoes_treino', adminOnly: true });
+    if (!auth.ok) return json(res, auth.status, auth.data);
+
     if (req.method === 'GET') {
-      if (req.query?.health === '1') {
-        return json(res, 200, { ok: true, service: 'missoes_treino' });
-      }
       const queryDate = req.query?.date;
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
       await seedNextWeekOnSunday(dateRef);

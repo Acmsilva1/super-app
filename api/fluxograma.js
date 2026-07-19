@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase.js';
+import { requireUser } from '../lib/auth.js';
 
 const TABLE = 'tb_fluxograma_projetos';
 
@@ -14,10 +15,14 @@ function normalizeDados(raw) {
 }
 
 export default async function handler(req, res) {
+  if (req.method === 'GET' && req.query?.health === '1') {
+    return json(res, 200, { ok: true, service: 'fluxograma' });
+  }
+
+  const auth = await requireUser(req, { appId: 'fluxograma', adminOnly: true });
+  if (!auth.ok) return json(res, auth.status, auth.data);
+
   if (req.method === 'GET') {
-    if (req.query?.health === '1') {
-      return json(res, 200, { ok: true, service: 'fluxograma' });
-    }
     const id = req.query?.id;
     if (id) {
       const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).maybeSingle();

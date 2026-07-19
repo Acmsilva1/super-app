@@ -60,6 +60,24 @@ function tableForTipoRegistro(tipoRegistro) {
   return TABLE_FINANCAS;
 }
 
+function getContextUserId(context = {}) {
+  return context?.userId ? String(context.userId) : '';
+}
+
+function scopeQueryByUser(query, context = {}) {
+  const userId = getContextUserId(context);
+  return userId ? query.eq('user_id', userId) : query;
+}
+
+function withContextUser(payload, context = {}) {
+  const userId = getContextUserId(context);
+  return userId ? { ...payload, user_id: userId } : payload;
+}
+
+function withContextUserRows(rows, context = {}) {
+  return (rows || []).map((row) => withContextUser(row, context));
+}
+
 function normalizeDate(dateLike) {
   const s = String(dateLike || '').slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
@@ -137,15 +155,15 @@ function buildFutureParcelaSlotsFromRow(row) {
   }).filter((slot) => Number(slot.parcela_atual) > atual);
 }
 
-async function findFutureParcelaIds(row) {
+async function findFutureParcelaIds(row, context = {}) {
   if (!isParcelaRow(row)) return [];
   const futureSlots = buildFutureParcelaSlotsFromRow(row);
   if (!futureSlots.length) return [];
 
-  const { data, error } = await supabase
+  const { data, error } = await scopeQueryByUser(supabase
     .from(TABLE_DESPESAS_FIXAS)
     .select('id, descricao, parcela_atual, parcela_total, created_at')
-    .eq('parcela_total', row.parcela_total);
+    .eq('parcela_total', row.parcela_total), context);
 
   if (error) throw error;
 
@@ -160,24 +178,24 @@ async function findFutureParcelaIds(row) {
     .filter(Boolean);
 }
 
-async function cleanupFutureParcelas(row) {
-  const ids = await findFutureParcelaIds(row);
+async function cleanupFutureParcelas(row, context = {}) {
+  const ids = await findFutureParcelaIds(row, context);
   if (!ids.length) return;
-  const { error } = await supabase.from(TABLE_DESPESAS_FIXAS).delete().in('id', ids);
+  const { error } = await scopeQueryByUser(supabase.from(TABLE_DESPESAS_FIXAS).delete().in('id', ids), context);
   if (error) throw error;
 }
 
-export async function materializeDespesasFixasMes(mesAno) {
+export async function materializeDespesasFixasMes(mesAno, context = {}) {
   if (!mesAno || !/^\d{4}-\d{2}$/.test(mesAno)) return;
   const { ano, mes } = parseMesAno(mesAno);
   const yearStart = new Date(ano, 0, 1).toISOString();
   const yearEnd = new Date(ano, 11, 31, 23, 59, 59, 999).toISOString();
 
-  const { data: yearRows, error: yearErr } = await supabase
+  const { data: yearRows, error: yearErr } = await scopeQueryByUser(supabase
     .from(TABLE_DESPESAS_FIXAS)
     .select('*')
     .gte('created_at', yearStart)
-    .lte('created_at', yearEnd);
+    .lte('created_at', yearEnd), context);
 
   if (yearErr || !yearRows?.length) return;
 
@@ -185,11 +203,11 @@ export async function materializeDespesasFixasMes(mesAno) {
   if (!series.length) return;
 
   const { start, end } = rangeMes(ano, mes);
-  const { data: monthRows, error: monthErr } = await supabase
+  const { data: monthRows, error: monthErr } = await scopeQueryByUser(supabase
     .from(TABLE_DESPESAS_FIXAS)
     .select('*')
     .gte('created_at', start)
-    .lte('created_at', end);
+    .lte('created_at', end), context);
 
   if (monthErr) return;
   const existing = monthRows || [];
@@ -205,58 +223,58 @@ export async function materializeDespesasFixasMes(mesAno) {
   }
 
   if (!toInsert.length) return;
-  await supabase.from(TABLE_DESPESAS_FIXAS).insert(toInsert);
+  await supabase.from(TABLE_DESPESAS_FIXAS).insert(withContextUserRows(toInsert, context));
 }
 
-export async function garantirDespesasFixasMes(mesAno) {
-  await materializeDespesasFixasMes(mesAno);
+export async function garantirDespesasFixasMes(mesAno, context = {}) {
+  await materializeDespesasFixasMes(mesAno, context);
 }
 
-async function garantirDespesasFixasAno(ano) {
+async function garantirDespesasFixasAno(ano, context = {}) {
   const year = Number(ano);
   if (!Number.isInteger(year) || year < 1900) return;
   await Promise.all(Array.from({ length: 12 }, (_, idx) => {
     const month = idx + 1;
-    return materializeDespesasFixasMes(`${year}-${String(month).padStart(2, '0')}`);
+    return materializeDespesasFixasMes(`${year}-${String(month).padStart(2, '0')}`, context);
   }));
 }
 
-export async function obterFinanceiroMes(query = {}) {
+export async function obterFinanceiroMes(query = {}, context = {}) {
   const { ano, mes } = parseMesAno(query.mes_ano);
   const { start, end, mes_ano } = rangeMes(ano, mes);
 
-  await garantirDespesasFixasAno(ano);
+  await garantirDespesasFixasAno(ano, context);
 
-  const { data: allFinancasRows, error: errFin } = await supabase
+  const { data: allFinancasRows, error: errFin } = await scopeQueryByUser(supabase
     .from(TABLE_FINANCAS)
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }), context);
   if (errFin) return { error: errFin.message, status: 500 };
 
-  const { data: despesasFixasRowsRaw, error: errFixas } = await supabase
+  const { data: despesasFixasRowsRaw, error: errFixas } = await scopeQueryByUser(supabase
     .from(TABLE_DESPESAS_FIXAS)
     .select('*')
     .gte('created_at', start)
     .lte('created_at', end)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }), context);
   if (errFixas) return { error: errFixas.message, status: 500 };
 
   const yearStart = new Date(ano, 0, 1, 0, 0, 0, 0).toISOString();
   const yearEnd = new Date(ano, 11, 31, 23, 59, 59, 999).toISOString();
-  const { data: despesasFixasAnoRowsRaw, error: errFixasAno } = await supabase
+  const { data: despesasFixasAnoRowsRaw, error: errFixasAno } = await scopeQueryByUser(supabase
     .from(TABLE_DESPESAS_FIXAS)
     .select('*')
     .gte('created_at', yearStart)
     .lte('created_at', yearEnd)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }), context);
   if (errFixasAno) return { error: errFixasAno.message, status: 500 };
 
   let poupancaRowsRaw = [];
   let poupancaConfigured = true;
-  const { data: poupaData, error: errPoupa } = await supabase
+  const { data: poupaData, error: errPoupa } = await scopeQueryByUser(supabase
     .from(TABLE_POUPANCA)
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }), context);
   if (errPoupa) {
     if (isMissingTableError(errPoupa)) {
       poupancaConfigured = false;
@@ -270,12 +288,12 @@ export async function obterFinanceiroMes(query = {}) {
 
   let poupancaMetaAtiva = null;
   let poupancaMetaConfigured = true;
-  const { data: metaRows, error: errMeta } = await supabase
+  const { data: metaRows, error: errMeta } = await scopeQueryByUser(supabase
     .from(TABLE_POUPANCA_METAS)
     .select('*')
     .eq('ativa', true)
     .order('created_at', { ascending: false })
-    .limit(1);
+    .limit(1), context);
   if (errMeta) {
     if (isMissingTableError(errMeta)) {
       poupancaMetaConfigured = false;
@@ -288,10 +306,10 @@ export async function obterFinanceiroMes(query = {}) {
 
   let comprasRowsRaw = [];
   let comprasConfigured = true;
-  const { data: comprasData, error: errCompras } = await supabase
+  const { data: comprasData, error: errCompras } = await scopeQueryByUser(supabase
     .from(TABLE_COMPRAS)
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }), context);
   if (errCompras) {
     if (isMissingTableError(errCompras)) {
       comprasConfigured = false;
@@ -380,16 +398,16 @@ export async function obterFinanceiroMes(query = {}) {
   };
 }
 
-export async function criarRegistroFinanceiro(req) {
+export async function criarRegistroFinanceiro(req, context = {}) {
   const body = getBody(req);
   const parsed = payloadInsertFinanceiro(body);
   if (parsed.error) return { status: 400, data: { error: parsed.error } };
   const table = tableForTipoRegistro(parsed.tipo_registro);
-  const payload = { ...parsed.payload };
+  const payload = withContextUser(parsed.payload, context);
 
   if (parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA && body.mes_ano && /^\d{4}-\d{2}$/.test(String(body.mes_ano))) {
     const mesAno = String(body.mes_ano);
-    const insertPayloads = buildDespesaFixaInsertPayloads(payload, mesAno);
+    const insertPayloads = withContextUserRows(buildDespesaFixaInsertPayloads(payload, mesAno), context);
     const { data, error } = await supabase
       .from(table)
       .insert(insertPayloads)
@@ -401,10 +419,11 @@ export async function criarRegistroFinanceiro(req) {
   }
 
   if (parsed.tipo_registro === TIPO_REGISTRO_META_POUPANCA) {
-    const { error: deactivateErr } = await supabase
+    const metaDeactivateQuery = supabase
       .from(TABLE_POUPANCA_METAS)
       .update({ ativa: false })
       .eq('ativa', true);
+    const { error: deactivateErr } = await scopeQueryByUser(metaDeactivateQuery, context);
     if (deactivateErr && !isMissingTableError(deactivateErr)) {
       return { status: 500, data: { error: deactivateErr.message } };
     }
@@ -416,7 +435,7 @@ export async function criarRegistroFinanceiro(req) {
   return { status: 201, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
 }
 
-export async function atualizarRegistroFinanceiro(req) {
+export async function atualizarRegistroFinanceiro(req, context = {}) {
   const body = getBody(req);
   const parsed = payloadUpdateFinanceiro(body);
   if (parsed.error) return { status: 400, data: { error: parsed.error } };
@@ -434,7 +453,7 @@ export async function atualizarRegistroFinanceiro(req) {
     let insertedRow = null;
     if (insertParsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA && body.mes_ano && /^\d{4}-\d{2}$/.test(String(body.mes_ano))) {
       const mesAno = String(body.mes_ano);
-      const insertPayloads = buildDespesaFixaInsertPayloads({ ...insertParsed.payload }, mesAno);
+      const insertPayloads = withContextUserRows(buildDespesaFixaInsertPayloads({ ...insertParsed.payload }, mesAno), context);
       const { data: insertedRows, error: insertErr } = await supabase
         .from(table)
         .insert(insertPayloads)
@@ -443,12 +462,12 @@ export async function atualizarRegistroFinanceiro(req) {
       const rows = Array.isArray(insertedRows) ? insertedRows : (insertedRows ? [insertedRows] : []);
       insertedRow = rows.find((item) => String(item?.created_at || '').slice(0, 7) === mesAno) || rows[0] || null;
     } else {
-      const { data: inserted, error: insertErr } = await supabase.from(table).insert(insertParsed.payload).select().single();
+      const { data: inserted, error: insertErr } = await supabase.from(table).insert(withContextUser(insertParsed.payload, context)).select().single();
       if (insertErr) return { status: 500, data: { error: insertErr.message } };
       insertedRow = rowOrFirst(inserted);
     }
 
-    const { error: deleteErr } = await supabase.from(originalTable).delete().eq('id', parsed.id);
+    const { error: deleteErr } = await scopeQueryByUser(supabase.from(originalTable).delete().eq('id', parsed.id), context);
     if (deleteErr) return { status: 500, data: { error: deleteErr.message } };
 
     return { status: 200, data: { ...(insertedRow || {}), tipo_registro: parsed.tipo_registro, realocado: true } };
@@ -456,12 +475,12 @@ export async function atualizarRegistroFinanceiro(req) {
 
   let existingRow = null;
   if (parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA) {
-    const { data: currentRow, error: currentErr } = await supabase.from(table).select('*').eq('id', parsed.id).single();
+    const { data: currentRow, error: currentErr } = await scopeQueryByUser(supabase.from(table).select('*').eq('id', parsed.id), context).single();
     if (currentErr) return { status: 500, data: { error: currentErr.message } };
     existingRow = rowOrFirst(currentRow);
   }
 
-  const { data, error } = await supabase.from(table).update(parsed.payload).eq('id', parsed.id).select().single();
+  const { data, error } = await scopeQueryByUser(supabase.from(table).update(parsed.payload).eq('id', parsed.id), context).select().single();
   if (error) return { status: 500, data: { error: error.message } };
 
   const turningParcelasOff = parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA
@@ -470,7 +489,7 @@ export async function atualizarRegistroFinanceiro(req) {
 
   if (turningParcelasOff && existingRow && isParcelaRow(existingRow)) {
     try {
-      await cleanupFutureParcelas(existingRow);
+      await cleanupFutureParcelas(existingRow, context);
     } catch (cleanupErr) {
       return { status: 500, data: { error: cleanupErr.message } };
     }
@@ -480,7 +499,7 @@ export async function atualizarRegistroFinanceiro(req) {
   return { status: 200, data: { ...(row || {}), tipo_registro: parsed.tipo_registro } };
 }
 
-export async function removerRegistroFinanceiro(req) {
+export async function removerRegistroFinanceiro(req, context = {}) {
   const body = getBody(req);
   let tipoRegistro = String(body.tipo_registro || req.query?.tipo_registro || '').trim();
   if (!tipoRegistro) tipoRegistro = inferTipoRegistro({ ...req.query, ...body });
@@ -488,7 +507,7 @@ export async function removerRegistroFinanceiro(req) {
   if (!id) return { status: 400, data: { error: 'id obrigatorio' } };
 
   if (!tipoRegistro) {
-    const { data: inFin, error: errFin } = await supabase.from(TABLE_FINANCAS).select('id, tipo_gasto, tipo').eq('id', id).limit(1);
+    const { data: inFin, error: errFin } = await scopeQueryByUser(supabase.from(TABLE_FINANCAS).select('id, tipo_gasto, tipo').eq('id', id), context).limit(1);
     if (errFin) return { status: 500, data: { error: errFin.message } };
     if (Array.isArray(inFin) && inFin.length > 0) {
       const row = inFin[0];
@@ -499,22 +518,22 @@ export async function removerRegistroFinanceiro(req) {
       }
     }
     if (!tipoRegistro) {
-      const { data: inFix, error: errFix } = await supabase.from(TABLE_DESPESAS_FIXAS).select('id').eq('id', id).limit(1);
+      const { data: inFix, error: errFix } = await scopeQueryByUser(supabase.from(TABLE_DESPESAS_FIXAS).select('id').eq('id', id), context).limit(1);
       if (errFix) return { status: 500, data: { error: errFix.message } };
       if (Array.isArray(inFix) && inFix.length > 0) tipoRegistro = TIPO_REGISTRO_DESPESA_FIXA;
     }
     if (!tipoRegistro) {
-      const { data: inPoupa, error: errPoupa } = await supabase.from(TABLE_POUPANCA).select('id').eq('id', id).limit(1);
+      const { data: inPoupa, error: errPoupa } = await scopeQueryByUser(supabase.from(TABLE_POUPANCA).select('id').eq('id', id), context).limit(1);
       if (errPoupa && !isMissingTableError(errPoupa)) return { status: 500, data: { error: errPoupa.message } };
       if (Array.isArray(inPoupa) && inPoupa.length > 0) tipoRegistro = TIPO_REGISTRO_POUPANCA;
     }
     if (!tipoRegistro) {
-      const { data: inMeta, error: errMeta } = await supabase.from(TABLE_POUPANCA_METAS).select('id').eq('id', id).limit(1);
+      const { data: inMeta, error: errMeta } = await scopeQueryByUser(supabase.from(TABLE_POUPANCA_METAS).select('id').eq('id', id), context).limit(1);
       if (errMeta && !isMissingTableError(errMeta)) return { status: 500, data: { error: errMeta.message } };
       if (Array.isArray(inMeta) && inMeta.length > 0) tipoRegistro = TIPO_REGISTRO_META_POUPANCA;
     }
     if (!tipoRegistro) {
-      const { data: inCompra, error: errCompra } = await supabase.from(TABLE_COMPRAS).select('id').eq('id', id).limit(1);
+      const { data: inCompra, error: errCompra } = await scopeQueryByUser(supabase.from(TABLE_COMPRAS).select('id').eq('id', id), context).limit(1);
       if (errCompra && !isMissingTableError(errCompra)) return { status: 500, data: { error: errCompra.message } };
       if (Array.isArray(inCompra) && inCompra.length > 0) tipoRegistro = TIPO_REGISTRO_COMPRA;
     }
@@ -536,17 +555,17 @@ export async function removerRegistroFinanceiro(req) {
 
   let currentDespesaFixa = null;
   if (tipoRegistro === TIPO_REGISTRO_DESPESA_FIXA) {
-    const { data: currentRow, error: currentErr } = await supabase.from(table).select('*').eq('id', id).single();
+    const { data: currentRow, error: currentErr } = await scopeQueryByUser(supabase.from(table).select('*').eq('id', id), context).single();
     if (currentErr) return { status: 500, data: { error: currentErr.message } };
     currentDespesaFixa = rowOrFirst(currentRow);
   }
 
-  const { error } = await supabase.from(table).delete().eq('id', id);
+  const { error } = await scopeQueryByUser(supabase.from(table).delete().eq('id', id), context);
   if (error) return { status: 500, data: { error: error.message } };
 
   if (currentDespesaFixa && isParcelaRow(currentDespesaFixa)) {
     try {
-      await cleanupFutureParcelas(currentDespesaFixa);
+      await cleanupFutureParcelas(currentDespesaFixa, context);
     } catch (cleanupErr) {
       return { status: 500, data: { error: cleanupErr.message } };
     }
