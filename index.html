@@ -722,6 +722,31 @@
             font-size: 1.35rem;
             box-shadow: 0 14px 34px rgba(14, 165, 233, 0.24);
         }
+        .auth-sparkles {
+            display: inline-flex;
+            gap: 0.35rem;
+            margin-left: 0.35rem;
+            vertical-align: middle;
+        }
+
+        .auth-sparkles span {
+            display: inline-block;
+            font-size: 1rem;
+            animation: authFloat 2.8s ease-in-out infinite;
+        }
+
+        .auth-sparkles span:nth-child(2) {
+            animation-delay: 0.45s;
+        }
+
+        .auth-sparkles span:nth-child(3) {
+            animation-delay: 0.9s;
+        }
+
+        @keyframes authFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.76; }
+            45% { transform: translateY(-5px) rotate(5deg); opacity: 1; }
+        }
 
         .auth-brand h2 {
             margin: 0;
@@ -6981,14 +7006,14 @@
             <div class="auth-brand">
                 <div class="auth-brand-icon" aria-hidden="true"><i class="fas fa-rocket"></i></div>
                 <div>
-                    <h2 id="authTitle">SUPERAPP</h2>
+                    <h2 id="authTitle">SUPERAPP <span class="auth-sparkles" aria-hidden="true"><span>✨</span><span>🔐</span><span>📱</span></span></h2>
                     <p id="authSubtitle">Entre para acessar seus dados.</p>
                 </div>
             </div>
 
             <div id="authTabs" class="auth-tabs">
-                <button type="button" class="auth-tab active" data-auth-tab="login">Entrar</button>
-                <button type="button" class="auth-tab" data-auth-tab="signup">Cadastrar</button>
+                <button type="button" class="auth-tab active" data-auth-tab="login">🔑 Entrar</button>
+                <button type="button" class="auth-tab" data-auth-tab="signup">✨ Cadastrar</button>
             </div>
 
             <form id="loginForm" class="auth-form">
@@ -7000,7 +7025,7 @@
                     <label for="loginPassword">Senha</label>
                     <input id="loginPassword" name="password" type="password" autocomplete="current-password" required minlength="6" />
                 </div>
-                <button type="submit" class="auth-submit">Entrar</button>
+                <button type="submit" class="auth-submit">🚀 Entrar</button>
                 <button type="button" id="forgotPasswordBtn" class="auth-secondary">Esqueci minha senha</button>
             </form>
 
@@ -7017,11 +7042,15 @@
                     <label for="signupPassword">Senha</label>
                     <input id="signupPassword" name="password" type="password" autocomplete="new-password" required minlength="6" />
                 </div>
+                <div class="auth-privacy-note">
+                    Você está entrando em um teste privado. Seus dados ficam separados dos outros usuários e são usados para o app funcionar.
+                    <button type="button" class="auth-link" data-auth-legal-open>Ver resumo</button>
+                </div>
                 <label class="auth-consent">
                     <input id="signupConsent" name="consent" type="checkbox" required />
                     <span>Li e aceito o <button type="button" class="auth-link" data-auth-legal-open>resumo de privacidade</button>.</span>
                 </label>
-                <button type="submit" class="auth-submit">Criar cadastro</button>
+                <button type="submit" class="auth-submit">🌱 Criar cadastro</button>
             </form>
 
             <form id="resetPasswordForm" class="auth-form" hidden>
@@ -7033,13 +7062,9 @@
                     <label for="confirmPassword">Confirmar nova senha</label>
                     <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required minlength="6" />
                 </div>
-                <button type="submit" class="auth-submit">Atualizar senha</button>
+                <button type="submit" class="auth-submit">🔐 Atualizar senha</button>
             </form>
 
-            <div class="auth-privacy-note">
-                Ao entrar ou criar cadastro, você participa de um teste privado. Suas informações ficam separadas das outras contas e são usadas para manter o app funcionando.
-                <button type="button" class="auth-link" data-auth-legal-open>Ver resumo</button>
-            </div>
 
             <p id="authMessage" class="auth-message"></p>
         </section>
