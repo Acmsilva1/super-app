@@ -21,6 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <!-- Motion (animacoes modernas) -->
     <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.min.js"></script>
+    <script type="module" src="./lib/financeiroAnualCache.js"></script>
     <style>
         * {
             margin: 0;
@@ -7446,6 +7447,10 @@
                 });
 
                 document.getElementById('authLogoutBtn')?.addEventListener('click', async () => {
+                    const userId = this.session?.user?.id || '';
+                    try {
+                        window.FinanceiroAnualCache?.clearFinanceiroAnualCache?.(userId);
+                    } catch (_) {}
                     await this.client.auth.signOut();
                     window.location.replace(window.location.pathname);
                 });
@@ -8308,7 +8313,16 @@
                 }
                 try {
                     let url = '/api/' + path;
-                    if (appId === 'financeiro') url = '/api/financeiro?bi=1&mes_ano=' + encodeURIComponent(mesAno || this.getMesAnoAtual());
+                    if (appId === 'financeiro') {
+                        const resolvedMesAno = mesAno || this.getMesAnoAtual();
+                        const ano = String(resolvedMesAno).slice(0, 4);
+                        const userId = this.getFinanceiroAuthUserId();
+                        const cachedAnual = window.FinanceiroAnualCache?.getFinanceiroAnualCache?.(userId, ano) || null;
+                        const useBi = !cachedAnual;
+                        url = '/api/financeiro?mes_ano=' + encodeURIComponent(resolvedMesAno) + (useBi ? '&bi=1' : '');
+                        contentEl._financeiroAnualCacheHit = cachedAnual;
+                        contentEl._financeiroAnualFetchWithBi = useBi;
+                    }
                     const res = await fetch(url, appId === 'financeiro' ? { cache: 'no-store' } : undefined);
                     const data = await this.readApiJsonOrThrow(res, 'Falha ao carregar');
                     if (appId === 'financeiro') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinanceiroContent(contentEl, data); }
@@ -8343,6 +8357,21 @@
                 }
             }
 
+            getFinanceiroAuthUserId() {
+                return SuperAppAuth?.session?.user?.id || '';
+            }
+
+            clearFinanceiroAnualCacheForUser() {
+                try {
+                    window.FinanceiroAnualCache?.clearFinanceiroAnualCache?.(this.getFinanceiroAuthUserId());
+                } catch (_) {}
+            }
+
+            async refreshFinanceiroAfterMutation() {
+                this.clearFinanceiroAnualCacheForUser();
+                await this.refreshAppContent('financeiro');
+            }
+
             renderFinanceiroContent(el, data) {
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
                 if (el._financeiroChartCategoria) { try { el._financeiroChartCategoria.dispose(); } catch (_) {} el._financeiroChartCategoria = null; }
@@ -8373,9 +8402,23 @@
                 const comprasConfigurada = data.compras ? data.compras.configurada !== false : true;
                 const pagosPendentes = graficos.pagos_pendentes || {};
                 const categoriasGastos = graficos.categorias_gastos || [];
-                const graficosAnuais = Array.isArray(data.graficos_anuais) ? data.graficos_anuais : [];
+                const mesAnoEarly = data.mes_ano || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
+                const anoEarly = String(mesAnoEarly).slice(0, 4);
+                const userIdEarly = this.getFinanceiroAuthUserId();
+                const cachedAnual = el._financeiroAnualCacheHit
+                    || window.FinanceiroAnualCache?.getFinanceiroAnualCache?.(userIdEarly, anoEarly)
+                    || null;
+                let graficosAnuais = Array.isArray(data.graficos_anuais) ? data.graficos_anuais : [];
+                const hasServerAnual = graficosAnuais.length === 12 && el._financeiroAnualFetchWithBi;
+                if (hasServerAnual) {
+                    window.FinanceiroAnualCache?.setFinanceiroAnualCache?.(userIdEarly, anoEarly, graficosAnuais);
+                } else if (cachedAnual?.graficos_anuais?.length === 12) {
+                    graficosAnuais = cachedAnual.graficos_anuais;
+                }
+                el._financeiroAnualCacheHit = null;
+                el._financeiroAnualFetchWithBi = false;
 
-                const mesAno = data.mes_ano || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
+                const mesAno = mesAnoEarly;
                 const [ano, mes] = mesAno.split('-').map(Number);
                 const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
                 const currentYear = new Date().getFullYear();
@@ -8931,7 +8974,7 @@ ${financeRowActions(r.id, 'compra')}
                     if (data?.skipped) {
                         throw new Error(`Rebuild ignorado: ${data.reason || 'motivo nao informado'}`);
                     }
-                    await this.refreshAppContent('financeiro');
+                    await this.refreshFinanceiroAfterMutation();
                     return data;
                 };
                 const renderFinanceiroAnalista = (payload) => {
@@ -9845,7 +9888,7 @@ ${financeRowActions(r.id, 'compra')}
                         }),
                     });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao salvar meta'));
-                    await this.refreshAppContent('financeiro');
+                    await this.refreshFinanceiroAfterMutation();
                     return true;
                 } catch (e) {
                     alert(e.message);
@@ -9858,7 +9901,7 @@ ${financeRowActions(r.id, 'compra')}
                 try {
                     const res = await fetch(`/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=meta_poupanca`, { method: 'DELETE' });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir meta'));
-                    await this.refreshAppContent('financeiro');
+                    await this.refreshFinanceiroAfterMutation();
                     return true;
                 } catch (e) {
                     alert(e.message);
@@ -10343,7 +10386,7 @@ ${financeRowActions(r.id, 'compra')}
                     if ((tipoRegistro === 'despesa_fixa' || tipoRegistro === 'gasto_variado' || tipoRegistro === 'receita' || tipoRegistro === 'compra') && mesAno) {
                         el.setAttribute('data-mes-ano', mesAno);
                     }
-                    if (!skipRefresh) await this.refreshAppContent('financeiro');
+                    await this.refreshFinanceiroAfterMutation();
                     return true;
                 } catch (e) {
                     alert(e.message);
@@ -10360,7 +10403,7 @@ ${financeRowActions(r.id, 'compra')}
                 );
                 if (!okConfirm) return;
                 try {
-                    await this.refreshAppContent('financeiro');
+                    await this.refreshFinanceiroAfterMutation();
                 } catch (e) {
                     alert(e.message || 'Erro ao preencher o mês.');
                 }
@@ -10371,7 +10414,7 @@ ${financeRowActions(r.id, 'compra')}
                 try {
                     const res = await fetch(`/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=${encodeURIComponent(tipoRegistro)}`, { method: 'DELETE' });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir'));
-                    await this.refreshAppContent('financeiro');
+                    await this.refreshFinanceiroAfterMutation();
                 } catch (e) { alert(e.message); }
             }
 
@@ -10388,7 +10431,7 @@ ${financeRowActions(r.id, 'compra')}
                         }),
                     });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao atualizar status'));
-                    await this.refreshAppContent('financeiro');
+                    await this.refreshFinanceiroAfterMutation();
                 } catch (e) {
                     alert(e.message);
                 }

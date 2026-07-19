@@ -6,7 +6,7 @@
 
 Metadata:
 Nome_skill: “Skill Personalizada de Automação, DevOps e Segurança”
-Versao: “1.0.0”
+Versao: “1.2.0”
   Status: “ATIVO”
 
 Instrucao_sistema:
@@ -120,3 +120,46 @@ Instrucao_sistema:
   - LGPD: Revise documentos enviados pelo usuário buscando discordâncias com a LGPD e exposição de dados sensíveis (ver também tópico testes_e_seguranca_dados).
   - Analogias e exemplos: Analogias criativas e variadas (cinema, cotidiano, TI) sem exageros; exemplos práticos do dia a dia em temas diversos.
   - Aprendizado do agente: Estes dados são o perfil permanente do usuário. O agente deve internalizá-los e aplicá-los em toda interação presente e futura enquanto este documento estiver ativo.
+
+# TÓPICO: MENSAGERIA TELEGRAM (MÃO DUPLA — OFICIAL)
+
+- id_regra: mensageria_telegram_mao_dupla
+  Descricao: Protocolo obrigatório. Em QUALQUER plano de mudança, a mensageria é ativada automaticamente no consentimento final do plano (execução + Telegram juntos). Não exige que André reexplique o fluxo a cada sessão.
+  Premissas:
+  - Só funciona com o notebook ligado e o agente Cursor JÁ em execução (não “liga motor frio”).
+  - Pipeline DEV local (CommonJS `.cjs` — NÃO versionar / NÃO produção; ver `.gitignore`):
+    - Relatório: `node ./scripts/mensageria.cjs "<projeto>" "<SUCESSO|FALHA>" "<duracao>" "<resumo>" ["logs"]`
+    - Pergunta bloqueante: `node ./scripts/receptor.cjs "<pergunta>"` (timeout 60 min; STDOUT)
+    - Inbox em background: `node ./scripts/listener.cjs start|stop|status|peek|clear`
+    - Config: `scripts/telegram-config.cjs`
+    - Runtime local: `.mensageria/` (inbox, offset, pid, pause) — sempre gitignored
+  - Respostas humanas podem vir com erro de português, sem acento, gíria ou abreviação — o agente DEVE interpretar a intenção (texto). Áudio/voz ainda NÃO é suportado (somente `message.text`).
+  Fluxo_obrigatorio:
+  1. Ler este `SKILLS.md` / `skills.md` antes de qualquer ação (obrigatório também pela rule global do Cursor).
+  2. Entender a tarefa → montar o plano (Fase Plan) e apresentar a André.
+  3. Em QUALQUER plano de mudança (código, config, SQL, deploy, feature, correção, refatoração): no FINAL do plano, pedir consentimento único de execução + mensageria, por exemplo:
+     "André, o plano está pronto com base no seu skills.md. Posso executar e ativar a mensageria Telegram (listener + relatório ao terminar)?"
+  4. Se André disser NÃO à mensageria (ou recusar Telegram explicitamente) → executar só no chat da IDE, se a execução ainda estiver autorizada.
+  5. Se André consentir (`sim`, `pode`, `prosiga`, `blz`, `ok`, `execute`, ou aprovação do plano): canal Telegram ATIVO AUTOMATICAMENTE para esta tarefa — sem segunda pergunta só de Telegram:
+     - Subir o listener em background: `node ./scripts/listener.cjs start` (fica aberto só enquanto a tarefa/sessão Telegram estiver ativa).
+     - Trabalhar conforme o plano.
+     - Em dúvida, risco, mudança destrutiva, decisão de escopo, falha bloqueante ou qualquer ponto que exija autorização: PARAR e chamar `receptor.cjs` (o receptor pausa o listener automaticamente). Ler o STDOUT. Prosseguir ou abortar conforme a resposta.
+     - Mensagens avulsas no Telegram durante a tarefa vão para a inbox (`.mensageria/inbox.jsonl`). O listener NÃO executa nada — só enfileira.
+     - Nunca apagar arquivos importantes, fazer push, migração destrutiva ou testes de integração/produção sem autorização explícita (chat ou Telegram via receptor).
+  6. Ao concluir (ou falhar de forma terminal): disparar `mensageria.cjs` com status SUCESSO ou FALHA, duração e resumo saneados.
+  7. Antes de perguntar “encerrar?”, checar a inbox: `node ./scripts/listener.cjs peek`
+     - Se houver orientação pré-enfileirada: NÃO executar direto. Chamar `receptor.cjs` pedindo confirmação explícita, citando o texto (ex.: "Recebi na fila: 'apagar tudo'. Posso executar isso agora?"). Só após confirmação → agir; depois `listener.cjs clear` (ou limpar o item processado) e seguir.
+     - Se a inbox estiver vazia: chamar `receptor.cjs` perguntando se encerra ou se há próxima orientação.
+     - Se a resposta indicar encerrar / ok / fim → `node ./scripts/listener.cjs stop` e finalizar com elegância.
+     - Se a resposta pedir outra coisa → novo plano (voltar ao passo 2), manter/reabrir listener, repetir o fluxo.
+  Interpretacao_de_respostas:
+  - Tratar respostas informais como válidas ("sim", "pode", "apaga", "segue", "blz", "prosiga", "encerra", "para ai").
+  - Em ambiguidade real, perguntar de novo via `receptor.cjs` com opções claras (continuar / encerrar).
+  - Timeout do receptor (60 min) sem resposta = interromper com status FALHA/parcial e notificar via `mensageria.cjs` quando possível.
+  Proibicoes:
+  - Não inventar outro canal de notificação.
+  - Não ignorar dúvida crítica “para não atrapalhar” André.
+  - Não assumir autorização silenciosa para ações destrutivas.
+  - Nunca executar item da inbox sem confirmação via `receptor.cjs`.
+  - Não commitar scripts de mensageria, token, nem pasta `.mensageria/` (protótipo local apenas).
+  - Não pular a leitura do skills.md no início da sessão/tarefa.
