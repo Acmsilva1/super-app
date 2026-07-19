@@ -1,0 +1,331 @@
+/* Tokens locais do robô (não alteram o tema global do SUPERAPP) */
+.dicas-robot-dock,
+.dicas-robot-panel {
+  --dicas-primary: 199 89% 48%;
+  --dicas-primary-foreground: 0 0% 100%;
+}
+
+@keyframes dicas-robot-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.dicas-robot-float {
+  animation: dicas-robot-float 2.6s ease-in-out infinite;
+}
+
+.dicas-robot-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  line-height: 1;
+}
+
+.dicas-robot-emoji-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dicas-robot-emoji-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -0.4rem -0.65rem;
+  z-index: 0;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 50% 42%,
+    hsl(var(--dicas-primary) / 0.62),
+    hsl(var(--dicas-primary) / 0.28) 42%,
+    transparent 72%
+  );
+  filter: blur(11px);
+  animation: dicas-robot-glow-pulse 2.6s ease-in-out infinite;
+}
+
+.dicas-robot-mascote {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 3.85rem;
+  height: 3.85rem;
+  user-select: none;
+  filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.22));
+}
+
+.dicas-mascote-avatar {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+}
+
+.dicas-mascote-arm {
+  transform-origin: 41.5px 44.5px;
+  transform-box: view-box;
+  animation: dicas-mascote-wave 1.6s ease-in-out infinite;
+}
+
+@keyframes dicas-mascote-wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(16deg); }
+  50% { transform: rotate(-6deg); }
+  75% { transform: rotate(14deg); }
+}
+
+.dicas-mascote-eye {
+  transform-origin: 32px 27px;
+  transform-box: view-box;
+  animation: dicas-mascote-blink 4.2s ease-in-out infinite;
+}
+
+@keyframes dicas-mascote-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.12); }
+}
+
+.dicas-mascote-antena {
+  filter: drop-shadow(0 0 2.5px rgb(251 191 36 / 0.75));
+  animation: dicas-mascote-antena 2s ease-in-out infinite;
+}
+
+@keyframes dicas-mascote-antena {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes dicas-robot-glow-pulse {
+  0%, 100% { opacity: 0.72; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.dicas-robot-balao-host:empty {
+  display: none;
+}
+
+.dicas-robot-balao {
+  position: absolute;
+  bottom: calc(100% + 0.15rem);
+  right: 0.35rem;
+  z-index: 2;
+  display: block;
+  width: clamp(13.5rem, 58vw, 18.5rem);
+  max-width: calc(100vw - 6.5rem);
+  transform-origin: 92% 100%;
+  animation:
+    dicas-balao-pop 0.35s ease-out both,
+    dicas-balao-bob 2.4s ease-in-out 0.4s infinite;
+  pointer-events: none;
+  user-select: none;
+}
+
+.dicas-robot-balao svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 4px 10px rgb(0 0 0 / 0.32));
+}
+
+.dicas-robot-balao-text {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  height: 100%;
+  overflow: hidden;
+  color: #1f2937;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  text-align: left;
+}
+
+.dicas-robot-balao-saudacao {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.dicas-robot-balao-dica {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+@keyframes dicas-balao-pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  70% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes dicas-balao-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.dicas-robot-placa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  padding: 0.15rem 0.6rem 0.22rem;
+  border-radius: 0.3rem;
+  border: 2px solid rgb(180 130 70 / 0.65);
+  background: hsl(var(--dicas-primary));
+  color: hsl(var(--dicas-primary-foreground));
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.22);
+  animation: dicas-placa-blink 1.35s ease-in-out infinite;
+}
+
+@keyframes dicas-placa-blink {
+  0%, 100% {
+    opacity: 1;
+    box-shadow:
+      0 2px 8px rgb(0 0 0 / 0.22),
+      0 0 0 0 hsl(var(--dicas-primary) / 0);
+  }
+  50% {
+    opacity: 0.62;
+    box-shadow:
+      0 2px 12px rgb(0 0 0 / 0.28),
+      0 0 12px 3px hsl(var(--dicas-primary) / 0.75);
+  }
+}
+
+.dicas-robot-placa-icon {
+  font-size: 0.575rem;
+  line-height: 1;
+}
+
+.dicas-robot-trigger {
+  background: transparent !important;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: none !important;
+  outline: none;
+}
+
+.dicas-robot-trigger:focus-visible {
+  outline: 2px solid hsl(var(--dicas-primary));
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+/* À esquerda do FAB + (finance-fab) para não sobrepor */
+.dicas-robot-dock {
+  position: fixed;
+  right: max(5.4rem, calc(env(safe-area-inset-right, 0px) + 4.4rem));
+  bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+  z-index: 1180;
+  pointer-events: none;
+}
+
+.dicas-robot-dock .dicas-robot-trigger {
+  pointer-events: auto;
+}
+
+.dicas-robot-panel {
+  position: fixed;
+  right: max(5.4rem, calc(env(safe-area-inset-right, 0px) + 4.4rem));
+  bottom: max(6.8rem, calc(env(safe-area-inset-bottom, 0px) + 5.8rem));
+  z-index: 1185;
+  width: min(22rem, calc(100vw - 1.5rem));
+}
+
+.dicas-robot-panel-inner {
+  border-radius: 1rem;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(17 24 39 / 0.96);
+  color: #f9fafb;
+  padding: 1rem;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.45);
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.dicas-robot-panel-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+.dicas-robot-panel-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.dicas-robot-panel-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.dicas-robot-panel-head > button {
+  margin-left: auto;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  background: transparent;
+  color: inherit;
+  border-radius: 0.4rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.dicas-robot-panel-body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.dicas-robot-panel-next {
+  margin-top: 0.75rem;
+  width: 100%;
+  border: 1px solid hsl(var(--dicas-primary) / 0.45);
+  background: hsl(var(--dicas-primary) / 0.15);
+  color: inherit;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+body.auth-locked .dicas-robot-dock,
+body.auth-locked .dicas-robot-panel {
+  display: none !important;
+}
+
+@media (min-width: 640px) {
+  .dicas-robot-mascote {
+    width: 4.4rem;
+    height: 4.4rem;
+  }
+
+  .dicas-robot-placa {
+    padding: 0.18rem 0.65rem 0.24rem;
+    font-size: 0.72rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dicas-robot-float,
+  .dicas-robot-placa,
+  .dicas-robot-emoji-wrap::before,
+  .dicas-mascote-arm,
+  .dicas-mascote-eye,
+  .dicas-mascote-antena {
+    animation: none;
+  }
+
+  .dicas-robot-balao {
+    animation: dicas-balao-pop 0.01s both;
+  }
+}

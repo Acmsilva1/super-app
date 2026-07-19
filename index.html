@@ -22,6 +22,12 @@
     <!-- Motion (animacoes modernas) -->
     <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.min.js"></script>
     <script type="module" src="./lib/financeiroAnualCache.js"></script>
+    <link rel="stylesheet" href="./components/robo/robo.css">
+    <script type="module" src="./components/robo/tipRobot.js"></script>
+    <script type="module">
+      import { DICAS_FINANCEIRO } from './components/robo/dicasFinanceiro.js';
+      window.DICAS_FINANCEIRO = DICAS_FINANCEIRO;
+    </script>
     <style>
         * {
             margin: 0;
@@ -7295,13 +7301,41 @@
             showGate(mode = 'login', message = '') {
                 document.body.classList.add('auth-locked');
                 document.body.classList.remove('auth-ready');
+                try { window.TipRobot?.destroy?.(); } catch (_) {}
                 this.setMode(mode);
                 this.setMessage(message);
+            },
+
+            resolveTipUserName() {
+                const user = this.session?.user;
+                const meta = user?.user_metadata || {};
+                return String(meta.name || meta.nome || (user?.email || '').split('@')[0] || '').trim();
+            },
+
+            mountTipRobot() {
+                const mount = () => {
+                    if (!window.TipRobot?.mount || !Array.isArray(window.DICAS_FINANCEIRO)) return false;
+                    window.TipRobot.mount({
+                        enabled: true,
+                        userName: this.resolveTipUserName(),
+                        messages: window.DICAS_FINANCEIRO,
+                        accentColor: '#0ea5e9',
+                        label: 'DICAS',
+                    });
+                    return true;
+                };
+                if (mount()) return;
+                let tries = 0;
+                const timer = window.setInterval(() => {
+                    tries += 1;
+                    if (mount() || tries >= 20) window.clearInterval(timer);
+                }, 50);
             },
 
             showApp() {
                 document.body.classList.remove('auth-locked');
                 document.body.classList.add('auth-ready');
+                this.mountTipRobot();
             },
 
             async init() {
@@ -7451,6 +7485,7 @@
                     try {
                         window.FinanceiroAnualCache?.clearFinanceiroAnualCache?.(userId);
                     } catch (_) {}
+                    try { window.TipRobot?.destroy?.(); } catch (_) {}
                     await this.client.auth.signOut();
                     window.location.replace(window.location.pathname);
                 });
