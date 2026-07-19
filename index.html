@@ -7007,6 +7007,26 @@
                 el.classList.toggle('error', type === 'error');
             },
 
+            formatAuthError(error) {
+                const message = String(error?.message || error || '').toLowerCase();
+                if (message.includes('email rate limit')) {
+                    return 'Limite de emails do Supabase atingido. Aguarde alguns minutos/1 hora ou configure SMTP proprio no Supabase.';
+                }
+                if (message.includes('already registered') || message.includes('user already registered')) {
+                    return 'Este email ja possui cadastro. Tente entrar ou recuperar a senha.';
+                }
+                if (message.includes('invalid login credentials')) {
+                    return 'Email ou senha invalidos.';
+                }
+                if (message.includes('signup is disabled')) {
+                    return 'Cadastro esta desativado no Supabase Auth.';
+                }
+                if (message.includes('password')) {
+                    return 'Verifique a senha. Ela precisa atender aos criterios configurados no Supabase.';
+                }
+                return error?.message || 'Nao foi possivel concluir a operacao.';
+            },
+
             setMode(mode) {
                 const isReset = mode === 'reset';
                 document.getElementById('loginForm').hidden = mode !== 'login';
@@ -7098,7 +7118,7 @@
                         email: String(form.get('email') || '').trim(),
                         password: String(form.get('password') || ''),
                     });
-                    if (error) return this.setMessage(error.message, 'error');
+                    if (error) return this.setMessage(this.formatAuthError(error), 'error');
                     window.location.replace(window.location.pathname);
                 });
 
@@ -7118,7 +7138,7 @@
                             emailRedirectTo: window.location.origin + window.location.pathname,
                         },
                     });
-                    if (error) return this.setMessage(error.message, 'error');
+                    if (error) return this.setMessage(this.formatAuthError(error), 'error');
                     if (data?.session) window.location.replace(window.location.pathname);
                     else this.setMessage('Cadastro criado. Confira seu email para confirmar o acesso.');
                 });
@@ -7130,7 +7150,7 @@
                     const { error } = await this.client.auth.resetPasswordForEmail(email, {
                         redirectTo: window.location.origin + window.location.pathname + '?auth=recovery',
                     });
-                    if (error) return this.setMessage(error.message, 'error');
+                    if (error) return this.setMessage(this.formatAuthError(error), 'error');
                     this.setMessage('Link enviado. Confira seu email para trocar a senha.');
                 });
 
@@ -7143,7 +7163,7 @@
                     if (password !== confirmPassword) return this.setMessage('As senhas nao conferem.', 'error');
                     this.setMessage('Atualizando senha...');
                     const { error } = await this.client.auth.updateUser({ password });
-                    if (error) return this.setMessage(error.message, 'error');
+                    if (error) return this.setMessage(this.formatAuthError(error), 'error');
                     this.setMessage('Senha atualizada. Entrando...');
                     window.location.replace(window.location.pathname);
                 });
