@@ -107,13 +107,15 @@
 
 .dicas-robot-balao {
   position: absolute;
-  bottom: calc(100% + 0.15rem);
-  right: 0.35rem;
+  top: auto;
+  bottom: -0.35rem;
+  right: calc(100% + 0.2rem);
+  left: auto;
   z-index: 2;
   display: block;
   width: clamp(13.5rem, 58vw, 18.5rem);
   max-width: calc(100vw - 6.5rem);
-  transform-origin: 92% 100%;
+  transform-origin: 100% 85%;
   animation:
     dicas-balao-pop 0.35s ease-out both,
     dicas-balao-bob 2.4s ease-in-out 0.4s infinite;
