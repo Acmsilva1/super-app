@@ -108,14 +108,14 @@
 .dicas-robot-balao {
   position: absolute;
   top: auto;
-  bottom: -0.35rem;
-  right: calc(100% + 0.2rem);
+  bottom: -2.4rem;
+  right: calc(100% + 0.15rem);
   left: auto;
   z-index: 2;
   display: block;
-  width: clamp(13.5rem, 58vw, 18.5rem);
+  width: clamp(9.5rem, 40vw, 12.25rem);
   max-width: calc(100vw - 6.5rem);
-  transform-origin: 100% 85%;
+  transform-origin: 100% 20%;
   animation:
     dicas-balao-pop 0.35s ease-out both,
     dicas-balao-bob 2.4s ease-in-out 0.4s infinite;
@@ -144,16 +144,16 @@
 
 .dicas-robot-balao-saudacao {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .dicas-robot-balao-dica {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
