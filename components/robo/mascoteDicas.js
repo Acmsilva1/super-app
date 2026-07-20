@@ -16,10 +16,10 @@ export function createBalaoDica({ tip, id = 'dica-automatica' }) {
   wrap.setAttribute('role', 'note');
   const greeting = GREETING;
   wrap.innerHTML = `
-    <svg viewBox="0 0 248 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <path d="M16 4 H196 Q216 4 216 22 V34 L244 28 L216 48 V74 Q216 92 196 92 H16 Q4 92 4 74 V22 Q4 4 16 4 Z"
+    <svg viewBox="0 0 248 108" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <path d="M16 4 H196 Q216 4 216 22 V38 L244 32 L216 52 V86 Q216 104 196 104 H16 Q4 104 4 86 V22 Q4 4 16 4 Z"
         fill="#ffffff" stroke="#1f2937" stroke-width="3.2" stroke-linejoin="round" />
-      <foreignObject x="12" y="10" width="194" height="72">
+      <foreignObject x="12" y="10" width="194" height="84">
         <div xmlns="http://www.w3.org/1999/xhtml" class="dicas-robot-balao-text">
           <strong class="dicas-robot-balao-saudacao"></strong>
           <p class="dicas-robot-balao-dica"></p>
