@@ -9024,26 +9024,16 @@ ${financeRowActions(r.id, 'compra')}
                         panel.innerHTML = `
                             <div class="finance-analista-card">
                                 <span class="finance-analista-card__label">Recalculando</span>
-                                <div class="finance-analista-card__value">Processando dados</div>
-                                <div class="finance-analista-card__meta">Recalculando tudo com travas de janeiro ativadas.</div>
+                                <div class="finance-analista-card__value">Re-treinando modelo e recalculando análises...</div>
+                                <div class="finance-analista-card__meta">Processando todo o histórico de lançamentos.</div>
                             </div>
                         `;
                     }
-                    const token = await ensureFinanceiroRebuildToken();
-                    const res = await fetch('/api/financeiro-analista-rebuild', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-rebuild-token': token,
-                        },
-                        cache: 'no-store',
-                    });
-                    const data = await this.readApiJsonOrThrow(res, 'Falha ao recalcular o analista financeiro');
-                    if (data?.skipped) {
-                        throw new Error(`Rebuild ignorado: ${data.reason || 'motivo nao informado'}`);
-                    }
-                    await this.refreshFinanceiroAfterMutation();
-                    return data;
+                    try {
+                        const res = await fetch('/api/financeiro?acao=treinar', { method: 'POST', cache: 'no-store' });
+                        await this.readApiJsonOrThrow(res, 'Falha ao re-treinar o modelo');
+                    } catch (_err) {}
+                    await loadFinanceiroAnalista();
                 };
                 const renderFinanceiroAnalista = (payload) => {
                     const panel = el.querySelector(`#${analistaPanelId}`);
@@ -9059,7 +9049,7 @@ ${financeRowActions(r.id, 'compra')}
                     const projecao = analise?.projecao || {};
                     const comparativos = analise?.comparativos || {};
                     const modelo = analise?.modelo || {};
-                    const recorteInicioMesAno = analise?.metadados?.recorte_inicio_mes_ano || '2026-02';
+                    const recorteInicioMesAno = analise?.metadados?.recorte_inicio_mes_ano || '2000-01';
                     const pesos = modelo?.pesos || {};
                     const formatMoney = (value) => this.formatMoneyBr(Number(value || 0));
                     const historico = Array.isArray(aprendizado?.historico) ? aprendizado.historico : [];
@@ -9875,7 +9865,7 @@ ${financeRowActions(r.id, 'compra')}
                 if (!el._financeiroAnalistaRefreshBound) {
                     el._financeiroAnalistaRefreshBound = true;
                     el.addEventListener('click', async (event) => {
-                        const btn = event.target?.closest?.('[data-action="financeiro-analista-refresh"]');
+                        const btn = event.target?.closest?.('[data-action="financeiro-analista-refresh"], #financeiro-btn-treinar-modelo');
                         if (!btn || !el.contains(btn)) return;
                         try {
                             await rebuildFinanceiroAnalista();

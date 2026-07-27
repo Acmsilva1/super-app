@@ -1,17 +1,9 @@
-=== CHECKPOINT — Classificador ML Financeiro e Simulador de Riscos ===
+=== CHECKPOINT — Corrigido Histórico do Analista (Cards de Março a Julho) ===
 Data: 2026-07-27
-Status: FINALIZADO, VALIDADO E COM CRON DA MADRUGADA CONFIGURADO
 
-== PERGUNTA: VERCEL CRON JOBS (APRENDIZADO AUTOMÁTICO DAS 03:00) ==
-- [x] Configurado microserviço `/api/cron-treinar-modelo.js`
-- [x] Registrado no `vercel.json` na propriedade `crons` com a expressão `"0 6 * * *"` (06:00 UTC = 03:00 Horário de Brasília).
-- [x] O serviço itera por todos os usuários do sistema, treina o Naive Bayes com todo o histórico e salva os pesos no Supabase sem necessidade de nenhuma intervenção manual.
+== CORREÇÃO REALIZADA ==
+1. O endpoint `/api/financeiro-analista.js` estava retornando `historico_detalhado: []` e `cards: {}` em branco, o que fazia a interface antiga exibir "Sem histórico suficiente" em todos os cards.
+2. Atualizado `/api/financeiro-analista.js` para buscar os gráficos anuais completos (bi=1) e calcular automaticamente os cards de **Melhor Mês**, **Pior Mês**, **Mês com Mais Fixas**, **Mês com Mais Variáveis**, etc.
+3. Removido o filtro rígido em `index.html` que ignorava qualquer histórico anterior a Fevereiro/2026 (`2026-02`).
 
-== ESTRUTURA DOS ARQUIVOS DA SOLUÇÃO ==
-- `features/financeiro/service/financeiroAnaliseService.js`: Fórmulas TLC, Naive Bayes, CDF Normal, Regex e Inconsistências.
-- `api/_financeiroShared.js`: Integração com Supabase + função `treinarModeloTodosUsuarios()`.
-- `api/financeiro-analista.js`: Endpoint agregador do analista com riscos e padrões.
-- `api/cron-treinar-modelo.js`: Endpoint para disparo automático do Vercel Crons.
-- `vercel.json`: Agendamento automático às 03:00 da manhã.
-- `index.html`: UI completa da aba Analista e auto-classificação no modal.
-- `tests/financeiroAnalise.test.js`: 40/40 testes automatizados validados.
+Agora, tendo lançamentos desde Março até Julho, todos os meses são contabilizados e os cards são preenchidos corretamente com os números reais do usuário!

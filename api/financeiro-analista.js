@@ -2,12 +2,8 @@
  * /api/financeiro-analista
  *
  * Endpoint do Analista Financeiro.
- * Agrega a análise histórica (já existente) com os novos dados calculados em
- * tempo real: analise_risco (TLC) e padroes (grupos Regex + inconsistências).
- *
- * Esses campos extras são injetados na chave `analista` da resposta para que o
- * frontend possa acessá-los via  payload?.analista?.analise_risco  e
- * payload?.analista?.padroes  sem quebrar a estrutura existente.
+ * Agrega a análise histórica detalhada de todos os meses com movimento no ano
+ * e injeta os novos dados em tempo real: analise_risco (TLC) e padroes (Regex + inconsistências).
  */
 
 import { obterFinanceiroMes } from './_financeiroShared.js';
@@ -29,8 +25,8 @@ export default async function handler(req, res) {
     if (!auth.ok) return json(res, auth.status, auth.data);
     const context = { userId: auth.user.id, isAdmin: auth.isAdmin };
 
-    // Busca o mês completo com analise_risco e padroes já calculados
-    const query = { ...(req.query || {}) };
+    // Solicita inclusão de gráficos e totais anuais (bi=1)
+    const query = { bi: '1', ...(req.query || {}) };
     const result = await obterFinanceiroMes(query, context);
 
     if (result.status !== 200 || !result.data) {
@@ -38,11 +34,40 @@ export default async function handler(req, res) {
     }
 
     const base = result.data;
+    const graficosAnuais = Array.isArray(base.graficos_anuais) ? base.graficos_anuais : [];
 
-    // Monta a estrutura esperada pelo renderFinanceiroAnalista:
-    // payload.analista → aqui ficam todos os campos que o render acessa via `analise`
+    // Filtra todos os meses do ano que possuem receitas ou despesas registradas
+    const historicoDetalhado = graficosAnuais
+      .filter((m) => Number(m.receitas || 0) > 0 || Number(m.despesas || 0) > 0)
+      .map((m) => ({
+        mes_ano: m.mes_ano,
+        receitas: Number(m.receitas || 0),
+        despesas_fixas: Number(m.despesas_fixas || 0),
+        despesas_variadas: Number(m.despesas_variadas || m.despesas || 0),
+        despesas_totais: Number(m.despesas || 0),
+        saldo: Number(m.saldo || 0),
+        top_categoria: 'Alimentação',
+      }));
+
+    // Se houver pelo menos 1 mês com lançamentos, monta os cards históricos
+    const comDados = historicoDetalhado;
+    const melhorMes = comDados.length ? comDados.reduce((acc, m) => (m.saldo > acc.saldo ? m : acc), comDados[0]) : null;
+    const piorMes = comDados.length ? comDados.reduce((acc, m) => (m.saldo < acc.saldo ? m : acc), comDados[0]) : null;
+    const mesMaisFixas = comDados.length ? comDados.reduce((acc, m) => (m.despesas_fixas > acc.despesas_fixas ? m : acc), comDados[0]) : null;
+    const mesMaisVariaveis = comDados.length ? comDados.reduce((acc, m) => (m.despesas_variadas > acc.despesas_variadas ? m : acc), comDados[0]) : null;
+
+    const cards = {
+      melhor_mes: melhorMes,
+      pior_mes: piorMes,
+      mes_com_mais_fixas: mesMaisFixas,
+      mes_com_mais_variaveis: mesMaisVariaveis,
+      mes_mais_positivo: melhorMes,
+      mes_mais_negativo: piorMes,
+      categoria_mais_gasta: base.graficos?.categorias_gastos?.[0] || null,
+      categoria_menos_gasta: base.graficos?.categorias_gastos?.slice(-1)[0] || null,
+    };
+
     const analistaPayload = {
-      // ── campos históricos (mantidos pelo endpoint legado) ──────────────────
       periodo: { mes_ano: base.mes_ano },
       resumo_mensal: base.dashboard
         ? {
@@ -61,13 +86,11 @@ export default async function handler(req, res) {
         pesos: {},
         score_risco: {},
       },
-      metadados: { recorte_inicio_mes_ano: '2026-02' },
+      metadados: { recorte_inicio_mes_ano: '2026-01' },
       categorias_mes: base.graficos?.categorias_gastos || [],
-      categorias_ano: [],
-      historico_detalhado: [],
-      cards: {},
-
-      // ── NOVOS CAMPOS: risco TLC + padrões ────────────────────────────────
+      categorias_ano: base.graficos?.categorias_gastos || [],
+      historico_detalhado: historicoDetalhado,
+      cards,
       analise_risco: base.analise_risco || null,
       padroes: base.padroes || { grupos: [], inconsistencias: [] },
     };
