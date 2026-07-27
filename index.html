@@ -8691,6 +8691,7 @@ ${financeRowActions(r.id, 'compra')}
                                     <option value="summary" ${activeTab === 'summary' ? 'selected' : ''}>📊 Dashboards</option>
                                     <option value="poupanca" ${activeTab === 'poupanca' ? 'selected' : ''}>🐷 Poupan&ccedil;a</option>
                                     <option value="compras" ${activeTab === 'compras' ? 'selected' : ''}>🛒 Compras maiores</option>
+                                    <option value="analista" ${activeTab === 'analista' ? 'selected' : ''}>🤖 Analista & Riscos</option>
                                 </select>
                             </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
@@ -8698,6 +8699,7 @@ ${financeRowActions(r.id, 'compra')}
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--bounce" aria-hidden="true">📊</span>Dashboards</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">🐷</span>Poupan&ccedil;a</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--swing" aria-hidden="true">🛒</span>Compras maiores</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'analista' ? 'is-active' : ''}" data-action="module-tab" data-tab="analista" role="tab" aria-selected="${activeTab === 'analista' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--spin" aria-hidden="true">🤖</span>Analista</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <div class="finance-data-jump-select-wrap">
@@ -8721,6 +8723,15 @@ ${financeRowActions(r.id, 'compra')}
                                     <span class="finance-filter-chip-label">Ver só</span>
                                     <span class="finance-filter-chip-title"><span class="finance-emoji finance-emoji--coin" aria-hidden="true">💰</span>Receitas</span>
                                 </button>
+                            </div>
+                        </div>
+                        <div class="module-tab-panel ${activeTab === 'analista' ? '' : 'hidden'}" data-tab-panel="analista">
+                            <div id="financeiro-analista-panel" class="finance-analista-shell">
+                                <div class="finance-analista-card">
+                                    <span class="finance-analista-card__label">Carregando</span>
+                                    <div class="finance-analista-card__value">Análise em andamento&hellip;</div>
+                                    <div class="finance-analista-card__meta">Buscando dados do mês atual.</div>
+                                </div>
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
@@ -9272,6 +9283,120 @@ ${financeRowActions(r.id, 'compra')}
                                     </tbody>
                                 </table>
                             </section>
+
+                             <!-- ⚠️ SEÇÃO: Risco Probabilístico de Consumo (TLC) -->
+                             ${ (() => {
+                                 const ar = analise?.analise_risco;
+                                 if (!ar) return '';
+                                 const riscoCor = ar.risco_classificacao === 'Crítico' ? '#ef4444' : ar.risco_classificacao === 'Alto' ? '#f97316' : ar.risco_classificacao === 'Moderado' ? '#eab308' : '#22c55e';
+                                 const ritmoCor = ar.ritmo_status === 'acelerado' ? '#f97316' : '#22c55e';
+                                 const saldoProjCor = ar.saldo_projetado_liquido < 0 ? '#ef4444' : '#22c55e';
+                                 const pctMes = ar.dias_totais > 0 ? Math.round((ar.dia_atual / ar.dias_totais) * 100) : 0;
+                                 return `
+                                 <section class="finance-analista-card" style="border-left:4px solid ${riscoCor};">
+                                     <span class="finance-analista-card__label">⚠️ Risco Probabilístico de Estouro (TLC) — Mês Atual</span>
+                                     <span class="finance-analista-card__ref">Teorema do Limite Central · Dia ${ar.dia_atual} de ${ar.dias_totais}</span>
+                                     <div class="finance-analista-card__value" style="color:${riscoCor};">${ar.probabilidade_estouro.toFixed(1)}% de probabilidade de fechar no vermelho</div>
+                                     <div class="finance-analista-progress" style="margin-top:0.75rem;">
+                                         <div class="finance-analista-progress__head">
+                                             <strong style="color:${riscoCor};">${escapeHtml(ar.risco_classificacao)}</strong>
+                                             <span>${ar.probabilidade_estouro.toFixed(1)}%</span>
+                                         </div>
+                                         <div class="finance-analista-progress__track">
+                                             <div class="finance-analista-progress__fill" style="width:${ar.probabilidade_estouro.toFixed(1)}%;background:${riscoCor};"></div>
+                                         </div>
+                                     </div>
+                                     <table class="finance-analista-mini-table" style="margin-top:0.75rem;">
+                                         <tbody>
+                                             <tr><td>Avanço do mês</td><td>${pctMes}% (dia ${ar.dia_atual}/${ar.dias_totais})</td></tr>
+                                             <tr><td>Ritmo diário atual</td><td style="color:${ritmoCor}">${this.formatMoneyBr(ar.ritmo_diario_atual)}/dia (recomendado: ${this.formatMoneyBr(ar.ritmo_diario_recomendado)}/dia)</td></tr>
+                                             <tr><td>Projeção de gasto total</td><td>${this.formatMoneyBr(ar.despesa_projetada_total)}</td></tr>
+                                             <tr><td>Saldo projetado ao fim do mês</td><td style="color:${saldoProjCor};font-weight:700;">${this.formatMoneyBr(ar.saldo_projetado_liquido)}</td></tr>
+                                             <tr><td>Saldo líquido atual</td><td style="color:${ar.saldo_liquido_atual < 0 ? '#ef4444' : '#94a3b8'}">${this.formatMoneyBr(ar.saldo_liquido_atual)}</td></tr>
+                                         </tbody>
+                                     </table>
+                                 </section>`;
+                             })() }
+
+                             <!-- 🔍 SEÇÃO: Padrões de Recorrência por Grupos Regex -->
+                             ${ (() => {
+                                 const grupos = analise?.padroes?.grupos;
+                                 if (!grupos || grupos.length === 0) return '';
+                                 const gruposRows = grupos.map(g => `
+                                     <tr>
+                                         <td>${escapeHtml(g.label)}</td>
+                                         <td style="font-weight:700;color:#f97316;">${this.formatMoneyBr(g.total)}</td>
+                                         <td>${g.contagem}x</td>
+                                         <td style="color:#94a3b8;">${this.formatMoneyBr(g.media_por_lancamento)}/lançamento</td>
+                                     </tr>`).join('');
+                                 return `
+                                 <section class="finance-analista-card" style="border-left:4px solid #f97316;">
+                                     <span class="finance-analista-card__label">🔍 Padrões de Recorrência — Onde o dinheiro foi (por grupo)</span>
+                                     <span class="finance-analista-card__ref">Agrupamento inteligente por palavras-chave do histórico do mês atual</span>
+                                     <div class="finance-analista-table-wrap">
+                                         <table class="finance-analista-table">
+                                             <thead><tr><th>Grupo</th><th>Total gasto</th><th>Frequência</th><th>Ticket médio</th></tr></thead>
+                                             <tbody>${gruposRows}</tbody>
+                                         </table>
+                                     </div>
+                                 </section>`;
+                             })() }
+
+                             <!-- 🚨 SEÇÃO: Inconsistências de Categoria -->
+                             ${ (() => {
+                                 const incs = analise?.padroes?.inconsistencias;
+                                 if (!incs || incs.length === 0) return '';
+                                 const incRows = incs.map(inc => `
+                                     <tr>
+                                         <td style="color:#fbbf24;font-weight:600;">${escapeHtml(inc.termo_comum)}</td>
+                                         <td>${escapeHtml(inc.estabelecimentoA)}</td>
+                                         <td><span class="finance-analista-badge is-mid">${escapeHtml(inc.categoriaA)}</span></td>
+                                         <td>${escapeHtml(inc.estabelecimentoB)}</td>
+                                         <td><span class="finance-analista-badge is-high">${escapeHtml(inc.categoriaB)}</span></td>
+                                     </tr>`).join('');
+                                 return `
+                                 <section class="finance-analista-card" style="border-left:4px solid #eab308;">
+                                     <span class="finance-analista-card__label">🚨 Inconsistências de Categoria Detectadas</span>
+                                     <span class="finance-analista-card__ref">Lançamentos com descrições similares categorizados de formas diferentes neste mês</span>
+                                     <div class="finance-analista-table-wrap">
+                                         <table class="finance-analista-table">
+                                             <thead><tr><th>Termo comum</th><th>Lançamento A</th><th>Categoria A</th><th>Lançamento B</th><th>Categoria B</th></tr></thead>
+                                             <tbody>${incRows}</tbody>
+                                         </table>
+                                     </div>
+                                     <div class="finance-analista-card__meta" style="margin-top:0.5rem;">💡 Padronize as categorias para melhorar a precisão do classificador automático.</div>
+                                 </section>`;
+                             })() }
+
+                             <!-- 🤖 SEÇÃO: Status do Modelo Naive Bayes -->
+                             ${ (() => {
+                                 const modeloNB = el._financeiroModeloNB;
+                                 const vocabSize = modeloNB?.vocab_size || 0;
+                                 const totalDocs = modeloNB?.total_docs || 0;
+                                 const aprendizadoNB = modeloNB?.aprendizado_percentual || 0;
+                                 const treinadoEm = modeloNB?.treinado_em ? new Date(modeloNB.treinado_em).toLocaleDateString('pt-BR') : 'nunca';
+                                 const nbCor = aprendizadoNB >= 70 ? '#22c55e' : aprendizadoNB >= 30 ? '#eab308' : '#94a3b8';
+                                 return `
+                                 <section class="finance-analista-card" style="border-left:4px solid ${nbCor};">
+                                     <span class="finance-analista-card__label">🤖 Classificador Naive Bayes (Modelo Local)</span>
+                                     <span class="finance-analista-card__ref">Treinado com seu histórico · sem IA externa</span>
+                                     <div class="finance-analista-card__value" style="color:${nbCor};">${aprendizadoNB}% de maturidade</div>
+                                     <div class="finance-analista-progress" style="margin-top:0.5rem;">
+                                         <div class="finance-analista-progress__track">
+                                             <div class="finance-analista-progress__fill" style="width:${aprendizadoNB}%;background:${nbCor};"></div>
+                                         </div>
+                                     </div>
+                                     <table class="finance-analista-mini-table" style="margin-top:0.75rem;">
+                                         <tbody>
+                                             <tr><td>Vocabulário aprendido</td><td>${vocabSize} termos únicos</td></tr>
+                                             <tr><td>Transações treinadas</td><td>${totalDocs} lançamentos categorizados</td></tr>
+                                             <tr><td>Último treinamento</td><td>${escapeHtml(treinadoEm)}</td></tr>
+                                         </tbody>
+                                     </table>
+                                     <button type="button" class="app-btn app-btn-secondary" id="financeiro-btn-treinar-modelo" style="margin-top:0.75rem;width:100%;">🔄 Re-treinar modelo com histórico completo</button>
+                                 </section>`;
+                             })() }
+
                         </div>
                     `;
                 };
@@ -9291,7 +9416,13 @@ ${financeRowActions(r.id, 'compra')}
                         const res = await fetch('/api/financeiro-analista?mes_ano=' + encodeURIComponent(mesAno), { cache: 'no-store' });
                         const dataAnalista = await this.readApiJsonOrThrow(res, 'Falha ao carregar o analista financeiro');
                         if (el._financeiroAnalistaToken !== token) return;
+                        // Passa os dados do financeiro do mês (analise_risco e padroes) para o render
                         renderFinanceiroAnalista(dataAnalista || {});
+                        // Carrega status do modelo Naive Bayes de forma assíncrona
+                        fetch('/api/financeiro?modelo=1', { cache: 'no-store' })
+                            .then(r => r.ok ? r.json() : null)
+                            .then(modeloData => { if (modeloData) { el._financeiroModeloNB = modeloData; } })
+                            .catch(() => {});
                     } catch (err) {
                         if (el._financeiroAnalistaToken !== token) return;
                         panel.innerHTML = `
@@ -9716,6 +9847,7 @@ ${financeRowActions(r.id, 'compra')}
                     if (tab === 'data' && (el.getAttribute('data-active-data-filter') || '') === 'despesas_fixas') {
                         ensureFixasMobileThermo();
                     }
+                    if (tab === 'analista') loadFinanceiroAnalista();
                 };
 
                 el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
@@ -10196,6 +10328,25 @@ ${financeRowActions(r.id, 'compra')}
                 if (dataEl) {
                     dataEl.addEventListener('change', keepFixedFinanceiroTime);
                     dataEl.addEventListener('blur', keepFixedFinanceiroTime);
+                }
+                if (descricaoEl && catEl) {
+                    descricaoEl.addEventListener('blur', async () => {
+                        const desc = String(descricaoEl.value || '').trim();
+                        if (!desc || tipoEl.value !== 'gasto_variado') return;
+                        if (catEl.value) return; // se já houver categoria selecionada pelo usuário, não sobresscreve
+                        try {
+                            const res = await fetch('/api/financeiro?acao=classificar', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ descricao: desc })
+                            });
+                            if (!res.ok) return;
+                            const data = await res.json();
+                            if (data?.categoria_sugerida && Array.from(catEl.options).some(o => o.value === data.categoria_sugerida)) {
+                                catEl.value = data.categoria_sugerida;
+                            }
+                        } catch (_) {}
+                    });
                 }
 
                 const syncParcelasUI = () => {

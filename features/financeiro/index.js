@@ -49,3 +49,14 @@ export {
   payloadUpdateFinanceiro,
   getBrazilTodayIso,
 } from './service/financeiroService.js';
+
+export {
+  normalizeAndTokenize,
+  classifyByHeuristics,
+  calcularNaiveBayesWeights,
+  inferCategory,
+  calculateProbabilityCDF,
+  calcularAnaliseRiscoConsumo,
+  detectarPadroesEInconsistencias,
+} from './service/financeiroAnaliseService.js';
+

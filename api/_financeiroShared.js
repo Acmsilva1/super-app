@@ -3,6 +3,7 @@ import {
   TABLE_COMPRAS,
   TABLE_DESPESAS_FIXAS,
   TABLE_FINANCAS,
+  TABLE_FINANCEIRO_MODELO_ESTADO,
   TABLE_POUPANCA_METAS,
   TABLE_POUPANCA,
   TIPO_REGISTRO_COMPRA,
@@ -28,6 +29,10 @@ import {
   rowMatchesReplicationSlot,
   buildInsertPayloadFromSlot,
   createdAtForMesAno,
+  calcularAnaliseRiscoConsumo,
+  detectarPadroesEInconsistencias,
+  calcularNaiveBayesWeights,
+  inferCategory,
 } from '../features/financeiro/index.js';
 
 function getBody(req) {
@@ -421,6 +426,21 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
         ? 'alerta'
         : 'progresso';
 
+  // ── Análise de Risco e Padrões (Modelo Analítico) ─────────────────────────
+  const brazilNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const diaAtual = brazilNow.getDate();
+  const totalDias = new Date(ano, mes, 0).getDate(); // último dia do mês
+
+  const analiseRisco = calcularAnaliseRiscoConsumo({
+    receitas: dashboard.receitas,
+    despesasFixas: dashboard.despesas_fixas,
+    gastosVariados: gastosVariados,
+    diaAtual,
+    totalDias,
+  });
+
+  const { grupos: padroeGrupos, inconsistencias } = detectarPadroesEInconsistencias(gastosVariados);
+
   return {
     status: 200,
     data: {
@@ -455,6 +475,11 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
         configurada: comprasConfigured,
         total: comprasTotal,
         logs: comprasTabela,
+      },
+      analise_risco: analiseRisco,
+      padroes: {
+        grupos: padroeGrupos,
+        inconsistencias,
       },
     },
   };
@@ -634,4 +659,129 @@ export async function removerRegistroFinanceiro(req, context = {}) {
   }
 
   return { status: 200, data: { ok: true } };
+}
+
+// ─── Funções exportadas para rotas de Modelo Analítico ───────────────────────
+
+/**
+ * Carrega o estado do modelo treinado (pesos Naive Bayes) do banco para um usuário.
+ * @param {object} context
+ * @returns {object|null}
+ */
+export async function carregarPesosModelo(context = {}) {
+  const userId = String(context?.userId || '');
+  if (!userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_FINANCEIRO_MODELO_ESTADO)
+      .select('pesos, aprendizado_percentual, created_at')
+      .eq('escopo', 'financeiro')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    if (error || !data) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Treina o modelo Naive Bayes com TODO o histórico de gastos variados categorizados do usuário.
+ * Persiste os pesos em tb_financeiro_modelo_estado.
+ * @param {object} context
+ * @returns {object}
+ */
+export async function treinarModeloUsuario(context = {}) {
+  const userId = String(context?.userId || '');
+  if (!userId) return { error: 'userId obrigatorio' };
+
+  // Busca todo o histórico de gastos variados com categoria preenchida
+  const { data: historico, error: histErr } = await supabase
+    .from(TABLE_FINANCAS)
+    .select('descricao, categoria')
+    .eq('user_id', userId)
+    .eq('tipo', 'despesa')
+    .not('categoria', 'is', null)
+    .not('descricao', 'is', null);
+
+  if (histErr) return { error: histErr.message };
+
+  const transactions = (historico || []).filter(t => t.descricao && t.categoria);
+  const pesos = calcularNaiveBayesWeights(transactions);
+  const aprendizado = Math.min(100, Math.round((transactions.length / 30) * 100));
+
+  const payload = {
+    user_id: userId,
+    mes_ano: new Date().toISOString().slice(0, 7),
+    escopo: 'financeiro',
+    origem: 'treinamento_manual',
+    pesos,
+    aprendizado_percentual: aprendizado,
+    payload: { total_transacoes: transactions.length },
+    metadados: { treinado_em: new Date().toISOString() },
+  };
+
+  const { error: insertErr } = await supabase
+    .from(TABLE_FINANCEIRO_MODELO_ESTADO)
+    .insert(payload);
+
+  if (insertErr) return { error: insertErr.message };
+
+  return {
+    ok: true,
+    total_transacoes: transactions.length,
+    vocab_size: pesos.vocab_size || 0,
+    aprendizado_percentual: aprendizado,
+  };
+}
+
+/**
+ * Treina o modelo Naive Bayes de TODOS os usuários do sistema.
+ * Ideal para execução agendada via Cron (ex: Vercel Crons toda madrugada).
+ * @returns {object}
+ */
+export async function treinarModeloTodosUsuarios() {
+  try {
+    const { data: usersData, error: usersErr } = await supabase
+      .from(TABLE_FINANCAS)
+      .select('user_id')
+      .not('user_id', 'is', null);
+
+    if (usersErr) return { error: usersErr.message };
+
+    const userIds = Array.from(new Set((usersData || []).map(u => String(u.user_id)).filter(Boolean)));
+    const resultados = [];
+
+    for (const userId of userIds) {
+      const res = await treinarModeloUsuario({ userId });
+      resultados.push({ userId, status: res.ok ? 'sucesso' : 'erro', detalhe: res });
+    }
+
+    return { ok: true, total_usuarios_treinados: resultados.length, resultados };
+  } catch (err) {
+    return { error: err.message || 'Erro ao treinar modelos de todos os usuários' };
+  }
+}
+
+/**
+ * Classifica a descrição de uma transação usando o modelo treinado do usuário.
+ * @param {string} descricao
+ * @param {object} context
+ * @returns {object}
+ */
+export async function classificarTransacao(descricao, context = {}) {
+  if (!descricao) return { error: 'descricao obrigatoria' };
+
+  const modeloState = await carregarPesosModelo(context);
+  const pesos = modeloState?.pesos || {};
+
+  const categoria = inferCategory(descricao, pesos);
+
+  return {
+    descricao,
+    categoria_sugerida: categoria,
+    modelo_treinado: modeloState !== null,
+    aprendizado_percentual: modeloState?.aprendizado_percentual || 0,
+  };
 }
