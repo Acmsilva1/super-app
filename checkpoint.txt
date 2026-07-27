@@ -1,9 +1,20 @@
-=== CHECKPOINT — Corrigido Histórico do Analista (Cards de Março a Julho) ===
+=== CHECKPOINT — Correção dos Valores Zerados das Tabelas e Cards Históricos ===
 Data: 2026-07-27
 
-== CORREÇÃO REALIZADA ==
-1. O endpoint `/api/financeiro-analista.js` estava retornando `historico_detalhado: []` e `cards: {}` em branco, o que fazia a interface antiga exibir "Sem histórico suficiente" em todos os cards.
-2. Atualizado `/api/financeiro-analista.js` para buscar os gráficos anuais completos (bi=1) e calcular automaticamente os cards de **Melhor Mês**, **Pior Mês**, **Mês com Mais Fixas**, **Mês com Mais Variáveis**, etc.
-3. Removido o filtro rígido em `index.html` que ignorava qualquer histórico anterior a Fevereiro/2026 (`2026-02`).
+== PROBLEMAS IDENTIFICADOS NAS FOTOS E CORRIGIDOS ==
 
-Agora, tendo lançamentos desde Março até Julho, todos os meses são contabilizados e os cards são preenchidos corretamente com os números reais do usuário!
+1. Coluna "FIXAS" Zerada na Tabela de Meses (Foto 4):
+   - Causa: `calcularGraficosAnuais` não estava separando `despesas_fixas` e `despesas_variadas` no retorno anual.
+   - Solução: Adicionadas as propriedades `despesas_fixas` e `despesas_variadas` individualmente no agrupamento mensal do ano.
+
+2. Card 5 ("Mês com Mais Despesas Fixas") Exibindo Janeiro R$ 0.00 (Foto 1):
+   - Causa: Como a coluna de despesas fixas estava zerada para o ano todo, o filtro pegava o primeiro mês (Janeiro R$ 0.00).
+   - Solução: Agora filtra apenas meses onde `despesas_fixas > 0` e traz o mês real com o maior valor.
+
+3. Cards 7 e 8 ("Mês Mais Positivo" e "Mês Mais Negativo") Exibindo 0.0% (Foto 2):
+   - Causa: O cálculo da porcentagem de comprometimento da receita não estava sendo enviado no payload.
+   - Solução: Adicionado o campo `percentual` calculando `% de despesas sobre a receita` para cada mês.
+
+4. Tabela de Categorias Exibindo "% DO ANO" em 0.0% (Foto 3):
+   - Causa: `resumo_anual.despesas_totais` não estava sendo populado na resposta da API.
+   - Solução: Populado o objeto `resumo_anual` com os totais acumulados de despesas e receitas do ano todo.

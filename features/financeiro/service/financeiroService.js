@@ -241,6 +241,8 @@ export function calcularGraficosAnuais({ ano, rows, despesasFixasRows }) {
     mes: i + 1,
     mes_ano: `${year}-${String(i + 1).padStart(2, '0')}`,
     receitas: 0,
+    despesas_fixas: 0,
+    despesas_variadas: 0,
     despesas: 0,
   }));
   const slotByKey = new Map(meses.map((item) => [item.mes_ano, item]));
@@ -257,14 +259,18 @@ export function calcularGraficosAnuais({ ano, rows, despesasFixasRows }) {
     const key = getYearMonthKey(row);
     const slot = slotByKey.get(key);
     if (!slot) continue;
-    slot.despesas = Math.round((slot.despesas + (Number(row?.valor) || 0)) * 100) / 100;
+    const val = Number(row?.valor) || 0;
+    slot.despesas_variadas = Math.round((slot.despesas_variadas + val) * 100) / 100;
+    slot.despesas = Math.round((slot.despesas + val) * 100) / 100;
   }
 
   for (const row of despesasFixasRows || []) {
     const key = getYearMonthKey(row);
     const slot = slotByKey.get(key);
     if (!slot) continue;
-    slot.despesas = Math.round((slot.despesas + (Number(row?.valor) || 0)) * 100) / 100;
+    const val = Number(row?.valor) || 0;
+    slot.despesas_fixas = Math.round((slot.despesas_fixas + val) * 100) / 100;
+    slot.despesas = Math.round((slot.despesas + val) * 100) / 100;
   }
 
   return meses.map((item) => ({

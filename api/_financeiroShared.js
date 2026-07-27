@@ -191,8 +191,8 @@ async function cleanupFutureParcelas(row, context = {}) {
 }
 
 const DESPESA_FIXA_SERIES_COLUMNS = 'descricao, valor, status, conta_fixa, parcela_atual, parcela_total, created_at';
-const FINANCAS_ANUAL_COLUMNS = 'tipo, valor, data_lancamento, created_at';
-const DESPESA_FIXA_ANUAL_COLUMNS = 'valor, created_at';
+const FINANCAS_ANUAL_COLUMNS = 'tipo, valor, categoria, data_lancamento, created_at';
+const DESPESA_FIXA_ANUAL_COLUMNS = 'valor, status, created_at';
 
 function wantsGraficosAnuais(query = {}) {
   const bi = String(query?.bi ?? '').toLowerCase();
