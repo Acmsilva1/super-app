@@ -6,7 +6,11 @@
   "scripts": {
     "build": "echo Build complete",
     "test": "npm run test:ux && vitest run --pool threads",
-    "test:ux": "node scripts/ux-component-analyst.cjs --path index.html --path api --path features --path lib"
+    "test:ux": "node scripts/ux-component-analyst.cjs --path index.html --path api --path features --path lib",
+    "doc:validate": "node \"C:/projetos e aplicativos/documentacao/scripts/doc-cli.cjs\" validate",
+    "doc:sync": "node \"C:/projetos e aplicativos/documentacao/scripts/doc-cli.cjs\" sync",
+    "doc:push": "node \"C:/projetos e aplicativos/documentacao/scripts/doc-cli.cjs\" push",
+    "doc:watch": "node \"C:/projetos e aplicativos/documentacao/scripts/doc-cli.cjs\" watch"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

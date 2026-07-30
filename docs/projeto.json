@@ -1,0 +1,50 @@
+{
+  "docId": "004",
+  "signature": "sig_super_app_v1",
+  "projectId": "proj_super_app",
+  "typeSlug": "ARCHITECTURE",
+  "title": "Super App",
+  "slug": "projeto-004",
+  "summary": "PWA pessoal — Financeiro, Lista de Compras, Fluxograma e Missões de Treino. Vercel + Supabase RLS.",
+  "tags": ["pwa", "supabase", "vercel", "financeiro", "personal"],
+  "content": {
+    "architecture": {
+      "overview": "PWA pessoal (SUPERAPP) com micro-apps de produtividade e finanças. Shell index.html + service worker; backend Vercel Functions; Supabase Auth + RLS por user_id. Produção: super-app-zeta-virid.vercel.app.",
+      "components": [
+        { "name": "Shell PWA", "description": "index.html, manifest.json, sw.js — auth Supabase e roteamento interno." },
+        { "name": "API serverless", "description": "financeiro, lista-compras, fluxograma, missoes-treino, cron Naive Bayes." },
+        { "name": "Features/", "description": "Domínio: financeiro, lista_compras, fluxograma, missoes_treino." },
+        { "name": "Lib/", "description": "supabase.js, auth.js roles, financeiroAnualCache.js." },
+        { "name": "Supabase", "description": "tb_financas, tb_lista_compras, tb_fluxograma, tb_missoes, app_user_roles + RLS." }
+      ],
+      "dataFlow": "Login Supabase → Bearer /api/* → auth roles → service persiste → RLS isola user_id. Cron 06:00 retreina modelo financeiro."
+    },
+    "stack": {
+      "frontend": "HTML/CSS/JS PWA, ECharts",
+      "backend": "Vercel Functions Node ESM",
+      "database": "Supabase PostgreSQL + Auth",
+      "infra": "Vercel cron vercel.json"
+    },
+    "paths": {
+      "workspace": "C:\\projetos e aplicativos\\pessoal\\super app\\super-app-1",
+      "shell": "index.html",
+      "migrations": "sql/"
+    },
+    "security": {
+      "lgpd": "Dados financeiros e pessoais do usuário. RLS obrigatório por user_id.",
+      "credentials": "SUPABASE_URL, SUPABASE_ANON_KEY, SERVICE_ROLE e CRON_SECRET na Vercel.",
+      "pendencias": ["Revisar exposição auth-config anon key no frontend"]
+    },
+    "deploy": {
+      "environment": "Vercel Production",
+      "steps": ["git push", "Vercel auto-deploy", "validar env vars"],
+      "healthCheck": "GET https://super-app-zeta-virid.vercel.app/api/apps"
+    },
+    "checklist": {
+      "tests": ["npm test", "npm run test:ux"],
+      "pendencias": ["README desatualizado vs código"],
+      "checkpoint": "Documentação padronizada projeto-004 — 2026-07-30"
+    },
+    "technologies": ["Vercel Functions", "Supabase", "PWA", "Vitest", "Naive Bayes"]
+  }
+}
