@@ -3,7 +3,7 @@ import { HIDDEN_MS, VISIBLE_MS, normalizeMessages, pickNextTip, sameList } from 
 
 const state = {
   mounted: false,
-  enabled: true,
+  enabled: false,
   open: false,
   tip: null,
   panelIndex: 0,
@@ -177,7 +177,7 @@ export const TipRobot = {
     if (typeof document === 'undefined') return;
     const nextPool = normalizeMessages(options.messages);
     const nextName = String(options.userName || '');
-    const nextEnabled = options.enabled !== false;
+    const nextEnabled = options.enabled === true;
     const nextLabel = String(options.label || 'DICAS');
     const nextColor = String(options.accentColor || '#0ea5e9');
 

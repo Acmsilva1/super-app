@@ -7319,26 +7319,8 @@
             },
 
             mountTipRobot(messages) {
-                const list = Array.isArray(messages) && messages.length
-                    ? messages
-                    : (window.DICAS_FINANCEIRO || []);
-                const mount = () => {
-                    if (!window.TipRobot?.mount || !list.length) return false;
-                    window.TipRobot.mount({
-                        enabled: true,
-                        userName: this.resolveTipUserName(),
-                        messages: list,
-                        accentColor: '#0ea5e9',
-                        label: 'DICAS',
-                    });
-                    return true;
-                };
-                if (mount()) return;
-                let tries = 0;
-                const timer = window.setInterval(() => {
-                    tries += 1;
-                    if (mount() || tries >= 20) window.clearInterval(timer);
-                }, 50);
+                try { window.TipRobot?.destroy?.(); } catch (_) {}
+                return false;
             },
 
             showApp() {
@@ -8029,14 +8011,7 @@
             }
 
             updateTipRobotFromFinanceiro(data) {
-                try {
-                    const build = window.buildDicasFinanceiroFromData;
-                    if (typeof build !== 'function' || !window.TipRobot?.mount) return;
-                    const messages = build(data || {}, {
-                        formatMoney: (n) => this.formatMoneyBr(n),
-                    });
-                    SuperAppAuth.mountTipRobot(messages);
-                } catch (_) {}
+                return;
             }
 
             downloadHtmlReport(filenameBase, htmlContent) {
