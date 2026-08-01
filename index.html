@@ -9924,7 +9924,9 @@ ${financeRowActions(r.id, 'compra')}
 
                 shellEl.addEventListener('touchstart', (e) => {
                     const t = e.touches[0];
-                    if (e.target.closest('input, select, button, textarea, a, .finance-filter-chip')) return;
+                    const target = e.target;
+                    if (target.closest('input, select, button, textarea, a, .finance-filter-chip')) return;
+                    if (target.closest('.finance-table-scroll, .module-table-wrap, .module-table, .finance-despesas-col, .finance-limited-table-wrap, .app-list-actions')) return;
                     _swTouchStartX = t.clientX;
                     _swTouchStartY = t.clientY;
                     _swTouchTime = Date.now();
