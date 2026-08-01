@@ -8697,11 +8697,11 @@ ${financeRowActions(r.id, 'compra')}
                                 <select id="financeiro-ano">${anos.map((a) => `<option value="${a}" ${(a === ano) ? 'selected' : ''}>${a}</option>`).join('')}</select>
                             </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
-                                <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--float" aria-hidden="true">📂</span>Dados</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--bounce" aria-hidden="true">📊</span>Dashboards</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">🐷</span>Poupan&ccedil;a</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--swing" aria-hidden="true">🛒</span>Compras</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'analista' ? 'is-active' : ''}" data-action="module-tab" data-tab="analista" role="tab" aria-selected="${activeTab === 'analista' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--spin" aria-hidden="true">🤖</span>Analista</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-label="Dados" aria-selected="${activeTab === 'data' ? 'true' : 'false'}"><span aria-hidden="true">📂</span></button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-label="Dashboards" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}"><span aria-hidden="true">📊</span></button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-label="Poupança" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}"><span aria-hidden="true">🐷</span></button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-label="Compras" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}"><span aria-hidden="true">🛒</span></button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'analista' ? 'is-active' : ''}" data-action="module-tab" data-tab="analista" role="tab" aria-label="Analista" aria-selected="${activeTab === 'analista' ? 'true' : 'false'}"><span aria-hidden="true">🤖</span></button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <button type="button" class="finance-filter-chip finance-filter-chip--fixas" data-action="financeiro-data-filter" data-target="despesas_fixas" role="tab" aria-selected="false">
@@ -8722,6 +8722,7 @@ ${financeRowActions(r.id, 'compra')}
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'analista' ? '' : 'hidden'}" data-tab-panel="analista">
+                            <h2 class="finance-tab-title"><span aria-hidden="true">🤖</span> Analista</h2>
                             <div id="financeiro-analista-panel" class="finance-analista-shell">
                                 <div class="finance-analista-card">
                                     <span class="finance-analista-card__label">Carregando</span>
@@ -8731,6 +8732,7 @@ ${financeRowActions(r.id, 'compra')}
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
+                            <h2 class="finance-tab-title"><span aria-hidden="true">📊</span> Dashboards</h2>
                             <div class="app-totais app-totais--financeiro">
                                 <p class="totais-group-title">Valores brutos</p>
                                 <div class="totais-card totais-card--main totais-card--receitas"><div class="val">${this.formatMoneyBr(receitasVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--coin" aria-hidden="true">💰</span>Receitas</div></div>
