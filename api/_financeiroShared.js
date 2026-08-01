@@ -190,6 +190,39 @@ async function cleanupFutureParcelas(row, context = {}) {
   if (error) throw error;
 }
 
+async function cleanupFutureContaFixa(row, context = {}) {
+  if (row?.conta_fixa !== true && row?.conta_fixa !== 'true') return;
+  const descricaoNorm = normalizeSerieDescricao(row.descricao);
+  if (!descricaoNorm) return;
+  const rowMesAno = mesAnoFromDateLike(row.created_at);
+  if (!rowMesAno) return;
+  const [ano, mes] = rowMesAno.split('-').map(Number);
+  const futuroCutoff = new Date(Date.UTC(ano, mes - 1, 1)).toISOString();
+
+  const { data, error } = await scopeQueryByUser(
+    supabase
+      .from(TABLE_DESPESAS_FIXAS)
+      .select('id, descricao, conta_fixa, created_at')
+      .eq('conta_fixa', true)
+      .gte('created_at', futuroCutoff),
+    context
+  );
+  if (error) throw error;
+
+  const ids = (data || [])
+    .filter((r) => String(r.id) !== String(row.id))
+    .filter((r) => normalizeSerieDescricao(r.descricao) === descricaoNorm)
+    .map((r) => r.id)
+    .filter(Boolean);
+
+  if (!ids.length) return;
+  const { error: delErr } = await scopeQueryByUser(
+    supabase.from(TABLE_DESPESAS_FIXAS).delete().in('id', ids),
+    context
+  );
+  if (delErr) throw delErr;
+}
+
 const DESPESA_FIXA_SERIES_COLUMNS = 'descricao, valor, status, conta_fixa, parcela_atual, parcela_total, created_at';
 const FINANCAS_ANUAL_COLUMNS = 'tipo, valor, categoria, data_lancamento, created_at';
 const DESPESA_FIXA_ANUAL_COLUMNS = 'valor, status, created_at';
@@ -574,9 +607,22 @@ export async function atualizarRegistroFinanceiro(req, context = {}) {
     && body.parcelas !== undefined
     && !(body.parcelas === true || body.parcelas === 'true');
 
+  const turningContaFixaOff = parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA
+    && body.conta_fixa !== undefined
+    && !(body.conta_fixa === true || body.conta_fixa === 'true')
+    && (existingRow?.conta_fixa === true || existingRow?.conta_fixa === 'true');
+
   if (turningParcelasOff && existingRow && isParcelaRow(existingRow)) {
     try {
       await cleanupFutureParcelas(existingRow, context);
+    } catch (cleanupErr) {
+      return { status: 500, data: { error: cleanupErr.message } };
+    }
+  }
+
+  if (turningContaFixaOff && existingRow) {
+    try {
+      await cleanupFutureContaFixa(existingRow, context);
     } catch (cleanupErr) {
       return { status: 500, data: { error: cleanupErr.message } };
     }
@@ -650,9 +696,14 @@ export async function removerRegistroFinanceiro(req, context = {}) {
   const { error } = await scopeQueryByUser(supabase.from(table).delete().eq('id', id), context);
   if (error) return { status: 500, data: { error: error.message } };
 
-  if (currentDespesaFixa && isParcelaRow(currentDespesaFixa)) {
+  if (currentDespesaFixa) {
     try {
-      await cleanupFutureParcelas(currentDespesaFixa, context);
+      if (isParcelaRow(currentDespesaFixa)) {
+        await cleanupFutureParcelas(currentDespesaFixa, context);
+      }
+      if (currentDespesaFixa.conta_fixa === true || currentDespesaFixa.conta_fixa === 'true') {
+        await cleanupFutureContaFixa(currentDespesaFixa, context);
+      }
     } catch (cleanupErr) {
       return { status: 500, data: { error: cleanupErr.message } };
     }

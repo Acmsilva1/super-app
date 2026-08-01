@@ -10382,19 +10382,6 @@ ${financeRowActions(r.id, 'compra')}
                 const parcelaAtualField = overlay.querySelector('#financeiro-parcela-atual-field');
                 const parcelaTotalField = overlay.querySelector('#financeiro-parcela-total-field');
                 const parcelasCb = overlay.querySelector('#financeiro-modal-parcelas');
-                const fixedFinanceiroTime = initialDateTime.slice(11, 16);
-                const keepFixedFinanceiroTime = () => {
-                    if (!dataEl || !dataEl.value) return;
-                    const current = String(dataEl.value || '').trim();
-                    const datePart = current.slice(0, 10);
-                    if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart) || !/^\d{2}:\d{2}$/.test(fixedFinanceiroTime)) return;
-                    const normalized = `${datePart}T${fixedFinanceiroTime}`;
-                    if (current.slice(0, 16) !== normalized) dataEl.value = normalized;
-                };
-                if (dataEl) {
-                    dataEl.addEventListener('change', keepFixedFinanceiroTime);
-                    dataEl.addEventListener('blur', keepFixedFinanceiroTime);
-                }
                 if (descricaoEl && catEl) {
                     descricaoEl.addEventListener('blur', async () => {
                         const desc = String(descricaoEl.value || '').trim();
@@ -10528,7 +10515,6 @@ ${financeRowActions(r.id, 'compra')}
                     syncParcelasUI();
                 };
                 setTipoUI(tipoEl.value);
-                keepFixedFinanceiroTime();
                 tipoEl.onchange = () => setTipoUI(tipoEl.value);
                 if (mesRefEl) mesRefEl.addEventListener('change', () => setTipoUI(tipoEl.value));
 
