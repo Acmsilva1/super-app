@@ -3305,12 +3305,18 @@
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
-            background: rgba(15, 27, 48, 0.8);
+            background: rgba(15, 27, 48, 0.85);
             border: 1px solid rgba(96, 136, 194, 0.36);
             border-radius: 999px;
-            padding: 0.26rem;
+            padding: 0.28rem 0.4rem;
             width: fit-content;
             max-width: 100%;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .module-tabbar::-webkit-scrollbar {
+            display: none;
         }
         .module-tab-btn {
             border: none;
@@ -3334,6 +3340,37 @@
         .module-tab-btn:not(.is-active):hover {
             color: #d8e8ff;
             transform: translateY(-1px);
+        }
+        .finance-paginator-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.6rem 0 0.3rem 0;
+            grid-column: 1 / -1;
+        }
+        .finance-paginator-dots {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(15, 27, 48, 0.85);
+            padding: 0.38rem 0.85rem;
+            border-radius: 999px;
+            border: 1px solid rgba(96, 136, 194, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .finance-paginator-dots .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(168, 196, 234, 0.35);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .finance-paginator-dots .dot.is-active {
+            width: 22px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #38bdf8, #0284c7);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
         }
         .module-tab-select-wrap {
             display: none;
@@ -4440,14 +4477,14 @@
                 font-size: 0.78rem;
             }
             .finance-sticky-head > .module-tabbar {
-                display: none;
-            }
-            .finance-sticky-head > .module-tab-select-wrap {
-                display: block;
+                display: inline-flex !important;
                 grid-column: 1 / -1;
                 grid-row: 2;
-                order: unset;
                 width: 100%;
+            }
+            .finance-sticky-head > .module-tab-select-wrap,
+            .finance-data-jump-select-wrap {
+                display: none !important;
             }
             .module-tab-select-label,
             .finance-data-jump-select-label {
@@ -8659,33 +8696,14 @@ ${financeRowActions(r.id, 'compra')}
                                 <select id="financeiro-mes">${meses.map((m, i) => `<option value="${i + 1}" ${(i + 1 === mes) ? 'selected' : ''}>${m}</option>`).join('')}</select>
                                 <select id="financeiro-ano">${anos.map((a) => `<option value="${a}" ${(a === ano) ? 'selected' : ''}>${a}</option>`).join('')}</select>
                             </div>
-                            <div class="module-tab-select-wrap">
-                                <label class="module-tab-select-label" for="financeiro-tab-select">Aba</label>
-                                <select id="financeiro-tab-select" class="module-tab-select" aria-label="Escolher aba de financeiro">
-                                    <option value="data" ${activeTab === 'data' ? 'selected' : ''}>📂 Dados</option>
-                                    <option value="summary" ${activeTab === 'summary' ? 'selected' : ''}>📊 Dashboards</option>
-                                    <option value="poupanca" ${activeTab === 'poupanca' ? 'selected' : ''}>🐷 Poupan&ccedil;a</option>
-                                    <option value="compras" ${activeTab === 'compras' ? 'selected' : ''}>🛒 Compras maiores</option>
-                                    <option value="analista" ${activeTab === 'analista' ? 'selected' : ''}>🤖 Analista & Riscos</option>
-                                </select>
-                            </div>
                             <div class="module-tabbar" role="tablist" aria-label="Subabas de financeiro">
                                 <button type="button" class="module-tab-btn ${activeTab === 'data' ? 'is-active' : ''}" data-action="module-tab" data-tab="data" role="tab" aria-selected="${activeTab === 'data' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--float" aria-hidden="true">📂</span>Dados</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--bounce" aria-hidden="true">📊</span>Dashboards</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--wiggle" aria-hidden="true">🐷</span>Poupan&ccedil;a</button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--swing" aria-hidden="true">🛒</span>Compras maiores</button>
+                                <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--swing" aria-hidden="true">🛒</span>Compras</button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'analista' ? 'is-active' : ''}" data-action="module-tab" data-tab="analista" role="tab" aria-selected="${activeTab === 'analista' ? 'true' : 'false'}"><span class="finance-emoji finance-emoji--spin" aria-hidden="true">🤖</span>Analista</button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
-                                <div class="finance-data-jump-select-wrap">
-                                    <label class="finance-data-jump-select-label" for="financeiro-data-filter-select">Tabela</label>
-                                    <select id="financeiro-data-filter-select" class="finance-data-jump-select" aria-label="Escolher tabela de dados">
-                                        <option value="" ${!activeDataFilter ? 'selected' : ''}>Escolha a tabela</option>
-                                        <option value="despesas_fixas" ${activeDataFilter === 'despesas_fixas' ? 'selected' : ''}>🏠 Despesas fixas</option>
-                                        <option value="gastos_variados" ${activeDataFilter === 'gastos_variados' ? 'selected' : ''}>⚡ Débito / pix</option>
-                                        <option value="receitas" ${activeDataFilter === 'receitas' ? 'selected' : ''}>💰 Receitas</option>
-                                    </select>
-                                </div>
                                 <button type="button" class="finance-filter-chip finance-filter-chip--fixas" data-action="financeiro-data-filter" data-target="despesas_fixas" role="tab" aria-selected="false">
                                     <span class="finance-filter-chip-label">Ver só</span>
                                     <span class="finance-filter-chip-title"><span class="finance-emoji finance-emoji--float" aria-hidden="true">🏠</span>Despesas fixas</span>
@@ -8698,6 +8716,9 @@ ${financeRowActions(r.id, 'compra')}
                                     <span class="finance-filter-chip-label">Ver só</span>
                                     <span class="finance-filter-chip-title"><span class="finance-emoji finance-emoji--coin" aria-hidden="true">💰</span>Receitas</span>
                                 </button>
+                            </div>
+                            <div class="finance-paginator-container">
+                                <div class="finance-paginator-dots" id="financeiro-paginator-dots" aria-label="Indicadores de paginação"></div>
                             </div>
                         </div>
                         <div class="module-tab-panel ${activeTab === 'analista' ? '' : 'hidden'}" data-tab-panel="analista">
@@ -9779,10 +9800,34 @@ ${financeRowActions(r.id, 'compra')}
                         const totalPagas = pagas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                         ensureFixasMobileThermo(totalPagas, totalPendentes);
                     }
-                    requestAnimationFrame(() => {
-                        el._syncFinanceStickyOffset?.();
-                        if (window.innerWidth <= 768 && normalizedTarget) el.scrollTop = 0;
-                    });
+                    updatePaginatorDots();
+                const updatePaginatorDots = () => {
+                    const dotsEl = el.querySelector('#financeiro-paginator-dots');
+                    if (!dotsEl) return;
+                    const curTab = el.getAttribute('data-active-tab') || 'data';
+                    const curFilter = el.getAttribute('data-active-data-filter') || '';
+
+                    if (curTab === 'data') {
+                        const filters = ['despesas_fixas', 'gastos_variados', 'receitas'];
+                        dotsEl.innerHTML = filters.map((f) => `
+                            <span class="dot ${curFilter === f ? 'is-active' : ''}" data-filter-target="${f}" title="${f}"></span>
+                        `).join('');
+                        dotsEl.querySelectorAll('.dot').forEach((dot) => {
+                            dot.onclick = () => {
+                                applyFinanceDataFilter(dot.dataset.filterTarget);
+                            };
+                        });
+                    } else {
+                        const tabs = ['data', 'summary', 'poupanca', 'compras', 'analista'];
+                        dotsEl.innerHTML = tabs.map((t) => `
+                            <span class="dot ${curTab === t ? 'is-active' : ''}" data-tab-target="${t}" title="${t}"></span>
+                        `).join('');
+                        dotsEl.querySelectorAll('.dot').forEach((dot) => {
+                            dot.onclick = () => {
+                                setTab(dot.dataset.tabTarget);
+                            };
+                        });
+                    }
                 };
 
                 const setTab = (tab) => {
@@ -9797,10 +9842,17 @@ ${financeRowActions(r.id, 'compra')}
                         btn.classList.toggle('is-active', active);
                         btn.setAttribute('aria-selected', active ? 'true' : 'false');
                     });
-                    const tabSelect = el.querySelector('#financeiro-tab-select');
-                    if (tabSelect && tabSelect.value !== tab) tabSelect.value = tab;
                     el.querySelectorAll('[data-tab-panel]').forEach((panel) => {
-                        panel.classList.toggle('hidden', panel.dataset.tabPanel !== tab);
+                        const active = panel.dataset.tabPanel === tab;
+                        panel.classList.toggle('hidden', !active);
+                        if (active && window.Motion?.animate) {
+                            try {
+                                window.Motion.animate(panel,
+                                    { opacity: [0.4, 1], transform: ['translateY(8px) scale(0.99)', 'translateY(0px) scale(1)'] },
+                                    { duration: 0.22, easing: 'ease-out' }
+                                );
+                            } catch (_) {}
+                        }
                     });
                     const dataJumpBar = el.querySelector('.finance-data-jump-bar');
                     if (dataJumpBar) dataJumpBar.style.display = tab === 'data' ? '' : 'none';
@@ -9813,6 +9865,7 @@ ${financeRowActions(r.id, 'compra')}
                         ensureFixasMobileThermo();
                     }
                     if (tab === 'analista') loadFinanceiroAnalista();
+                    updatePaginatorDots();
                 };
 
                 el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
@@ -9822,21 +9875,69 @@ ${financeRowActions(r.id, 'compra')}
                         if (t === 'data') applyFinanceDataFilter(el.getAttribute('data-active-data-filter') || '');
                     };
                 });
-                const dataFilterSelect = el.querySelector('#financeiro-data-filter-select');
-                if (dataFilterSelect) {
-                    dataFilterSelect.onchange = () => {
-                        setTab('data');
-                        applyFinanceDataFilter(dataFilterSelect.value || '');
-                    };
-                }
-                const tabSelect = el.querySelector('#financeiro-tab-select');
-                if (tabSelect) {
-                    tabSelect.onchange = () => {
-                        const t = tabSelect.value || 'data';
-                        setTab(t);
-                        if (t === 'data') applyFinanceDataFilter(el.getAttribute('data-active-data-filter') || '');
-                    };
-                }
+
+                // Suporte a gestos de swipe ("Jogar pro lado com o dedo") usando Motion JS
+                let touchStartX = 0;
+                let touchStartY = 0;
+                let touchStartTime = 0;
+                const shellEl = el.querySelector('.finance-module-shell') || el;
+
+                shellEl.onpointerdown = (e) => {
+                    if (e.target.closest('input, select, button, textarea, table, tr, td, a, .finance-filter-chip')) return;
+                    touchStartX = e.clientX;
+                    touchStartY = e.clientY;
+                    touchStartTime = Date.now();
+                };
+
+                shellEl.onpointerup = (e) => {
+                    if (!touchStartX || !touchStartTime) return;
+                    const deltaX = e.clientX - touchStartX;
+                    const deltaY = e.clientY - touchStartY;
+                    const duration = Date.now() - touchStartTime;
+                    touchStartX = 0;
+                    touchStartY = 0;
+
+                    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) && duration < 600) {
+                        const curTab = el.getAttribute('data-active-tab') || 'data';
+                        const curFilter = el.getAttribute('data-active-data-filter') || '';
+
+                        if (curTab === 'data') {
+                            const filters = ['despesas_fixas', 'gastos_variados', 'receitas'];
+                            const idx = filters.indexOf(curFilter);
+                            if (deltaX < 0) {
+                                // Deslizar para a esquerda -> Proximo item/tabela
+                                if (idx === -1) {
+                                    applyFinanceDataFilter(filters[0]);
+                                } else if (idx < filters.length - 1) {
+                                    applyFinanceDataFilter(filters[idx + 1]);
+                                } else {
+                                    setTab('summary');
+                                }
+                            } else {
+                                // Deslizar para a direita -> Item/tabela anterior
+                                if (idx > 0) {
+                                    applyFinanceDataFilter(filters[idx - 1]);
+                                } else if (idx === 0) {
+                                    applyFinanceDataFilter('');
+                                }
+                            }
+                        } else {
+                            const tabs = ['data', 'summary', 'poupanca', 'compras', 'analista'];
+                            const tIdx = tabs.indexOf(curTab);
+                            if (deltaX < 0) {
+                                if (tIdx >= 0 && tIdx < tabs.length - 1) {
+                                    setTab(tabs[tIdx + 1]);
+                                    if (tabs[tIdx + 1] === 'data') applyFinanceDataFilter('despesas_fixas');
+                                }
+                            } else {
+                                if (tIdx > 0) {
+                                    setTab(tabs[tIdx - 1]);
+                                    if (tabs[tIdx - 1] === 'data') applyFinanceDataFilter('despesas_fixas');
+                                }
+                            }
+                        }
+                    }
+                };
                 if (!el._financeiroAnalistaRefreshBound) {
                     el._financeiroAnalistaRefreshBound = true;
                     el.addEventListener('click', async (event) => {
