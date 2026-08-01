@@ -9882,68 +9882,76 @@ ${financeRowActions(r.id, 'compra')}
                     };
                 });
 
-                // Suporte a gestos de swipe ("Jogar pro lado com o dedo") usando Motion JS
-                let touchStartX = 0;
-                let touchStartY = 0;
-                let touchStartTime = 0;
+                // Suporte a gestos de swipe ("Jogar pro lado com o dedo")
+                let _swTouchStartX = 0;
+                let _swTouchStartY = 0;
+                let _swTouchTime = 0;
+                let _swLocked = false;
                 const shellEl = el.querySelector('.finance-module-shell') || el;
 
-                shellEl.onpointerdown = (e) => {
-                    if (e.target.closest('input, select, button, textarea, table, tr, td, a, .finance-filter-chip')) return;
-                    touchStartX = e.clientX;
-                    touchStartY = e.clientY;
-                    touchStartTime = Date.now();
-                };
+                const _handleSwipe = (deltaX, deltaY, duration) => {
+                    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY) || duration > 700) return;
+                    const curTab = el.getAttribute('data-active-tab') || 'data';
+                    const curFilter = el.getAttribute('data-active-data-filter') || '';
 
-                shellEl.onpointerup = (e) => {
-                    if (!touchStartX || !touchStartTime) return;
-                    const deltaX = e.clientX - touchStartX;
-                    const deltaY = e.clientY - touchStartY;
-                    const duration = Date.now() - touchStartTime;
-                    touchStartX = 0;
-                    touchStartY = 0;
-
-                    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) && duration < 600) {
-                        const curTab = el.getAttribute('data-active-tab') || 'data';
-                        const curFilter = el.getAttribute('data-active-data-filter') || '';
-
-                        if (curTab === 'data') {
-                            const filters = ['despesas_fixas', 'gastos_variados', 'receitas'];
-                            const idx = filters.indexOf(curFilter);
-                            if (deltaX < 0) {
-                                // Deslizar para a esquerda -> Proximo item/tabela
-                                if (idx === -1) {
-                                    applyFinanceDataFilter(filters[0]);
-                                } else if (idx < filters.length - 1) {
-                                    applyFinanceDataFilter(filters[idx + 1]);
-                                } else {
-                                    setTab('summary');
-                                }
-                            } else {
-                                // Deslizar para a direita -> Item/tabela anterior
-                                if (idx > 0) {
-                                    applyFinanceDataFilter(filters[idx - 1]);
-                                } else if (idx === 0) {
-                                    applyFinanceDataFilter('');
-                                }
+                    if (curTab === 'data') {
+                        const filters = ['despesas_fixas', 'gastos_variados', 'receitas'];
+                        const idx = filters.indexOf(curFilter);
+                        if (deltaX < 0) {
+                            if (idx === -1) applyFinanceDataFilter(filters[0]);
+                            else if (idx < filters.length - 1) applyFinanceDataFilter(filters[idx + 1]);
+                            else setTab('summary');
+                        } else {
+                            if (idx > 0) applyFinanceDataFilter(filters[idx - 1]);
+                            else if (idx === 0) applyFinanceDataFilter('');
+                        }
+                    } else {
+                        const tabs = ['data', 'summary', 'poupanca', 'compras', 'analista'];
+                        const tIdx = tabs.indexOf(curTab);
+                        if (deltaX < 0) {
+                            if (tIdx >= 0 && tIdx < tabs.length - 1) {
+                                setTab(tabs[tIdx + 1]);
+                                if (tabs[tIdx + 1] === 'data') applyFinanceDataFilter('despesas_fixas');
                             }
                         } else {
-                            const tabs = ['data', 'summary', 'poupanca', 'compras', 'analista'];
-                            const tIdx = tabs.indexOf(curTab);
-                            if (deltaX < 0) {
-                                if (tIdx >= 0 && tIdx < tabs.length - 1) {
-                                    setTab(tabs[tIdx + 1]);
-                                    if (tabs[tIdx + 1] === 'data') applyFinanceDataFilter('despesas_fixas');
-                                }
-                            } else {
-                                if (tIdx > 0) {
-                                    setTab(tabs[tIdx - 1]);
-                                    if (tabs[tIdx - 1] === 'data') applyFinanceDataFilter('despesas_fixas');
-                                }
+                            if (tIdx > 0) {
+                                setTab(tabs[tIdx - 1]);
+                                if (tabs[tIdx - 1] === 'data') applyFinanceDataFilter('despesas_fixas');
                             }
                         }
                     }
                 };
+
+                shellEl.addEventListener('touchstart', (e) => {
+                    const t = e.touches[0];
+                    if (e.target.closest('input, select, button, textarea, a, .finance-filter-chip')) return;
+                    _swTouchStartX = t.clientX;
+                    _swTouchStartY = t.clientY;
+                    _swTouchTime = Date.now();
+                    _swLocked = false;
+                }, { passive: true });
+
+                shellEl.addEventListener('touchmove', (e) => {
+                    if (!_swTouchStartX) return;
+                    const dx = e.touches[0].clientX - _swTouchStartX;
+                    const dy = e.touches[0].clientY - _swTouchStartY;
+                    if (!_swLocked && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+                        _swLocked = true;
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+
+                shellEl.addEventListener('touchend', (e) => {
+                    if (!_swTouchStartX) return;
+                    const t = e.changedTouches[0];
+                    const deltaX = t.clientX - _swTouchStartX;
+                    const deltaY = t.clientY - _swTouchStartY;
+                    const duration = Date.now() - _swTouchTime;
+                    _swTouchStartX = 0;
+                    _swTouchStartY = 0;
+                    _swLocked = false;
+                    _handleSwipe(deltaX, deltaY, duration);
+                }, { passive: true });
                 if (!el._financeiroAnalistaRefreshBound) {
                     el._financeiroAnalistaRefreshBound = true;
                     el.addEventListener('click', async (event) => {
