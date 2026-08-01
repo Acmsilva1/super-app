@@ -9800,7 +9800,13 @@ ${financeRowActions(r.id, 'compra')}
                         const totalPagas = pagas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                         ensureFixasMobileThermo(totalPagas, totalPendentes);
                     }
+                    requestAnimationFrame(() => {
+                        el._syncFinanceStickyOffset?.();
+                        if (window.innerWidth <= 768 && normalizedTarget) el.scrollTop = 0;
+                    });
                     updatePaginatorDots();
+                };
+
                 const updatePaginatorDots = () => {
                     const dotsEl = el.querySelector('#financeiro-paginator-dots');
                     if (!dotsEl) return;
