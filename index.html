@@ -9817,6 +9817,7 @@ ${financeRowActions(r.id, 'compra')}
 
                     if (curTab === 'data') {
                         const filters = ['despesas_fixas', 'gastos_variados', 'receitas'];
+                        dotsEl.style.display = '';
                         dotsEl.innerHTML = filters.map((f) => `
                             <span class="dot ${curFilter === f ? 'is-active' : ''}" data-filter-target="${f}" title="${f}"></span>
                         `).join('');
@@ -9826,15 +9827,8 @@ ${financeRowActions(r.id, 'compra')}
                             };
                         });
                     } else {
-                        const tabs = ['data', 'summary', 'poupanca', 'compras', 'analista'];
-                        dotsEl.innerHTML = tabs.map((t) => `
-                            <span class="dot ${curTab === t ? 'is-active' : ''}" data-tab-target="${t}" title="${t}"></span>
-                        `).join('');
-                        dotsEl.querySelectorAll('.dot').forEach((dot) => {
-                            dot.onclick = () => {
-                                setTab(dot.dataset.tabTarget);
-                            };
-                        });
+                        dotsEl.style.display = 'none';
+                        dotsEl.innerHTML = '';
                     }
                 };
 
@@ -9869,8 +9863,14 @@ ${financeRowActions(r.id, 'compra')}
                     if (mesAnoBar) mesAnoBar.style.display = tab === 'poupanca' ? 'none' : '';
                     if (tab === 'summary') ensureCharts();
                     if (tab === 'poupanca') ensurePoupancaMetaChart();
-                    if (tab === 'data' && (el.getAttribute('data-active-data-filter') || '') === 'despesas_fixas') {
-                        ensureFixasMobileThermo();
+                    if (tab === 'data') {
+                        const curFilter = el.getAttribute('data-active-data-filter') || '';
+                        const firstFilter = 'despesas_fixas';
+                        if (!curFilter) {
+                            applyFinanceDataFilter(firstFilter);
+                            return;
+                        }
+                        if (curFilter === firstFilter) ensureFixasMobileThermo();
                     }
                     if (tab === 'analista') loadFinanceiroAnalista();
                     updatePaginatorDots();
@@ -9894,33 +9894,15 @@ ${financeRowActions(r.id, 'compra')}
                 const _handleSwipe = (deltaX, deltaY, duration) => {
                     if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY) || duration > 700) return;
                     const curTab = el.getAttribute('data-active-tab') || 'data';
+                    if (curTab !== 'data') return;
                     const curFilter = el.getAttribute('data-active-data-filter') || '';
-
-                    if (curTab === 'data') {
-                        const filters = ['despesas_fixas', 'gastos_variados', 'receitas'];
-                        const idx = filters.indexOf(curFilter);
-                        if (deltaX < 0) {
-                            if (idx === -1) applyFinanceDataFilter(filters[0]);
-                            else if (idx < filters.length - 1) applyFinanceDataFilter(filters[idx + 1]);
-                            else setTab('summary');
-                        } else {
-                            if (idx > 0) applyFinanceDataFilter(filters[idx - 1]);
-                            else if (idx === 0) applyFinanceDataFilter('');
-                        }
+                    const filters = ['despesas_fixas', 'gastos_variados', 'receitas'];
+                    let idx = filters.indexOf(curFilter);
+                    if (idx === -1) idx = 0;
+                    if (deltaX < 0) {
+                        if (idx < filters.length - 1) applyFinanceDataFilter(filters[idx + 1]);
                     } else {
-                        const tabs = ['data', 'summary', 'poupanca', 'compras', 'analista'];
-                        const tIdx = tabs.indexOf(curTab);
-                        if (deltaX < 0) {
-                            if (tIdx >= 0 && tIdx < tabs.length - 1) {
-                                setTab(tabs[tIdx + 1]);
-                                if (tabs[tIdx + 1] === 'data') applyFinanceDataFilter('despesas_fixas');
-                            }
-                        } else {
-                            if (tIdx > 0) {
-                                setTab(tabs[tIdx - 1]);
-                                if (tabs[tIdx - 1] === 'data') applyFinanceDataFilter('despesas_fixas');
-                            }
-                        }
+                        if (idx > 0) applyFinanceDataFilter(filters[idx - 1]);
                     }
                 };
 
