@@ -325,6 +325,7 @@ export function payloadInsertFinanceiro(body = {}) {
         parcela_atual: par.parcela_atual,
         parcela_total: par.parcela_total,
         conta_fixa: exclusividade.contaFixa,
+        ...(body.serie_id !== undefined ? { serie_id: String(body.serie_id || '').trim() || null } : {}),
         ...(body.created_at !== undefined ? { created_at: String(body.created_at || '').trim() || null } : {}),
       },
     };

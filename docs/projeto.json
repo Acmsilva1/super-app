@@ -43,7 +43,7 @@
     "checklist": {
       "tests": ["npm test", "npm run test:ux"],
       "pendencias": ["README desatualizado vs código"],
-      "checkpoint": "Documentação padronizada projeto-004 — 2026-07-30"
+      "checkpoint": "Implementação do serie_id e eliminação do parasita zumbi no financeiro — 2026-08-02"
     },
     "technologies": ["Vercel Functions", "Supabase", "PWA", "Vitest", "Naive Bayes"]
   }

@@ -34,6 +34,7 @@ import {
   calcularNaiveBayesWeights,
   inferCategory,
 } from '../features/financeiro/index.js';
+import crypto from 'node:crypto';
 
 function getBody(req) {
   if (typeof req.body !== 'string') return req.body || {};
@@ -103,11 +104,22 @@ function replicationOptionsFromPayload(payload = {}) {
     contaFixa,
     parcelaAtual: hasParcelas ? pa : null,
     parcelaTotal: hasParcelas ? pt : null,
+    serieId: payload.serie_id || null,
   };
 }
 
 function buildDespesaFixaInsertPayloads(basePayload, mesAno) {
-  const slots = buildReplicationSlotsFromStart(mesAno, replicationOptionsFromPayload(basePayload));
+  const contaFixa = basePayload.conta_fixa === true;
+  const pt = Number(basePayload.parcela_total);
+  const pa = Number(basePayload.parcela_atual);
+  const hasParcelas = Number.isFinite(pt) && Number.isFinite(pa) && pt >= 1 && pa >= 1;
+
+  const serieId = basePayload.serie_id || ((contaFixa || hasParcelas) ? crypto.randomUUID() : null);
+
+  const slots = buildReplicationSlotsFromStart(mesAno, {
+    ...replicationOptionsFromPayload(basePayload),
+    serieId,
+  });
   return slots.map((slot) => ({
     descricao: basePayload.descricao,
     valor: basePayload.valor,
@@ -115,6 +127,7 @@ function buildDespesaFixaInsertPayloads(basePayload, mesAno) {
     conta_fixa: slot.conta_fixa === true,
     parcela_atual: slot.parcela_atual,
     parcela_total: slot.parcela_total,
+    serie_id: slot.serie_id || serieId || null,
     created_at: createdAtForMesAno(slot.mes_ano, basePayload.created_at || null),
   }));
 }
@@ -157,6 +170,7 @@ function buildFutureParcelaSlotsFromRow(row) {
   return buildReplicationSlotsFromStart(startMesAno, {
     parcelaAtual: 1,
     parcelaTotal: total,
+    serieId: row.serie_id || null,
   }).filter((slot) => Number(slot.parcela_atual) > atual);
 }
 
@@ -164,6 +178,16 @@ async function findFutureParcelaIds(row, context = {}) {
   if (!isParcelaRow(row)) return [];
   const futureSlots = buildFutureParcelaSlotsFromRow(row);
   if (!futureSlots.length) return [];
+
+  if (row.serie_id) {
+    const { data, error } = await scopeQueryByUser(supabase
+      .from(TABLE_DESPESAS_FIXAS)
+      .select('id, parcela_atual')
+      .eq('serie_id', row.serie_id)
+      .gt('parcela_atual', row.parcela_atual), context);
+    if (error) throw error;
+    return (data || []).map((r) => r.id).filter(Boolean);
+  }
 
   const { data, error } = await scopeQueryByUser(supabase
     .from(TABLE_DESPESAS_FIXAS)
@@ -192,12 +216,36 @@ async function cleanupFutureParcelas(row, context = {}) {
 
 async function cleanupFutureContaFixa(row, context = {}) {
   if (row?.conta_fixa !== true && row?.conta_fixa !== 'true') return;
-  const descricaoNorm = normalizeSerieDescricao(row.descricao);
-  if (!descricaoNorm) return;
   const rowMesAno = mesAnoFromDateLike(row.created_at);
   if (!rowMesAno) return;
   const [ano, mes] = rowMesAno.split('-').map(Number);
   const futuroCutoff = new Date(Date.UTC(ano, mes - 1, 1)).toISOString();
+
+  if (row.serie_id) {
+    const { data, error } = await scopeQueryByUser(
+      supabase
+        .from(TABLE_DESPESAS_FIXAS)
+        .select('id, created_at')
+        .eq('serie_id', row.serie_id)
+        .gte('created_at', futuroCutoff),
+      context
+    );
+    if (error) throw error;
+    const ids = (data || [])
+      .filter((r) => String(r.id) !== String(row.id))
+      .map((r) => r.id)
+      .filter(Boolean);
+    if (!ids.length) return;
+    const { error: delErr } = await scopeQueryByUser(
+      supabase.from(TABLE_DESPESAS_FIXAS).delete().in('id', ids),
+      context
+    );
+    if (delErr) throw delErr;
+    return;
+  }
+
+  const descricaoNorm = normalizeSerieDescricao(row.descricao);
+  if (!descricaoNorm) return;
 
   const { data, error } = await scopeQueryByUser(
     supabase
@@ -223,7 +271,7 @@ async function cleanupFutureContaFixa(row, context = {}) {
   if (delErr) throw delErr;
 }
 
-const DESPESA_FIXA_SERIES_COLUMNS = 'descricao, valor, status, conta_fixa, parcela_atual, parcela_total, created_at';
+const DESPESA_FIXA_SERIES_COLUMNS = 'descricao, valor, status, conta_fixa, parcela_atual, parcela_total, serie_id, created_at';
 const FINANCAS_ANUAL_COLUMNS = 'tipo, valor, categoria, data_lancamento, created_at';
 const DESPESA_FIXA_ANUAL_COLUMNS = 'valor, status, created_at';
 
@@ -258,7 +306,7 @@ export async function materializeDespesasFixasMes(mesAno, context = {}) {
     .gte('created_at', yearStart)
     .lte('created_at', yearEnd), context);
 
-  if (yearErr || !yearRows?.length) return;
+  if (yearErr || !yearRows) return;
 
   const series = seriesDefinitionsFromYearRows(yearRows);
   if (!series.length) return;
@@ -275,6 +323,9 @@ export async function materializeDespesasFixasMes(mesAno, context = {}) {
 
   const toInsert = [];
   for (const item of series) {
+    const alreadyInitializedInYear = yearRows.some((row) => rowMatchesReplicationSlot(row, { conta_fixa: item.type === 'conta_fixa', parcela_atual: item.parcelaAtual, parcela_total: item.parcelaTotal, serie_id: item.serieId }, item.descricao));
+    if (alreadyInitializedInYear) continue;
+
     const needed = slotsNeededForMonth(item, mesAno);
     for (const slot of needed) {
       const alreadyExists = existing.some((row) => rowMatchesReplicationSlot(row, slot, item.descricao));

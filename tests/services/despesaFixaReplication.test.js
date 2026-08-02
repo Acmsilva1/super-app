@@ -20,11 +20,11 @@ describe('buildReplicationSlotsFromStart', () => {
   it('parcelas geram sequência contínua sem depender de cópia mês a mês', () => {
     const slots = buildReplicationSlotsFromStart('2024-03', { parcelaAtual: 1, parcelaTotal: 5 });
     expect(slots).toEqual([
-      { mes_ano: '2024-03', conta_fixa: false, parcela_atual: 1, parcela_total: 5 },
-      { mes_ano: '2024-04', conta_fixa: false, parcela_atual: 2, parcela_total: 5 },
-      { mes_ano: '2024-05', conta_fixa: false, parcela_atual: 3, parcela_total: 5 },
-      { mes_ano: '2024-06', conta_fixa: false, parcela_atual: 4, parcela_total: 5 },
-      { mes_ano: '2024-07', conta_fixa: false, parcela_atual: 5, parcela_total: 5 },
+      { mes_ano: '2024-03', conta_fixa: false, parcela_atual: 1, parcela_total: 5, serie_id: null },
+      { mes_ano: '2024-04', conta_fixa: false, parcela_atual: 2, parcela_total: 5, serie_id: null },
+      { mes_ano: '2024-05', conta_fixa: false, parcela_atual: 3, parcela_total: 5, serie_id: null },
+      { mes_ano: '2024-06', conta_fixa: false, parcela_atual: 4, parcela_total: 5, serie_id: null },
+      { mes_ano: '2024-07', conta_fixa: false, parcela_atual: 5, parcela_total: 5, serie_id: null },
     ]);
   });
 
@@ -41,6 +41,7 @@ describe('buildReplicationSlotsFromStart', () => {
       conta_fixa: false,
       parcela_atual: null,
       parcela_total: null,
+      serie_id: null,
     }]);
   });
 });
@@ -64,6 +65,7 @@ describe('seriesDefinitionsFromYearRows + slotsNeededForMonth', () => {
       conta_fixa: false,
       parcela_atual: 4,
       parcela_total: 4,
+      serie_id: null,
     }]);
   });
 
@@ -82,6 +84,7 @@ describe('seriesDefinitionsFromYearRows + slotsNeededForMonth', () => {
       conta_fixa: true,
       parcela_atual: null,
       parcela_total: null,
+      serie_id: null,
     }]);
   });
 });
@@ -99,5 +102,32 @@ describe('rowMatchesReplicationSlot', () => {
       parcela_atual: 1,
       parcela_total: 5,
     }, slot, 'TV')).toBe(false);
+  });
+
+  it('separa séries de nomes idênticos quando possuem serie_id diferentes', () => {
+    const rows = [
+      {
+        descricao: 'Internet',
+        valor: 100,
+        conta_fixa: true,
+        serie_id: 'casa-123',
+        created_at: '2024-01-01T12:00:00.000Z',
+      },
+      {
+        descricao: 'Internet',
+        valor: 250,
+        conta_fixa: true,
+        serie_id: 'escritorio-456',
+        created_at: '2024-01-01T12:00:00.000Z',
+      },
+    ];
+    const series = seriesDefinitionsFromYearRows(rows);
+    expect(series).toHaveLength(2);
+    expect(series[0].serieId).toBe('casa-123');
+    expect(series[1].serieId).toBe('escritorio-456');
+
+    const slotCasa = { mes_ano: '2024-05', conta_fixa: true, serie_id: 'casa-123' };
+    expect(rowMatchesReplicationSlot(rows[0], slotCasa, 'Internet')).toBe(true);
+    expect(rowMatchesReplicationSlot(rows[1], slotCasa, 'Internet')).toBe(false);
   });
 });

@@ -54,7 +54,7 @@ function extractBrazilDateTimeParts(dateLike) {
  * @param {{ contaFixa?: boolean, parcelaAtual?: number|null, parcelaTotal?: number|null }} options
  */
 export function buildReplicationSlotsFromStart(mesAno, options = {}) {
-  const { contaFixa = false, parcelaAtual = null, parcelaTotal = null } = options;
+  const { contaFixa = false, parcelaAtual = null, parcelaTotal = null, serieId = null } = options;
   const { ano, mes } = parseMesAno(mesAno);
   const startMesAno = `${ano}-${String(mes).padStart(2, '0')}`;
 
@@ -66,6 +66,7 @@ export function buildReplicationSlotsFromStart(mesAno, options = {}) {
         conta_fixa: true,
         parcela_atual: null,
         parcela_total: null,
+        serie_id: serieId || null,
       });
     }
     return slots;
@@ -82,6 +83,7 @@ export function buildReplicationSlotsFromStart(mesAno, options = {}) {
         conta_fixa: false,
         parcela_atual: pa + i,
         parcela_total: pt,
+        serie_id: serieId || null,
       });
     }
     return slots;
@@ -92,6 +94,7 @@ export function buildReplicationSlotsFromStart(mesAno, options = {}) {
     conta_fixa: false,
     parcela_atual: null,
     parcela_total: null,
+    serie_id: serieId || null,
   }];
 }
 
@@ -100,7 +103,7 @@ export function buildReplicationSlotsFromStart(mesAno, options = {}) {
  * @param {Array<Record<string, unknown>>} rows
  */
 export function seriesDefinitionsFromYearRows(rows = []) {
-  /** @type {Map<string, { type: 'conta_fixa'|'parcelas', descricao: string, valor: number, startMesAno: string, startCreatedAt?: string, parcelaAtual?: number, parcelaTotal?: number }>} */
+  /** @type {Map<string, { type: 'conta_fixa'|'parcelas', descricao: string, valor: number, startMesAno: string, startCreatedAt?: string, parcelaAtual?: number, parcelaTotal?: number, serieId?: string|null }>} */
   const series = new Map();
 
   for (const row of rows) {
@@ -115,18 +118,19 @@ export function seriesDefinitionsFromYearRows(rows = []) {
     const isContaFixa = row.conta_fixa === true || row.conta_fixa === 'true';
     const pt = Number(row.parcela_total);
     const pa = Number(row.parcela_atual);
+    const serieId = row.serie_id ? String(row.serie_id) : null;
 
     if (isContaFixa) {
-      const key = `cf:${descNorm}`;
+      const key = serieId ? `cf:${serieId}` : `cf:${descNorm}`;
       const existing = series.get(key);
       if (!existing || startMesAno < existing.startMesAno) {
-        series.set(key, { type: 'conta_fixa', descricao, valor, startMesAno, startCreatedAt: String(row?.created_at || '') });
+        series.set(key, { type: 'conta_fixa', descricao, valor, startMesAno, startCreatedAt: String(row?.created_at || ''), serieId });
       }
       continue;
     }
 
     if (Number.isFinite(pt) && Number.isFinite(pa) && pt >= 1 && pa >= 1) {
-      const key = `par:${descNorm}:${pt}`;
+      const key = serieId ? `par:${serieId}` : `par:${descNorm}:${pt}`;
       const existing = series.get(key);
       if (
         !existing
@@ -141,6 +145,7 @@ export function seriesDefinitionsFromYearRows(rows = []) {
           startCreatedAt: String(row?.created_at || ''),
           parcelaAtual: pa,
           parcelaTotal: pt,
+          serieId,
         });
       }
     }
@@ -155,6 +160,7 @@ export function slotsForSeries(series) {
     contaFixa: series.type === 'conta_fixa',
     parcelaAtual: series.parcelaAtual ?? null,
     parcelaTotal: series.parcelaTotal ?? null,
+    serieId: series.serieId ?? null,
   });
 }
 
@@ -164,8 +170,12 @@ export function slotsNeededForMonth(series, targetMesAno) {
 }
 
 export function rowMatchesReplicationSlot(row, slot, descricao) {
-  const descNorm = String(descricao || '').trim().toLowerCase();
-  if (String(row?.descricao || '').trim().toLowerCase() !== descNorm) return false;
+  if (row?.serie_id && slot?.serie_id) {
+    if (String(row.serie_id) !== String(slot.serie_id)) return false;
+  } else {
+    const descNorm = String(descricao || '').trim().toLowerCase();
+    if (String(row?.descricao || '').trim().toLowerCase() !== descNorm) return false;
+  }
 
   if (slot.conta_fixa) {
     return row?.conta_fixa === true || row?.conta_fixa === 'true';
@@ -206,6 +216,7 @@ export function buildInsertPayloadFromSlot(series, slot, status = 'pendente') {
     conta_fixa: slot.conta_fixa === true,
     parcela_atual: slot.parcela_atual,
     parcela_total: slot.parcela_total,
+    serie_id: slot.serie_id || series.serieId || null,
     created_at: createdAtForMesAno(slot.mes_ano, series.startCreatedAt || null),
   };
 }
