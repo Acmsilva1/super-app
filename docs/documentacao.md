@@ -159,6 +159,23 @@ Arquivos presentes em `sql/`:
 - `20260418_remove_notes_module.sql`
 - `20260422_create_tb_poupanca.sql`
 - `20260422_create_tb_poupanca_metas.sql`
+- `20260510_tb_despesas_fixas_parcelas.sql`
+- `20260519_tb_despesas_fixas_conta_fixa.sql`
+- `20260521_add_compras_variadas_columns.sql`
+- `20260531_create_tb_saldo_conta_corrente_movimentos.sql`
+- `20260616_create_tb_financeiro_analise_runs.sql`
+- `20260616_create_tb_financeiro_modelo_estado.sql`
+- `20260616_create_vw_financeiro_ultimos_5_meses.sql`
+- `20260710_create_tb_compras.sql`
+- `20260718_enable_rls_user_permissions.sql`
+- `20260802_add_serie_id_to_tb_despesas_fixas.sql`
+- `20260803_financeiro_views_e_indices.sql`:
+  - `vw_financeiro_resumo_mensal` (somatórios e saldo por usuário e mês)
+  - `vw_financeiro_categoria_mensal` (gastos variados com ranking por categoria)
+  - `vw_financeiro_historico_anual` (12 meses do ano com comprometimento e rankings)
+  - `vw_financeiro_poupanca_resumo` (consolidação de total acumulado, meta ativa e progresso)
+  - `vw_financeiro_compras_mensal` (compras agregadas por usuário e mês)
+  - Índices compostos por `(user_id, data_lancamento/created_at)` em todas as tabelas do módulo.
 
 ## 10. Deploy
 Arquivo `vercel.json`:
@@ -210,3 +227,19 @@ Variaveis obrigatorias na Vercel:
 Checkpoint tecnico:
 - Ultimo commit remoto conhecido antes desta etapa: `7165b0c`.
 - Validacao local: `npm run test` com 64 testes aprovados; `npm run build` aprovado.
+
+## 15. Checkpoint - Migracao dos Calculos Financeiros para PostgreSQL (Fases 1 e 2)
+Data: 2026-08-03
+
+Alteracoes implementadas nesta etapa:
+- Transferencia do processamento pesado do Node.js para views agregadas no PostgreSQL/Supabase.
+- Migration SQL: `sql/20260803_financeiro_views_e_indices.sql` criando 5 views (`vw_financeiro_resumo_mensal`, `vw_financeiro_categoria_mensal`, `vw_financeiro_historico_anual`, `vw_financeiro_poupanca_resumo`, `vw_financeiro_compras_mensal`) e 9 indices compostos para suporte de buscas filtradas por `user_id`.
+- Padronizacao de contratos em `features/financeiro/service/financeiroService.js`: `calcularDashboard` expoe `despesas_totais` e `saldo` (mantendo `liquido` como alias).
+- Refatoracao de `/api/financeiro-analista`: eliminados valores hardcoded (`top_categoria`) e corrigida a acumulacao de `categorias_ano` baseada no historico anual.
+- Plano de migracao completo documentado em `plano_migracao_calculos_financeiro_postgres.md`.
+
+Checkpoint tecnico:
+- Commit oficial: `ee651bf` (*feat financeiro: migracao calculos para postgresql views e indices*)
+- Repositorio remoto: `Acmsilva1/super-app` (branch `main`).
+- Validacao local: `npm test` aprovado com 18 suites (83/83 testes de unidade e API integrados).
+
