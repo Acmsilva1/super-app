@@ -43,7 +43,7 @@
     "checklist": {
       "tests": ["npm test", "npm run test:ux"],
       "pendencias": ["README desatualizado vs código"],
-      "checkpoint": "Implementação do serie_id e eliminação do parasita zumbi no financeiro (commit f9e7ce4) — 2026-08-02"
+      "checkpoint": "Fase 1 e Fase 2 da migração dos cálculos financeiros para PostgreSQL (views, índices e padronização de contratos) — 2026-08-03"
     },
     "technologies": ["Vercel Functions", "Supabase", "PWA", "Vitest", "Naive Bayes"]
   }

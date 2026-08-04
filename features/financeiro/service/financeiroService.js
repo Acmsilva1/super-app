@@ -188,8 +188,9 @@ export function calcularDashboard({ receitasRows, gastosRows, despesasFixasRows 
   const receitas = Math.round((receitasRows || []).reduce((acc, r) => acc + (Number(r?.valor) || 0), 0) * 100) / 100;
   const despesas_variadas = Math.round((gastosRows || []).reduce((acc, r) => acc + (Number(r?.valor) || 0), 0) * 100) / 100;
   const despesas_fixas = Math.round((despesasFixasRows || []).reduce((acc, r) => acc + (Number(r?.valor) || 0), 0) * 100) / 100;
-  const liquido = Math.round((receitas - despesas_variadas - despesas_fixas) * 100) / 100;
-  return { receitas, despesas_fixas, despesas_variadas, liquido };
+  const despesas_totais = Math.round((despesas_variadas + despesas_fixas) * 100) / 100;
+  const saldo = Math.round((receitas - despesas_totais) * 100) / 100;
+  return { receitas, despesas_fixas, despesas_variadas, despesas_totais, saldo, liquido: saldo };
 }
 
 export function calcularGraficos({ gastosRows, despesasFixasRows }) {

@@ -500,12 +500,12 @@ describe('API do financeiro', () => {
     expect(res.body.graficos_anuais).toHaveLength(12);
 
     const despesasCalls = track.tables.filter((t) => t === 'tb_despesas_fixas').length;
-    // materializacao (ano+mes) + leitura do mes + leitura leve do ano = 4 (nao 24+)
+    // materializacao (ano+mes) + leitura do mes = 2 (historico anual veio da view vw_financeiro_historico_anual)
     expect(despesasCalls).toBeLessThanOrEqual(4);
-    expect(despesasCalls).toBeGreaterThanOrEqual(3);
+    expect(despesasCalls).toBeGreaterThanOrEqual(2);
 
     expect(track.ors.length).toBeGreaterThan(0);
-    expect(track.selects.some((cols) => String(cols).includes('tipo') && String(cols).includes('valor'))).toBe(true);
+    expect(track.selects.some((cols) => String(cols).includes('*') || String(cols).includes('receitas'))).toBe(true);
   });
 
   it('GET sem bi nao busca dataset anual leve', async () => {

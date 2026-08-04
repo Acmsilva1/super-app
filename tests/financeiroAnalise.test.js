@@ -1,9 +1,4 @@
-/**
- * Testes unitários para financeiroAnaliseService.js
- * Execute com: node --experimental-vm-modules tests/financeiroAnalise.test.js
- * Ou com Node 20+: node tests/financeiroAnalise.test.js
- */
-
+import { describe, it, expect } from 'vitest';
 import {
   normalizeAndTokenize,
   classifyByHeuristics,
@@ -14,8 +9,10 @@ import {
   detectarPadroesEInconsistencias,
 } from '../features/financeiro/service/financeiroAnaliseService.js';
 
-let passed = 0;
-let failed = 0;
+describe('financeiroAnaliseService', () => {
+  it('executa suíte de análise financeira', () => {
+    let passed = 0;
+    let failed = 0;
 
 function assert(description, condition, extra = '') {
   if (condition) {
@@ -167,7 +164,9 @@ console.log(`\n${'─'.repeat(50)}`);
 console.log(`🏁 Resultado: ${passed}/${total} testes passaram`);
 if (failed > 0) {
   console.error(`❌ ${failed} testes falharam.`);
-  process.exit(1);
 } else {
   console.log('✅ Todos os testes passaram!');
 }
+expect(failed).toBe(0);
+  });
+});

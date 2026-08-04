@@ -51,6 +51,8 @@ describe('financeiroService', () => {
       receitas: 200,
       despesas_fixas: 30,
       despesas_variadas: 50,
+      despesas_totais: 80,
+      saldo: 120,
       liquido: 120,
     });
   });

@@ -16,9 +16,6 @@ import {
   rangeMes,
   filtrarFinancasPorMes,
   classificarFinancas,
-  calcularDashboard,
-  calcularGraficos,
-  calcularGraficosAnuais,
   montarTabelaFinanceiroRows,
   payloadInsertFinanceiro,
   payloadUpdateFinanceiro,
@@ -272,8 +269,28 @@ async function cleanupFutureContaFixa(row, context = {}) {
 }
 
 const DESPESA_FIXA_SERIES_COLUMNS = 'descricao, valor, status, conta_fixa, parcela_atual, parcela_total, serie_id, created_at';
-const FINANCAS_ANUAL_COLUMNS = 'tipo, valor, categoria, data_lancamento, created_at';
-const DESPESA_FIXA_ANUAL_COLUMNS = 'valor, status, created_at';
+function buildGraficosAnuaisFromView(ano, viewRows) {
+  const year = Number(ano);
+  const meses = Array.from({ length: 12 }, (_, i) => ({
+    mes: i + 1,
+    mes_ano: `${year}-${String(i + 1).padStart(2, '0')}`,
+    receitas: 0,
+    despesas_fixas: 0,
+    despesas_variadas: 0,
+    despesas: 0,
+    saldo: 0,
+  }));
+  for (const row of viewRows || []) {
+    const idx = meses.findIndex((m) => m.mes_ano === row.mes_ano);
+    if (idx === -1) continue;
+    meses[idx].receitas = Number(row.receitas || 0);
+    meses[idx].despesas_fixas = Number(row.despesas_fixas || 0);
+    meses[idx].despesas_variadas = Number(row.despesas_variadas || 0);
+    meses[idx].despesas = Number(row.despesas_totais || 0);
+    meses[idx].saldo = Number(row.saldo || 0);
+  }
+  return meses;
+}
 
 function wantsGraficosAnuais(query = {}) {
   const bi = String(query?.bi ?? '').toLowerCase();
@@ -347,178 +364,181 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
   const { start, end, mes_ano } = rangeMes(ano, mes);
   const { dayStart, dayEnd } = rangeDiasMes(ano, mes);
   const includeAnuais = wantsGraficosAnuais(query);
-  const yearStart = new Date(ano, 0, 1, 0, 0, 0, 0).toISOString();
-  const yearEnd = new Date(ano, 11, 31, 23, 59, 59, 999).toISOString();
-  const yearDayStart = `${ano}-01-01`;
-  const yearDayEnd = `${ano}-12-31`;
   const monthPeriodFilter = periodOrFilter({ dayStart, dayEnd, start, end });
-  const yearPeriodFilter = periodOrFilter({
-    dayStart: yearDayStart,
-    dayEnd: yearDayEnd,
-    start: yearStart,
-    end: yearEnd,
-  });
 
-  // Materializa apenas o mês aberto (não os 12 meses do ano).
   await garantirDespesasFixasMes(mes_ano, context);
 
   const [
+    resumoMensalResult,
+    categoriasMensalResult,
+    historicoAnualResult,
+    poupancaResumoResult,
+    comprasMensalResult,
     financasMesResult,
-    financasAnoResult,
     despesasFixasMesResult,
-    despesasFixasAnoResult,
-    poupancaResult,
-    metaResult,
-    comprasResult,
+    poupancaLogsResult,
+    comprasLogsResult,
   ] = await Promise.all([
-    scopeQueryByUser(supabase
-      .from(TABLE_FINANCAS)
-      .select('*')
-      .or(monthPeriodFilter)
-      .order('created_at', { ascending: false }), context),
+    // ── Views: o banco agrega e entrega pronto ─────────────────────────────
+    scopeQueryByUser(
+      supabase.from('vw_financeiro_resumo_mensal')
+        .select('receitas,despesas_variadas,despesas_fixas,saldo,fixas_pagas,fixas_pendentes')
+        .eq('mes_ano', mes_ano),
+      context
+    ),
+    scopeQueryByUser(
+      supabase.from('vw_financeiro_categoria_mensal')
+        .select('categoria,valor_total,quantidade_lancamentos,media_lancamento,ranking_maior,ranking_menor')
+        .eq('mes_ano', mes_ano)
+        .order('ranking_maior', { ascending: true }),
+      context
+    ),
     includeAnuais
-      ? scopeQueryByUser(supabase
-        .from(TABLE_FINANCAS)
-        .select(FINANCAS_ANUAL_COLUMNS)
-        .or(yearPeriodFilter)
-        .order('created_at', { ascending: false }), context)
+      ? scopeQueryByUser(
+          supabase.from('vw_financeiro_historico_anual')
+            .select('mes_ano,receitas,despesas_fixas,despesas_variadas,despesas_totais,saldo')
+            .eq('ano', ano),
+          context
+        )
       : Promise.resolve({ data: [], error: null }),
-    scopeQueryByUser(supabase
-      .from(TABLE_DESPESAS_FIXAS)
-      .select('*')
-      .gte('created_at', start)
-      .lte('created_at', end)
-      .order('created_at', { ascending: false }), context),
-    includeAnuais
-      ? scopeQueryByUser(supabase
-        .from(TABLE_DESPESAS_FIXAS)
-        .select(DESPESA_FIXA_ANUAL_COLUMNS)
-        .gte('created_at', yearStart)
-        .lte('created_at', yearEnd)
-        .order('created_at', { ascending: false }), context)
-      : Promise.resolve({ data: [], error: null }),
-    scopeQueryByUser(supabase
-      .from(TABLE_POUPANCA)
-      .select('*')
-      .order('created_at', { ascending: false }), context),
-    scopeQueryByUser(supabase
-      .from(TABLE_POUPANCA_METAS)
-      .select('*')
-      .eq('ativa', true)
-      .order('created_at', { ascending: false })
-      .limit(1), context),
-    scopeQueryByUser(supabase
-      .from(TABLE_COMPRAS)
-      .select('*')
-      .or(monthPeriodFilter)
-      .order('created_at', { ascending: false }), context),
+    scopeQueryByUser(
+      supabase.from('vw_financeiro_poupanca_resumo')
+        .select('total_acumulado,meta_id,nome_meta,valor_meta,data_inicio,progresso,status_meta'),
+      context
+    ),
+    scopeQueryByUser(
+      supabase.from('vw_financeiro_compras_mensal')
+        .select('valor_total,quantidade_compras,ticket_medio')
+        .eq('mes_ano', mes_ano),
+      context
+    ),
+    // ── Raw: apenas linhas do mês para tabelas de exibição e análise textual ─
+    scopeQueryByUser(
+      supabase.from(TABLE_FINANCAS)
+        .select('*')
+        .or(monthPeriodFilter)
+        .order('created_at', { ascending: false }),
+      context
+    ),
+    scopeQueryByUser(
+      supabase.from(TABLE_DESPESAS_FIXAS)
+        .select('*')
+        .gte('created_at', start)
+        .lte('created_at', end)
+        .order('created_at', { ascending: false }),
+      context
+    ),
+    scopeQueryByUser(
+      supabase.from(TABLE_POUPANCA)
+        .select('*')
+        .order('created_at', { ascending: false }),
+      context
+    ),
+    scopeQueryByUser(
+      supabase.from(TABLE_COMPRAS)
+        .select('*')
+        .or(monthPeriodFilter)
+        .order('created_at', { ascending: false }),
+      context
+    ),
   ]);
 
   if (financasMesResult.error) return { error: financasMesResult.error.message, status: 500 };
-  if (financasAnoResult.error) return { error: financasAnoResult.error.message, status: 500 };
   if (despesasFixasMesResult.error) return { error: despesasFixasMesResult.error.message, status: 500 };
-  if (despesasFixasAnoResult.error) return { error: despesasFixasAnoResult.error.message, status: 500 };
 
-  let poupancaRowsRaw = [];
   let poupancaConfigured = true;
-  if (poupancaResult.error) {
-    if (isMissingTableError(poupancaResult.error)) {
-      poupancaConfigured = false;
-    } else {
-      return { error: poupancaResult.error.message, status: 500 };
-    }
-  } else {
-    poupancaRowsRaw = poupancaResult.data || [];
+  if (poupancaLogsResult.error) {
+    if (isMissingTableError(poupancaLogsResult.error)) poupancaConfigured = false;
+    else return { error: poupancaLogsResult.error.message, status: 500 };
   }
 
-  let poupancaMetaAtiva = null;
   let poupancaMetaConfigured = true;
-  if (metaResult.error) {
-    if (isMissingTableError(metaResult.error)) {
-      poupancaMetaConfigured = false;
-    } else {
-      return { error: metaResult.error.message, status: 500 };
-    }
-  } else {
-    const metaRows = metaResult.data;
-    poupancaMetaAtiva = Array.isArray(metaRows) && metaRows.length > 0 ? metaRows[0] : null;
+  if (poupancaResumoResult.error && !isMissingTableError(poupancaResumoResult.error)) {
+    poupancaMetaConfigured = false;
   }
 
-  let comprasRowsRaw = [];
   let comprasConfigured = true;
-  if (comprasResult.error) {
-    if (isMissingTableError(comprasResult.error)) {
-      comprasConfigured = false;
-    } else {
-      return { error: comprasResult.error.message, status: 500 };
-    }
-  } else {
-    comprasRowsRaw = comprasResult.data || [];
+  if (comprasLogsResult.error) {
+    if (isMissingTableError(comprasLogsResult.error)) comprasConfigured = false;
+    else return { error: comprasLogsResult.error.message, status: 500 };
   }
 
-  const despesasFixasRowsRaw = despesasFixasMesResult.data || [];
-  const despesasFixasAnoRowsRaw = despesasFixasAnoResult.data || [];
+  // ── Dashboard (banco agregou, Node só lê) ─────────────────────────────────
+  const resumoRow = resumoMensalResult.data?.[0] || {};
+  const despesas_variadas_val = Number(resumoRow.despesas_variadas || 0);
+  const despesas_fixas_val = Number(resumoRow.despesas_fixas || 0);
+  const despesas_totais_val = Math.round((despesas_variadas_val + despesas_fixas_val) * 100) / 100;
+  const saldo_val = Number(resumoRow.saldo || 0);
+  const dashboard = {
+    receitas: Number(resumoRow.receitas || 0),
+    despesas_fixas: despesas_fixas_val,
+    despesas_variadas: despesas_variadas_val,
+    despesas_totais: despesas_totais_val,
+    saldo: saldo_val,
+    liquido: saldo_val,
+  };
 
+  // ── Gráficos (banco agregou por categoria) ────────────────────────────────
+  const graficos = {
+    categorias_gastos: (categoriasMensalResult.data || []).map((c) => ({
+      categoria: c.categoria,
+      valor: Number(c.valor_total || 0),
+      quantidade: c.quantidade_lancamentos,
+      media: Number(c.media_lancamento || 0),
+    })),
+    pagos_pendentes: {
+      pago: Number(resumoRow.fixas_pagas || 0),
+      pendente: Number(resumoRow.fixas_pendentes || 0),
+    },
+  };
+
+  // ── Histórico anual (banco fez o join e os rankings) ─────────────────────
+  const graficosAnuais = buildGraficosAnuaisFromView(ano, historicoAnualResult.data || []);
+
+  // ── Poupança (banco calculou total, progresso e status) ───────────────────
+  const poupancaResumoRow = poupancaResumoResult.data?.[0] || {};
+  const poupancaTotal = Number(poupancaResumoRow.total_acumulado || 0);
+  const valorMeta = Number(poupancaResumoRow.valor_meta || 0);
+  const progressoMeta = Number(poupancaResumoRow.progresso || 0);
+  const statusMeta = poupancaResumoRow.status_meta || 'sem_meta';
+  const poupancaMetaAtiva = poupancaResumoRow.meta_id
+    ? {
+        id: poupancaResumoRow.meta_id,
+        nome_meta: String(poupancaResumoRow.nome_meta || ''),
+        valor_meta: valorMeta,
+        data_inicio: normalizeDate(poupancaResumoRow.data_inicio),
+        progresso: Math.round(progressoMeta * 10000) / 10000,
+        status: statusMeta,
+      }
+    : null;
+
+  // ── Compras (banco agregou o total do mês) ────────────────────────────────
+  const comprasMensalRow = comprasMensalResult.data?.[0] || {};
+  const comprasTotal = Number(comprasMensalRow.valor_total || 0);
+
+  // ── Tabelas de exibição (rows individuais para o frontend) ────────────────
   const financasMes = filtrarFinancasPorMes(financasMesResult.data || [], ano, mes);
-  const { receitas, gastosVariados } = classificarFinancas(financasMes);
-  const comprasMes = filtrarFinancasPorMes(comprasRowsRaw || [], ano, mes);
+  const { receitas: receitasRaw, gastosVariados } = classificarFinancas(financasMes);
+  const comprasMes = filtrarFinancasPorMes(comprasLogsResult.data || [], ano, mes);
+  const despesasFixasRowsRaw = despesasFixasMesResult.data || [];
+  const poupancaRowsRaw = poupancaLogsResult.data || [];
 
-  // Para gráficos anuais, usa o conjunto do ano (leve), não o histórico completo.
-  const financasParaAnual = includeAnuais
-    ? (financasAnoResult.data || []).filter((row) => {
-      const raw = String(row?.data_lancamento || row?.created_at || '').trim();
-      const match = raw.match(/^(\d{4})/);
-      if (match) return Number(match[1]) === ano;
-      const date = new Date(raw);
-      return !Number.isNaN(date.getTime()) && date.getUTCFullYear() === ano;
-    })
-    : [];
-
-  const receitasTabela = montarTabelaFinanceiroRows(receitas, TIPO_REGISTRO_RECEITA);
+  const receitasTabela = montarTabelaFinanceiroRows(receitasRaw, TIPO_REGISTRO_RECEITA);
   const gastosVariadosTabela = montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO)
     .map((r) => ({ ...r, tipo_registro: resolveTipoRegistroFinanceiro(r, TIPO_REGISTRO_GASTO_VARIADO) }));
-  const despesasFixasTabela = montarTabelaFinanceiroRows(despesasFixasRowsRaw || [], TIPO_REGISTRO_DESPESA_FIXA);
-  const poupancaTabela = montarTabelaFinanceiroRows(poupancaRowsRaw || [], TIPO_REGISTRO_POUPANCA);
+  const despesasFixasTabela = montarTabelaFinanceiroRows(despesasFixasRowsRaw, TIPO_REGISTRO_DESPESA_FIXA);
+  const poupancaTabela = montarTabelaFinanceiroRows(poupancaRowsRaw, TIPO_REGISTRO_POUPANCA);
   const comprasTabela = montarTabelaFinanceiroRows(comprasMes, TIPO_REGISTRO_COMPRA);
 
-  const dashboard = calcularDashboard({
-    receitasRows: receitas,
-    gastosRows: gastosVariados,
-    despesasFixasRows: despesasFixasRowsRaw || [],
-  });
-  const graficos = calcularGraficos({
-    gastosRows: gastosVariados,
-    despesasFixasRows: despesasFixasRowsRaw || [],
-  });
-  const graficosAnuais = includeAnuais
-    ? calcularGraficosAnuais({
-      ano,
-      rows: financasParaAnual,
-      despesasFixasRows: despesasFixasAnoRowsRaw || [],
-    })
-    : calcularGraficosAnuais({ ano, rows: [], despesasFixasRows: [] });
-
-  const poupancaTotal = Math.round((poupancaRowsRaw || []).reduce((acc, r) => acc + (Number(r?.valor) || 0), 0) * 100) / 100;
-  const comprasTotal = Math.round((comprasMes || []).reduce((acc, r) => acc + (Number(r?.valor) || 0), 0) * 100) / 100;
-  const valorMeta = Number(poupancaMetaAtiva?.valor_meta || 0);
-  const progressoMeta = valorMeta > 0 ? Math.max(0, Math.min(1, poupancaTotal / valorMeta)) : 0;
-  const statusMeta = valorMeta <= 0
-    ? 'sem_meta'
-    : progressoMeta >= 1
-      ? 'alvo'
-      : progressoMeta >= 0.7
-        ? 'alerta'
-        : 'progresso';
-
-  // ── Análise de Risco e Padrões (Modelo Analítico) ─────────────────────────
+  // ── Análise de Risco e Padrões (precisam dos rows brutos — inevitável) ────
   const brazilNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   const diaAtual = brazilNow.getDate();
-  const totalDias = new Date(ano, mes, 0).getDate(); // último dia do mês
+  const totalDias = new Date(ano, mes, 0).getDate();
 
   const analiseRisco = calcularAnaliseRiscoConsumo({
     receitas: dashboard.receitas,
     despesasFixas: dashboard.despesas_fixas,
-    gastosVariados: gastosVariados,
+    gastosVariados,
     diaAtual,
     totalDias,
   });
@@ -544,16 +564,7 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
         meta_configurada: poupancaMetaConfigured,
         total: poupancaTotal,
         logs: poupancaTabela,
-        meta_ativa: poupancaMetaAtiva
-          ? {
-              id: poupancaMetaAtiva.id,
-              nome_meta: String(poupancaMetaAtiva.nome_meta || ''),
-              valor_meta: valorMeta,
-              data_inicio: normalizeDate(poupancaMetaAtiva.data_inicio) || normalizeDate(poupancaMetaAtiva.created_at),
-              progresso: Math.round(progressoMeta * 10000) / 10000,
-              status: statusMeta,
-            }
-          : null,
+        meta_ativa: poupancaMetaAtiva,
       },
       compras: {
         configurada: comprasConfigured,

@@ -25,7 +25,6 @@ export default async function handler(req, res) {
     if (!auth.ok) return json(res, auth.status, auth.data);
     const context = { userId: auth.user.id, isAdmin: auth.isAdmin };
 
-    // Solicita inclusão de gráficos e totais anuais (bi=1)
     const query = { bi: '1', ...(req.query || {}) };
     const result = await obterFinanceiroMes(query, context);
 
@@ -36,35 +35,53 @@ export default async function handler(req, res) {
     const base = result.data;
     const graficosAnuais = Array.isArray(base.graficos_anuais) ? base.graficos_anuais : [];
 
-    // Filtra todos os meses do ano que possuem receitas ou despesas registradas
+    // Acumula categorias anuais independente do mês selecionado
+    const categoriasAnoMap = new Map();
+    for (const m of graficosAnuais) {
+      for (const cat of m.categorias_gastos || []) {
+        const key = String(cat.categoria || '').toLowerCase();
+        const current = categoriasAnoMap.get(key) || { categoria: cat.categoria, valor: 0 };
+        categoriasAnoMap.set(key, {
+          categoria: current.categoria,
+          valor: Math.round((current.valor + (Number(cat.valor) || 0)) * 100) / 100,
+        });
+      }
+    }
+    const categoriasAno = [...categoriasAnoMap.values()].sort((a, b) => b.valor - a.valor);
+
     const historicoDetalhado = graficosAnuais
       .filter((m) => Number(m.receitas || 0) > 0 || Number(m.despesas || 0) > 0)
       .map((m) => {
         const receitas = Number(m.receitas || 0);
+        const despesasVariadas = Number(m.despesas_variadas || 0);
+        const despesasFixas = Number(m.despesas_fixas || 0);
         const despesasTotais = Number(m.despesas || 0);
         const percentualComprometido = receitas > 0 ? (despesasTotais / receitas) * 100 : 0;
+
+        const catsMes = Array.isArray(m.categorias_gastos) ? m.categorias_gastos : [];
+        const topCat = catsMes.length > 0
+          ? catsMes.reduce((acc, c) => (Number(c?.valor || 0) > Number(acc?.valor || 0) ? c : acc), catsMes[0])
+          : null;
+
         return {
           mes_ano: m.mes_ano,
           receitas,
-          despesas_fixas: Number(m.despesas_fixas || 0),
-          despesas_variadas: Number(m.despesas_variadas || 0),
+          despesas_fixas: despesasFixas,
+          despesas_variadas: despesasVariadas,
           despesas_totais: despesasTotais,
           saldo: Number(m.saldo || 0),
           percentual: Math.round(percentualComprometido * 10) / 10,
-          top_categoria: 'Alimentação',
+          top_categoria: topCat?.categoria || null,
         };
       });
 
-    // Totais acumulados do ano
     const totalDespesasAno = Math.round(historicoDetalhado.reduce((acc, m) => acc + m.despesas_totais, 0) * 100) / 100;
     const totalReceitasAno = Math.round(historicoDetalhado.reduce((acc, m) => acc + m.receitas, 0) * 100) / 100;
 
-    // Cálculo dos cards de destaques históricos
     const comDados = historicoDetalhado;
     const melhorMes = comDados.length ? comDados.reduce((acc, m) => (m.saldo > acc.saldo ? m : acc), comDados[0]) : null;
     const piorMes = comDados.length ? comDados.reduce((acc, m) => (m.saldo < acc.saldo ? m : acc), comDados[0]) : null;
-    
-    // Filtra apenas meses com receitas > 0 para calcular meses mais positivo e mais negativo (%)
+
     const comReceitas = comDados.filter((m) => m.receitas > 0);
     const mesMaisPositivo = comReceitas.length
       ? comReceitas.reduce((acc, m) => (m.percentual < acc.percentual ? m : acc), comReceitas[0])
@@ -73,7 +90,6 @@ export default async function handler(req, res) {
       ? comReceitas.reduce((acc, m) => (m.percentual > acc.percentual ? m : acc), comReceitas[0])
       : piorMes;
 
-    // Mês com mais despesas fixas (filtra meses onde fixas > 0)
     const comFixas = comDados.filter((m) => m.despesas_fixas > 0);
     const mesMaisFixas = comFixas.length
       ? comFixas.reduce((acc, m) => (m.despesas_fixas > acc.despesas_fixas ? m : acc), comFixas[0])
@@ -102,13 +118,13 @@ export default async function handler(req, res) {
             despesas_totais: base.dashboard.despesas_totais,
             saldo: base.dashboard.saldo,
             despesas_fixas: base.dashboard.despesas_fixas,
-            despesas_variaveis: base.dashboard.despesas_variaveis,
+            despesas_variaveis: base.dashboard.despesas_variadas,
           }
         : {},
       resumo_anual: {
         receitas: totalReceitasAno,
         despesas_totais: totalDespesasAno,
-        saldo: totalReceitasAno - totalDespesasAno,
+        saldo: Math.round((totalReceitasAno - totalDespesasAno) * 100) / 100,
       },
       projecao: {},
       comparativos: {},
@@ -119,7 +135,7 @@ export default async function handler(req, res) {
       },
       metadados: { recorte_inicio_mes_ano: '2000-01' },
       categorias_mes: base.graficos?.categorias_gastos || [],
-      categorias_ano: base.graficos?.categorias_gastos || [],
+      categorias_ano: categoriasAno,
       historico_detalhado: historicoDetalhado,
       cards,
       analise_risco: base.analise_risco || null,
