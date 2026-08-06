@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "dev": "node dev-server.js",
     "build": "echo Build complete",
     "test": "npm run test:ux && vitest run --pool threads",
     "test:ux": "node scripts/ux-component-analyst.cjs --path index.html --path api --path features --path lib",

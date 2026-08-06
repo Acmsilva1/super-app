@@ -4430,6 +4430,57 @@
             gap: 0.75rem;
             margin-left: auto;
         }
+        .finance-modal-actions-right .app-btn[data-action="modal-save"]:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        @keyframes _fin-spin { to { transform: rotate(360deg); } }
+        .fin-btn-spinner {
+            display: inline-block;
+            width: 0.95em;
+            height: 0.95em;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: _fin-spin 0.65s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.35em;
+        }
+        .fin-modal-loading-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: rgba(10, 10, 20, 0.55);
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            z-index: 9999;
+            pointer-events: all;
+            animation: _fin-overlay-in 0.18s ease;
+        }
+        @keyframes _fin-overlay-in {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        .fin-modal-loading-overlay__spinner {
+            width: 2.4rem;
+            height: 2.4rem;
+            border: 3px solid rgba(255,255,255,0.25);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: _fin-spin 0.7s linear infinite;
+        }
+        .fin-modal-loading-overlay__label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.85);
+            letter-spacing: 0.03em;
+        }
 
         @media (max-width: 768px) {
             .finance-module-shell {
@@ -7288,6 +7339,23 @@
                 const response = await this.originalFetch('/api/auth-config', { cache: 'no-store' });
                 if (!response.ok) throw new Error('Supabase Auth nao esta configurado na Vercel');
                 const config = await response.json();
+                if (config.offlineMode) {
+                    this.offlineMode = true;
+                    this.offlineToken = config.fakeToken;
+                    this.offlineUser = config.user;
+                    this.client = { auth: { signInWithPassword: async () => ({ error: null }), signOut: async () => {}, getSession: async () => {
+                        const tok = sessionStorage.getItem('offline_token');
+                        if (!tok) return { data: { session: null }, error: null };
+                        return { data: { session: { access_token: tok, user: config.user } }, error: null };
+                    } } };
+                    const emailEl = document.getElementById('loginEmail');
+                    const passEl = document.getElementById('loginPassword');
+                    if (emailEl) { emailEl.value = 'admin'; emailEl.type = 'text'; emailEl.removeAttribute('required'); }
+                    if (passEl) { passEl.value = 'admin'; passEl.removeAttribute('minlength'); }
+                    const msgEl = document.getElementById('authMessage');
+                    if (msgEl) { msgEl.textContent = '🔒 Modo Local Offline — use admin / admin'; msgEl.style.color = '#22d3ee'; }
+                    return this.client;
+                }
                 await this.loadSupabaseSdk();
                 this.client = window.supabase.createClient(config.url, config.anonKey, {
                     auth: {
@@ -7452,6 +7520,12 @@
                     event.preventDefault();
                     const form = new FormData(event.currentTarget);
                     this.setMessage('Entrando...');
+                    if (this.offlineMode) {
+                        sessionStorage.setItem('offline_token', this.offlineToken);
+                        sessionStorage.setItem('offline_user', JSON.stringify(this.offlineUser));
+                        window.location.replace(window.location.pathname);
+                        return;
+                    }
                     const { error } = await this.client.auth.signInWithPassword({
                         email: String(form.get('email') || '').trim(),
                         password: String(form.get('password') || ''),
@@ -7514,7 +7588,13 @@
                         window.FinanceiroAnualCache?.clearFinanceiroAnualCache?.(userId);
                     } catch (_) {}
                     try { window.TipRobot?.destroy?.(); } catch (_) {}
-                    await this.client.auth.signOut();
+                    if (this.offlineMode) {
+                        sessionStorage.removeItem('offline_token');
+                        sessionStorage.removeItem('offline_user');
+                        this.offlineMode = false;
+                        this.client = null;
+                    }
+                    await this.client?.auth?.signOut?.().catch(() => {});
                     window.location.replace(window.location.pathname);
                 });
             },
@@ -8444,10 +8524,6 @@
                 if (el._financeiroChartCategoria) { try { el._financeiroChartCategoria.dispose(); } catch (_) {} el._financeiroChartCategoria = null; }
                 if (el._financeiroChartStatus) { try { el._financeiroChartStatus.dispose(); } catch (_) {} el._financeiroChartStatus = null; }
                 if (el._financeiroChartReceitasAnual) { try { el._financeiroChartReceitasAnual.dispose(); } catch (_) {} el._financeiroChartReceitasAnual = null; }
-                if (el._financeiroChartDespesasAnual) { try { el._financeiroChartDespesasAnual.dispose(); } catch (_) {} el._financeiroChartDespesasAnual = null; }
-                if (el._financeiroAnalistaChartMonth) { try { el._financeiroAnalistaChartMonth.dispose(); } catch (_) {} el._financeiroAnalistaChartMonth = null; }
-                if (el._financeiroAnalistaChartComparativo) { try { el._financeiroAnalistaChartComparativo.dispose(); } catch (_) {} el._financeiroAnalistaChartComparativo = null; }
-                if (el._financeiroAnalistaChartLearning) { try { el._financeiroAnalistaChartLearning.dispose(); } catch (_) {} el._financeiroAnalistaChartLearning = null; }
                 const tabRaw = (el.getAttribute('data-active-tab') || '').toLowerCase();
                 const activeTab = ['summary', 'data', 'poupanca', 'compras'].includes(tabRaw) ? tabRaw : 'data';
                 const dataFilterRaw = String(el.getAttribute('data-active-data-filter') || '').toLowerCase();
@@ -8588,8 +8664,7 @@ ${financeRowActions(r.id, 'despesa_fixa')}
                     const hora = fmtHoraBrasilia(r.created_at);
                     return `<tr>
                         <td class="col-desc"><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong><div style="font-size:0.72rem;color:#9ca3af;margin-top:0.15rem;">${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? ` às ${escapeHtml(hora)}` : ''}</div></td>
-                        <td class="col-status"><span class="finance-status-toggle ${String(r.tipo_registro) === 'receita' ? 'is-paid' : 'is-pending'}" aria-label="${String(r.tipo_registro) === 'receita' ? 'Receita' : 'Despesa'}">${String(r.tipo_registro) === 'receita' ? 'Receita' : 'Despesa'}</span></td>
-                        <td class="col-valor" style="color:${String(r.tipo_registro) === 'receita' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
+                        <td class="col-valor" style="color:#ef4444">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td class="col-categoria">${escapeHtml(canonicalFinanceiroCategoriaLabel(r.categoria || '--'))}</td>
                         <td class="col-actions">
 ${financeRowActions(r.id, r.tipo_registro || 'gasto_variado')}
@@ -8598,7 +8673,6 @@ ${financeRowActions(r.id, r.tipo_registro || 'gasto_variado')}
                 };
                 const mkRowReceita = (r) => `<tr>
                         <td class="col-desc"><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong></td>
-                        <td class="col-status"><span class="finance-status-toggle is-paid" aria-label="Receita">Receita</span></td>
                         <td class="col-valor" style="color:#22c55e">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td class="col-categoria">${escapeHtml(canonicalFinanceiroCategoriaLabel(r.categoria || '--'))}</td>
                         <td class="col-actions">
@@ -8654,8 +8728,8 @@ ${financeRowActions(r.id, r.tipo_registro || 'receita')}
                     ? gastosVariados.filter((g) => normalizeFinanceiroCategoriaText(g.categoria || 'Sem categoria') === activeGastosCategoria)
                     : gastosVariados;
                 const totalGastosVariadosFiltrado = gastosVariadosFiltrados.reduce((sum, r) => sum + Number(r.valor || 0), 0);
-                const rowsGastosHtml = gastosVariadosFiltrados.length ? gastosVariadosFiltrados.map(mkRowGastoVariado).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
-                const rowsReceitasHtml = receitas.length ? receitas.map(mkRowReceita).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhuma receita neste mês.</td></tr>';
+                const rowsGastosHtml = gastosVariadosFiltrados.length ? gastosVariadosFiltrados.map(mkRowGastoVariado).join('') : '<tr><td colspan="4" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
+                const rowsReceitasHtml = receitas.length ? receitas.map(mkRowReceita).join('') : '<tr><td colspan="4" class="module-table-empty">Nenhuma receita neste mês.</td></tr>';
                 const rowsPoupancaHtml = poupancaLogs.length
                     ? poupancaLogs.map((r) => {
                         const hora = fmtHoraBrasilia(r.created_at);
@@ -8686,7 +8760,6 @@ ${financeRowActions(r.id, 'compra')}
                 const metaProgresso = metaValor > 0 ? Math.max(0, Math.min(1, poupancaTotal / metaValor)) : 0;
                 const metaPercent = Math.round(metaProgresso * 100);
                 const metaRestante = Math.max(0, Math.round((metaValor - poupancaTotal) * 100) / 100);
-                const analistaPanelId = 'financeiro-analista-panel';
 
                 el.innerHTML = `
                     <div class="finance-module-shell">
@@ -8701,7 +8774,6 @@ ${financeRowActions(r.id, 'compra')}
                                 <button type="button" class="module-tab-btn ${activeTab === 'summary' ? 'is-active' : ''}" data-action="module-tab" data-tab="summary" role="tab" aria-label="Dashboards" aria-selected="${activeTab === 'summary' ? 'true' : 'false'}"><span aria-hidden="true">📊</span></button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'poupanca' ? 'is-active' : ''}" data-action="module-tab" data-tab="poupanca" role="tab" aria-label="Poupança" aria-selected="${activeTab === 'poupanca' ? 'true' : 'false'}"><span aria-hidden="true">🐷</span></button>
                                 <button type="button" class="module-tab-btn ${activeTab === 'compras' ? 'is-active' : ''}" data-action="module-tab" data-tab="compras" role="tab" aria-label="Compras" aria-selected="${activeTab === 'compras' ? 'true' : 'false'}"><span aria-hidden="true">🛒</span></button>
-                                <button type="button" class="module-tab-btn ${activeTab === 'analista' ? 'is-active' : ''}" data-action="module-tab" data-tab="analista" role="tab" aria-label="Analista" aria-selected="${activeTab === 'analista' ? 'true' : 'false'}"><span aria-hidden="true">🤖</span></button>
                             </div>
                             <div class="finance-data-jump-bar" style="${activeTab === 'data' ? '' : 'display:none;'}" role="tablist" aria-label="Filtrar tabela de dados">
                                 <button type="button" class="finance-filter-chip finance-filter-chip--fixas" data-action="financeiro-data-filter" data-target="despesas_fixas" role="tab" aria-selected="false">
@@ -8721,16 +8793,6 @@ ${financeRowActions(r.id, 'compra')}
                                 <div class="finance-paginator-dots" id="financeiro-paginator-dots" aria-label="Indicadores de paginação"></div>
                             </div>
                         </div>
-                        <div class="module-tab-panel ${activeTab === 'analista' ? '' : 'hidden'}" data-tab-panel="analista">
-                            <h2 class="finance-tab-title"><span aria-hidden="true">🤖</span> Analista</h2>
-                            <div id="financeiro-analista-panel" class="finance-analista-shell">
-                                <div class="finance-analista-card">
-                                    <span class="finance-analista-card__label">Carregando</span>
-                                    <div class="finance-analista-card__value">Análise em andamento&hellip;</div>
-                                    <div class="finance-analista-card__meta">Buscando dados do mês atual.</div>
-                                </div>
-                            </div>
-                        </div>
                         <div class="module-tab-panel ${activeTab === 'summary' ? '' : 'hidden'}" data-tab-panel="summary">
                             <h2 class="finance-tab-title"><span aria-hidden="true">📊</span> Dashboards</h2>
                             <div class="app-totais app-totais--financeiro">
@@ -8742,7 +8804,7 @@ ${financeRowActions(r.id, 'compra')}
                                 <div class="totais-card totais-card--despesas-variadas"><div class="val">${this.formatMoneyBr(despesasVariadasVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--zap" aria-hidden="true">⚡</span>Débito / pix</div></div>
                                 <p class="totais-group-title">Status das despesas</p>
                                 <div class="totais-card totais-card--pago"><div class="val">${this.formatMoneyBr(pagoVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--pop" aria-hidden="true">✅</span>PAGO</div></div>
-                                <div class="totais-card totais-card--pendente"><div class="val">${this.formatMoneyBr(pendenteVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--spin" aria-hidden="true">⏳</span>PENDENTE</div></div>
+                                <div class="totais-card totais-card--pendente"><div class="val">${this.formatMoneyBr(pendenteVal)}</div><div class="stat-label"><span class="finance-emoji finance-emoji--pop" aria-hidden="true">⏳</span>PENDENTE</div></div>
                             </div>
                             <div class="app-charts">
                                 <div class="app-chart-wrap"><p style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;">Categorias de gastos</p><div id="financeiro-chart-categorias" style="height:280px;"></div></div>
@@ -8778,7 +8840,7 @@ ${financeRowActions(r.id, 'compra')}
                                 </div>` : ''}
                                 <div class="finance-despesas-fixas-mobile-actions">
                                     <button type="button" class="finance-fixas-mobile-btn finance-fixas-mobile-btn--pendentes" data-action="financeiro-open-fixas-modal" data-target="pendentes" aria-label="Abrir despesas fixas pendentes">
-                                        <span class="finance-fixas-mobile-emoji" aria-hidden="true"><span class="finance-emoji finance-emoji--spin">⏳</span></span>
+                                        <span class="finance-fixas-mobile-emoji" aria-hidden="true"><span class="finance-emoji finance-emoji--pop">⏳</span></span>
                                         <strong>Pendentes</strong>
                                         <span class="finance-fixas-mobile-total" id="financeiro-fixas-mobile-pendentes-total">${despesasFixasPendentes.length} item(ns) • ${this.formatMoneyBr(totalPendenteFixas)}</span>
                                         <em class="finance-fixas-mobile-hint">Toque para abrir</em>
@@ -8814,7 +8876,7 @@ ${financeRowActions(r.id, 'compra')}
                                 <div class="finance-despesas-fixas-grid">
                                     <details class="finance-despesas-col" ${detailsAttr}>
                                         <summary class="finance-despesas-col-header" style="color: #ef4444;">
-                                            <span>Pendentes<i class="fas fa-chevron-down finance-col-chevron"></i></span>
+                                            <span><span class="finance-emoji finance-emoji--pop" style="margin-right:0.35rem;font-size:1.1rem;vertical-align:middle;display:inline-block;" aria-hidden="true">⏳</span>Pendentes<i class="fas fa-chevron-down finance-col-chevron"></i></span>
                                             <span id="financeiro-fixas-pendentes-total">${this.formatMoneyBr(totalPendenteFixas)}</span>
                                         </summary>
                                         <div class="finance-table-scroll">
@@ -8826,7 +8888,7 @@ ${financeRowActions(r.id, 'compra')}
                                     </details>
                                     <details class="finance-despesas-col" ${detailsAttr}>
                                         <summary class="finance-despesas-col-header" style="color: #22c55e;">
-                                            <span>Pagas<i class="fas fa-chevron-down finance-col-chevron"></i></span>
+                                            <span><span class="finance-emoji finance-emoji--pop" style="margin-right:0.35rem;font-size:1.1rem;vertical-align:middle;display:inline-block;" aria-hidden="true">✅</span>Pagas<i class="fas fa-chevron-down finance-col-chevron"></i></span>
                                             <span id="financeiro-fixas-pagas-total">${this.formatMoneyBr(totalPagoFixas)}</span>
                                         </summary>
                                         <div class="finance-table-scroll">
@@ -8841,7 +8903,7 @@ ${financeRowActions(r.id, 'compra')}
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="gastos_variados" id="financeiro-section-gastos-variados" style="margin-top:0.85rem;">
                                 <div class="finance-data-section-head finance-data-section-head--variadas">
                                     <div class="finance-despesas-col-header" style="color:#ef4444;margin:0;">
-                                        <span style="font-size:0.875rem;font-weight:600;">Débito / pix</span>
+                                        <span style="font-size:0.875rem;font-weight:600;"><span class="finance-emoji finance-emoji--zap" style="margin-right:0.35rem;font-size:1.1rem;vertical-align:middle;display:inline-block;" aria-hidden="true">⚡</span>Débito / pix</span>
                                         <span id="financeiro-total-gastos">${this.formatMoneyBr(totalGastosVariadosFiltrado)}</span>
                                     </div>
                                     ${gastosVariados.length > 0 ? `
@@ -8853,7 +8915,7 @@ ${financeRowActions(r.id, 'compra')}
                                 </div>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">A&ccedil;&otilde;es</th></tr></thead>
+                                        <thead><tr><th class="col-desc">Descrição</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">A&ccedil;&otilde;es</th></tr></thead>
                                         <tbody id="financeiro-table-gastos">${rowsGastosHtml}</tbody>
                                     </table>
                                 </div>
@@ -8861,13 +8923,13 @@ ${financeRowActions(r.id, 'compra')}
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="receitas" id="financeiro-section-receitas" style="margin-top:0.85rem;">
                                 <div class="finance-data-section-head finance-data-section-head--receitas">
                                     <div class="finance-despesas-col-header" style="color:#22c55e;margin-bottom:0.4rem;">
-                                        <span style="font-size:0.875rem;font-weight:600;">Receitas</span>
+                                        <span style="font-size:0.875rem;font-weight:600;"><span class="finance-emoji finance-emoji--coin" style="margin-right:0.35rem;font-size:1.1rem;vertical-align:middle;display:inline-block;" aria-hidden="true">💰</span>Receitas</span>
                                         <span>${this.formatMoneyBr(receitasVal)}</span>
                                     </div>
                                 </div>
                                 <div class="finance-table-scroll">
                                     <table class="module-table">
-                                        <thead><tr><th class="col-desc">Descrição</th><th class="col-status">Status</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">A&ccedil;&otilde;es</th></tr></thead>
+                                        <thead><tr><th class="col-desc">Descrição</th><th class="col-valor">Valor</th><th class="col-categoria">Categoria</th><th class="col-actions">A&ccedil;&otilde;es</th></tr></thead>
                                         <tbody id="financeiro-table-receitas">${rowsReceitasHtml}</tbody>
                                     </table>
                                 </div>
@@ -8939,20 +9001,6 @@ ${financeRowActions(r.id, 'compra')}
                                 </div>
                             </div>
                         </div>
-                        <div class="module-tab-panel ${activeTab === 'analista' ? '' : 'hidden'}" data-tab-panel="analista">
-                            <div id="${analistaPanelId}" class="finance-analista-shell">
-                                <div class="finance-analista-card">
-                                    <div class="finance-analista-hero__title" style="margin-bottom:0.5rem;display:flex;justify-content:space-between;gap:0.75rem;align-items:center;">
-                                        <div>
-                                            <span class="finance-analista-card__label">Carregando</span>
-                                            <div class="finance-analista-card__value">Análise em andamento</div>
-                                        </div>
-                                        <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-analista-refresh" style="white-space:nowrap;">Recalcular</button>
-                                    </div>
-                                    <div class="finance-analista-card__meta">Calculando mês atual, acumulado anual e projeção do ritmo diário.</div>
-                                </div>
-                            </div>
-                        </div>
                         <button type="button" class="finance-fab finance-fab-pulse" data-action="financeiro-open-modal" aria-label="Adicionar registro financeiro">+</button>
                     </div>
                 `;
@@ -8983,445 +9031,12 @@ ${financeRowActions(r.id, 'compra')}
                     el._financeStickyOffsetResizeBound = true;
                     window.addEventListener('resize', syncFinanceStickyOffset, { passive: true });
                 }
-                el._syncFinanceStickyOffset = syncFinanceStickyOffset;
                 const itemMap = new Map();
                 despesasFixas.forEach((r) => itemMap.set(`despesa_fixa:${r.id}`, r));
                 gastosVariados.forEach((r) => itemMap.set(`gasto_variado:${r.id}`, r));
                 receitas.forEach((r) => itemMap.set(`receita:${r.id}`, r));
                 poupancaLogs.forEach((r) => itemMap.set(`poupanca:${r.id}`, r));
                 comprasLogs.forEach((r) => itemMap.set(`compra:${r.id}`, r));
-                const rebuildStorageKey = 'superapp_financeiro_rebuild_token_v2';
-                const getFinanceiroRebuildToken = () => {
-                    try {
-                        return String(sessionStorage.getItem(rebuildStorageKey) || '').trim();
-                    } catch (_err) {
-                        return '';
-                    }
-                };
-                const setFinanceiroRebuildToken = (value) => {
-                    try {
-                        const token = String(value || '').trim();
-                        if (token) sessionStorage.setItem(rebuildStorageKey, token);
-                    } catch (_err) {}
-                };
-                const ensureFinanceiroRebuildToken = async () => {
-                    const cached = getFinanceiroRebuildToken();
-                    if (cached) return cached;
-                    const res = await fetch('/api/financeiro-analista-rebuild-token', { cache: 'no-store' });
-                    const data = await this.readApiJsonOrThrow(res, 'Falha ao obter o token de rebuild');
-                    const token = String(data?.token || '').trim();
-                    if (!token) {
-                        throw new Error('Token de rebuild nao configurado.');
-                    }
-                    setFinanceiroRebuildToken(token);
-                    return token;
-                };
-                const rebuildFinanceiroAnalista = async () => {
-                    const panel = el.querySelector(`#${analistaPanelId}`);
-                    if (panel) {
-                        panel.innerHTML = `
-                            <div class="finance-analista-card">
-                                <span class="finance-analista-card__label">Recalculando</span>
-                                <div class="finance-analista-card__value">Re-treinando modelo e recalculando análises...</div>
-                                <div class="finance-analista-card__meta">Processando todo o histórico de lançamentos.</div>
-                            </div>
-                        `;
-                    }
-                    try {
-                        const res = await fetch('/api/financeiro?acao=treinar', { method: 'POST', cache: 'no-store' });
-                        await this.readApiJsonOrThrow(res, 'Falha ao re-treinar o modelo');
-                    } catch (_err) {}
-                    await loadFinanceiroAnalista();
-                };
-                const renderFinanceiroAnalista = (payload) => {
-                    const panel = el.querySelector(`#${analistaPanelId}`);
-                    if (!panel) return;
-                    const analise = payload?.analista || payload || {};
-                    const aprendizado = {
-                        ...(analise?.modelo?.aprendizado || {}),
-                        ...(payload?.aprendizado || {}),
-                    };
-                    const periodo = analise?.periodo || {};
-                    const mensal = analise?.resumo_mensal || {};
-                    const yearSummary = analise?.resumo_anual || {};
-                    const projecao = analise?.projecao || {};
-                    const comparativos = analise?.comparativos || {};
-                    const modelo = analise?.modelo || {};
-                    const recorteInicioMesAno = analise?.metadados?.recorte_inicio_mes_ano || '2000-01';
-                    const pesos = modelo?.pesos || {};
-                    const formatMoney = (value) => this.formatMoneyBr(Number(value || 0));
-                    const historico = Array.isArray(aprendizado?.historico) ? aprendizado.historico : [];
-                    const riscoScore = modelo?.score_risco || {};
-                    const aprendizadoPct = Number(aprendizado?.percentual || 0);
-                    const aprendizadoBadge = aprendizadoPct >= 80 ? 'is-low' : aprendizadoPct >= 55 ? 'is-mid' : aprendizadoPct >= 30 ? 'is-high' : 'is-crit';
-                    const topCategorias = Array.isArray(mensal?.top_categorias) ? mensal.top_categorias : [];
-                    const categoriasMes = Array.isArray(analise?.categorias_mes) ? analise.categorias_mes : topCategorias;
-                    const categoriasAno = Array.isArray(analise?.categorias_ano) ? analise.categorias_ano : [];
-                    const historicoDetalhado = Array.isArray(analise?.historico_detalhado) ? analise.historico_detalhado : [];
-                    const cards = analise?.cards || {};
-                    const categoriasAnoNormalizadas = [...categoriasAno].reduce((acc, item) => {
-                        const raw = String(item?.categoria || '—').trim() || '—';
-                        const key = normalizeFinanceiroCategoriaText(raw);
-                        const current = acc.get(key) || { categoria: canonicalFinanceiroCategoriaLabel(raw), valor: 0 };
-                        acc.set(key, {
-                            categoria: current.categoria || canonicalFinanceiroCategoriaLabel(raw),
-                            valor: Number((Number(current.valor || 0) + Number(item?.valor || 0)).toFixed(2)),
-                        });
-                        return acc;
-                    }, new Map());
-                    const categoriasAnoBase = [...categoriasAnoNormalizadas.values()];
-                    const topCategoria = topCategorias[0] || cards.categoria_mais_gasta || null;
-                    const topCategoriaMes = categoriasMes[0] || topCategoria || null;
-                    const categoriaMaisGastaAno = cards.categoria_mais_gasta || [...categoriasAnoBase].sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))[0] || topCategoriaMes || null;
-                    const categoriaMenosGastaAno = cards.categoria_menos_gasta || [...categoriasAnoBase].sort((a, b) => Number(a?.valor || 0) - Number(b?.valor || 0))[0] || null;
-                    const despesasReceitasPctMes = mensal.receitas > 0 ? (Number(mensal.despesas_totais || 0) / Number(mensal.receitas || 1)) * 100 : 0;
-                    const formatPercent = (value) => `${Number(value || 0).toFixed(1)}%`;
-                    const formatMesReferencia = (mesAnoRef) => {
-                        const raw = String(mesAnoRef || '').trim();
-                        const match = raw.match(/^(\d{4})-(\d{2})$/);
-                        if (!match) return raw || 'sem histórico';
-                        const ano = Number(match[1]);
-                        const mes = Number(match[2]);
-                        const dt = new Date(Date.UTC(ano, mes - 1, 1));
-                        const nomeMes = new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: 'America/Sao_Paulo' }).format(dt);
-                        return `${nomeMes} de ${match[1]}`;
-                    };
-                    const isBeforeRecorteMesAno = (mesAnoRef) => {
-                        const raw = String(mesAnoRef || '').slice(0, 7);
-                        const cut = String(recorteInicioMesAno || '2026-02').slice(0, 7);
-                        return /^\d{4}-\d{2}$/.test(raw) && /^\d{4}-\d{2}$/.test(cut) ? raw < cut : false;
-                    };
-                    const historicoBaseCards = Array.isArray(cards.historico_sem_janeiro) ? cards.historico_sem_janeiro : historicoDetalhado;
-                    const historicoSemJaneiro = historicoBaseCards.filter((item) => !isBeforeRecorteMesAno(item?.mes_ano));
-                    const categoriasAnoBaseSemJaneiro = categoriasAnoBase.filter((item) => String(item?.mes_ano || '').slice(5, 7) !== '01');
-                    const historicoMesCards = historicoSemJaneiro.length ? historicoSemJaneiro : historicoDetalhado.filter((item) => !isBeforeRecorteMesAno(item?.mes_ano));
-                    const getBestMonth = (rows) => rows.reduce((acc, item) => (Number(item?.saldo || 0) > Number(acc?.saldo || Number.NEGATIVE_INFINITY) ? item : acc), null);
-                    const getWorstMonth = (rows) => rows.reduce((acc, item) => (Number(item?.saldo || 0) < Number(acc?.saldo || Number.POSITIVE_INFINITY) ? item : acc), null);
-                    const getMaxFixasMonth = (rows) => rows.reduce((acc, item) => (Number(item?.despesas_fixas || 0) > Number(acc?.despesas_fixas || Number.NEGATIVE_INFINITY) ? item : acc), null);
-                    const getMaxVariaveisMonth = (rows) => rows.reduce((acc, item) => (Number(item?.despesas_variadas || 0) > Number(acc?.despesas_variadas || Number.NEGATIVE_INFINITY) ? item : acc), null);
-                    const getPositiveMonth = (rows) => rows
-                        .filter((item) => Number(item?.receitas || 0) > 0)
-                        .map((item) => ({ ...item, percentual: (Number(item?.despesas_totais || 0) / Number(item?.receitas || 1)) * 100 }))
-                        .reduce((acc, item) => (acc === null || item.percentual < acc.percentual ? item : acc), null);
-                    const getNegativeMonth = (rows) => rows
-                        .filter((item) => Number(item?.receitas || 0) > 0)
-                        .map((item) => ({ ...item, percentual: (Number(item?.despesas_totais || 0) / Number(item?.receitas || 1)) * 100 }))
-                        .reduce((acc, item) => (acc === null || item.percentual > acc.percentual ? item : acc), null);
-                    const melhorMesFinalSemJaneiro = (!cards.melhor_mes || isBeforeRecorteMesAno(cards.melhor_mes.mes_ano) ? getBestMonth(historicoMesCards) : cards.melhor_mes) || null;
-                    const piorMesFinalSemJaneiro = (!cards.pior_mes || isBeforeRecorteMesAno(cards.pior_mes.mes_ano) ? getWorstMonth(historicoMesCards) : cards.pior_mes) || null;
-                    const mesComMaisFixasFinal = (!cards.mes_com_mais_fixas || isBeforeRecorteMesAno(cards.mes_com_mais_fixas.mes_ano) ? getMaxFixasMonth(historicoMesCards) : cards.mes_com_mais_fixas) || null;
-                    const mesComMaisVariaveisFinal = (!cards.mes_com_mais_variaveis || isBeforeRecorteMesAno(cards.mes_com_mais_variaveis.mes_ano) ? getMaxVariaveisMonth(historicoMesCards) : cards.mes_com_mais_variaveis) || null;
-                    const cardMonthLabel = String(periodo.mes_ano || mesAno);
-                    const cardBestRef = melhorMesFinalSemJaneiro?.mes_ano ? `Referência: ${formatMesReferencia(melhorMesFinalSemJaneiro.mes_ano)}` : 'Referência: sem histórico';
-                    const cardWorstRef = piorMesFinalSemJaneiro?.mes_ano ? `Referência: ${formatMesReferencia(piorMesFinalSemJaneiro.mes_ano)}` : 'Referência: sem histórico';
-                    const cardTopCategoryRef = `Referência: acumulado do ano`;
-                    const cardBottomCategoryRef = `Referência: acumulado do ano`;
-                    const cardFixedMonthRef = mesComMaisFixasFinal?.mes_ano ? `Referência: ${formatMesReferencia(mesComMaisFixasFinal.mes_ano)}` : 'Referência: sem histórico';
-                    const cardVariableMonthRef = mesComMaisVariaveisFinal?.mes_ano ? `Referência: ${formatMesReferencia(mesComMaisVariaveisFinal.mes_ano)}` : 'Referência: sem histórico';
-                    const mesMaisPositivo = (!cards.mes_mais_positivo || isBeforeRecorteMesAno(cards.mes_mais_positivo.mes_ano) ? getPositiveMonth(historicoMesCards) : cards.mes_mais_positivo) || null;
-                    const mesMaisNegativo = (!cards.mes_mais_negativo || isBeforeRecorteMesAno(cards.mes_mais_negativo.mes_ano) ? getNegativeMonth(historicoMesCards) : cards.mes_mais_negativo) || null;
-                    const cardPositiveRef = mesMaisPositivo?.mes_ano ? `Referência: ${formatMesReferencia(mesMaisPositivo.mes_ano)}` : 'Referência: sem histórico';
-                    const cardNegativeRef = mesMaisNegativo?.mes_ano ? `Referência: ${formatMesReferencia(mesMaisNegativo.mes_ano)}` : 'Referência: sem histórico';
-                    const cardPositiveValue = mesMaisPositivo ? formatPercent(mesMaisPositivo.percentual) : 'Sem histórico suficiente';
-                    const cardNegativeValue = mesMaisNegativo ? formatPercent(mesMaisNegativo.percentual) : 'Sem histórico suficiente';
-                    const cardBestValue = melhorMesFinalSemJaneiro?.mes_ano ? `${this.formatMoneyBr(Number(melhorMesFinalSemJaneiro.saldo || 0))}` : 'Sem histórico suficiente';
-                    const cardWorstValue = piorMesFinalSemJaneiro?.mes_ano ? `${this.formatMoneyBr(Number(piorMesFinalSemJaneiro.saldo || 0))}` : 'Sem histórico suficiente';
-                    const cardTopCategory = categoriaMaisGastaAno?.categoria ? `${String(categoriaMaisGastaAno.categoria)} - ${this.formatMoneyBr(Number(categoriaMaisGastaAno.valor || 0))}` : 'Sem categoria suficiente';
-                    const cardBottomCategory = categoriaMenosGastaAno?.categoria ? `${String(categoriaMenosGastaAno.categoria)} - ${this.formatMoneyBr(Number(categoriaMenosGastaAno.valor || 0))}` : 'Sem categoria suficiente';
-                    const cardFixedMonth = mesComMaisFixasFinal?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisFixasFinal.despesas_fixas || 0))}` : 'Sem histórico suficiente';
-                    const cardVariableMonth = mesComMaisVariaveisFinal?.mes_ano ? `${this.formatMoneyBr(Number(mesComMaisVariaveisFinal.despesas_variadas || 0))}` : 'Sem histórico suficiente';
-                    const resumoMesesRows = historicoSemJaneiro.length
-                        ? historicoSemJaneiro.map((item) => `
-                                <tr>
-                                    <td>${escapeHtml(String(item.mes_ano || ''))}</td>
-                                    <td><span class="finance-analista-value--receita">${escapeHtml(this.formatMoneyBr(Number(item.receitas || 0)))}</span></td>
-                                    <td><span class="finance-analista-value--fixa">${escapeHtml(this.formatMoneyBr(Number(item.despesas_fixas || 0)))}</span></td>
-                                    <td><span class="finance-analista-value--debito">${escapeHtml(this.formatMoneyBr(Number(item.despesas_variadas || 0)))}</span></td>
-                                    <td><span class="finance-analista-value--saldo">${escapeHtml(this.formatMoneyBr(Number(item.saldo || 0)))}</span></td>
-                                    <td>${escapeHtml(formatPercent(Number(item.receitas || 0) > 0 ? (Number(item.despesas_totais || 0) / Number(item.receitas || 1)) * 100 : 0))}</td>
-                                    <td>${escapeHtml(String(item.top_categoria || '—'))}</td>
-                                </tr>
-                            `).join('')
-                        : '<tr><td colspan="7">Sem histórico suficiente para montar a tabela de meses.</td></tr>';
-                    const categoriasRows = [...categoriasAnoBaseSemJaneiro]
-                        .sort((a, b) => Number(b?.valor || 0) - Number(a?.valor || 0))
-                        .map((item) => `
-                                <tr>
-                                    <td>${escapeHtml(String(item?.categoria || '—'))}</td>
-                                    <td>${escapeHtml(this.formatMoneyBr(Number(item?.valor || 0)))}</td>
-                                    <td>${escapeHtml(formatPercent(yearSummary.despesas_totais > 0 ? (Number(item?.valor || 0) / Number(yearSummary.despesas_totais || 1)) * 100 : 0))}</td>
-                                </tr>
-                            `).join('') || '<tr><td colspan="3">Sem categorias anuais suficientes.</td></tr>';
-                    panel.innerHTML = `
-                        <div class="finance-analista-bi">
-                            <section class="finance-analista-card">
-                                <div class="finance-analista-hero__title" style="margin-bottom:0.5rem;display:flex;justify-content:space-between;gap:0.75rem;align-items:center;">
-                                    <div style="min-width:0;">
-                                        <h3>Analista financeiro</h3>
-                                        <span class="finance-analista-chip">${escapeHtml(cardMonthLabel)}</span>
-                                    </div>
-                                    <button type="button" class="app-btn app-btn-secondary" data-action="financeiro-analista-refresh" style="white-space:nowrap;">Recalcular</button>
-                                </div>
-                                <div class="finance-analista-card__meta">Fonte da verdade: ${escapeHtml(recorteInicioMesAno)} em diante. Janeiro de 2026 nunca entra no cálculo.</div>
-                            </section>
-                            <div class="finance-analista-grid">
-                                <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">1 - Melhor mês do ano</span>
-                                    <span class="finance-analista-card__ref">${escapeHtml(cardBestRef)}</span>
-                                    <div class="finance-analista-card__value">${escapeHtml(cardBestValue)}</div>
-                                </article>
-                                <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">2 - Pior mês do ano</span>
-                                    <span class="finance-analista-card__ref">${escapeHtml(cardWorstRef)}</span>
-                                    <div class="finance-analista-card__value">${escapeHtml(cardWorstValue)}</div>
-                                </article>
-                                <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">3 - Categoria que mais gasta</span>
-                                    <span class="finance-analista-card__ref">${escapeHtml(cardTopCategoryRef)}</span>
-                                    <div class="finance-analista-card__value">${escapeHtml(cardTopCategory)}</div>
-                                </article>
-                                <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">4 - Categoria que menos gasta</span>
-                                    <span class="finance-analista-card__ref">${escapeHtml(cardBottomCategoryRef)}</span>
-                                    <div class="finance-analista-card__value">${escapeHtml(cardBottomCategory)}</div>
-                                </article>
-                                <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">5 - Mês com mais despesas fixas</span>
-                                    <span class="finance-analista-card__ref">${escapeHtml(cardFixedMonthRef)}</span>
-                                    <div class="finance-analista-card__value">${escapeHtml(cardFixedMonth)}</div>
-                                </article>
-                                <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">6 - Mês com mais débito / pix</span>
-                                    <span class="finance-analista-card__ref">${escapeHtml(cardVariableMonthRef)}</span>
-                                    <div class="finance-analista-card__value">${escapeHtml(cardVariableMonth)}</div>
-                                </article>
-                                <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">7 - Mês mais positivo do ano</span>
-                                    <span class="finance-analista-card__ref">${escapeHtml(cardPositiveRef)}</span>
-                                    <div class="finance-analista-card__value">${escapeHtml(cardPositiveValue)}</div>
-                                </article>
-                                <article class="finance-analista-card">
-                                    <span class="finance-analista-card__label">8 - Mês mais negativo do ano</span>
-                                    <span class="finance-analista-card__ref">${escapeHtml(cardNegativeRef)}</span>
-                                    <div class="finance-analista-card__value">${escapeHtml(cardNegativeValue)}</div>
-                                </article>
-                            </div>
-                            <section class="finance-analista-card">
-                                <span class="finance-analista-card__label">Tabela de meses</span>
-                                <div class="finance-analista-table-wrap">
-                                    <table class="finance-analista-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Mês</th>
-                                                <th>Receitas</th>
-                                                <th>Fixas</th>
-                                                <th>Débito / Pix</th>
-                                                <th>Saldo</th>
-                                                <th>Despesa / Receita</th>
-                                                <th>Categoria líder</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${resumoMesesRows}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
-                            <section class="finance-analista-card">
-                                <span class="finance-analista-card__label">Tabela de categorias</span>
-                                <div class="finance-analista-table-wrap">
-                                    <table class="finance-analista-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Categoria</th>
-                                                <th>Valor</th>
-                                                <th>% do ano</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${categoriasRows}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
-                            <section class="finance-analista-card">
-                                <span class="finance-analista-card__label">Aprendizado do módulo</span>
-                                <span class="finance-analista-card__ref">Referência: modelo adaptativo atual</span>
-                                <div class="finance-analista-card__value">${aprendizadoPct.toFixed(1)}%</div>
-                                <div class="finance-analista-progress">
-                                    <div class="finance-analista-progress__head">
-                                        <strong>Maturidade do modelo</strong>
-                                        <span>${aprendizadoPct.toFixed(1)}%</span>
-                                    </div>
-                                    <div class="finance-analista-progress__track" aria-label="Maturidade do modelo financeiro">
-                                        <div class="finance-analista-progress__fill" style="width:${Math.max(0, Math.min(100, aprendizadoPct)).toFixed(1)}%;"></div>
-                                    </div>
-                                    <div class="finance-analista-progress__scale">
-                                        <span>0</span>
-                                        <span>50</span>
-                                        <span>100</span>
-                                    </div>
-                                </div>
-                                <table class="finance-analista-mini-table">
-                                    <tbody>
-                                        <tr><td>Ciclos reais</td><td>${Number(aprendizado?.ciclos_aprendizado_reais || aprendizado?.ciclos_processados || 0)}</td></tr>
-                                        <tr><td>Snapshots do modelo</td><td>${Number(aprendizado?.snapshots_modelo || 0)}</td></tr>
-                                        <tr><td>Meses analisados</td><td>${Number(aprendizado?.meses_analisados || historico.length || 0)}</td></tr>
-                                        <tr><td>Base histórica</td><td>${escapeHtml(historico.length ? `${String(historico[historico.length - 1]?.mes_ano || '')} até ${String(historico[0]?.mes_ano || '')}` : 'Sem histórico suficiente')}</td></tr>
-                                    </tbody>
-                                </table>
-                            </section>
-
-                             <!-- ⚠️ SEÇÃO: Risco Probabilístico de Consumo (TLC) -->
-                             ${ (() => {
-                                 const ar = analise?.analise_risco;
-                                 if (!ar) return '';
-                                 const riscoCor = ar.risco_classificacao === 'Crítico' ? '#ef4444' : ar.risco_classificacao === 'Alto' ? '#f97316' : ar.risco_classificacao === 'Moderado' ? '#eab308' : '#22c55e';
-                                 const ritmoCor = ar.ritmo_status === 'acelerado' ? '#f97316' : '#22c55e';
-                                 const saldoProjCor = ar.saldo_projetado_liquido < 0 ? '#ef4444' : '#22c55e';
-                                 const pctMes = ar.dias_totais > 0 ? Math.round((ar.dia_atual / ar.dias_totais) * 100) : 0;
-                                 return `
-                                 <section class="finance-analista-card" style="border-left:4px solid ${riscoCor};">
-                                     <span class="finance-analista-card__label">⚠️ Risco Probabilístico de Estouro (TLC) — Mês Atual</span>
-                                     <span class="finance-analista-card__ref">Teorema do Limite Central · Dia ${ar.dia_atual} de ${ar.dias_totais}</span>
-                                     <div class="finance-analista-card__value" style="color:${riscoCor};">${ar.probabilidade_estouro.toFixed(1)}% de probabilidade de fechar no vermelho</div>
-                                     <div class="finance-analista-progress" style="margin-top:0.75rem;">
-                                         <div class="finance-analista-progress__head">
-                                             <strong style="color:${riscoCor};">${escapeHtml(ar.risco_classificacao)}</strong>
-                                             <span>${ar.probabilidade_estouro.toFixed(1)}%</span>
-                                         </div>
-                                         <div class="finance-analista-progress__track">
-                                             <div class="finance-analista-progress__fill" style="width:${ar.probabilidade_estouro.toFixed(1)}%;background:${riscoCor};"></div>
-                                         </div>
-                                     </div>
-                                     <table class="finance-analista-mini-table" style="margin-top:0.75rem;">
-                                         <tbody>
-                                             <tr><td>Avanço do mês</td><td>${pctMes}% (dia ${ar.dia_atual}/${ar.dias_totais})</td></tr>
-                                             <tr><td>Ritmo diário atual</td><td style="color:${ritmoCor}">${this.formatMoneyBr(ar.ritmo_diario_atual)}/dia (recomendado: ${this.formatMoneyBr(ar.ritmo_diario_recomendado)}/dia)</td></tr>
-                                             <tr><td>Projeção de gasto total</td><td>${this.formatMoneyBr(ar.despesa_projetada_total)}</td></tr>
-                                             <tr><td>Saldo projetado ao fim do mês</td><td style="color:${saldoProjCor};font-weight:700;">${this.formatMoneyBr(ar.saldo_projetado_liquido)}</td></tr>
-                                             <tr><td>Saldo líquido atual</td><td style="color:${ar.saldo_liquido_atual < 0 ? '#ef4444' : '#94a3b8'}">${this.formatMoneyBr(ar.saldo_liquido_atual)}</td></tr>
-                                         </tbody>
-                                     </table>
-                                 </section>`;
-                             })() }
-
-                             <!-- 🔍 SEÇÃO: Padrões de Recorrência por Grupos Regex -->
-                             ${ (() => {
-                                 const grupos = analise?.padroes?.grupos;
-                                 if (!grupos || grupos.length === 0) return '';
-                                 const gruposRows = grupos.map(g => `
-                                     <tr>
-                                         <td>${escapeHtml(g.label)}</td>
-                                         <td style="font-weight:700;color:#f97316;">${this.formatMoneyBr(g.total)}</td>
-                                         <td>${g.contagem}x</td>
-                                         <td style="color:#94a3b8;">${this.formatMoneyBr(g.media_por_lancamento)}/lançamento</td>
-                                     </tr>`).join('');
-                                 return `
-                                 <section class="finance-analista-card" style="border-left:4px solid #f97316;">
-                                     <span class="finance-analista-card__label">🔍 Padrões de Recorrência — Onde o dinheiro foi (por grupo)</span>
-                                     <span class="finance-analista-card__ref">Agrupamento inteligente por palavras-chave do histórico do mês atual</span>
-                                     <div class="finance-analista-table-wrap">
-                                         <table class="finance-analista-table">
-                                             <thead><tr><th>Grupo</th><th>Total gasto</th><th>Frequência</th><th>Ticket médio</th></tr></thead>
-                                             <tbody>${gruposRows}</tbody>
-                                         </table>
-                                     </div>
-                                 </section>`;
-                             })() }
-
-                             <!-- 🚨 SEÇÃO: Inconsistências de Categoria -->
-                             ${ (() => {
-                                 const incs = analise?.padroes?.inconsistencias;
-                                 if (!incs || incs.length === 0) return '';
-                                 const incRows = incs.map(inc => `
-                                     <tr>
-                                         <td style="color:#fbbf24;font-weight:600;">${escapeHtml(inc.termo_comum)}</td>
-                                         <td>${escapeHtml(inc.estabelecimentoA)}</td>
-                                         <td><span class="finance-analista-badge is-mid">${escapeHtml(inc.categoriaA)}</span></td>
-                                         <td>${escapeHtml(inc.estabelecimentoB)}</td>
-                                         <td><span class="finance-analista-badge is-high">${escapeHtml(inc.categoriaB)}</span></td>
-                                     </tr>`).join('');
-                                 return `
-                                 <section class="finance-analista-card" style="border-left:4px solid #eab308;">
-                                     <span class="finance-analista-card__label">🚨 Inconsistências de Categoria Detectadas</span>
-                                     <span class="finance-analista-card__ref">Lançamentos com descrições similares categorizados de formas diferentes neste mês</span>
-                                     <div class="finance-analista-table-wrap">
-                                         <table class="finance-analista-table">
-                                             <thead><tr><th>Termo comum</th><th>Lançamento A</th><th>Categoria A</th><th>Lançamento B</th><th>Categoria B</th></tr></thead>
-                                             <tbody>${incRows}</tbody>
-                                         </table>
-                                     </div>
-                                     <div class="finance-analista-card__meta" style="margin-top:0.5rem;">💡 Padronize as categorias para melhorar a precisão do classificador automático.</div>
-                                 </section>`;
-                             })() }
-
-                             <!-- 🤖 SEÇÃO: Status do Modelo Naive Bayes -->
-                             ${ (() => {
-                                 const modeloNB = el._financeiroModeloNB;
-                                 const vocabSize = modeloNB?.vocab_size || 0;
-                                 const totalDocs = modeloNB?.total_docs || 0;
-                                 const aprendizadoNB = modeloNB?.aprendizado_percentual || 0;
-                                 const treinadoEm = modeloNB?.treinado_em ? new Date(modeloNB.treinado_em).toLocaleDateString('pt-BR') : 'nunca';
-                                 const nbCor = aprendizadoNB >= 70 ? '#22c55e' : aprendizadoNB >= 30 ? '#eab308' : '#94a3b8';
-                                 return `
-                                 <section class="finance-analista-card" style="border-left:4px solid ${nbCor};">
-                                     <span class="finance-analista-card__label">🤖 Classificador Naive Bayes (Modelo Local)</span>
-                                     <span class="finance-analista-card__ref">Treinado com seu histórico · sem IA externa</span>
-                                     <div class="finance-analista-card__value" style="color:${nbCor};">${aprendizadoNB}% de maturidade</div>
-                                     <div class="finance-analista-progress" style="margin-top:0.5rem;">
-                                         <div class="finance-analista-progress__track">
-                                             <div class="finance-analista-progress__fill" style="width:${aprendizadoNB}%;background:${nbCor};"></div>
-                                         </div>
-                                     </div>
-                                     <table class="finance-analista-mini-table" style="margin-top:0.75rem;">
-                                         <tbody>
-                                             <tr><td>Vocabulário aprendido</td><td>${vocabSize} termos únicos</td></tr>
-                                             <tr><td>Transações treinadas</td><td>${totalDocs} lançamentos categorizados</td></tr>
-                                             <tr><td>Último treinamento</td><td>${escapeHtml(treinadoEm)}</td></tr>
-                                         </tbody>
-                                     </table>
-                                     <button type="button" class="app-btn app-btn-secondary" id="financeiro-btn-treinar-modelo" style="margin-top:0.75rem;width:100%;">🔄 Re-treinar modelo com histórico completo</button>
-                                 </section>`;
-                             })() }
-
-                        </div>
-                    `;
-                };
-                const loadFinanceiroAnalista = async () => {
-                    const panel = el.querySelector(`#${analistaPanelId}`);
-                    if (!panel) return;
-                    const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-                    el._financeiroAnalistaToken = token;
-                    panel.innerHTML = `
-                        <div class="finance-analista-card">
-                            <span class="finance-analista-card__label">Carregando</span>
-                            <div class="finance-analista-card__value">Análise em andamento</div>
-                            <div class="finance-analista-card__meta">Buscando o mês atual e o acumulado do ano.</div>
-                        </div>
-                    `;
-                    try {
-                        const res = await fetch('/api/financeiro-analista?mes_ano=' + encodeURIComponent(mesAno), { cache: 'no-store' });
-                        const dataAnalista = await this.readApiJsonOrThrow(res, 'Falha ao carregar o analista financeiro');
-                        if (el._financeiroAnalistaToken !== token) return;
-                        // Passa os dados do financeiro do mês (analise_risco e padroes) para o render
-                        renderFinanceiroAnalista(dataAnalista || {});
-                        // Carrega status do modelo Naive Bayes de forma assíncrona
-                        fetch('/api/financeiro?modelo=1', { cache: 'no-store' })
-                            .then(r => r.ok ? r.json() : null)
-                            .then(modeloData => { if (modeloData) { el._financeiroModeloNB = modeloData; } })
-                            .catch(() => {});
-                    } catch (err) {
-                        if (el._financeiroAnalistaToken !== token) return;
-                        panel.innerHTML = `
-                            <div class="finance-analista-card">
-                                <span class="finance-analista-card__label">Erro</span>
-                                <div class="finance-analista-card__value">Não foi possível gerar a análise</div>
-                                <div class="finance-analista-card__meta">${escapeHtml(err.message || 'Falha ao consultar o endpoint do analista.')}</div>
-                            </div>
-                        `;
-                    }
-                };
 
                 const renderPagosPendentesDonut = (chartNode, chartRef, pagoValor, pendenteValor) => {
                     if (!chartNode) return false;
@@ -9872,7 +9487,6 @@ ${financeRowActions(r.id, 'compra')}
                         }
                         if (curFilter === firstFilter) ensureFixasMobileThermo();
                     }
-                    if (tab === 'analista') loadFinanceiroAnalista();
                     updatePaginatorDots();
                 };
 
@@ -9938,28 +9552,6 @@ ${financeRowActions(r.id, 'compra')}
                     _swLocked = false;
                     _handleSwipe(deltaX, deltaY, duration);
                 }, { passive: true });
-                if (!el._financeiroAnalistaRefreshBound) {
-                    el._financeiroAnalistaRefreshBound = true;
-                    el.addEventListener('click', async (event) => {
-                        const btn = event.target?.closest?.('[data-action="financeiro-analista-refresh"], #financeiro-btn-treinar-modelo');
-                        if (!btn || !el.contains(btn)) return;
-                        try {
-                            await rebuildFinanceiroAnalista();
-                        } catch (err) {
-                            const panel = el.querySelector(`#${analistaPanelId}`);
-                            if (panel) {
-                                panel.innerHTML = `
-                                    <div class="finance-analista-card">
-                                        <span class="finance-analista-card__label">Erro</span>
-                                        <div class="finance-analista-card__value">Não foi possível recalcular</div>
-                                        <div class="finance-analista-card__meta">${escapeHtml(err.message || 'Falha ao recalcular o analista financeiro.')}</div>
-                                    </div>
-                                `;
-                            }
-                            alert(err.message || 'Falha ao recalcular o analista financeiro.');
-                        }
-                    });
-                }
                 setTab(activeTab);
                 if (activeTab === 'data') applyFinanceDataFilter(activeDataFilter);
                 el.querySelectorAll('[data-action="financeiro-data-filter"]').forEach((btn) => {
@@ -10057,9 +9649,9 @@ ${financeRowActions(r.id, 'compra')}
                         }
                         if (tbody) {
                             if (!selected) {
-                                tbody.innerHTML = gastosVariados.length ? gastosVariados.map(mkRowGastoVariado).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
+                                tbody.innerHTML = gastosVariados.length ? gastosVariados.map(mkRowGastoVariado).join('') : '<tr><td colspan="4" class="module-table-empty">Nenhum lançamento em débito / pix neste mês.</td></tr>';
                             } else {
-                                tbody.innerHTML = filtered.length ? filtered.map(mkRowGastoVariado).join('') : '<tr><td colspan="5" class="module-table-empty">Nenhum gasto nesta categoria.</td></tr>';
+                                tbody.innerHTML = filtered.length ? filtered.map(mkRowGastoVariado).join('') : '<tr><td colspan="4" class="module-table-empty">Nenhum gasto nesta categoria.</td></tr>';
                             }
                             bindFinanceiroRowActions(tbody);
                         }
@@ -10585,7 +10177,20 @@ ${financeRowActions(r.id, 'compra')}
                     if (tipoVal === 'gasto_variado' && metodoEl && !metodoEl.value) {
                         metodoEl.value = 'debito_pix';
                     }
-                    const ok = await this.submitFinanceiroSave(el, payload);
+                    const saveBtn = overlay.querySelector('[data-action="modal-save"]');
+                    const modalBox = overlay.querySelector('.app-modal.finance-entry-modal');
+                    const loadingEl = document.createElement('div');
+                    loadingEl.className = 'fin-modal-loading-overlay';
+                    loadingEl.innerHTML = '<div class="fin-modal-loading-overlay__spinner" aria-hidden="true"></div><span class="fin-modal-loading-overlay__label">Salvando...</span>';
+                    if (modalBox) { modalBox.style.position = 'relative'; modalBox.appendChild(loadingEl); }
+                    saveBtn.disabled = true;
+                    let ok = false;
+                    try {
+                        ok = await this.submitFinanceiroSave(el, payload);
+                    } finally {
+                        loadingEl.remove();
+                        saveBtn.disabled = false;
+                    }
                     if (ok) close();
                 };
                 document.body.appendChild(overlay);
