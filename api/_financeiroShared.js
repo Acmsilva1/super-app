@@ -11,6 +11,8 @@ import {
   TIPO_REGISTRO_META_POUPANCA,
   TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
+  STATUS_PAGO,
+  STATUS_PENDENTE,
   parseMesAno,
   rangeMes,
   filtrarFinancasPorMes,
@@ -19,6 +21,8 @@ import {
   payloadInsertFinanceiro,
   payloadUpdateFinanceiro,
   inferTipoRegistro,
+  normalizeFinanceiroCategoriaText,
+  canonicalFinanceiroCategoriaLabel,
   buildReplicationSlotsFromStart,
   seriesDefinitionsFromYearRows,
   slotsNeededForMonth,
@@ -50,6 +54,214 @@ function isMissingTableError(error) {
   const code = String(error?.code || '');
   const message = String(error?.message || '').toLowerCase();
   return code === '42P01' || message.includes('does not exist') || message.includes('nao existe');
+}
+
+function isOfflineDev() {
+  return process.env.OFFLINE_DEV === 'true';
+}
+
+function buildFinanceiroMockResponse(query = {}, context = {}) {
+  const { ano, mes } = parseMesAno(query.mes_ano);
+  const mes_ano = `${ano}-${String(mes).padStart(2, '0')}`;
+  const baseDate = `${mes_ano}-`;
+  const receitasRaw = [
+    {
+      id: 'mock-rec-1',
+      descricao: 'Salário',
+      tipo: 'receita',
+      categoria: 'Salário',
+      valor: 7200,
+      created_at: `${baseDate}03T09:15:00.000Z`,
+      user_id: context.userId,
+    },
+  ];
+  const gastosVariados = [
+    {
+      id: 'mock-gasto-1',
+      descricao: 'Uber',
+      tipo: 'despesa',
+      categoria: 'Transporte',
+      valor: 42.5,
+      created_at: `${baseDate}05T14:30:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-gasto-2',
+      descricao: 'Almoço',
+      tipo: 'despesa',
+      categoria: 'Alimentação',
+      valor: 86.9,
+      created_at: `${baseDate}07T12:45:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-gasto-3',
+      descricao: 'Academia',
+      tipo: 'despesa',
+      categoria: 'Saúde',
+      valor: 129,
+      created_at: `${baseDate}12T18:00:00.000Z`,
+      user_id: context.userId,
+    },
+  ];
+  const despesasFixasRowsRaw = [
+    {
+      id: 'mock-fixa-1',
+      descricao: 'Aluguel',
+      status: 'pago',
+      valor: 2450,
+      created_at: `${baseDate}01T08:00:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-fixa-2',
+      descricao: 'Conta de luz',
+      status: 'pendente',
+      valor: 320.5,
+      created_at: `${baseDate}02T10:30:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-fixa-3',
+      descricao: 'Internet',
+      status: 'pago',
+      valor: 169.9,
+      created_at: `${baseDate}06T11:00:00.000Z`,
+      user_id: context.userId,
+    },
+  ];
+  const poupancaRowsRaw = [
+    {
+      id: 'mock-poupa-1',
+      nome_meta: 'Viagem Europa',
+      valor_meta: 15000,
+      total_acumulado: 5100,
+      data_inicio: `${ano}-01-10`,
+      progresso: 0.34,
+      status_meta: 'em_execucao',
+      created_at: `${baseDate}01T08:00:00.000Z`,
+      user_id: context.userId,
+    },
+  ];
+  const comprasMes = [
+    {
+      id: 'mock-compra-1',
+      descricao: 'Teclado mecânico',
+      tipo: 'compra',
+      categoria: 'Compras',
+      valor: 599.9,
+      created_at: `${baseDate}10T19:15:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-compra-2',
+      descricao: 'Livros',
+      tipo: 'compra',
+      categoria: 'Lazer',
+      valor: 184.7,
+      created_at: `${baseDate}15T17:20:00.000Z`,
+      user_id: context.userId,
+    },
+  ];
+
+  const receitasTabela = montarTabelaFinanceiroRows(receitasRaw, TIPO_REGISTRO_RECEITA);
+  const gastosVariadosTabela = montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO)
+    .map((r) => ({ ...r, tipo_registro: resolveTipoRegistroFinanceiro(r, TIPO_REGISTRO_GASTO_VARIADO) }));
+  const despesasFixasTabela = montarTabelaFinanceiroRows(despesasFixasRowsRaw, TIPO_REGISTRO_DESPESA_FIXA);
+  const poupancaTabela = montarTabelaFinanceiroRows(poupancaRowsRaw, TIPO_REGISTRO_POUPANCA);
+  const comprasTabela = montarTabelaFinanceiroRows(comprasMes, TIPO_REGISTRO_COMPRA);
+
+  const receitasTotal = Number(receitasRaw.reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2));
+  const despesasVariadasTotal = Number(gastosVariados.reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2));
+  const despesasFixasTotal = Number(despesasFixasRowsRaw.reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2));
+  const despesasTotais = Number((despesasVariadasTotal + despesasFixasTotal).toFixed(2));
+  const saldo = Number((receitasTotal - despesasTotais).toFixed(2));
+  const dashboard = {
+    receitas: receitasTotal,
+    despesas_fixas: despesasFixasTotal,
+    despesas_variadas: despesasVariadasTotal,
+    despesas_totais: despesasTotais,
+    saldo,
+    liquido: saldo,
+  };
+
+  const categoriaMap = new Map();
+  for (const row of gastosVariados) {
+    const categoriaRaw = String(row?.categoria || 'Outros').trim();
+    const key = normalizeFinanceiroCategoriaText(categoriaRaw);
+    const current = categoriaMap.get(key) || { categoria: canonicalFinanceiroCategoriaLabel(categoriaRaw), valor: 0 };
+    categoriaMap.set(key, {
+      categoria: current.categoria,
+      valor: Number((current.valor + Number(row?.valor || 0)).toFixed(2)),
+    });
+  }
+
+  const graficos = {
+    categorias_gastos: [...categoriaMap.values()].sort((a, b) => b.valor - a.valor),
+    pagos_pendentes: {
+      pago: Number(despesasFixasRowsRaw.filter((row) => String(row?.status || '').toLowerCase() === STATUS_PAGO).reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2)),
+      pendente: Number(despesasFixasRowsRaw.filter((row) => String(row?.status || '').toLowerCase() !== STATUS_PAGO).reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2)),
+    },
+  };
+
+  const graficosAnuais = Array.from({ length: 12 }, (_, index) => ({
+    mes_ano: `${ano}-${String(index + 1).padStart(2, '0')}`,
+    receitas: index === mes - 1 ? receitasTotal : 0,
+    despesas_fixas: index === mes - 1 ? despesasFixasTotal : 0,
+    despesas_variadas: index === mes - 1 ? despesasVariadasTotal : 0,
+    despesas_totais: index === mes - 1 ? despesasTotais : 0,
+    saldo: index === mes - 1 ? saldo : 0,
+  }));
+
+  const analiseRisco = calcularAnaliseRiscoConsumo({
+    receitas: dashboard.receitas,
+    despesasFixas: dashboard.despesas_fixas,
+    gastosVariados,
+    diaAtual: new Date().getDate(),
+    totalDias: new Date(ano, mes, 0).getDate(),
+  });
+  const { grupos: padroeGrupos, inconsistencias } = detectarPadroesEInconsistencias(gastosVariados);
+
+  return {
+    status: 200,
+    data: {
+      mes_ano,
+      dashboard,
+      graficos,
+      graficos_anuais: graficosAnuais,
+      tabelas: {
+        despesas_fixas: despesasFixasTabela,
+        gastos_variados: gastosVariadosTabela,
+        receitas: receitasTabela,
+        poupanca: poupancaTabela,
+        compras: comprasTabela,
+      },
+      poupanca: {
+        configurada: true,
+        meta_configurada: true,
+        total: 5100,
+        logs: poupancaTabela,
+        meta_ativa: {
+          id: 'mock-meta-1',
+          nome_meta: 'Viagem Europa',
+          valor_meta: 15000,
+          data_inicio: `${ano}-01-10`,
+          progresso: 0.34,
+          status_meta: 'em_execucao',
+        },
+      },
+      compras: {
+        configurada: true,
+        total: Number(comprasMes.reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2)),
+        logs: comprasTabela,
+      },
+      analise_risco: analiseRisco,
+      padroes: {
+        grupos: padroeGrupos,
+        inconsistencias,
+      },
+    },
+  };
 }
 
 function tableForTipoRegistro(tipoRegistro) {
@@ -357,6 +569,10 @@ export async function garantirDespesasFixasMes(mesAno, context = {}) {
 }
 
 export async function obterFinanceiroMes(query = {}, context = {}) {
+  if (isOfflineDev()) {
+    return buildFinanceiroMockResponse(query, context);
+  }
+
   const { ano, mes } = parseMesAno(query.mes_ano);
   const { start, end, mes_ano } = rangeMes(ano, mes);
   const { dayStart, dayEnd } = rangeDiasMes(ano, mes);

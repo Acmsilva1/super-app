@@ -10,9 +10,11 @@ build/
 # Variáveis de ambiente e Segredos Locais (NÃO sobem para o Git / Vercel)
 # ---------------------------------------------------------------------------
 .env
+.env.local
 .env.*
 !.env.example
 local_db.env
+api/.env.local
 
 # ---------------------------------------------------------------------------
 # Logs e Arquivos do Sistema Operacional
@@ -33,6 +35,11 @@ scripts/mensageria.js
 scripts/receptor.js
 scripts/telegram-config.js
 .mensageria/
+
+# ---------------------------------------------------------------------------
+# Override opcional do mock local (personalizado — NAO sobe para Git / Vercel)
+# Sem este arquivo, localhost usa mock.example.js automaticamente.
+features/missoes_treino/mock.js
 
 # ---------------------------------------------------------------------------
 # Rascunhos e Caches Locais

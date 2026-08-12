@@ -1,3 +1,14 @@
+import { MockTreinoStore } from './mock.example.js';
+
+function isLocalDevHost() {
+  try {
+    const host = String(window.location.hostname || '').toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+  } catch (_err) {
+    return false;
+  }
+}
+
 function escapeHtml(value) {
   const div = document.createElement('div');
   div.textContent = String(value ?? '');
@@ -116,19 +127,48 @@ function missionCardHtml(mission, index, isTodayHighlight = false) {
   `;
 }
 
+function profileCardHtml(profile, index) {
+  const color = escapeHtml(profile.cor || '#00e5ff');
+  const icon = escapeHtml(profile.icone || 'fa-dumbbell');
+  const count = Number(profile.missions_count || 0);
+  return `
+    <article class="mt-profile-card" style="--profile-color:${color};--card-i:${index};">
+      <button class="mt-profile-open" data-action="select-profile" data-profile-id="${escapeHtml(profile.id)}" aria-label="Abrir perfil ${escapeHtml(profile.nome)}">
+        <div class="mt-profile-icon"><i class="fas ${icon}" aria-hidden="true"></i></div>
+        <div class="mt-profile-body">
+          <h3>${escapeHtml(profile.nome)}</h3>
+          <p>${escapeHtml(profile.descricao || 'Treinos personalizados deste perfil')}</p>
+          <span class="mt-profile-meta">${count} missao${count === 1 ? '' : 'es'}</span>
+        </div>
+      </button>
+      <footer class="mt-profile-actions">
+        <button class="mt-btn-icon" data-action="edit-profile" data-profile-id="${escapeHtml(profile.id)}">Editar</button>
+        <button class="mt-btn-icon is-danger" data-action="delete-profile" data-profile-id="${escapeHtml(profile.id)}">Excluir</button>
+      </footer>
+    </article>
+  `;
+}
+
 class MissoesTreinoApp {
   constructor(container) {
     this.container = container;
     this.missions = [];
+    this.profiles = [];
     this.tempMissions = [];
     this.performance = null;
     this.toasts = [];
     this.editingMissionId = null;
     this.editingTempItemId = null;
+    this.editingProfileId = null;
+    this.selectedProfile = null;
     this.selectedGoalsMonth = null;
     this.isLoading = false;
+    this.isProfilesLoading = false;
     this.errorMessage = '';
-    this.currentTab = 'treinos'; // 'rotinas' | 'treinos'
+    this.currentView = 'profiles';
+    this.currentTab = 'treinos';
+    this.useMock = isLocalDevHost();
+    this.mockStore = this.useMock ? new MockTreinoStore() : null;
     this.onClick = this.onClick.bind(this);
     this.onKeyPress = this.onKeyPress.bind(this);
   }
@@ -139,7 +179,21 @@ class MissoesTreinoApp {
     this.bind();
     this.updateDateDisplay();
     this.render();
-    this.loadFromApi();
+    void this.bootstrapAndLoad();
+  }
+
+  async bootstrapAndLoad() {
+    if (this.useMock) {
+      try {
+        const mod = await import('./mock.js');
+        this.mockStore = new mod.MockTreinoStore();
+      } catch (_err) {
+        // mock.example.js ja carregado no construtor
+      }
+      this.setNotice('Mock local fixo ativo.');
+      this.render();
+    }
+    await this.loadProfiles();
   }
 
   destroy() {
@@ -166,6 +220,17 @@ class MissoesTreinoApp {
     this.tempListEl = this.container.querySelector('[data-role="temp-list"]');
     this.performanceHost = this.container.querySelector('[data-role="performance"]');
     this.toastHost = this.container.querySelector('[data-role="toasts"]');
+    this.profilesHost = this.container.querySelector('[data-role="profiles-list"]');
+    this.trainingHost = this.container.querySelector('[data-role="training-view"]');
+    this.profileModalEl = this.container.querySelector('[data-role="profile-modal"]');
+    this.profileModalTitleEl = this.container.querySelector('[data-role="profile-modal-title"]');
+    this.profileModalDescEl = this.container.querySelector('[data-role="profile-modal-desc"]');
+    this.profileModalSubmitEl = this.container.querySelector('[data-role="profile-modal-submit"]');
+    this.profileNameInput = this.container.querySelector('[data-role="profile-name"]');
+    this.profileDescInput = this.container.querySelector('[data-role="profile-desc"]');
+    this.profileColorInput = this.container.querySelector('[data-role="profile-color"]');
+    this.profileTitleEl = this.container.querySelector('[data-role="profile-title"]');
+    this.profileSubtitleEl = this.container.querySelector('[data-role="profile-subtitle"]');
   }
 
   bind() {
@@ -174,6 +239,10 @@ class MissoesTreinoApp {
   }
 
   async api(path = '', options = {}) {
+    if (this.useMock && this.mockStore) {
+      return this.mockStore.handle(path, options);
+    }
+
     const response = await fetch(`/api/missoes-treino${path}`, {
       headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
       ...options,
@@ -183,24 +252,163 @@ class MissoesTreinoApp {
     return data;
   }
 
+  buildApiQuery(params = {}) {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value != null && String(value).trim() !== '') search.set(key, String(value));
+    });
+    const qs = search.toString();
+    return qs ? `?${qs}` : '';
+  }
+
+  async loadProfiles() {
+    this.isProfilesLoading = true;
+    this.setNotice('Carregando perfis...');
+    this.render();
+    try {
+      const data = await this.api(this.buildApiQuery({ resource: 'profiles' }));
+      this.profiles = Array.isArray(data?.profiles) ? data.profiles : [];
+      this.setNotice(this.profiles.length ? 'Selecione um perfil para continuar.' : 'Crie seu primeiro perfil de treino.');
+    } catch (err) {
+      this.setNotice(err.message || 'Falha ao carregar perfis.', true);
+    } finally {
+      this.isProfilesLoading = false;
+      this.render();
+    }
+  }
+
+  selectProfile(profileId) {
+    const profile = this.profiles.find((item) => String(item.id) === String(profileId));
+    if (!profile) return;
+    this.selectedProfile = profile;
+    this.currentView = 'training';
+    sessionStorage.setItem('mt-selected-profile-id', String(profile.id));
+    this.loadFromApi();
+  }
+
+  backToProfiles() {
+    this.currentView = 'profiles';
+    this.selectedProfile = null;
+    this.missions = [];
+    this.performance = null;
+    sessionStorage.removeItem('mt-selected-profile-id');
+    this.render();
+    this.loadProfiles();
+  }
+
+  openProfileModal(profileId = null) {
+    this.editingProfileId = profileId;
+    const profile = profileId ? this.profiles.find((item) => String(item.id) === String(profileId)) : null;
+    if (profile) {
+      this.profileModalTitleEl.textContent = 'EDITAR PERFIL';
+      this.profileModalDescEl.textContent = 'Atualize nome, descricao e cor deste perfil.';
+      this.profileModalSubmitEl.textContent = 'SALVAR PERFIL';
+      if (this.profileNameInput) this.profileNameInput.value = String(profile.nome || '');
+      if (this.profileDescInput) this.profileDescInput.value = String(profile.descricao || '');
+      if (this.profileColorInput) this.profileColorInput.value = String(profile.cor || '#00e5ff');
+    } else {
+      this.profileModalTitleEl.textContent = 'NOVO PERFIL';
+      this.profileModalDescEl.textContent = 'Crie um perfil para organizar treinos personalizados.';
+      this.profileModalSubmitEl.textContent = 'CRIAR PERFIL';
+      if (this.profileNameInput) this.profileNameInput.value = '';
+      if (this.profileDescInput) this.profileDescInput.value = '';
+      if (this.profileColorInput) this.profileColorInput.value = '#00e5ff';
+    }
+    this.profileModalEl.classList.remove('is-hidden');
+    window.setTimeout(() => this.profileModalEl.classList.add('is-open'), 10);
+    this.profileNameInput?.focus();
+  }
+
+  closeProfileModal() {
+    this.profileModalEl.classList.remove('is-open');
+    window.setTimeout(() => this.profileModalEl.classList.add('is-hidden'), 180);
+    this.editingProfileId = null;
+  }
+
+  async commitProfile() {
+    const nome = String(this.profileNameInput?.value || '').trim();
+    const descricao = String(this.profileDescInput?.value || '').trim();
+    const cor = String(this.profileColorInput?.value || '#00e5ff').trim() || '#00e5ff';
+    if (!nome) {
+      this.showToast('Informe o nome do perfil.', 'error');
+      return;
+    }
+
+    this.profileModalSubmitEl.disabled = true;
+    try {
+      if (this.editingProfileId) {
+        await this.api('', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            resource: 'profile',
+            profile_id: this.editingProfileId,
+            nome,
+            descricao,
+            cor,
+          }),
+        });
+        this.showToast('Perfil atualizado com sucesso.');
+      } else {
+        await this.api('', {
+          method: 'POST',
+          body: JSON.stringify({
+            resource: 'profile',
+            nome,
+            descricao,
+            cor,
+          }),
+        });
+        this.showToast('Perfil criado com sucesso.');
+      }
+      this.closeProfileModal();
+      await this.loadProfiles();
+    } catch (err) {
+      this.showToast(err.message || 'Falha ao salvar perfil.', 'error');
+    } finally {
+      this.profileModalSubmitEl.disabled = false;
+    }
+  }
+
+  async deleteProfile(profileId) {
+    const profile = this.profiles.find((item) => String(item.id) === String(profileId));
+    if (!profile) return;
+    const confirmed = window.confirm(`Excluir o perfil "${profile.nome}" e todos os treinos vinculados?`);
+    if (!confirmed) return;
+    try {
+      await this.api('', {
+        method: 'DELETE',
+        body: JSON.stringify({ resource: 'profile', profile_id: profileId }),
+      });
+      if (this.selectedProfile && String(this.selectedProfile.id) === String(profileId)) {
+        this.backToProfiles();
+        return;
+      }
+      await this.loadProfiles();
+      this.showToast('Perfil excluido.');
+    } catch (err) {
+      this.showToast(err.message || 'Falha ao excluir perfil.', 'error');
+    }
+  }
+
   setNotice(message = '', isError = false) {
     this.errorMessage = message || '';
     void isError;
   }
 
   async loadFromApi() {
+    if (!this.selectedProfile?.id) return;
     this.isLoading = true;
     this.setNotice('Sincronizando com o banco...');
     this.render();
     try {
-      const data = await this.api('');
+      const data = await this.api(this.buildApiQuery({ profile_id: this.selectedProfile.id }));
       this.missions = Array.isArray(data?.missions) ? data.missions : [];
       this.performance = data?.performance || null;
       await this.migrateLegacyLocalData(this.missions);
-      const refreshed = await this.api('');
+      const refreshed = await this.api(this.buildApiQuery({ profile_id: this.selectedProfile.id }));
       this.missions = Array.isArray(refreshed?.missions) ? refreshed.missions : [];
       this.performance = refreshed?.performance || this.performance;
-      this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem missoes para hoje.');
+      this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem missoes para este perfil.');
     } catch (err) {
       this.setNotice(err.message || 'Falha ao carregar missoes.', true);
     } finally {
@@ -210,6 +418,7 @@ class MissoesTreinoApp {
   }
 
   async migrateLegacyLocalData(existingMissions = []) {
+    if (this.useMock) return;
     const legacyKey = 'sl-musculacao-system';
     const markerKey = `sl-musculacao-migrated-${getTodayKey()}`;
     if (localStorage.getItem(markerKey) === '1') return;
@@ -265,7 +474,7 @@ class MissoesTreinoApp {
     if (!existingSignatures.has(newSignature)) {
       await this.api('', {
         method: 'POST',
-        body: JSON.stringify({ items: normalizedLegacy }),
+        body: JSON.stringify({ profile_id: this.selectedProfile?.id, items: normalizedLegacy }),
       });
     }
 
@@ -283,7 +492,19 @@ class MissoesTreinoApp {
     const id = actionEl.getAttribute('data-id');
     const missionId = actionEl.getAttribute('data-mission-id');
 
-    if (action === 'refresh') this.loadFromApi();
+    const profileId = actionEl.getAttribute('data-profile-id');
+
+    if (action === 'refresh') {
+      if (this.currentView === 'profiles') this.loadProfiles();
+      else this.loadFromApi();
+    }
+    if (action === 'back-profiles') this.backToProfiles();
+    if (action === 'open-profile-modal') this.openProfileModal();
+    if (action === 'close-profile-modal') this.closeProfileModal();
+    if (action === 'submit-profile-modal') this.commitProfile();
+    if (action === 'select-profile' && profileId) this.selectProfile(profileId);
+    if (action === 'edit-profile' && profileId) this.openProfileModal(profileId);
+    if (action === 'delete-profile' && profileId) this.deleteProfile(profileId);
     if (action === 'switch-tab') {
       this.currentTab = actionEl.getAttribute('data-tab');
       this.render();
@@ -304,7 +525,8 @@ class MissoesTreinoApp {
 
   updateDateDisplay() {
     const options = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
-    this.todayDateEl.textContent = `STATUS DO SERVIDOR: ${new Date().toLocaleDateString('pt-BR', options).toUpperCase()}`;
+    const prefix = this.useMock ? 'MOCK LOCAL FIXO' : 'STATUS DO SERVIDOR';
+    this.todayDateEl.textContent = `${prefix}: ${new Date().toLocaleDateString('pt-BR', options).toUpperCase()}`;
   }
 
   openModal(missionId = null) {
@@ -433,6 +655,7 @@ class MissoesTreinoApp {
         await this.api('', {
           method: 'PATCH',
           body: JSON.stringify({
+            profile_id: this.selectedProfile?.id,
             mission_id: this.editingMissionId,
             title: String(this.tempTitleInput?.value || '').trim() || 'Missao diaria',
             replace_items: payloadItems,
@@ -442,6 +665,7 @@ class MissoesTreinoApp {
         await this.api('', {
           method: 'POST',
           body: JSON.stringify({
+            profile_id: this.selectedProfile?.id,
             title: String(this.tempTitleInput?.value || '').trim() || 'Missao diaria',
             items: payloadItems,
           }),
@@ -524,7 +748,46 @@ class MissoesTreinoApp {
     `).join('');
   }
 
+  renderMockBanner() {
+    let banner = this.container.querySelector('[data-role="mock-banner"]');
+    if (this.useMock) {
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.className = 'mt-mock-banner';
+        banner.setAttribute('data-role', 'mock-banner');
+        banner.textContent = 'Mock local fixo: modulo treino 100% em memoria. Nada vai pro Supabase.';
+        const header = this.container.querySelector('.mt-header-block');
+        header?.insertAdjacentElement('afterend', banner);
+      }
+      this.updateDateDisplay();
+    } else if (banner) {
+      banner.remove();
+    }
+  }
+
   render() {
+    this.renderMockBanner();
+    const isProfilesView = this.currentView === 'profiles';
+    this.trainingHost?.classList.toggle('mt-is-hidden', isProfilesView);
+    this.profilesHost?.classList.toggle('mt-is-hidden', !isProfilesView);
+    this.container.querySelector('[data-role="profiles-toolbar"]')?.classList.toggle('mt-is-hidden', !isProfilesView);
+    this.container.querySelector('[data-role="training-toolbar"]')?.classList.toggle('mt-is-hidden', isProfilesView);
+    this.container.querySelector('.mt-fab-floating')?.classList.toggle('mt-is-hidden', isProfilesView);
+    this.container.querySelector('.mt-tabs-block')?.classList.toggle('mt-is-hidden', isProfilesView);
+    this.container.querySelector('.mt-progress-wrap')?.classList.toggle('mt-is-hidden', isProfilesView);
+
+    if (isProfilesView) {
+      this.renderProfiles();
+      return;
+    }
+
+    if (this.profileTitleEl) {
+      this.profileTitleEl.textContent = this.selectedProfile?.nome || 'PERFIL DE TREINO';
+    }
+    if (this.profileSubtitleEl) {
+      this.profileSubtitleEl.textContent = this.selectedProfile?.descricao || 'Treinos personalizados deste perfil';
+    }
+
     const totalMissions = this.missions.length;
     const completedMissions = this.missions.filter((m) => m.completed).length;
     const progress = totalMissions ? Math.round((completedMissions / totalMissions) * 100) : 0;
@@ -593,6 +856,35 @@ class MissoesTreinoApp {
       .map((mission, idx) => missionCardHtml(mission, idx, Boolean(highlightedMissionId && mission.id === highlightedMissionId)))
       .join('');
     this.renderPerformance();
+    this.renderToasts();
+  }
+
+  renderProfiles() {
+    if (!this.profilesHost) return;
+    if (this.isProfilesLoading) {
+      this.profilesHost.innerHTML = `
+        <div class="mt-empty-card mt-loading-state">
+          <i class="fas fa-spinner spinner" aria-hidden="true"></i>
+          <p class="mt-empty-title">CARREGANDO PERFIS...</p>
+          <p class="mt-empty-text">Aguarde enquanto buscamos seus perfis de treino.</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (!this.profiles.length) {
+      this.profilesHost.innerHTML = `
+        <div class="mt-empty-card">
+          <p class="mt-empty-title">NENHUM PERFIL</p>
+          <p class="mt-empty-text">Crie um perfil para comecar. Ex.: Hipertrofia, Emagrecimento, Corrida.</p>
+        </div>
+      `;
+      return;
+    }
+
+    this.profilesHost.innerHTML = this.profiles
+      .map((profile, idx) => profileCardHtml(profile, idx))
+      .join('');
     this.renderToasts();
   }
 
@@ -939,6 +1231,19 @@ class MissoesTreinoApp {
           @keyframes mt-today-pulse{0%,100%{transform:translateY(0) scale(1);box-shadow:0 0 0 1px rgba(255,95,31,.38),0 0 12px rgba(255,95,31,.3),inset 0 0 8px rgba(255,95,31,.14)}50%{transform:translateY(-2px) scale(1.008);box-shadow:0 0 0 1px rgba(255,95,31,.55),0 0 20px rgba(255,95,31,.5),inset 0 0 12px rgba(255,95,31,.2)}}
           @keyframes mt-today-pulse-done{0%,100%{transform:translateY(0) scale(1);box-shadow:0 0 0 1px rgba(0,208,132,.38),0 0 12px rgba(0,208,132,.28),inset 0 0 8px rgba(0,208,132,.14)}50%{transform:translateY(-2px) scale(1.008);box-shadow:0 0 0 1px rgba(0,208,132,.55),0 0 20px rgba(0,208,132,.48),inset 0 0 12px rgba(0,208,132,.2)}}
           @keyframes mt-rest-emoji-nap{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-2px) rotate(-8deg)}}
+          .mt-profiles-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:20px}
+          .mt-profile-card{border:1px solid rgba(0,229,255,.28);background:var(--mt-panel);border-radius:12px;overflow:hidden;animation:cardIn .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--card-i, 0) * .07s);box-shadow:inset 0 0 12px rgba(0,229,255,.04)}
+          .mt-profile-open{width:100%;border:none;background:transparent;color:inherit;text-align:left;cursor:pointer;padding:14px;display:flex;gap:12px;align-items:flex-start}
+          .mt-profile-icon{width:52px;height:52px;border-radius:12px;border:1px solid color-mix(in srgb, var(--profile-color, #00e5ff) 60%, transparent);background:color-mix(in srgb, var(--profile-color, #00e5ff) 16%, transparent);display:flex;align-items:center;justify-content:center;color:var(--profile-color,#00e5ff);font-size:1.2rem;flex:none;box-shadow:0 0 14px color-mix(in srgb, var(--profile-color, #00e5ff) 35%, transparent)}
+          .mt-profile-body{min-width:0}
+          .mt-profile-body h3{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.82rem;letter-spacing:.05em}
+          .mt-profile-body p{margin:6px 0 0;color:#93a1b0;font-size:.72rem;line-height:1.35}
+          .mt-profile-meta{display:inline-flex;margin-top:10px;padding:3px 8px;border-radius:999px;border:1px solid rgba(0,229,255,.24);color:#9fdcf0;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase}
+          .mt-profile-actions{display:flex;gap:6px;padding:0 10px 10px}
+          .mt-profile-back{display:inline-flex;align-items:center;gap:8px;border:1px solid #3a4656;background:rgba(0,0,0,.22);color:#c1d3e2;padding:8px 12px;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border-radius:8px}
+          .mt-mock-banner{margin:0 0 14px;padding:10px 12px;border:1px dashed rgba(255,166,0,.55);border-radius:10px;background:rgba(255,166,0,.12);color:#ffe7c4;font-size:.72rem;letter-spacing:.04em}
+          @media (max-width:1024px){.mt-profiles-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+          @media (max-width:720px){.mt-profiles-list{grid-template-columns:1fr}}
         </style>
 
         <div class="mt-header-block">
@@ -957,6 +1262,24 @@ class MissoesTreinoApp {
           </header>
         </div>
 
+        <div class="mt-fab-wrap" data-role="profiles-toolbar">
+          <button class="mt-fab" data-action="open-profile-modal">+ Novo Perfil</button>
+          <button class="mt-fab sec" data-action="refresh">Atualizar</button>
+        </div>
+
+        <section class="mt-profiles-list" data-role="profiles-list"></section>
+
+        <div class="mt-fab-wrap mt-is-hidden" data-role="training-toolbar">
+          <button class="mt-profile-back" data-action="back-profiles">← Perfis</button>
+          <button class="mt-fab sec" data-action="refresh">Sincronizar</button>
+        </div>
+
+        <div data-role="training-view">
+          <div class="mt-header-block" style="margin-bottom:12px;padding:12px 16px;">
+            <h3 class="mt-title" data-role="profile-title" style="font-size:.95rem;margin:0;">PERFIL DE TREINO</h3>
+            <p class="mt-date" data-role="profile-subtitle" style="margin-top:6px;">Treinos personalizados deste perfil</p>
+          </div>
+
         <nav class="mt-tabs-block">
           <div class="mt-tabs">
             <div class="mt-tab ${this.currentTab === 'treinos' ? 'is-active' : ''}" data-action="switch-tab" data-tab="treinos">Treinos</div>
@@ -966,11 +1289,39 @@ class MissoesTreinoApp {
         <div class="mt-progress-wrap"><div class="mt-progress" data-role="progress"></div></div>
         <section class="mt-list" data-role="list"></section>
         <section data-role="performance"></section>
-        <div class="mt-fab-wrap">
-          <button class="mt-fab sec" data-action="refresh">Sincronizar</button>
         </div>
-        <button class="mt-fab-floating" data-action="open-modal" aria-label="Nova Missao" title="Nova Missao">+</button>
+        <button class="mt-fab-floating mt-is-hidden" data-action="open-modal" aria-label="Nova Missao" title="Nova Missao">+</button>
         <div class="mt-toast-wrap" data-role="toasts"></div>
+
+        <div class="mt-modal is-hidden" data-role="profile-modal">
+          <div class="mt-modal-card">
+            <div class="mt-modal-top">
+              <div>
+                <h4 data-role="profile-modal-title">NOVO PERFIL</h4>
+                <p data-role="profile-modal-desc">Crie um perfil para organizar treinos personalizados.</p>
+              </div>
+              <button class="mt-close" data-action="close-profile-modal">X</button>
+            </div>
+            <div class="mt-form">
+              <div class="mt-field">
+                <label>Nome do perfil</label>
+                <input type="text" data-role="profile-name" placeholder="Ex: Hipertrofia" />
+              </div>
+              <div class="mt-field">
+                <label>Descricao</label>
+                <input type="text" data-role="profile-desc" placeholder="Ex: Treino focado em ganho de massa" />
+              </div>
+              <div class="mt-field">
+                <label>Cor do perfil</label>
+                <input type="color" data-role="profile-color" value="#00e5ff" />
+              </div>
+              <div class="mt-actions">
+                <button class="mt-cancel" data-action="close-profile-modal">Cancelar</button>
+                <button class="mt-submit" data-role="profile-modal-submit" data-action="submit-profile-modal">CRIAR PERFIL</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div class="mt-modal is-hidden" data-role="modal">
           <div class="mt-modal-card">

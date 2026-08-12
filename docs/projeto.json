@@ -28,7 +28,7 @@
     "paths": {
       "workspace": "C:\\projetos e aplicativos\\pessoal\\super app\\super-app-1",
       "shell": "index.html",
-      "migrations": "sql/"
+      "migrations": "migration/"
     },
     "security": {
       "lgpd": "Dados financeiros e pessoais do usuário. RLS obrigatório por user_id.",
@@ -42,8 +42,14 @@
     },
     "checklist": {
       "tests": ["npm test", "npm run test:ux"],
-      "pendencias": ["README desatualizado vs código"],
-      "checkpoint": "Adicionados ícones animados (emojis) nos cabeçalhos dos cards da versão web do módulo financeiro — 2026-08-05"
+      "pendencias": ["README desatualizado vs código", "Migration 20260812 pendente no Supabase"],
+      "checkpoint": "Documentacao principal dividida em docs/backend.md, frontend.md, db.md (indice documentacao.md) — 2026-08-12"
+    },
+    "documentation": {
+      "index": "docs/documentacao.md",
+      "backend": "docs/backend.md",
+      "frontend": "docs/frontend.md",
+      "database": "docs/db.md"
     },
     "technologies": ["Vercel Functions", "Supabase", "PWA", "Vitest"]
   }

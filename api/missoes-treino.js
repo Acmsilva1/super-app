@@ -4,6 +4,120 @@ import { requireUser } from '../lib/auth.js';
 const TABLE_MISSOES = 'tb_missoes_treino';
 const TABLE_ITENS = 'tb_missoes_treino_itens';
 const TABLE_CHAMAS = 'tb_missoes_treino_chamas';
+const TABLE_PERFIS = 'tb_missoes_treino_perfis';
+
+function normalizeProfileId(value) {
+  const n = Number.parseInt(String(value ?? '').trim(), 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function isMissingProfilesTableError(message) {
+  const lower = String(message || '').toLowerCase();
+  return (
+    lower.includes('tb_missoes_treino_perfis') &&
+    (lower.includes('does not exist') || lower.includes('schema cache') || lower.includes('relation'))
+  );
+}
+
+function mapProfileRow(row) {
+  return {
+    id: row.id,
+    nome: row.nome || 'Perfil',
+    descricao: row.descricao || '',
+    cor: row.cor || '#00e5ff',
+    icone: row.icone || 'fa-dumbbell',
+    created_at: row.created_at || null,
+    updated_at: row.updated_at || null,
+    missions_count: Number(row.missions_count || 0),
+  };
+}
+
+async function countMissionsByProfileIds(profileIds = []) {
+  const counts = new Map();
+  for (const id of profileIds) counts.set(id, 0);
+  if (!profileIds.length) return counts;
+
+  const { data, error } = await supabase
+    .from(TABLE_MISSOES)
+    .select('perfil_id')
+    .in('perfil_id', profileIds);
+  if (error) {
+    if (isMissingProfilesTableError(error.message)) return counts;
+    throw new Error(error.message);
+  }
+  for (const row of data || []) {
+    const pid = Number(row?.perfil_id);
+    if (!counts.has(pid)) continue;
+    counts.set(pid, (counts.get(pid) || 0) + 1);
+  }
+  return counts;
+}
+
+async function fetchProfiles() {
+  const { data, error } = await supabase
+    .from(TABLE_PERFIS)
+    .select('id,nome,descricao,cor,icone,created_at,updated_at')
+    .order('created_at', { ascending: true });
+  if (error) {
+    if (isMissingProfilesTableError(error.message)) return [];
+    throw new Error(error.message);
+  }
+
+  const profileIds = (data || []).map((row) => row.id).filter(Boolean);
+  const counts = await countMissionsByProfileIds(profileIds);
+  return (data || []).map((row) => mapProfileRow({ ...row, missions_count: counts.get(row.id) || 0 }));
+}
+
+async function createProfile(body = {}) {
+  const nome = normalizeNome(body.nome);
+  if (!nome) throw new Error('nome do perfil e obrigatorio');
+
+  const payload = {
+    nome,
+    descricao: String(body.descricao || '').trim().slice(0, 240),
+    cor: String(body.cor || '#00e5ff').trim().slice(0, 24) || '#00e5ff',
+    icone: String(body.icone || 'fa-dumbbell').trim().slice(0, 48) || 'fa-dumbbell',
+  };
+
+  const { data, error } = await supabase.from(TABLE_PERFIS).insert(payload).select('*').single();
+  if (error) throw new Error(error.message);
+  return mapProfileRow({ ...data, missions_count: 0 });
+}
+
+async function updateProfile(profileId, body = {}) {
+  const payload = {};
+  if (body.nome != null) {
+    const nome = normalizeNome(body.nome);
+    if (!nome) throw new Error('nome do perfil invalido');
+    payload.nome = nome;
+  }
+  if (body.descricao != null) payload.descricao = String(body.descricao || '').trim().slice(0, 240);
+  if (body.cor != null) payload.cor = String(body.cor || '#00e5ff').trim().slice(0, 24) || '#00e5ff';
+  if (body.icone != null) payload.icone = String(body.icone || 'fa-dumbbell').trim().slice(0, 48) || 'fa-dumbbell';
+  if (!Object.keys(payload).length) throw new Error('nada para atualizar no perfil');
+
+  const { data, error } = await supabase
+    .from(TABLE_PERFIS)
+    .update(payload)
+    .eq('id', profileId)
+    .select('*')
+    .single();
+  if (error) throw new Error(error.message);
+
+  const counts = await countMissionsByProfileIds([profileId]);
+  return mapProfileRow({ ...data, missions_count: counts.get(profileId) || 0 });
+}
+
+async function deleteProfile(profileId) {
+  const { error } = await supabase.from(TABLE_PERFIS).delete().eq('id', profileId);
+  if (error) throw new Error(error.message);
+  return { ok: true, profile_id: profileId };
+}
+
+function applyProfileFilter(query, perfilId) {
+  if (!perfilId) return query;
+  return query.eq('perfil_id', perfilId);
+}
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
@@ -74,20 +188,22 @@ function listRecentMonthRefs(anchorMonthRef, floorMonthRef = null) {
   return refs;
 }
 
-async function getHistoryFloorMonthRef(anchorMonthRef) {
-  const { data, error } = await supabase
+async function getHistoryFloorMonthRef(anchorMonthRef, perfilId = null) {
+  let query = supabase
     .from(TABLE_MISSOES)
     .select('data_referencia')
     .order('data_referencia', { ascending: true })
     .limit(1);
+  if (perfilId) query = query.eq('perfil_id', perfilId);
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   const firstDate = String(data?.[0]?.data_referencia || '');
   const firstMonth = /^\d{4}-\d{2}-\d{2}$/.test(firstDate) ? firstDate.slice(0, 7) : '';
   return firstMonth || String(anchorMonthRef || '');
 }
 
-async function fetchMonthlyHistory(anchorMonthRef, cycleTotalDays = 30) {
-  const floorMonthRef = await getHistoryFloorMonthRef(anchorMonthRef);
+async function fetchMonthlyHistory(anchorMonthRef, cycleTotalDays = 30, perfilId = null) {
+  const floorMonthRef = await getHistoryFloorMonthRef(anchorMonthRef, perfilId);
   const months = listRecentMonthRefs(anchorMonthRef, floorMonthRef);
   if (!months.length) return [];
 
@@ -338,27 +454,29 @@ function groupMissions(missionRows, itemRows) {
   return missions;
 }
 
-async function autoCarryOverLatestMission(dateRef) {
+async function autoCarryOverLatestMission(dateRef, perfilId = null) {
   const targetWeekday = getWeekdayMonToSunFromIso(dateRef);
   if (!isTrainingWeekday(targetWeekday)) return false;
+  if (!perfilId) return false;
 
-  const { data: previousMissions, error: mErr } = await supabase
+  let previousQuery = supabase
     .from(TABLE_MISSOES)
-    .select('id,titulo,data_referencia,created_at,origem')
+    .select('id,titulo,data_referencia,created_at,origem,perfil_id')
+    .eq('perfil_id', perfilId)
     .lt('data_referencia', dateRef)
     .order('created_at', { ascending: false })
     .limit(500);
-
+  const { data: previousMissions, error: mErr } = await previousQuery;
   if (mErr) throw new Error(mErr.message);
 
   let oldMissions = (previousMissions || []).filter((m) => missionMatchesWeekdayByTitle(m, dateRef));
   if (!oldMissions.length) return false;
 
-  // Evita duplicar modelos iguais no mesmo dia.
   const { data: todayMissions, error: tErr } = await supabase
     .from(TABLE_MISSOES)
     .select('id,titulo')
-    .eq('data_referencia', dateRef);
+    .eq('data_referencia', dateRef)
+    .eq('perfil_id', perfilId);
   if (tErr) throw new Error(tErr.message);
   const todayTitles = new Set((todayMissions || []).map((m) => normalizeWeekdayText(m?.titulo || '')));
   oldMissions = oldMissions.filter((m) => !todayTitles.has(normalizeWeekdayText(m?.titulo || '')));
@@ -377,7 +495,7 @@ async function autoCarryOverLatestMission(dateRef) {
   for (const oldM of oldMissions) {
     const { data: newM, error: newMErr } = await supabase
       .from(TABLE_MISSOES)
-      .insert({ data_referencia: dateRef, titulo: oldM.titulo, origem: oldM.origem })
+      .insert({ data_referencia: dateRef, titulo: oldM.titulo, origem: oldM.origem, perfil_id: perfilId })
       .select('id')
       .single();
     if (newMErr) continue;
@@ -397,21 +515,26 @@ async function autoCarryOverLatestMission(dateRef) {
   return true;
 }
 
-async function fetchMissionsByDate(dateRef) {
-  let { data: missionRows, error: mErr } = await supabase
+async function fetchMissionsByDate(dateRef, perfilId = null) {
+  if (!perfilId) return [];
+
+  let missionQuery = supabase
     .from(TABLE_MISSOES)
-    .select('id, titulo, data_referencia, created_at')
+    .select('id, titulo, data_referencia, created_at, perfil_id')
     .eq('data_referencia', dateRef)
+    .eq('perfil_id', perfilId)
     .order('created_at', { ascending: true });
+  let { data: missionRows, error: mErr } = await missionQuery;
   if (mErr) throw new Error(mErr.message);
 
   if (!missionRows || missionRows.length === 0) {
-    const carriedOver = await autoCarryOverLatestMission(dateRef);
+    const carriedOver = await autoCarryOverLatestMission(dateRef, perfilId);
     if (carriedOver) {
       const retry = await supabase
         .from(TABLE_MISSOES)
-        .select('id, titulo, data_referencia, created_at')
+        .select('id, titulo, data_referencia, created_at, perfil_id')
         .eq('data_referencia', dateRef)
+        .eq('perfil_id', perfilId)
         .order('created_at', { ascending: true });
       if (retry.error) throw new Error(retry.error.message);
       missionRows = retry.data || [];
@@ -433,13 +556,16 @@ async function fetchMissionsByDate(dateRef) {
   return attachFlamesToMissions(grouped);
 }
 
-async function fetchWeeklyMissionsSnapshot(dateRef, todayMissions = []) {
+async function fetchWeeklyMissionsSnapshot(dateRef, todayMissions = [], perfilId = null) {
+  if (!perfilId) return [];
+
   const weekMonday = getMondayOfWeek(dateRef);
   const weekSaturday = addDaysToIsoDate(weekMonday, 5);
 
   const { data: weekRows, error: wErr } = await supabase
     .from(TABLE_MISSOES)
-    .select('id, titulo, data_referencia, created_at')
+    .select('id, titulo, data_referencia, created_at, perfil_id')
+    .eq('perfil_id', perfilId)
     .gte('data_referencia', weekMonday)
     .lte('data_referencia', weekSaturday)
     .order('created_at', { ascending: false })
@@ -455,7 +581,8 @@ async function fetchWeeklyMissionsSnapshot(dateRef, todayMissions = []) {
 
   const { data: recentMissionRows, error: mErr } = await supabase
     .from(TABLE_MISSOES)
-    .select('id, titulo, data_referencia, created_at')
+    .select('id, titulo, data_referencia, created_at, perfil_id')
+    .eq('perfil_id', perfilId)
     .lte('data_referencia', dateRef)
     .order('created_at', { ascending: false })
     .limit(800);
@@ -502,9 +629,9 @@ async function fetchWeeklyMissionsSnapshot(dateRef, todayMissions = []) {
   return attachFlamesToMissions(grouped);
 }
 
-async function seedNextWeekOnSunday(dateRef) {
+async function seedNextWeekOnSunday(dateRef, perfilId = null) {
   const wd = getWeekdayMonToSunFromIso(dateRef);
-  if (wd !== 7) return;
+  if (wd !== 7 || !perfilId) return;
 
   const nextMonday = addDaysToIsoDate(dateRef, 1);
   const nextSaturday = addDaysToIsoDate(nextMonday, 5);
@@ -513,6 +640,7 @@ async function seedNextWeekOnSunday(dateRef) {
   const { data: existingNextWeek, error: eErr } = await supabase
     .from(TABLE_MISSOES)
     .select('id,titulo,data_referencia')
+    .eq('perfil_id', perfilId)
     .gte('data_referencia', nextMonday)
     .lte('data_referencia', nextSaturday);
   if (eErr) throw new Error(eErr.message);
@@ -525,7 +653,8 @@ async function seedNextWeekOnSunday(dateRef) {
 
   const { data: recentMissionRows, error: mErr } = await supabase
     .from(TABLE_MISSOES)
-    .select('id,titulo,data_referencia,created_at,origem')
+    .select('id,titulo,data_referencia,created_at,origem,perfil_id')
+    .eq('perfil_id', perfilId)
     .lt('data_referencia', nextMonday)
     .order('created_at', { ascending: false })
     .limit(1000);
@@ -558,6 +687,7 @@ async function seedNextWeekOnSunday(dateRef) {
         data_referencia: target.dateRef,
         titulo: source.titulo,
         origem: source.origem || 'app',
+        perfil_id: perfilId,
       })
       .select('id')
       .single();
@@ -575,7 +705,7 @@ async function seedNextWeekOnSunday(dateRef) {
   }
 }
 
-async function fetchMonthlyMissionGoals(history) {
+async function fetchMonthlyMissionGoals(history, perfilId = null) {
   const monthRefs = (history || []).map((h) => String(h?.month_ref || '')).filter(Boolean);
   if (!monthRefs.length) return [];
 
@@ -584,13 +714,15 @@ async function fetchMonthlyMissionGoals(history) {
   const rangeStart = `${firstMonth}-01`;
   const rangeEnd = `${lastMonth}-31`;
 
-  const { data: missions, error: mErr } = await supabase
+  let missionQuery = supabase
     .from(TABLE_MISSOES)
-    .select('id,titulo,data_referencia,created_at')
+    .select('id,titulo,data_referencia,created_at,perfil_id')
     .gte('data_referencia', rangeStart)
     .lte('data_referencia', rangeEnd)
     .order('data_referencia', { ascending: false })
     .order('created_at', { ascending: false });
+  if (perfilId) missionQuery = missionQuery.eq('perfil_id', perfilId);
+  const { data: missions, error: mErr } = await missionQuery;
   if (mErr) throw new Error(mErr.message);
 
   const missionIds = (missions || []).map((m) => m.id).filter(Boolean);
@@ -652,22 +784,24 @@ async function fetchMonthlyMissionGoals(history) {
   });
 }
 
-async function fetchMonthlyPerformance(dateRef) {
+async function fetchMonthlyPerformance(dateRef, perfilId = null) {
   const { start, end, monthRef } = getMonthRangeFromDateRef(dateRef);
   const cycleTotalDays = 30;
-  const history = await fetchMonthlyHistory(monthRef, cycleTotalDays);
+  const history = await fetchMonthlyHistory(monthRef, cycleTotalDays, perfilId);
   const completedCycleDays = Number(history?.[0]?.completed_days || 0);
 
-  const { data: missionRows, error: mErr } = await supabase
+  let missionQuery = supabase
     .from(TABLE_MISSOES)
     .select('id')
     .gte('data_referencia', start)
     .lte('data_referencia', end);
+  if (perfilId) missionQuery = missionQuery.eq('perfil_id', perfilId);
+  const { data: missionRows, error: mErr } = await missionQuery;
   if (mErr) throw new Error(mErr.message);
 
   const missionIds = (missionRows || []).map((m) => m.id).filter(Boolean);
   if (!missionIds.length) {
-    const missionGoalsByMonth = await fetchMonthlyMissionGoals(history);
+    const missionGoalsByMonth = await fetchMonthlyMissionGoals(history, perfilId);
     return {
       month_ref: monthRef,
       created_missions: cycleTotalDays,
@@ -730,7 +864,7 @@ async function fetchMonthlyPerformance(dateRef) {
   ];
 
   const successRatePercent = Math.round((completedCycleDays / cycleTotalDays) * 100);
-  const missionGoalsByMonth = await fetchMonthlyMissionGoals(history);
+  const missionGoalsByMonth = await fetchMonthlyMissionGoals(history, perfilId);
 
   return {
     month_ref: monthRef,
@@ -811,19 +945,37 @@ export default async function handler(req, res) {
     if (!auth.ok) return json(res, auth.status, auth.data);
 
     if (req.method === 'GET') {
+      if (String(req.query?.resource || '') === 'profiles') {
+        const profiles = await fetchProfiles();
+        return json(res, 200, { profiles });
+      }
+
+      const profileId = normalizeProfileId(req.query?.profile_id);
+      if (!profileId) {
+        return json(res, 400, { error: 'profile_id obrigatorio para carregar treinos' });
+      }
+
       const queryDate = req.query?.date;
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
-      await seedNextWeekOnSunday(dateRef);
+      await seedNextWeekOnSunday(dateRef, profileId);
       const weekday = getWeekdayMonToSunFromIso(dateRef);
-      const todayMissions = await fetchMissionsByDate(dateRef);
-      const missions = await fetchWeeklyMissionsSnapshot(dateRef, todayMissions);
+      const todayMissions = await fetchMissionsByDate(dateRef, profileId);
+      const missions = await fetchWeeklyMissionsSnapshot(dateRef, todayMissions, profileId);
       const penalty = await getPenaltyState();
-      const performance = await fetchMonthlyPerformance(dateRef);
-      return json(res, 200, { date: dateRef, missions, penalty, performance, rest_day: !isTrainingWeekday(weekday) });
+      const performance = await fetchMonthlyPerformance(dateRef, profileId);
+      return json(res, 200, { date: dateRef, profile_id: profileId, missions, penalty, performance, rest_day: !isTrainingWeekday(weekday) });
     }
 
     if (req.method === 'POST') {
       const body = parseBody(req);
+      if (String(body?.resource || '') === 'profile') {
+        const profile = await createProfile(body);
+        return json(res, 201, { profile });
+      }
+
+      const profileId = normalizeProfileId(body.profile_id);
+      if (!profileId) return json(res, 400, { error: 'profile_id obrigatorio para criar missao' });
+
       const dateRef = isIsoDate(body.date) ? String(body.date) : getTodayBrazilIsoDate();
       const title = normalizeNome(body.title || 'Missao diaria') || 'Missao diaria';
       const items = normalizeItems(body.items);
@@ -837,7 +989,7 @@ export default async function handler(req, res) {
 
       const { data: mission, error: mErr } = await supabase
         .from(TABLE_MISSOES)
-        .insert({ data_referencia: dateRef, titulo: title, origem: 'app' })
+        .insert({ data_referencia: dateRef, titulo: title, origem: 'app', perfil_id: profileId })
         .select('id')
         .single();
       if (mErr) return json(res, 500, { error: mErr.message });
@@ -852,13 +1004,20 @@ export default async function handler(req, res) {
       const { error: iErr } = await supabase.from(TABLE_ITENS).insert(payload);
       if (iErr) return json(res, 500, { error: iErr.message });
 
-      const missions = await fetchMissionsByDate(dateRef);
+      const missions = await fetchMissionsByDate(dateRef, profileId);
       const created = missions.find((m) => m.id === mission.id) || null;
-      return json(res, 201, { mission: created, date: dateRef });
+      return json(res, 201, { mission: created, date: dateRef, profile_id: profileId });
     }
 
     if (req.method === 'PATCH') {
       const body = parseBody(req);
+      if (String(body?.resource || '') === 'profile') {
+        const profileId = normalizeProfileId(body.profile_id);
+        if (!profileId) return json(res, 400, { error: 'profile_id obrigatorio' });
+        const profile = await updateProfile(profileId, body);
+        return json(res, 200, { profile });
+      }
+
       if (body?.action === 'complete_penalty') {
         const missedDate = String(body.missed_date || '');
         await completePenalty(missedDate);
@@ -935,6 +1094,13 @@ export default async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       const body = parseBody(req);
+      if (String(body?.resource || '') === 'profile' || String(req.query?.resource || '') === 'profile') {
+        const profileId = normalizeProfileId(body.profile_id ?? req.query?.profile_id);
+        if (!profileId) return json(res, 400, { error: 'profile_id obrigatorio' });
+        const result = await deleteProfile(profileId);
+        return json(res, 200, result);
+      }
+
       const missionId = String(body.mission_id ?? req.query?.mission_id ?? '').trim();
       if (missionId) {
         const { error: delItemsErr } = await supabase.from(TABLE_ITENS).delete().eq('missao_id', missionId);
@@ -970,7 +1136,7 @@ export default async function handler(req, res) {
     if (setupRequired) {
       return json(res, 500, {
         error:
-          'Banco de missoes ainda nao configurado. Execute os SQL: 20260407_add_missoes_treino_tables.sql, 20260408_allow_multiple_missoes_treino_per_day.sql, 20260408_add_missoes_treino_chamas.sql e 20260408_link_chamas_to_missao.sql no Supabase.',
+          'Banco de missoes ainda nao configurado. Execute no Supabase os SQL em migration/: 20260407_add_missoes_treino_tables.sql, 20260408_allow_multiple_missoes_treino_per_day.sql, 20260408_add_missoes_treino_chamas.sql, 20260408_link_chamas_to_missao.sql e 20260812_add_missoes_treino_perfis.sql.',
         details: message,
         setup_required: true,
       });

@@ -1,245 +1,75 @@
-# Documentacao do Projeto - Super App
+# Super App — Documentação
 
-## 1. Visao geral
-O Super App e uma aplicacao web em formato PWA com frontend principal em um unico arquivo HTML e backend em funcoes serverless Node.js.
+PWA pessoal com micro-apps de finanças e produtividade. Frontend monolítico + backend serverless + Supabase.
 
-- Frontend: `index.html`
-- Backend HTTP: pasta `api/`
-- Regras de dominio: pasta `features/`
-- Persistencia: Supabase
-- Deploy: Vercel (configurado em `vercel.json`)
+**Produção:** [super-app-zeta-virid.vercel.app](https://super-app-zeta-virid.vercel.app)
 
-## 2. Stack tecnica
-- Node.js (ES Modules)
-- Vercel Functions
-- Supabase (`@supabase/supabase-js`)
-- HTML/CSS/JS vanilla no frontend
+## Documentação dividida em 3 partes
 
-Dependencias declaradas em `package.json`:
-- `@supabase/supabase-js`
+| Documento | Conteúdo |
+|---|---|
+| [**backend.md**](./backend.md) | Endpoints `/api/*`, auth, services, deploy, testes |
+| [**frontend.md**](./frontend.md) | Shell PWA (`index.html`), módulos, fluxos de UI |
+| [**db.md**](./db.md) | Tabelas, views, migrations, RLS, ordem de execução |
 
-## 3. Estrutura do repositorio
+## Visão rápida
+
+### Stack
+- **Frontend:** HTML/CSS/JS vanilla, ECharts, PWA
+- **Backend:** Vercel Functions (Node ESM)
+- **Banco:** Supabase PostgreSQL + Auth
+- **Deploy:** Vercel (`vercel.json`)
+
+### Micro-apps
+| ID | Módulo | API |
+|---|---|---|
+| `financeiro` | Dashboard, despesas, poupança, analista | `/api/financeiro`, `/api/financeiro-analista` |
+| `lista_compras` | Lista com prioridade e check | `/api/lista-compras` |
+| `fluxograma` | Diagramas (local + nuvem) | `/api/fluxograma`, `/api/fluxograma-export` |
+| `missoes_treino` | Perfis + treinos diários | `/api/missoes-treino` |
+
+### Estrutura do repositório
 ```text
-super-app-1/
-|-- index.html
-|-- api/
-|-- features/
-|-- lib/
-|-- sql/
-|-- docs/
-|-- vercel.json
-|-- manifest.json
-|-- sw.js
-|-- package.json
+super-app/
+├── index.html          # Shell PWA + financeiro + lista inline
+├── api/                # Vercel Functions
+├── features/           # Domínio por módulo
+├── lib/                # supabase.js, auth.js, cache
+├── migration/          # Migrations versionadas
+├── sql/                # Scripts auxiliares e views
+├── tests/              # Vitest + Supertest
+├── docs/               # Esta documentação
+├── manifest.json
+├── sw.js
+└── vercel.json
 ```
 
-### 3.1 Principais pastas
-- `api/`: endpoints serverless (CRUD e consultas)
-- `features/`: models/services por dominio
-- `lib/`: utilitarios compartilhados (cliente Supabase)
-- `sql/`: scripts de banco de dados
-- `docs/`: reservado para documentos auxiliares (atualmente vazio)
+### Fluxo de dados
+```text
+Login Supabase → Bearer /api/* → requireUser + roles → service → Supabase (RLS) → JSON → UI
+```
 
-## 4. Arquitetura
-O frontend consome os endpoints de `api/`, que por sua vez usam o cliente Supabase de `lib/supabase.js` e funcoes de dominio em `features/`.
+## Como rodar
 
-Fluxo resumido:
-1. Usuario interage no `index.html`
-2. Frontend chama `/api/*`
-3. Endpoint valida e processa payload
-4. Regras de dominio montam payloads/normalizacoes
-5. Supabase persiste e retorna dados
-6. Frontend atualiza a interface
-
-## 5. Modulos de dominio
-Pastas encontradas em `features/`:
-- `financeiro`
-- `financas`
-- `despesas_fixas`
-- `lista_compras`
-- `fluxograma`
-- `missoes_treino`
-- `neonkeep` (placeholder)
-
-Observacao: o endpoint consolidado atual para financas e `/api/financeiro`, mas ainda existem modulos legados (`financas` e `despesas_fixas`) utilizados por compatibilidade interna.
-
-## 6. Endpoints da API
-Arquivos existentes em `api/`:
-- `apps.js`
-- `financeiro.js`
-- `fluxograma.js`
-- `lista-compras.js`
-- `missoes-treino.js`
-- `roadmap.js`
-- `statistics.js`
-- `_financeiroShared.js` (shared interno)
-
-### 6.1 Catalogo e shell
-#### `GET /api/apps`
-Retorna lista de aplicativos ativos no shell.
-
-#### `GET /api/statistics`
-Retorna totais derivados do catalogo (`totalApps`, `activeApps`, etc.).
-
-#### `GET /api/roadmap`
-Retorna roadmap estatico da aplicacao.
-
-### 6.2 Financeiro
-#### `/api/financeiro`
-Metodos suportados: `GET`, `POST`, `PATCH`, `DELETE`
-
-Comportamento:
-- Consolida registros de:
-  - `tb_financas`
-  - `tb_despesas_fixas`
-  - `tb_poupanca`
-  - `tb_poupanca_metas`
-- `GET` retorna dashboard, graficos, tabelas e bloco de poupanca
-- `POST/PATCH/DELETE` suportam `tipo_registro` para rotear operacao na tabela correta
-
-Regra de replicacao de despesas fixas:
-- A replicacao automatica para o mes seguinte ocorre somente no ultimo dia do mes de origem.
-- Antes do fechamento, nenhum item entra automaticamente no mes seguinte.
-- Antes do fechamento, a entrada no mes seguinte e apenas manual (via lancamento explicito do usuario).
-
-### 6.3 Lista de compras
-#### `/api/lista-compras`
-Metodos suportados: `GET`, `POST`, `PATCH`, `DELETE`
-
-Recursos relevantes:
-- Toggle de item comprado (`PATCH` com `toggle`)
-- Reset global de checks (`PATCH` com `reset_checks`)
-- Exclusao individual ou em massa (`DELETE` com `id` ou `delete_all`)
-
-### 6.4 Fluxograma
-#### `/api/fluxograma`
-Metodos suportados: `GET`, `POST`, `PATCH`, `DELETE`
-
-Recursos relevantes:
-- Lista de projetos
-- Busca por `id`
-- Persistencia de `dados` do diagrama
-
-### 6.5 Missoes de treino
-#### `/api/missoes-treino`
-Metodos suportados: `GET`, `POST`, `PATCH`, `DELETE`
-
-Recursos relevantes:
-- Missao diaria com itens
-- Progresso mensal
-- Radar de distribuicao (forca/cardio/core/mobilidade/resistencia)
-- Controle de "chamas" por dia
-- Regras de imutabilidade para conclusao diaria (nao permite desfazer)
-
-## 7. Banco de dados e tabelas
-Tabelas identificadas no codigo:
-- `tb_financas`
-- `tb_despesas_fixas`
-- `tb_poupanca`
-- `tb_poupanca_metas`
-- `tb_lista_compras`
-- `tb_fluxograma_projetos`
-- `tb_missoes_treino`
-- `tb_missoes_treino_itens`
-- `tb_missoes_treino_chamas`
-
-## 8. Variaveis de ambiente
-Configuracao minima obrigatoria (ver `lib/supabase.js`):
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-
-Sem essas variaveis, a API falha ao inicializar.
-
-Politica de versionamento:
-- O arquivo `.env` nao deve ser commitado no repositorio.
-- Defina as variaveis localmente (shell ou `.env` privado) e na Vercel via Environment Variables.
-
-## 9. Scripts SQL disponiveis
-Arquivos presentes em `sql/`:
-- `20260418_remove_notes_module.sql`
-- `20260422_create_tb_poupanca.sql`
-- `20260422_create_tb_poupanca_metas.sql`
-- `20260510_tb_despesas_fixas_parcelas.sql`
-- `20260519_tb_despesas_fixas_conta_fixa.sql`
-- `20260521_add_compras_variadas_columns.sql`
-- `20260531_create_tb_saldo_conta_corrente_movimentos.sql`
-- `20260616_create_tb_financeiro_analise_runs.sql`
-- `20260616_create_tb_financeiro_modelo_estado.sql`
-- `20260616_create_vw_financeiro_ultimos_5_meses.sql`
-- `20260710_create_tb_compras.sql`
-- `20260718_enable_rls_user_permissions.sql`
-- `20260802_add_serie_id_to_tb_despesas_fixas.sql`
-- `20260803_financeiro_views_e_indices.sql`:
-  - `vw_financeiro_resumo_mensal` (somatórios e saldo por usuário e mês)
-  - `vw_financeiro_categoria_mensal` (gastos variados com ranking por categoria)
-  - `vw_financeiro_historico_anual` (12 meses do ano com comprometimento e rankings)
-  - `vw_financeiro_poupanca_resumo` (consolidação de total acumulado, meta ativa e progresso)
-  - `vw_financeiro_compras_mensal` (compras agregadas por usuário e mês)
-  - Índices compostos por `(user_id, data_lancamento/created_at)` em todas as tabelas do módulo.
-
-## 10. Deploy
-Arquivo `vercel.json`:
-- `buildCommand`: `npm run build`
-- `outputDirectory`: `.`
-- `framework`: `null`
-- Headers customizados para `manifest.json`, `sw.js` e icones
-
-Script de build em `package.json`:
-- `npm run build` -> `echo Build complete`
-
-## 11. Como rodar localmente
-1. Instalar dependencias:
 ```bash
 npm install
+# Definir SUPABASE_URL e SUPABASE_ANON_KEY
+npm run dev    # local com /api/*
+npm test       # 94 testes
 ```
-2. Definir variaveis de ambiente:
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-3. Executar via ambiente Vercel local (recomendado para funcoes `api/`) ou servidor estatico + funcoes simuladas.
 
-## 12. Estado atual e observacoes
-- O `README.md` existente descreve alguns componentes que nao aparecem mais no estado atual do repositorio (por exemplo, workflows em `.github/workflows/` e endpoint de calendario).
-- Esta documentacao foi revisada com base no codigo efetivamente presente em `2026-05-20`.
-- A pasta `docs/` segue disponivel para anexos, diagramas e RFCs futuros.
+## Segurança (LGPD)
 
-## 13. Proximos passos recomendados
-1. Sincronizar o `README.md` com esta documentacao para evitar divergencia.
-2. Adicionar exemplos de payload/request/response por endpoint.
-3. Criar um diagrama de arquitetura versionado (mermaid) no proprio repositrio.
-4. Documentar politicas de erro e codigos de resposta por modulo.
-## 14. Checkpoint - Auth, RLS e permissoes por usuario
-Data: 2026-07-18
+- Dados financeiros e pessoais isolados por `user_id` via RLS
+- Token Bearer obrigatório em todas as APIs (exceto health checks)
+- `.env` e credenciais nunca versionados
 
-Alteracoes planejadas/implementadas nesta etapa:
-- Supabase Auth passa a ser o controle principal de login, cadastro e troca de senha.
-- Frontend exibe tela de entrada, cadastro e formulario de nova senha quando o link de recovery retorna para o app.
-- APIs passam a exigir token Bearer do usuario autenticado, exceto health checks pontuais.
-- Catalogo `/api/apps` retorna todos os modulos para owner/admin e apenas Financeiro para usuario beta comum.
-- Dados financeiros passam a ser escopados por `user_id` no backend e no RLS do Supabase.
-- Migration principal: `sql/20260718_enable_rls_user_permissions.sql`.
-- Rollback/cryptonita: `sql/20260718_rollback_rls_user_permissions.sql`.
+## Checkpoints recentes
 
-Variaveis obrigatorias na Vercel:
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+| Data | Resumo |
+|---|---|
+| 2026-07-18 | Auth Supabase, RLS, permissões por usuário |
+| 2026-08-03 | Views financeiras PostgreSQL (commit `ee651bf`) |
+| 2026-08-12 | Perfis personalizados em missões de treino; docs divididas em backend/frontend/db |
 
-Checkpoint tecnico:
-- Ultimo commit remoto conhecido antes desta etapa: `7165b0c`.
-- Validacao local: `npm run test` com 64 testes aprovados; `npm run build` aprovado.
-
-## 15. Checkpoint - Migracao dos Calculos Financeiros para PostgreSQL (Fases 1 e 2)
-Data: 2026-08-03
-
-Alteracoes implementadas nesta etapa:
-- Transferencia do processamento pesado do Node.js para views agregadas no PostgreSQL/Supabase.
-- Migration SQL: `sql/20260803_financeiro_views_e_indices.sql` criando 5 views (`vw_financeiro_resumo_mensal`, `vw_financeiro_categoria_mensal`, `vw_financeiro_historico_anual`, `vw_financeiro_poupanca_resumo`, `vw_financeiro_compras_mensal`) e 9 indices compostos para suporte de buscas filtradas por `user_id`.
-- Padronizacao de contratos em `features/financeiro/service/financeiroService.js`: `calcularDashboard` expoe `despesas_totais` e `saldo` (mantendo `liquido` como alias).
-- Refatoracao de `/api/financeiro-analista`: eliminados valores hardcoded (`top_categoria`) e corrigida a acumulacao de `categorias_ano` baseada no historico anual.
-- Plano de migracao completo documentado em `plano_migracao_calculos_financeiro_postgres.md`.
-
-Checkpoint tecnico:
-- Commit oficial: `ee651bf` (*feat financeiro: migracao calculos para postgresql views e indices*)
-- Repositorio remoto: `Acmsilva1/super-app` (branch `main`).
-- Validacao local: `npm test` aprovado com 18 suites (83/83 testes de unidade e API integrados).
-
+Validação local (2026-08-12): `npm test` — 94/94 aprovados.
