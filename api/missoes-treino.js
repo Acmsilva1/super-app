@@ -53,7 +53,32 @@ async function countMissionsByProfileIds(profileIds = []) {
   return counts;
 }
 
-async function fetchProfiles() {
+async function adoptOrphanMissions(profileId) {
+  if (!profileId) return 0;
+
+  const { data, error } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id')
+    .is('perfil_id', null)
+    .limit(2000);
+  if (error) {
+    if (isMissingProfilesTableError(error.message)) return 0;
+    throw new Error(error.message);
+  }
+  if (!Array.isArray(data) || !data.length) return 0;
+
+  const { error: updErr } = await supabase
+    .from(TABLE_MISSOES)
+    .update({ perfil_id: profileId })
+    .is('perfil_id', null);
+  if (updErr) {
+    if (isMissingProfilesTableError(updErr.message)) return 0;
+    throw new Error(updErr.message);
+  }
+  return data.length;
+}
+
+async function ensureDefaultProfileRows() {
   const { data, error } = await supabase
     .from(TABLE_PERFIS)
     .select('id,nome,descricao,cor,icone,created_at,updated_at')
@@ -63,6 +88,29 @@ async function fetchProfiles() {
     throw new Error(error.message);
   }
 
+  let rows = Array.isArray(data) ? data : [];
+  if (!rows.length) {
+    const { data: created, error: createErr } = await supabase
+      .from(TABLE_PERFIS)
+      .insert({
+        nome: 'Oficial',
+        descricao: 'Perfil principal — treinos salvos antes da divisão por perfil',
+        cor: '#00e5ff',
+        icone: 'fa-dumbbell',
+      })
+      .select('id,nome,descricao,cor,icone,created_at,updated_at')
+      .single();
+    if (createErr) throw new Error(createErr.message);
+    if (created) rows = [created];
+  }
+
+  const targetId = rows[0]?.id;
+  if (targetId) await adoptOrphanMissions(targetId);
+  return rows;
+}
+
+async function fetchProfiles() {
+  const data = await ensureDefaultProfileRows();
   const profileIds = (data || []).map((row) => row.id).filter(Boolean);
   const counts = await countMissionsByProfileIds(profileIds);
   return (data || []).map((row) => mapProfileRow({ ...row, missions_count: counts.get(row.id) || 0 }));
@@ -70,7 +118,7 @@ async function fetchProfiles() {
 
 async function createProfile(body = {}) {
   const nome = normalizeNome(body.nome);
-  if (!nome) throw new Error('nome do perfil e obrigatorio');
+  if (!nome) throw new Error('nome do perfil é obrigatório');
 
   const payload = {
     nome,
@@ -88,7 +136,7 @@ async function updateProfile(profileId, body = {}) {
   const payload = {};
   if (body.nome != null) {
     const nome = normalizeNome(body.nome);
-    if (!nome) throw new Error('nome do perfil invalido');
+    if (!nome) throw new Error('nome do perfil inválido');
     payload.nome = nome;
   }
   if (body.descricao != null) payload.descricao = String(body.descricao || '').trim().slice(0, 240);
@@ -303,12 +351,12 @@ function missionMatchesWeekdayByTitle(mission, dateRef) {
 function getWeekdayIndexFromText(value) {
   const txt = normalizeWeekdayText(value);
   if (!txt) return 0;
-  if (txt.includes('segunda') || txt.includes('seg')) return 1;
-  if (txt.includes('terca') || txt.includes('terça') || txt.includes('ter')) return 2;
-  if (txt.includes('quarta') || txt.includes('qua')) return 3;
-  if (txt.includes('quinta') || txt.includes('qui')) return 4;
-  if (txt.includes('sexta') || txt.includes('sex')) return 5;
-  if (txt.includes('sabado') || txt.includes('sábado') || txt.includes('sab')) return 6;
+  if (/(^|[^a-z])segunda(-feira)?([^a-z]|$)|(^|[^a-z])seg([^a-z]|$)/.test(txt)) return 1;
+  if (/(^|[^a-z])terca(-feira)?([^a-z]|$)/.test(txt)) return 2;
+  if (/(^|[^a-z])quarta(-feira)?([^a-z]|$)|(^|[^a-z])qua([^a-z]|$)/.test(txt)) return 3;
+  if (/(^|[^a-z])quinta(-feira)?([^a-z]|$)|(^|[^a-z])qui([^a-z]|$)/.test(txt)) return 4;
+  if (/(^|[^a-z])sexta(-feira)?([^a-z]|$)|(^|[^a-z])sex([^a-z]|$)/.test(txt)) return 5;
+  if (/(^|[^a-z])sabado(-feira)?([^a-z]|$)|(^|[^a-z])sab([^a-z]|$)/.test(txt)) return 6;
   return 0;
 }
 
@@ -417,7 +465,7 @@ function groupMissions(missionRows, itemRows) {
   for (const mission of missionRows || []) {
     grouped.set(mission.id, {
       id: mission.id,
-      title: mission.titulo || 'Missao diaria',
+      title: mission.titulo || 'Novo treino',
       data_referencia: mission.data_referencia,
       created_at: mission.created_at || null,
       items: [],
@@ -556,6 +604,29 @@ async function fetchMissionsByDate(dateRef, perfilId = null) {
   return attachFlamesToMissions(grouped);
 }
 
+async function fetchMissionsByProfile(perfilId) {
+  if (!perfilId) return [];
+
+  const { data: missionRows, error: mErr } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id, titulo, data_referencia, created_at, perfil_id')
+    .eq('perfil_id', perfilId)
+    .order('created_at', { ascending: true });
+  if (mErr) throw new Error(mErr.message);
+  if (!missionRows?.length) return [];
+
+  const missionIds = missionRows.map((m) => m.id).filter(Boolean);
+  const { data: itemRows, error: iErr } = await supabase
+    .from(TABLE_ITENS)
+    .select('*')
+    .in('missao_id', missionIds)
+    .order('ordem', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (iErr) throw new Error(iErr.message);
+
+  return attachFlamesToMissions(groupMissions(missionRows, itemRows));
+}
+
 async function fetchWeeklyMissionsSnapshot(dateRef, todayMissions = [], perfilId = null) {
   if (!perfilId) return [];
 
@@ -599,11 +670,26 @@ async function fetchWeeklyMissionsSnapshot(dateRef, todayMissions = [], perfilId
     if (selectedByWeekday.size === 6) break;
   }
 
+  const untitledByTitle = new Map();
+  const collectUntitled = (rows) => {
+    for (const mission of rows || []) {
+      const weekdayIdx = getWeekdayIndexFromText(mission?.titulo || '');
+      if (weekdayIdx >= 1 && weekdayIdx <= 6) continue;
+      const key = String(mission?.titulo || '').trim().toLowerCase() || `id:${mission.id}`;
+      if (!untitledByTitle.has(key)) untitledByTitle.set(key, mission);
+    }
+  };
+  collectUntitled(weekRows);
+  collectUntitled(recentMissionRows);
+
   const merged = new Map();
   for (const mission of todayMissions || []) {
     if (mission?.id) merged.set(mission.id, mission);
   }
   for (const mission of selectedByWeekday.values()) {
+    if (mission?.id) merged.set(mission.id, mission);
+  }
+  for (const mission of untitledByTitle.values()) {
     if (mission?.id) merged.set(mission.id, mission);
   }
 
@@ -761,7 +847,7 @@ async function fetchMonthlyMissionGoals(history, perfilId = null) {
     const completed = totalItems > 0 && doneItems === totalItems;
     byMonth.get(monthRef).push({
       mission_id: mission.id,
-      title: mission.titulo || 'Missao diaria',
+      title: mission.titulo || 'Novo treino',
       date_ref: mission.data_referencia,
       items_total: totalItems,
       items_completed: doneItems,
@@ -952,18 +1038,17 @@ export default async function handler(req, res) {
 
       const profileId = normalizeProfileId(req.query?.profile_id);
       if (!profileId) {
-        return json(res, 400, { error: 'profile_id obrigatorio para carregar treinos' });
+        return json(res, 400, { error: 'profile_id obrigatório para carregar treinos' });
       }
+
+      await ensureDefaultProfileRows();
 
       const queryDate = req.query?.date;
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
-      await seedNextWeekOnSunday(dateRef, profileId);
-      const weekday = getWeekdayMonToSunFromIso(dateRef);
-      const todayMissions = await fetchMissionsByDate(dateRef, profileId);
-      const missions = await fetchWeeklyMissionsSnapshot(dateRef, todayMissions, profileId);
+      const missions = await fetchMissionsByProfile(profileId);
       const penalty = await getPenaltyState();
       const performance = await fetchMonthlyPerformance(dateRef, profileId);
-      return json(res, 200, { date: dateRef, profile_id: profileId, missions, penalty, performance, rest_day: !isTrainingWeekday(weekday) });
+      return json(res, 200, { date: dateRef, profile_id: profileId, missions, penalty, performance, rest_day: false });
     }
 
     if (req.method === 'POST') {
@@ -974,16 +1059,16 @@ export default async function handler(req, res) {
       }
 
       const profileId = normalizeProfileId(body.profile_id);
-      if (!profileId) return json(res, 400, { error: 'profile_id obrigatorio para criar missao' });
+      if (!profileId) return json(res, 400, { error: 'profile_id obrigatório para criar missão' });
 
       const dateRef = isIsoDate(body.date) ? String(body.date) : getTodayBrazilIsoDate();
-      const title = normalizeNome(body.title || 'Missao diaria') || 'Missao diaria';
+      const title = normalizeNome(body.title || 'Novo treino') || 'Novo treino';
       const items = normalizeItems(body.items);
 
       if (!items.length) {
         const name = normalizeNome(body.name);
         const reps = normalizeReps(body.reps);
-        if (!name || !reps) return json(res, 400, { error: 'items ou name/reps validos sao obrigatorios' });
+        if (!name || !reps) return json(res, 400, { error: 'items ou name/reps válidos são obrigatórios' });
         items.push({ nome: name, reps, ordem: 1, concluida: false });
       }
 
@@ -1004,7 +1089,7 @@ export default async function handler(req, res) {
       const { error: iErr } = await supabase.from(TABLE_ITENS).insert(payload);
       if (iErr) return json(res, 500, { error: iErr.message });
 
-      const missions = await fetchMissionsByDate(dateRef, profileId);
+      const missions = await fetchMissionsByProfile(profileId);
       const created = missions.find((m) => m.id === mission.id) || null;
       return json(res, 201, { mission: created, date: dateRef, profile_id: profileId });
     }
@@ -1013,7 +1098,7 @@ export default async function handler(req, res) {
       const body = parseBody(req);
       if (String(body?.resource || '') === 'profile') {
         const profileId = normalizeProfileId(body.profile_id);
-        if (!profileId) return json(res, 400, { error: 'profile_id obrigatorio' });
+        if (!profileId) return json(res, 400, { error: 'profile_id obrigatório' });
         const profile = await updateProfile(profileId, body);
         return json(res, 200, { profile });
       }
@@ -1028,7 +1113,7 @@ export default async function handler(req, res) {
       if (missionId) {
         if (body.completed != null) {
           const completedValue = Boolean(body.completed);
-          if (!completedValue) return json(res, 409, { error: 'Conclusao diaria imutavel: nao e possivel desfazer.' });
+          if (!completedValue) return json(res, 409, { error: 'Conclusão diária imutável: não é possível desfazer.' });
           const { error } = await supabase
             .from(TABLE_ITENS)
             .update({ concluida: completedValue })
@@ -1040,7 +1125,7 @@ export default async function handler(req, res) {
 
         if (Array.isArray(body.replace_items)) {
           const items = normalizeItems(body.replace_items);
-          if (!items.length) return json(res, 400, { error: 'replace_items precisa ter ao menos 1 item valido' });
+          if (!items.length) return json(res, 400, { error: 'replace_items precisa ter ao menos 1 item válido' });
 
           const title = normalizeNome(body.title || '');
           if (title) {
@@ -1069,17 +1154,17 @@ export default async function handler(req, res) {
       }
 
       const id = String(body.id || '').trim();
-      if (!id) return json(res, 400, { error: 'mission_id ou id obrigatorio' });
+      if (!id) return json(res, 400, { error: 'mission_id ou id obrigatório' });
 
       const payload = {};
       if (body.name != null) payload.nome = normalizeNome(body.name);
       if (body.reps != null) {
         const reps = normalizeReps(body.reps);
-        if (!reps) return json(res, 400, { error: 'reps invalido' });
+        if (!reps) return json(res, 400, { error: 'reps inválido' });
         payload.reps = reps;
       }
       if (body.completed != null) payload.concluida = Boolean(body.completed);
-      if (payload.concluida === false) return json(res, 409, { error: 'Conclusao diaria imutavel: nao e possivel desfazer.' });
+      if (payload.concluida === false) return json(res, 409, { error: 'Conclusão diária imutável: não é possível desfazer.' });
       if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
 
       const { data, error } = await supabase
@@ -1096,7 +1181,7 @@ export default async function handler(req, res) {
       const body = parseBody(req);
       if (String(body?.resource || '') === 'profile' || String(req.query?.resource || '') === 'profile') {
         const profileId = normalizeProfileId(body.profile_id ?? req.query?.profile_id);
-        if (!profileId) return json(res, 400, { error: 'profile_id obrigatorio' });
+        if (!profileId) return json(res, 400, { error: 'profile_id obrigatório' });
         const result = await deleteProfile(profileId);
         return json(res, 200, result);
       }
@@ -1117,7 +1202,7 @@ export default async function handler(req, res) {
       }
 
       const id = String(body.id ?? req.query?.id ?? '').trim();
-      if (!id) return json(res, 400, { error: 'mission_id ou id obrigatorio' });
+      if (!id) return json(res, 400, { error: 'mission_id ou id obrigatório' });
       const { error } = await supabase.from(TABLE_ITENS).delete().eq('id', id);
       if (error) return json(res, 500, { error: error.message });
       return json(res, 200, { ok: true });
@@ -1126,7 +1211,7 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
     return json(res, 405, { error: 'Method Not Allowed' });
   } catch (err) {
-    const message = String(err?.message || 'Falha no modulo de missoes de treino');
+    const message = String(err?.message || 'Falha no módulo de missões de treino');
     const lower = message.toLowerCase();
     const setupRequired =
       lower.includes('does not exist') ||
@@ -1136,7 +1221,7 @@ export default async function handler(req, res) {
     if (setupRequired) {
       return json(res, 500, {
         error:
-          'Banco de missoes ainda nao configurado. Execute no Supabase os SQL em migration/: 20260407_add_missoes_treino_tables.sql, 20260408_allow_multiple_missoes_treino_per_day.sql, 20260408_add_missoes_treino_chamas.sql, 20260408_link_chamas_to_missao.sql e 20260812_add_missoes_treino_perfis.sql.',
+          'Banco de missões ainda não configurado. Execute no Supabase os SQL em migration/: 20260407_add_missoes_treino_tables.sql, 20260408_allow_multiple_missoes_treino_per_day.sql, 20260408_add_missoes_treino_chamas.sql, 20260408_link_chamas_to_missao.sql e 20260812_add_missoes_treino_perfis.sql.',
         details: message,
         setup_required: true,
       });

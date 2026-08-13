@@ -71,5 +71,6 @@ npm test       # 94 testes
 | 2026-07-18 | Auth Supabase, RLS, permissões por usuário |
 | 2026-08-03 | Views financeiras PostgreSQL (commit `ee651bf`) |
 | 2026-08-12 | Perfis personalizados em missões de treino; docs divididas em backend/frontend/db |
+| 2026-08-13 | Fix: missões órfãs (sem `perfil_id`) e listagem que escondia treino sem dia no título |
 
-Validação local (2026-08-12): `npm test` — 94/94 aprovados.
+Validação local (2026-08-13): testes do módulo treino.

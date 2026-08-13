@@ -166,9 +166,10 @@ Métodos: `GET`, `POST`, `PATCH`, `DELETE`
 
 Regras:
 - Toda missão exige `perfil_id`
-- Carry-over automático por weekday anterior (por perfil)
-- Domingo: `rest_day: true`
-- Conclusão diária imutável (`completed: false` → 409)
+- Treinos são **fixos no perfil** — listagem devolve todos, sem filtro de data/dia da semana
+- Sem carry-over e sem seed de semana
+- Missões antigas com `perfil_id` nulo são adotadas no primeiro perfil (cria `Oficial` se não houver nenhum)
+- Conclusão de item imutável (`completed: false` → 409)
 
 Handler: `api/missoes-treino.js`
 

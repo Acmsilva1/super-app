@@ -1,4 +1,4 @@
-// Mock padrao versionado — em localhost o modulo treino usa isto direto, sem ativar nada.
+// Mock padrão versionado — em localhost o módulo treino usa isto direto, sem ativar nada.
 export const LOCAL_MOCK_FIXED = true;
 
 function clone(value) {
@@ -16,14 +16,14 @@ const BASE_PROFILES = [
   {
     id: 'demo-2',
     nome: 'Emagrecimento',
-    descricao: 'Cardio, funcional e deficit calorico',
+    descricao: 'Cardio, funcional e déficit calórico',
     cor: '#ff8a00',
     icone: 'fa-fire',
   },
   {
     id: 'demo-3',
     nome: 'Corrida 5K',
-    descricao: 'Preparacao para prova de 5 km',
+    descricao: 'Preparação para prova de 5 km',
     cor: '#00d084',
     icone: 'fa-person-running',
   },
@@ -39,7 +39,7 @@ const BASE_MISSIONS = {
       items: [
         { id: 'demo-i1', name: 'Supino reto [4x10]', reps: 40, series: 4, repeticoes: 10, completed: true, ordem: 1 },
         { id: 'demo-i2', name: 'Crucifixo [3x12]', reps: 36, series: 3, repeticoes: 12, completed: false, ordem: 2 },
-        { id: 'demo-i3', name: 'Triceps pulley [3x15]', reps: 45, series: 3, repeticoes: 15, completed: false, ordem: 3 },
+        { id: 'demo-i3', name: 'Tríceps pulley [3x15]', reps: 45, series: 3, repeticoes: 15, completed: false, ordem: 3 },
       ],
     },
     {
@@ -66,7 +66,7 @@ const BASE_MISSIONS = {
   'demo-2': [
     {
       id: 'demo-m4',
-      title: 'Treino de Terca',
+      title: 'Treino de Terça',
       data_referencia: '2026-08-12',
       completed: false,
       items: [
@@ -88,7 +88,7 @@ const BASE_MISSIONS = {
   'demo-3': [
     {
       id: 'demo-m6',
-      title: 'Treino de Sabado',
+      title: 'Treino de Sábado',
       data_referencia: '2026-08-16',
       completed: false,
       items: [
@@ -119,11 +119,11 @@ function buildMockPerformance() {
       },
     ],
     radar: [
-      { key: 'forca', label: 'Forca', value: 120, score: 100 },
+      { key: 'forca', label: 'Força', value: 120, score: 100 },
       { key: 'cardio', label: 'Cardio', value: 80, score: 67 },
       { key: 'core', label: 'Core', value: 45, score: 38 },
       { key: 'mobilidade', label: 'Mobilidade', value: 20, score: 17 },
-      { key: 'resistencia', label: 'Resistencia', value: 65, score: 54 },
+      { key: 'resistencia', label: 'Resistência', value: 65, score: 54 },
     ],
   };
 }
@@ -182,7 +182,7 @@ export class MockTreinoStore {
 
     if (method === 'GET') {
       const profileId = String(query.get('profile_id') || '');
-      if (!profileId) throw new Error('profile_id obrigatorio para carregar treinos');
+      if (!profileId) throw new Error('profile_id obrigatório para carregar treinos');
       return {
         date: '2026-08-12',
         profile_id: profileId,
@@ -208,16 +208,16 @@ export class MockTreinoStore {
 
     if (method === 'POST') {
       const profileId = String(body.profile_id || '');
-      if (!profileId) throw new Error('profile_id obrigatorio para criar missao');
+      if (!profileId) throw new Error('profile_id obrigatório para criar missão');
       const items = Array.isArray(body.items) ? body.items : [];
       const mission = {
         id: `demo-m${this.nextMissionId += 1}`,
-        title: String(body.title || 'Missao diaria').trim() || 'Missao diaria',
+        title: String(body.title || 'Novo treino').trim() || 'Novo treino',
         data_referencia: '2026-08-12',
         completed: false,
         items: items.map((item, idx) => ({
           id: `demo-i${this.nextItemId += 1}`,
-          name: String(item.name || item.nome || 'Exercicio'),
+          name: String(item.name || item.nome || 'Exercício'),
           reps: Number(item.reps || 0),
           series: Number(item.series || 1),
           repeticoes: Number(item.repeticoes || item.reps || 1),
@@ -233,7 +233,7 @@ export class MockTreinoStore {
     if (method === 'PATCH' && body.resource === 'profile') {
       const profileId = String(body.profile_id || '');
       const profile = this.profiles.find((item) => String(item.id) === profileId);
-      if (!profile) throw new Error('Perfil nao encontrado');
+      if (!profile) throw new Error('Perfil não encontrado');
       if (body.nome != null) profile.nome = String(body.nome || '').trim() || profile.nome;
       if (body.descricao != null) profile.descricao = String(body.descricao || '').trim();
       if (body.cor != null) profile.cor = String(body.cor || profile.cor);
@@ -244,11 +244,11 @@ export class MockTreinoStore {
       const profileId = String(body.profile_id || this.findProfileIdByMission(body.mission_id) || '');
       const missions = this.missionsByProfile[profileId] || [];
       const mission = missions.find((item) => String(item.id) === String(body.mission_id));
-      if (!mission) throw new Error('Missao nao encontrada');
-      mission.title = String(body.title || mission.title || 'Missao diaria').trim() || mission.title;
+      if (!mission) throw new Error('Missão não encontrada');
+      mission.title = String(body.title || mission.title || 'Novo treino').trim() || mission.title;
       mission.items = body.replace_items.map((item, idx) => ({
         id: `demo-i${this.nextItemId += 1}`,
-        name: String(item.name || item.nome || 'Exercicio'),
+        name: String(item.name || item.nome || 'Exercício'),
         reps: Number(item.reps || 0),
         series: Number(item.series || 1),
         repeticoes: Number(item.repeticoes || item.reps || 1),
@@ -273,7 +273,7 @@ export class MockTreinoStore {
       return { ok: true, mission_id: body.mission_id };
     }
 
-    throw new Error('Operacao mock nao suportada');
+    throw new Error('Operação mock não suportada');
   }
 
   findProfileIdByMission(missionId) {

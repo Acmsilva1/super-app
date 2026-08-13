@@ -42,8 +42,8 @@
     },
     "checklist": {
       "tests": ["npm test", "npm run test:ux"],
-      "pendencias": ["README desatualizado vs código", "Migration 20260812 pendente no Supabase"],
-      "checkpoint": "Documentacao principal dividida em docs/backend.md, frontend.md, db.md (indice documentacao.md) — 2026-08-12"
+      "pendencias": ["README desatualizado vs código", "Migration 20260812/20260813 pendente no Supabase se o backfill automatico nao rodar"],
+      "checkpoint": "Treinos fixos por perfil, sem dia da semana nem carry-over — 2026-08-13"
     },
     "documentation": {
       "index": "docs/documentacao.md",

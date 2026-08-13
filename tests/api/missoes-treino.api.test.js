@@ -59,7 +59,13 @@ describe('API missoes-treino', () => {
       if (table === 'tb_missoes_treino') {
         return {
           select: vi.fn(() => ({
+            is: vi.fn(() => ({
+              limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+            })),
             in: vi.fn().mockResolvedValue({ data: [{ perfil_id: 1 }], error: null }),
+          })),
+          update: vi.fn(() => ({
+            is: vi.fn().mockResolvedValue({ error: null }),
           })),
         };
       }
@@ -78,12 +84,61 @@ describe('API missoes-treino', () => {
     });
   });
 
+  it('GET ?resource=profiles adota missoes antigas sem perfil_id', async () => {
+    const profileRows = [
+      {
+        id: 1,
+        nome: 'Oficial',
+        descricao: '',
+        cor: '#00e5ff',
+        icone: 'fa-dumbbell',
+        created_at: '2026-08-12T00:00:00Z',
+        updated_at: '2026-08-12T00:00:00Z',
+      },
+    ];
+    const update = vi.fn(() => ({
+      is: vi.fn().mockResolvedValue({ error: null }),
+    }));
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_missoes_treino_perfis') {
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn().mockResolvedValue({ data: profileRows, error: null }),
+          })),
+        };
+      }
+      if (table === 'tb_missoes_treino') {
+        return {
+          select: vi.fn(() => ({
+            is: vi.fn(() => ({
+              limit: vi.fn().mockResolvedValue({ data: [{ id: 99 }, { id: 100 }], error: null }),
+            })),
+            in: vi.fn().mockResolvedValue({
+              data: [{ perfil_id: 1 }, { perfil_id: 1 }],
+              error: null,
+            }),
+          })),
+          update,
+        };
+      }
+      return { select: vi.fn() };
+    });
+
+    const app = createApp(missoesTreinoHandler);
+    const res = await request(app).get('/api/test?resource=profiles');
+
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledWith({ perfil_id: 1 });
+    expect(res.body.profiles[0].missions_count).toBe(2);
+  });
+
   it('GET sem profile_id retorna 400', async () => {
     const app = createApp(missoesTreinoHandler);
     const res = await request(app).get('/api/test');
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/profile_id obrigatorio/i);
+    expect(res.body.error).toMatch(/profile_id.*obrigat/i);
   });
 
   it('POST resource=profile cria perfil', async () => {
@@ -186,6 +241,6 @@ describe('API missoes-treino', () => {
       .send({ title: 'Treino de Segunda', items: [{ name: 'Flexoes [3x12]', reps: 36 }] });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/profile_id obrigatorio/i);
+    expect(res.body.error).toMatch(/profile_id.*obrigat/i);
   });
 });

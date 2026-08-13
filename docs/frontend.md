@@ -134,7 +134,7 @@ Views internas:
 | View | Estado | Conteúdo |
 |---|---|---|
 | `profiles` | `currentView = 'profiles'` | Cards, modal criar/editar |
-| `training` | `currentView = 'training'` | Grid missões, FAB, radar/calendário |
+| `training` | `currentView = 'training'` | Treinos fixos do perfil (sem dia da semana) |
 
 ### Mock local (localhost)
 

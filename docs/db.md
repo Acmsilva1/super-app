@@ -174,6 +174,7 @@ Ordem cronológica:
 | `20260710_create_tb_compras.sql` | Tabela compras |
 | `20260718_enable_rls_user_permissions.sql` | RLS + permissões |
 | `20260812_add_missoes_treino_perfis.sql` | Perfis de treino + FK |
+| `20260813_adopt_orphan_missoes_treino.sql` | Backfill: órfãs → perfil Oficial |
 
 ### Ordem recomendada para treino (se base ainda não existir)
 

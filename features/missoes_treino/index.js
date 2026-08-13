@@ -15,6 +15,11 @@ function escapeHtml(value) {
   return div.innerHTML;
 }
 
+function formatProfileMissionCount(count) {
+  const n = Number(count) || 0;
+  return n === 1 ? '1 MISSÃO' : `${n} MISSÕES`;
+}
+
 function getTodayKey() {
   const now = new Date();
   const y = now.getFullYear();
@@ -38,12 +43,12 @@ function normalizeWeekdayText(value) {
 function getWeekdayTokensForToday() {
   const jsDay = new Date().getDay(); // 0..6 (dom..sab)
   const map = {
-    1: ['segunda', 'segunda-feira', 'seg'],
-    2: ['terca', 'terca-feira', 'ter', 'terça', 'terça-feira'],
-    3: ['quarta', 'quarta-feira', 'qua'],
-    4: ['quinta', 'quinta-feira', 'qui'],
-    5: ['sexta', 'sexta-feira', 'sex'],
-    6: ['sabado', 'sabado-feira', 'sab', 'sábado'],
+    1: ['segunda-feira', 'segunda'],
+    2: ['terca-feira', 'terça-feira', 'terca', 'terça'],
+    3: ['quarta-feira', 'quarta'],
+    4: ['quinta-feira', 'quinta'],
+    5: ['sexta-feira', 'sexta'],
+    6: ['sabado', 'sábado'],
   };
   return map[jsDay] || [];
 }
@@ -103,8 +108,8 @@ function missionCardHtml(mission, index, isTodayHighlight = false) {
   return `
     <section class="${shellClass}" style="--card-i:${index};">
       <header class="mt-mission-shell-header">
-        <h3>${escapeHtml(mission.title || `MISSAO ${index + 1}`)} ${isTodayHighlight ? '<span class="mt-today-badge">TREINO DE HOJE</span>' : ''}</h3>
-        <span>${done}/${total} itens concluidos</span>
+        <h3>${escapeHtml(mission.title || `MISSÃO ${index + 1}`)} ${isTodayHighlight ? '<span class="mt-today-badge">TREINO DE HOJE</span>' : ''}</h3>
+        <span>${done}/${total} itens concluídos</span>
       </header>
       <div class="mt-mission-list">
         ${(mission.items || []).map((item) => {
@@ -113,7 +118,7 @@ function missionCardHtml(mission, index, isTodayHighlight = false) {
           <article class="mt-mission-row ${item.completed ? 'is-done' : ''}">
             <div class="mt-mission-main">
               <h4 class="mt-mission-title ${item.completed ? 'is-done' : ''}">${escapeHtml(meta.name)}</h4>
-              <p class="mt-mission-meta">SERIES/REPS: <strong>${Number(item.series || meta.series || 1)}x${Number(item.repeticoes || meta.repeticoes || item.reps || 0)}</strong> (TOTAL ${Number(item.reps || 0)})</p>
+              <p class="mt-mission-meta">SÉRIES/REPS: <strong>${Number(item.series || meta.series || 1)}x${Number(item.repeticoes || meta.repeticoes || item.reps || 0)}</strong> (TOTAL ${Number(item.reps || 0)})</p>
             </div>
           </article>
         `;
@@ -138,7 +143,7 @@ function profileCardHtml(profile, index) {
         <div class="mt-profile-body">
           <h3>${escapeHtml(profile.nome)}</h3>
           <p>${escapeHtml(profile.descricao || 'Treinos personalizados deste perfil')}</p>
-          <span class="mt-profile-meta">${count} missao${count === 1 ? '' : 'es'}</span>
+          <span class="mt-profile-meta">${formatProfileMissionCount(count)}</span>
         </div>
       </button>
       <footer class="mt-profile-actions">
@@ -166,7 +171,6 @@ class MissoesTreinoApp {
     this.isProfilesLoading = false;
     this.errorMessage = '';
     this.currentView = 'profiles';
-    this.currentTab = 'treinos';
     this.useMock = isLocalDevHost();
     this.mockStore = this.useMock ? new MockTreinoStore() : null;
     this.onClick = this.onClick.bind(this);
@@ -188,7 +192,7 @@ class MissoesTreinoApp {
         const mod = await import('./mock.js');
         this.mockStore = new mod.MockTreinoStore();
       } catch (_err) {
-        // mock.example.js ja carregado no construtor
+        // mock.example.js já carregado no construtor
       }
       this.setNotice('Mock local fixo ativo.');
       this.render();
@@ -231,6 +235,12 @@ class MissoesTreinoApp {
     this.profileColorInput = this.container.querySelector('[data-role="profile-color"]');
     this.profileTitleEl = this.container.querySelector('[data-role="profile-title"]');
     this.profileSubtitleEl = this.container.querySelector('[data-role="profile-subtitle"]');
+    this.confirmModalEl = this.container.querySelector('[data-role="confirm-modal"]');
+    this.confirmModalTitleEl = this.container.querySelector('[data-role="confirm-title"]');
+    this.confirmModalDescEl = this.container.querySelector('[data-role="confirm-desc"]');
+    this.confirmModalConfirmEl = this.container.querySelector('[data-role="confirm-submit"]');
+    this.confirmModalCancelEl = this.container.querySelector('[data-role="confirm-cancel"]');
+    this.confirmResolver = null;
   }
 
   bind() {
@@ -248,7 +258,7 @@ class MissoesTreinoApp {
       ...options,
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data?.error || 'Falha na API de missoes de treino');
+    if (!response.ok) throw new Error(data?.error || 'Falha na API de missões de treino');
     return data;
   }
 
@@ -301,7 +311,7 @@ class MissoesTreinoApp {
     const profile = profileId ? this.profiles.find((item) => String(item.id) === String(profileId)) : null;
     if (profile) {
       this.profileModalTitleEl.textContent = 'EDITAR PERFIL';
-      this.profileModalDescEl.textContent = 'Atualize nome, descricao e cor deste perfil.';
+      this.profileModalDescEl.textContent = 'Atualize nome, descrição e cor deste perfil.';
       this.profileModalSubmitEl.textContent = 'SALVAR PERFIL';
       if (this.profileNameInput) this.profileNameInput.value = String(profile.nome || '');
       if (this.profileDescInput) this.profileDescInput.value = String(profile.descricao || '');
@@ -372,7 +382,13 @@ class MissoesTreinoApp {
   async deleteProfile(profileId) {
     const profile = this.profiles.find((item) => String(item.id) === String(profileId));
     if (!profile) return;
-    const confirmed = window.confirm(`Excluir o perfil "${profile.nome}" e todos os treinos vinculados?`);
+    const confirmed = await this.openConfirm({
+      title: 'EXCLUIR PERFIL',
+      message: `O perfil "${profile.nome}" será removido junto com todos os treinos vinculados. Essa ação não pode ser desfeita.`,
+      confirmLabel: 'EXCLUIR PERFIL',
+      cancelLabel: 'MANTER PERFIL',
+      tone: 'danger',
+    });
     if (!confirmed) return;
     try {
       await this.api('', {
@@ -384,10 +400,51 @@ class MissoesTreinoApp {
         return;
       }
       await this.loadProfiles();
-      this.showToast('Perfil excluido.');
+      this.showToast('Perfil excluído.');
     } catch (err) {
       this.showToast(err.message || 'Falha ao excluir perfil.', 'error');
     }
+  }
+
+  openConfirm(options = {}) {
+    return new Promise((resolve) => {
+      this.confirmResolver = resolve;
+      if (this.confirmModalTitleEl) {
+        this.confirmModalTitleEl.textContent = String(options.title || 'CONFIRMAR AÇÃO');
+      }
+      if (this.confirmModalDescEl) {
+        this.confirmModalDescEl.textContent = String(options.message || 'Deseja continuar?');
+      }
+      if (this.confirmModalConfirmEl) {
+        this.confirmModalConfirmEl.textContent = String(options.confirmLabel || 'CONFIRMAR');
+      }
+      if (this.confirmModalCancelEl) {
+        this.confirmModalCancelEl.textContent = String(options.cancelLabel || 'CANCELAR');
+      }
+      const tone = options.tone === 'danger' ? 'danger' : options.tone === 'create' ? 'create' : 'default';
+      const card = this.confirmModalEl?.querySelector('.mt-confirm-card');
+      card?.classList.remove('is-danger', 'is-create');
+      if (tone === 'danger') card?.classList.add('is-danger');
+      if (tone === 'create') card?.classList.add('is-create');
+      const iconEl = this.confirmModalEl?.querySelector('.mt-confirm-icon i');
+      if (iconEl) {
+        iconEl.className = tone === 'create'
+          ? 'fas fa-circle-plus'
+          : tone === 'danger'
+            ? 'fas fa-triangle-exclamation'
+            : 'fas fa-circle-question';
+      }
+      this.confirmModalEl?.classList.remove('is-hidden');
+      window.setTimeout(() => this.confirmModalEl?.classList.add('is-open'), 10);
+    });
+  }
+
+  closeConfirm(result = false) {
+    this.confirmModalEl?.classList.remove('is-open');
+    window.setTimeout(() => this.confirmModalEl?.classList.add('is-hidden'), 180);
+    const resolver = this.confirmResolver;
+    this.confirmResolver = null;
+    if (typeof resolver === 'function') resolver(Boolean(result));
   }
 
   setNotice(message = '', isError = false) {
@@ -408,9 +465,9 @@ class MissoesTreinoApp {
       const refreshed = await this.api(this.buildApiQuery({ profile_id: this.selectedProfile.id }));
       this.missions = Array.isArray(refreshed?.missions) ? refreshed.missions : [];
       this.performance = refreshed?.performance || this.performance;
-      this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem missoes para este perfil.');
+      this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem missões para este perfil.');
     } catch (err) {
-      this.setNotice(err.message || 'Falha ao carregar missoes.', true);
+      this.setNotice(err.message || 'Falha ao carregar missões.', true);
     } finally {
       this.isLoading = false;
       this.render();
@@ -505,10 +562,8 @@ class MissoesTreinoApp {
     if (action === 'select-profile' && profileId) this.selectProfile(profileId);
     if (action === 'edit-profile' && profileId) this.openProfileModal(profileId);
     if (action === 'delete-profile' && profileId) this.deleteProfile(profileId);
-    if (action === 'switch-tab') {
-      this.currentTab = actionEl.getAttribute('data-tab');
-      this.render();
-    }
+    if (action === 'confirm-submit') this.closeConfirm(true);
+    if (action === 'confirm-cancel' || action === 'close-confirm') this.closeConfirm(false);
     if (action === 'open-modal') this.openModal();
     if (action === 'close-modal') this.closeModal();
     if (action === 'clear-temp') {
@@ -546,15 +601,15 @@ class MissoesTreinoApp {
           completed: Boolean(item.completed),
         };
       });
-      this.modalTitleEl.textContent = 'EDITAR MISSAO';
-      this.modalDescEl.textContent = 'Edite os itens desta missao.';
-      this.modalSubmitEl.textContent = 'ATUALIZAR MISSAO';
+      this.modalTitleEl.textContent = 'EDITAR MISSÃO';
+      this.modalDescEl.textContent = 'Edite os itens desta missão.';
+      this.modalSubmitEl.textContent = 'ATUALIZAR MISSÃO';
       if (this.tempTitleInput) this.tempTitleInput.value = String(mission?.title || '').trim();
     } else {
       this.tempMissions = [];
-      this.modalTitleEl.textContent = 'NOVA MISSAO';
-      this.modalDescEl.textContent = 'Adicione os itens desta nova missao diaria.';
-      this.modalSubmitEl.textContent = 'CRIAR MISSAO';
+      this.modalTitleEl.textContent = 'NOVA MISSÃO';
+      this.modalDescEl.textContent = 'Adicione os exercícios deste treino. Ele fica salvo neste perfil.';
+      this.modalSubmitEl.textContent = 'CRIAR MISSÃO';
       if (this.tempTitleInput) this.tempTitleInput.value = '';
     }
     this.editingTempItemId = null;
@@ -634,11 +689,19 @@ class MissoesTreinoApp {
     if (!this.tempMissions.length) return;
     const isEditingMission = Boolean(this.editingMissionId);
     if (!isEditingMission) {
-      const confirmCreate = window.confirm('Confirmar inclusao desta nova missao de treino?');
-      if (!confirmCreate) return;
+      const missionTitle = String(this.tempTitleInput?.value || '').trim() || 'Novo treino';
+      const itemCount = this.tempMissions.length;
+      const confirmed = await this.openConfirm({
+        title: 'REGISTRAR NOVA MISSÃO',
+        message: `Confirmar a criação de "${missionTitle}" com ${itemCount} exercício${itemCount === 1 ? '' : 's'} neste perfil?`,
+        confirmLabel: 'CRIAR MISSÃO',
+        cancelLabel: 'REVISAR ITENS',
+        tone: 'create',
+      });
+      if (!confirmed) return;
     }
     this.modalSubmitEl.disabled = true;
-    this.setNotice('Salvando missao no banco...');
+    this.setNotice('Salvando missão no banco...');
     try {
       const payloadItems = this.tempMissions.map((item, idx) => ({
         name: composeExerciseName(String(item.name || '').trim(), Number(item.series || 0), Number(item.repeticoes || 0)),
@@ -649,7 +712,7 @@ class MissoesTreinoApp {
         completed: Boolean(item.completed),
       })).filter((item) => item.name && item.reps > 0 && item.series > 0 && item.repeticoes > 0);
 
-      if (!payloadItems.length) throw new Error('Adicione ao menos 1 exercicio valido.');
+      if (!payloadItems.length) throw new Error('Adicione ao menos 1 exercício válido.');
 
       if (this.editingMissionId) {
         await this.api('', {
@@ -657,7 +720,7 @@ class MissoesTreinoApp {
           body: JSON.stringify({
             profile_id: this.selectedProfile?.id,
             mission_id: this.editingMissionId,
-            title: String(this.tempTitleInput?.value || '').trim() || 'Missao diaria',
+            title: String(this.tempTitleInput?.value || '').trim() || 'Novo treino',
             replace_items: payloadItems,
           }),
         });
@@ -666,7 +729,7 @@ class MissoesTreinoApp {
           method: 'POST',
           body: JSON.stringify({
             profile_id: this.selectedProfile?.id,
-            title: String(this.tempTitleInput?.value || '').trim() || 'Missao diaria',
+            title: String(this.tempTitleInput?.value || '').trim() || 'Novo treino',
             items: payloadItems,
           }),
         });
@@ -675,19 +738,19 @@ class MissoesTreinoApp {
       this.closeModal();
       await this.loadFromApi();
       if (isEditingMission) {
-        this.setNotice('Missao atualizada com sucesso.');
-        this.showToast('MISSAO ATUALIZADA COM SUCESSO');
+        this.setNotice('Missão atualizada com sucesso.');
+        this.showToast('MISSÃO ATUALIZADA COM SUCESSO');
       } else {
-        this.setNotice('Missao incluida com sucesso.');
+        this.setNotice('Missão incluída com sucesso.');
         this.showToast({
           type: 'confirm',
-          title: 'Missao Inserida',
-          message: 'Sua nova missao foi salva com sucesso no sistema.',
+          title: 'Missão Inserida',
+          message: 'Sua nova missão foi salva com sucesso no sistema.',
         });
       }
     } catch (err) {
-      this.setNotice(err.message || 'Falha ao salvar missao.', true);
-      this.showToast('ERRO AO SALVAR MISSAO', 'error');
+      this.setNotice(err.message || 'Falha ao salvar missão.', true);
+      this.showToast('ERRO AO SALVAR MISSÃO', 'error');
     } finally {
       this.modalSubmitEl.disabled = false;
       this.render();
@@ -697,7 +760,13 @@ class MissoesTreinoApp {
   async deleteMission(missionId) {
     const mission = this.missions.find((m) => m.id === missionId);
     if (!mission) return;
-    const confirmed = window.confirm('Tem certeza que deseja excluir esta missao? Esta acao nao pode ser desfeita.');
+    const confirmed = await this.openConfirm({
+      title: 'EXCLUIR MISSÃO',
+      message: `A missão "${mission.title || 'sem título'}" será removida permanentemente do perfil. Continuar?`,
+      confirmLabel: 'EXCLUIR MISSÃO',
+      cancelLabel: 'MANTER MISSÃO',
+      tone: 'danger',
+    });
     if (!confirmed) return;
     mission._busy = true;
     this.render();
@@ -707,14 +776,14 @@ class MissoesTreinoApp {
         body: JSON.stringify({ mission_id: missionId }),
       });
       this.missions = this.missions.filter((m) => m.id !== missionId);
-      this.setNotice('Missao removida do banco.');
+      this.setNotice('Missão removida do banco.');
       this.showToast({
         type: 'confirm-delete',
-        title: 'Missao Excluida',
-        message: 'A missao foi removida com sucesso do banco.',
+        title: 'Missão Excluída',
+        message: 'A missão foi removida com sucesso do banco.',
       });
     } catch (err) {
-      this.setNotice(err.message || 'Falha ao excluir missao.', true);
+      this.setNotice(err.message || 'Falha ao excluir missão.', true);
       mission._busy = false;
     }
     this.render();
@@ -755,7 +824,7 @@ class MissoesTreinoApp {
         banner = document.createElement('div');
         banner.className = 'mt-mock-banner';
         banner.setAttribute('data-role', 'mock-banner');
-        banner.textContent = 'Mock local fixo: modulo treino 100% em memoria. Nada vai pro Supabase.';
+        banner.textContent = 'Mock local fixo: módulo treino 100% em memória. Nada vai pro Supabase.';
         const header = this.container.querySelector('.mt-header-block');
         header?.insertAdjacentElement('afterend', banner);
       }
@@ -773,7 +842,6 @@ class MissoesTreinoApp {
     this.container.querySelector('[data-role="profiles-toolbar"]')?.classList.toggle('mt-is-hidden', !isProfilesView);
     this.container.querySelector('[data-role="training-toolbar"]')?.classList.toggle('mt-is-hidden', isProfilesView);
     this.container.querySelector('.mt-fab-floating')?.classList.toggle('mt-is-hidden', isProfilesView);
-    this.container.querySelector('.mt-tabs-block')?.classList.toggle('mt-is-hidden', isProfilesView);
     this.container.querySelector('.mt-progress-wrap')?.classList.toggle('mt-is-hidden', isProfilesView);
 
     if (isProfilesView) {
@@ -798,25 +866,8 @@ class MissoesTreinoApp {
       this.progressEl.classList.toggle('is-full', totalMissions > 0 && progress === 100);
     }
 
-    this.container.querySelectorAll('[data-action="switch-tab"]').forEach(el => {
-      el.classList.toggle('is-active', el.getAttribute('data-tab') === this.currentTab);
-    });
-
-    const weekdayTokens = getWeekdayTokensForToday();
-    const isRestDay = !weekdayTokens.length;
-    
-    let displayMissions = this.missions;
-    let highlightedMissionId = null;
-
-    if (this.currentTab === 'rotinas') {
-      const todayMission = this.missions.find((mission) => missionMatchesTodayByName(mission, weekdayTokens));
-      highlightedMissionId = todayMission?.id || null;
-      displayMissions = todayMission ? [todayMission] : [];
-      this.performanceHost?.classList.remove('mt-is-hidden');
-    } else {
-      displayMissions = this.missions;
-      this.performanceHost?.classList.add('mt-is-hidden');
-    }
+    const displayMissions = this.missions;
+    this.performanceHost?.classList.add('mt-is-hidden');
 
     if (this.isLoading) {
       this.listEl.innerHTML = `
@@ -830,22 +881,11 @@ class MissoesTreinoApp {
       return;
     }
 
-    if (this.currentTab === 'rotinas' && isRestDay) {
-      this.listEl.innerHTML = `
-        <div class="mt-empty-card">
-          <p class="mt-empty-title">DIA DE DESCANSO</p>
-          <p class="mt-empty-text">Aproveite para recarregar as energias. Hoje nao ha missoes programadas.</p>
-        </div>
-      `;
-      this.renderPerformance();
-      return;
-    }
-
     if (!displayMissions.length) {
       this.listEl.innerHTML = `
         <div class="mt-empty-card">
-          <p class="mt-empty-title">NENHUMA MISSAO</p>
-          <p class="mt-empty-text">${this.currentTab === 'rotinas' ? 'Nenhuma missao para hoje.' : 'Clique em [+] Nova Missao para comecar.'}</p>
+          <p class="mt-empty-title">NENHUMA MISSÃO</p>
+          <p class="mt-empty-text">Clique em [+] Nova Missão para começar.</p>
         </div>
       `;
       this.renderPerformance();
@@ -853,7 +893,7 @@ class MissoesTreinoApp {
     }
 
     this.listEl.innerHTML = displayMissions
-      .map((mission, idx) => missionCardHtml(mission, idx, Boolean(highlightedMissionId && mission.id === highlightedMissionId)))
+      .map((mission, idx) => missionCardHtml(mission, idx, false))
       .join('');
     this.renderPerformance();
     this.renderToasts();
@@ -876,7 +916,7 @@ class MissoesTreinoApp {
       this.profilesHost.innerHTML = `
         <div class="mt-empty-card">
           <p class="mt-empty-title">NENHUM PERFIL</p>
-          <p class="mt-empty-text">Crie um perfil para comecar. Ex.: Hipertrofia, Emagrecimento, Corrida.</p>
+          <p class="mt-empty-text">Crie um perfil para começar. Ex.: Hipertrofia, Emagrecimento, Corrida.</p>
         </div>
       `;
       return;
@@ -964,7 +1004,7 @@ class MissoesTreinoApp {
     const buildCalendarHtml = () => {
       const [yy, mm] = String(selectedMonth || '').split('-').map(Number);
       if (!Number.isFinite(yy) || !Number.isFinite(mm) || mm < 1 || mm > 12) {
-        return '<div class="mt-perf-empty">Selecione um mes valido para visualizar o calendario.</div>';
+        return '<div class="mt-perf-empty">Selecione um mês válido para visualizar o calendário.</div>';
       }
 
       const daysInMonth = new Date(yy, mm, 0).getDate();
@@ -1027,7 +1067,7 @@ class MissoesTreinoApp {
               : 'is-empty-goal';
         const tooltip = isSunday
           ? `Domingo (${dateRef}) - Descanso`
-          : (plannedMissionTitle || 'Missao nao definida para este dia');
+          : (plannedMissionTitle || 'Missão não definida para este dia');
         const sundayLabel = '<span class="mt-rest-emoji" aria-hidden="true">😴</span> SONECA';
 
         cells.push(`
@@ -1053,7 +1093,7 @@ class MissoesTreinoApp {
       <section class="mt-performance-wrap">
         <article class="mt-perf-card">
           <div class="mt-goals-head">
-            <h4>METAS DO MES (POR MISSAO)</h4>
+            <h4>METAS DO MÊS (POR MISSÃO)</h4>
             <select class="mt-month-select" data-role="month-select">
               ${monthOptions.map((month) => `<option value="${escapeHtml(month)}" ${month === selectedMonth ? 'selected' : ''}>${escapeHtml(month)}</option>`).join('')}
             </select>
@@ -1064,7 +1104,7 @@ class MissoesTreinoApp {
             </div>
             <strong>${Math.max(0, Math.min(100, Number(selectedEntry.success_rate_percent || 0)))}%</strong>
           </div>
-          <p>${Number(selectedEntry.completed_goals || 0)}/${Number(selectedEntry.total_goals || 0)} metas concluidas em ${escapeHtml(selectedMonth || '--')}</p>
+          <p>${Number(selectedEntry.completed_goals || 0)}/${Number(selectedEntry.total_goals || 0)} metas concluídas em ${escapeHtml(selectedMonth || '--')}</p>
           ${buildCalendarHtml()}
         </article>
         <article class="mt-perf-card">
@@ -1091,7 +1131,6 @@ class MissoesTreinoApp {
           .mt-root *{box-sizing:border-box}
           .mt-root::before{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 50%,rgba(0,0,0,.14) 50%);background-size:100% 4px;pointer-events:none;opacity:.35}
           .mt-header-block{margin-bottom:16px;padding:16px;background:rgba(10,20,32,.6);border:1px solid var(--mt-border);border-radius:12px;box-shadow:inset 0 0 20px rgba(0,229,255,.05)}
-          .mt-tabs-block{margin-bottom:16px;display:flex;gap:4px;padding:4px;background:rgba(0,0,0,.3);border:1px solid rgba(0,229,255,.1);border-radius:10px}
           .mt-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid var(--mt-border);padding-bottom:10px;margin-bottom:0;position:relative;z-index:1}
           .mt-brand{display:flex;gap:12px;align-items:flex-start}
           .mt-bolt{width:44px;height:44px;border:1px solid var(--mt-accent);transform:rotate(45deg);display:flex;align-items:center;justify-content:center;flex:none;background:rgba(0,229,255,.08);box-shadow:0 0 14px rgba(0,229,255,.32)}
@@ -1141,6 +1180,7 @@ class MissoesTreinoApp {
           .mt-fab-floating{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border-radius:50%;border:1px solid var(--mt-accent);background:radial-gradient(circle at 30% 30%,rgba(0,229,255,.35),rgba(0,105,132,.85));color:#dff9ff;font-size:2rem;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:4200;box-shadow:0 12px 24px rgba(0,0,0,.45),0 0 14px rgba(0,229,255,.35);transition:transform .18s ease,box-shadow .18s ease}
           .mt-fab-floating:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 16px 28px rgba(0,0,0,.5),0 0 18px rgba(0,229,255,.5)}
           .mt-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:14px;opacity:0;pointer-events:none;transition:opacity .18s ease;z-index:3000}
+          .mt-modal[data-role="confirm-modal"]{z-index:3100}
           .mt-modal.is-open{opacity:1;pointer-events:auto}
           .mt-modal.is-hidden{display:none}
           .mt-modal-card{width:min(640px,100%);background:rgba(6,12,20,.95);border:1px solid var(--mt-border);border-radius:12px;padding:16px;transform:scale(.97);transition:transform .18s ease}
@@ -1200,10 +1240,6 @@ class MissoesTreinoApp {
           .mt-cal-num{font-size:.72rem;color:#e7f8ff;font-weight:700}
           .mt-cal-meta{font-size:.52rem;color:#9fc0d8;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
           .mt-rest-emoji{display:inline-block;animation:mt-rest-emoji-nap 1.7s ease-in-out infinite;transform-origin:center}
-          .mt-tabs{display:flex;gap:8px;width:100%}
-          .mt-tab{flex:1;text-align:center;padding:10px;color:#94a3b8;font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-radius:8px;transition:all .2s ease;font-family:"Orbitron",sans-serif}
-          .mt-tab:hover{color:var(--mt-accent);background:rgba(0,229,255,.05)}
-          .mt-tab.is-active{color:#fff;background:var(--mt-accent);box-shadow:0 0 15px rgba(0,229,255,.4);text-shadow:0 0 8px rgba(255,255,255,0.4)}
           .mt-is-hidden{display:none !important}
           .mt-radar-wrap{display:flex;justify-content:center;animation:radarFloat 3.4s ease-in-out infinite}
           .mt-radar-svg{width:100%;max-width:260px;height:auto}
@@ -1238,10 +1274,20 @@ class MissoesTreinoApp {
           .mt-profile-body{min-width:0}
           .mt-profile-body h3{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.82rem;letter-spacing:.05em}
           .mt-profile-body p{margin:6px 0 0;color:#93a1b0;font-size:.72rem;line-height:1.35}
-          .mt-profile-meta{display:inline-flex;margin-top:10px;padding:3px 8px;border-radius:999px;border:1px solid rgba(0,229,255,.24);color:#9fdcf0;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase}
+          .mt-profile-meta{display:inline-flex;margin-top:10px;padding:3px 8px;border-radius:999px;border:1px solid rgba(0,229,255,.24);color:#9fdcf0;font-size:.58rem;letter-spacing:.08em}
           .mt-profile-actions{display:flex;gap:6px;padding:0 10px 10px}
           .mt-profile-back{display:inline-flex;align-items:center;gap:8px;border:1px solid #3a4656;background:rgba(0,0,0,.22);color:#c1d3e2;padding:8px 12px;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border-radius:8px}
           .mt-mock-banner{margin:0 0 14px;padding:10px 12px;border:1px dashed rgba(255,166,0,.55);border-radius:10px;background:rgba(255,166,0,.12);color:#ffe7c4;font-size:.72rem;letter-spacing:.04em}
+          .mt-confirm-card{border-color:rgba(0,229,255,.55);box-shadow:0 0 24px rgba(0,229,255,.12)}
+          .mt-confirm-card.is-danger{border-color:rgba(255,0,60,.55);box-shadow:0 0 24px rgba(255,0,60,.12)}
+          .mt-confirm-card.is-danger .mt-modal-top h4{color:#ff7d97}
+          .mt-confirm-card.is-danger .mt-submit{border-color:rgba(255,0,60,.72);background:rgba(255,0,60,.14);color:#ffd3dd}
+          .mt-confirm-card.is-create{border-color:rgba(0,208,132,.55);box-shadow:0 0 24px rgba(0,208,132,.12)}
+          .mt-confirm-card.is-create .mt-modal-top h4{color:#7dffc8}
+          .mt-confirm-card.is-create .mt-submit{border-color:rgba(0,208,132,.72);background:rgba(0,208,132,.14);color:#dbffef}
+          .mt-confirm-icon{font-size:1.35rem;line-height:1;margin-bottom:8px;color:var(--mt-accent)}
+          .mt-confirm-card.is-danger .mt-confirm-icon{color:#ff7d97}
+          .mt-confirm-card.is-create .mt-confirm-icon{color:#7dffc8}
           @media (max-width:1024px){.mt-profiles-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
           @media (max-width:720px){.mt-profiles-list{grid-template-columns:1fr}}
         </style>
@@ -1251,13 +1297,13 @@ class MissoesTreinoApp {
             <div class="mt-brand">
               <div class="mt-bolt"><span>Z</span></div>
               <div>
-                <h2 class="mt-title" data-text="SISTEMA: MISSAO DIARIA">SISTEMA: MISSAO DIARIA</h2>
+                <h2 class="mt-title" data-text="SISTEMA: MISSÃO DIÁRIA">SISTEMA: MISSÃO DIÁRIA</h2>
                 <p class="mt-date" data-role="today-date"></p>
               </div>
             </div>
             <div class="mt-stat">
               <strong data-role="completed">0/0</strong>
-              <span>Missoes</span>
+              <span>Missões</span>
             </div>
           </header>
         </div>
@@ -1280,17 +1326,11 @@ class MissoesTreinoApp {
             <p class="mt-date" data-role="profile-subtitle" style="margin-top:6px;">Treinos personalizados deste perfil</p>
           </div>
 
-        <nav class="mt-tabs-block">
-          <div class="mt-tabs">
-            <div class="mt-tab ${this.currentTab === 'treinos' ? 'is-active' : ''}" data-action="switch-tab" data-tab="treinos">Treinos</div>
-          </div>
-        </nav>
-
         <div class="mt-progress-wrap"><div class="mt-progress" data-role="progress"></div></div>
         <section class="mt-list" data-role="list"></section>
         <section data-role="performance"></section>
         </div>
-        <button class="mt-fab-floating mt-is-hidden" data-action="open-modal" aria-label="Nova Missao" title="Nova Missao">+</button>
+        <button class="mt-fab-floating mt-is-hidden" data-action="open-modal" aria-label="Nova Missão" title="Nova Missão">+</button>
         <div class="mt-toast-wrap" data-role="toasts"></div>
 
         <div class="mt-modal is-hidden" data-role="profile-modal">
@@ -1308,7 +1348,7 @@ class MissoesTreinoApp {
                 <input type="text" data-role="profile-name" placeholder="Ex: Hipertrofia" />
               </div>
               <div class="mt-field">
-                <label>Descricao</label>
+                <label>Descrição</label>
                 <input type="text" data-role="profile-desc" placeholder="Ex: Treino focado em ganho de massa" />
               </div>
               <div class="mt-field">
@@ -1327,27 +1367,27 @@ class MissoesTreinoApp {
           <div class="mt-modal-card">
             <div class="mt-modal-top">
               <div>
-                <h4 data-role="modal-title">NOVA MISSAO</h4>
-                <p data-role="modal-desc">Adicione os itens desta nova missao diaria.</p>
+                <h4 data-role="modal-title">NOVA MISSÃO</h4>
+                <p data-role="modal-desc">Adicione os exercícios deste treino. Ele fica salvo neste perfil.</p>
               </div>
               <button class="mt-close" data-action="close-modal">X</button>
             </div>
             <div class="mt-form">
               <div class="mt-field">
-                <label>Nome da Missao</label>
+                <label>Nome da Missão</label>
                 <input type="text" data-role="temp-title" placeholder="Ex: Treino de Peito" />
               </div>
               <div class="mt-row">
                 <div class="mt-field">
-                  <label>Exercicio / Item</label>
-                  <input type="text" data-role="temp-name" placeholder="Ex: Flexoes" />
+                  <label>Exercício / Item</label>
+                  <input type="text" data-role="temp-name" placeholder="Ex: Flexões" />
                 </div>
                 <div class="mt-field">
-                  <label>Series</label>
+                  <label>Séries</label>
                   <input type="number" data-role="temp-series" value="3" min="1" />
                 </div>
                 <div class="mt-field">
-                  <label>Repeticoes</label>
+                  <label>Repetições</label>
                   <input type="number" data-role="temp-reps" value="12" min="1" />
                 </div>
                 <div style="display:flex;align-items:end;">
@@ -1357,8 +1397,25 @@ class MissoesTreinoApp {
               <div class="mt-temp-list" data-role="temp-list"></div>
               <div class="mt-actions">
                 <button class="mt-cancel" data-action="clear-temp">Limpar tudo</button>
-                <button class="mt-submit" data-role="modal-submit" data-action="submit-modal">CRIAR MISSAO</button>
+                <button class="mt-submit" data-role="modal-submit" data-action="submit-modal">CRIAR MISSÃO</button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-modal is-hidden" data-role="confirm-modal">
+          <div class="mt-modal-card mt-confirm-card">
+            <div class="mt-modal-top">
+              <div>
+                <div class="mt-confirm-icon" aria-hidden="true"><i class="fas fa-triangle-exclamation"></i></div>
+                <h4 data-role="confirm-title">CONFIRMAR AÇÃO</h4>
+                <p data-role="confirm-desc">Deseja continuar?</p>
+              </div>
+              <button class="mt-close" data-action="close-confirm">X</button>
+            </div>
+            <div class="mt-actions">
+              <button class="mt-cancel" data-action="confirm-cancel">CANCELAR</button>
+              <button class="mt-submit" data-role="confirm-submit" data-action="confirm-submit">CONFIRMAR</button>
             </div>
           </div>
         </div>
