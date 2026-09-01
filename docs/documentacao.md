@@ -258,6 +258,7 @@ Arquivo principal: `migration/20260830_financeiro_views_agregadas.sql`.
 | `vw_financeiro_compras_mensal` | Total, quantidade e ticket medio de compras por mes |
 
 As views usam `security_invoker = true` para respeitar RLS das tabelas base.
+A migration `20260830_financeiro_views_agregadas.sql` remove as views existentes antes de recria-las para evitar erro do PostgreSQL `42P16` ao mudar tipos expostos, como `numeric` para `numeric(12,2)`.
 
 ### Outras Tabelas
 
@@ -383,6 +384,7 @@ Suites principais:
 | 2026-08-30 | Mock financeiro expandido para preview local da UI; checkpoint sem hash porque o workspace local nao esta em repo Git valido |
 | 2026-08-30 | Ajuste de respiro nos headers de despesas fixas no desktop e mobile; checkpoint sem hash porque o workspace local nao esta em repo Git valido |
 | 2026-08-30 | Motion aplicado na aba Dados do Financeiro para troca de filtros, rows e botoes de acao; checkpoint sem hash porque o workspace local nao esta em repo Git valido |
+| 2026-08-31 | Ajuste da migration de views agregadas para dropar views antes de recriar e evitar erro `42P16` no Supabase; checkpoint base `0f0e5f5` |
 
 ## 6. Como Rodar
 

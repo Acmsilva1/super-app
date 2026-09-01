@@ -3,6 +3,13 @@
 
 begin;
 
+drop view if exists public.vw_financeiro_historico_anual;
+drop view if exists public.vw_financeiro_resumo_mensal;
+drop view if exists public.vw_financeiro_categoria_anual;
+drop view if exists public.vw_financeiro_categoria_mensal;
+drop view if exists public.vw_financeiro_poupanca_resumo;
+drop view if exists public.vw_financeiro_compras_mensal;
+
 create index if not exists idx_tb_financas_user_data_lancamento
   on public.tb_financas (user_id, data_lancamento desc);
 
