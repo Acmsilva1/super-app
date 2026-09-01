@@ -1,17 +1,39 @@
-/**
- * /api/financeiro-analista
- *
- * Endpoint do Analista Financeiro.
- * Agrega a análise histórica detalhada de todos os meses com movimento no ano
- * e injeta os novos dados em tempo real: analise_risco (TLC) e padroes (Regex + inconsistências).
- */
-
 import { obterFinanceiroMes } from './_financeiroShared.js';
 import { requireUser } from '../lib/auth.js';
+import { supabase } from '../lib/supabase.js';
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
   res.status(status).end(JSON.stringify(data));
+}
+
+function isMissingViewError(error) {
+  const code = String(error?.code || '');
+  const message = String(error?.message || '').toLowerCase();
+  return code === '42P01' || message.includes('does not exist') || message.includes('nao existe');
+}
+
+async function obterCategoriasAno(ano, context = {}) {
+  const query = supabase
+    .from('vw_financeiro_categoria_anual')
+    .select('categoria,valor_total,quantidade_lancamentos,media_lancamento,ranking_maior,ranking_menor')
+    .eq('ano', ano)
+    .order('ranking_maior', { ascending: true });
+
+  if (context.userId) query.eq('user_id', context.userId);
+
+  const { data, error } = await query;
+  if (error) {
+    if (isMissingViewError(error)) return [];
+    throw error;
+  }
+
+  return (data || []).map((row) => ({
+    categoria: row.categoria,
+    valor: Number(row.valor_total || 0),
+    quantidade: row.quantidade_lancamentos,
+    media: Number(row.media_lancamento || 0),
+  }));
 }
 
 export default async function handler(req, res) {
@@ -34,20 +56,8 @@ export default async function handler(req, res) {
 
     const base = result.data;
     const graficosAnuais = Array.isArray(base.graficos_anuais) ? base.graficos_anuais : [];
-
-    // Acumula categorias anuais independente do mês selecionado
-    const categoriasAnoMap = new Map();
-    for (const m of graficosAnuais) {
-      for (const cat of m.categorias_gastos || []) {
-        const key = String(cat.categoria || '').toLowerCase();
-        const current = categoriasAnoMap.get(key) || { categoria: cat.categoria, valor: 0 };
-        categoriasAnoMap.set(key, {
-          categoria: current.categoria,
-          valor: Math.round((current.valor + (Number(cat.valor) || 0)) * 100) / 100,
-        });
-      }
-    }
-    const categoriasAno = [...categoriasAnoMap.values()].sort((a, b) => b.valor - a.valor);
+    const anoAnalise = Number(String(base.mes_ano || '').slice(0, 4)) || new Date().getFullYear();
+    const categoriasAno = await obterCategoriasAno(anoAnalise, context);
 
     const historicoDetalhado = graficosAnuais
       .filter((m) => Number(m.receitas || 0) > 0 || Number(m.despesas || 0) > 0)
@@ -106,8 +116,8 @@ export default async function handler(req, res) {
       mes_com_mais_variaveis: mesMaisVariaveis,
       mes_mais_positivo: mesMaisPositivo,
       mes_mais_negativo: mesMaisNegativo,
-      categoria_mais_gasta: base.graficos?.categorias_gastos?.[0] || null,
-      categoria_menos_gasta: base.graficos?.categorias_gastos?.slice(-1)[0] || null,
+      categoria_mais_gasta: categoriasAno[0] || base.graficos?.categorias_gastos?.[0] || null,
+      categoria_menos_gasta: categoriasAno.slice(-1)[0] || base.graficos?.categorias_gastos?.slice(-1)[0] || null,
     };
 
     const analistaPayload = {

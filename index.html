@@ -4006,6 +4006,20 @@
         .finance-data-section-head--receitas {
             border-bottom: 1px solid rgba(34, 197, 94, 0.18);
         }
+        .finance-data-section-titlebar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.8rem;
+            padding: 0.65rem 0.75rem 0 0.75rem;
+        }
+        .finance-data-section-titlebar p {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin: 0;
+        }
         .finance-parcela-tag {
             color: #facc15;
             font-weight: 700;
@@ -4017,6 +4031,26 @@
         [data-theme="light"] .finance-parcela-tag {
             color: #ca8a04;
             border-left-color: rgba(100, 116, 139, 0.4);
+        }
+        .finance-pendente-mes-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.32rem;
+            color: #fecaca;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(248, 113, 113, 0.36);
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-left: 0.65rem;
+            padding: 0.22rem 0.48rem;
+            white-space: nowrap;
+        }
+        [data-theme="light"] .finance-pendente-mes-tag {
+            color: #991b1b;
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(220, 38, 38, 0.28);
         }
         .finance-parcelas-check {
             display: inline-flex;
@@ -4278,6 +4312,15 @@
         .app-list-actions .finance-icon-action--delete:hover {
             border-color: rgba(248, 113, 113, 0.56);
             background: rgba(127, 29, 29, 0.46);
+            color: #fff1f2;
+        }
+        .app-list-actions .finance-icon-action--pending {
+            color: #f87171;
+        }
+        .app-list-actions .finance-icon-action--pending.is-active,
+        .app-list-actions .finance-icon-action--pending:hover {
+            border-color: rgba(248, 113, 113, 0.62);
+            background: rgba(127, 29, 29, 0.5);
             color: #fff1f2;
         }
         .finance-limited-table-wrap .finance-table-scroll {
@@ -6660,7 +6703,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.4rem 0.6rem;
+            padding: 0.62rem 0.85rem;
             background: rgba(15, 27, 48, 0.45);
             border: 1px solid rgba(89, 132, 194, 0.18);
             border-radius: 0.5rem;
@@ -6869,6 +6912,12 @@
             }
             .finance-data-section-head {
                 flex-wrap: wrap;
+            }
+            .finance-data-section-titlebar {
+                padding: 0.78rem 0.85rem 0 0.85rem;
+            }
+            .finance-despesas-col-header {
+                padding: 0.68rem 0.9rem;
             }
             .finance-despesas-fixas-mobile-actions {
                 display: grid;
@@ -8571,16 +8620,22 @@
                     neutro: 'neutro',
                 }[key] || 'neutro');
 
-                const financeRowActions = (id, tipoRegistro) => {
+                const financeRowActions = (id, tipoRegistro, row = null) => {
                     const safeId = escapeHtml(String(id ?? ''));
                     const safeTipo = escapeHtml(String(tipoRegistro || ''));
+                    const pendenteMes = row?.pendente_mes === true || String(row?.pendente_mes || '').toLowerCase() === 'true';
+                    const pendingActionHtml = tipoRegistro === 'despesa_fixa'
+                        ? `<button type="button" class="finance-icon-action finance-icon-action--pending ${pendenteMes ? 'is-active' : ''}" data-action="financeiro-toggle-pendente-mes" data-id="${safeId}" data-pendente-mes="${pendenteMes ? 'true' : 'false'}" aria-label="${pendenteMes ? 'Remover pendencia do mes' : 'Marcar pendente no mes'}" title="${pendenteMes ? 'Remover pendencia do mes' : 'Marcar pendente no mes'}"><i class="fas fa-xmark"></i></button>`
+                        : '';
                     return `<div class="app-list-actions finance-row-actions">
                         <button type="button" class="finance-icon-action finance-icon-action--edit" data-action="financeiro-edit" data-id="${safeId}" data-tipo-registro="${safeTipo}" aria-label="Editar" title="Editar"><i class="fas fa-pen"></i></button>
+                        ${pendingActionHtml}
                         <button type="button" class="finance-icon-action finance-icon-action--delete" data-action="financeiro-delete" data-id="${safeId}" data-tipo-registro="${safeTipo}" aria-label="Excluir" title="Excluir"><i class="fas fa-trash"></i></button>
                     </div>`;
                 };
                 const mkRowFixa = (r) => {
-                    const statusRaw = String(r.status || 'pendente').toLowerCase();
+                    const pendenteMes = r?.pendente_mes === true || String(r?.pendente_mes || '').toLowerCase() === 'true';
+                    const statusRaw = pendenteMes ? 'pendente' : String(r.status || 'pendente').toLowerCase();
                     const statusLabel = statusRaw === 'pago' ? 'Pago' : 'Pendente';
                     const badgeClass = statusRaw === 'pago' ? 'is-paid' : 'is-pending';
                     const pt = Number(r.parcela_total ?? 0);
@@ -8590,15 +8645,18 @@
                     const parcelaHtml = hasParcelas
                         ? `<span class="finance-parcela-tag">Parcela ${escapeHtml(String(pa))} de ${escapeHtml(String(pt))}</span>`
                         : '';
+                    const pendenteMesHtml = pendenteMes
+                        ? '<span class="finance-pendente-mes-tag"><i class="fas fa-xmark"></i>Pendente</span>'
+                        : '';
                     return `<tr>
                         <td class="col-desc">
-                            <strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong>${parcelaHtml}
+                            <strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong>${parcelaHtml}${pendenteMesHtml}
                         </td>
                         <td class="col-status"><button type="button" class="finance-status-toggle ${badgeClass}" data-action="financeiro-toggle-status" data-id="${r.id}" data-status-atual="${statusRaw}" title="Clique para alternar status">${statusLabel}</button></td>
                         <td class="col-valor" style="color:${statusRaw === 'pago' ? '#22c55e' : '#ef4444'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                         <td class="col-categoria">${escapeHtml(fixaCategoriaLabel(categoriaKey))}</td>
                         <td class="col-actions">
-${financeRowActions(r.id, 'despesa_fixa')}
+${financeRowActions(r.id, 'despesa_fixa', r)}
                         </td>
                     </tr>`;
                 };
@@ -8765,8 +8823,8 @@ ${financeRowActions(r.id, 'compra')}
                                 Nenhuma tabela aberta. Escolha <strong>Despesas fixas</strong>, <strong>Débito / pix</strong> ou <strong>Receitas</strong>.
                             </div>
                             <div class="module-table-wrap finance-data-section finance-data-table-limited hidden-by-filter" data-table-section="despesas_fixas" id="financeiro-section-despesas-fixas" data-fixas-empty="${fixasEmpty ? '1' : '0'}">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem; gap:0.5rem; flex-wrap:wrap;">
-                                    <p style="font-size:0.875rem;font-weight:600;margin:0;">Despesas fixas</p>
+                                <div class="finance-data-section-titlebar">
+                                    <p>Despesas fixas</p>
                                     ${despesasFixas.length > 0 ? `
                                     <select id="financeiro-filter-categoria-fixas" style="font-size:0.72rem; padding:0.15rem 0.35rem; border-radius:0.4rem; background:transparent; border:1px solid rgba(148, 163, 184, 0.4); color:inherit; outline:none; cursor:pointer;">
                                         <option value="">Todas as categorias</option>
@@ -8979,6 +9037,42 @@ ${financeRowActions(r.id, 'compra')}
                 receitas.forEach((r) => itemMap.set(`receita:${r.id}`, r));
                 poupancaLogs.forEach((r) => itemMap.set(`poupanca:${r.id}`, r));
                 comprasLogs.forEach((r) => itemMap.set(`compra:${r.id}`, r));
+                const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+                const animateFinanceDataSection = (section) => {
+                    if (!section || prefersReducedMotion) return;
+                    const helpers = this.getMotionHelpers();
+                    if (!helpers) return;
+                    try {
+                        helpers.animate(
+                            section,
+                            { opacity: [0.6, 1], transform: ['translateY(10px) scale(0.995)', 'translateY(0px) scale(1)'] },
+                            { duration: 0.24, easing: 'cubic-bezier(.2,.8,.2,1)' }
+                        );
+                    } catch (_) {}
+                };
+                const animateFinanceRows = (root) => {
+                    if (!root || prefersReducedMotion) return;
+                    const helpers = this.getMotionHelpers();
+                    if (!helpers) return;
+                    const rows = [...root.querySelectorAll('tbody tr')].filter((row) => !row.querySelector('.module-table-empty'));
+                    if (!rows.length) return;
+                    const delay = helpers.stagger ? helpers.stagger(0.025) : 0;
+                    try {
+                        helpers.animate(
+                            rows,
+                            { opacity: [0, 1], transform: ['translateY(7px)', 'translateY(0px)'] },
+                            { duration: 0.22, delay, easing: 'ease-out' }
+                        );
+                    } catch (_) {}
+                };
+                const pulseFinanceAction = (btn) => {
+                    if (!btn || prefersReducedMotion) return;
+                    const helpers = this.getMotionHelpers();
+                    if (!helpers) return;
+                    try {
+                        helpers.animate(btn, { transform: ['scale(1)', 'scale(0.92)', 'scale(1)'] }, { duration: 0.18, easing: 'ease-out' });
+                    } catch (_) {}
+                };
 
                 const renderPagosPendentesDonut = (chartNode, chartRef, pagoValor, pendenteValor) => {
                     if (!chartNode) return false;
@@ -9339,7 +9433,12 @@ ${financeRowActions(r.id, 'compra')}
                     });
                     el.querySelectorAll('[data-table-section]').forEach((section) => {
                         const key = section.getAttribute('data-table-section');
-                        section.classList.toggle('hidden-by-filter', !(normalizedTarget && key === normalizedTarget));
+                        const visible = Boolean(normalizedTarget && key === normalizedTarget);
+                        section.classList.toggle('hidden-by-filter', !visible);
+                        if (visible) {
+                            animateFinanceDataSection(section);
+                            animateFinanceRows(section);
+                        }
                     });
                     const importCallout = el.querySelector('#financeiro-import-fixas-callout');
                     const fixasSection = el.querySelector('#financeiro-section-despesas-fixas');
@@ -9498,6 +9597,7 @@ ${financeRowActions(r.id, 'compra')}
                 if (activeTab === 'data') applyFinanceDataFilter(activeDataFilter);
                 el.querySelectorAll('[data-action="financeiro-data-filter"]').forEach((btn) => {
                     btn.onclick = () => {
+                        pulseFinanceAction(btn);
                         setTab('data');
                         applyFinanceDataFilter(btn.dataset.target || '');
                     };
@@ -9540,12 +9640,14 @@ ${financeRowActions(r.id, 'compra')}
                             ? pendentes.map(mkRowFixa).join('')
                             : `<tr><td colspan="5" class="module-table-empty">${selected ? 'Nenhuma despesa pendente nesta categoria.' : 'Nenhuma despesa pendente.'}</td></tr>`;
                         bindFinanceiroRowActions(tbodyPendentes);
+                        animateFinanceRows(tbodyPendentes);
                     }
                     if (tbodyPagas) {
                         tbodyPagas.innerHTML = pagas.length
                             ? pagas.map(mkRowFixa).join('')
                             : `<tr><td colspan="5" class="module-table-empty">${selected ? 'Nenhuma despesa paga nesta categoria.' : 'Nenhuma despesa paga.'}</td></tr>`;
                         bindFinanceiroRowActions(tbodyPagas);
+                        animateFinanceRows(tbodyPagas);
                     }
                 };
 
@@ -9596,6 +9698,7 @@ ${financeRowActions(r.id, 'compra')}
                                 tbody.innerHTML = filtered.length ? filtered.map(mkRowGastoVariado).join('') : '<tr><td colspan="4" class="module-table-empty">Nenhum gasto nesta categoria.</td></tr>';
                             }
                             bindFinanceiroRowActions(tbody);
+                            animateFinanceRows(tbody);
                         }
                     };
                 }
@@ -9608,6 +9711,7 @@ ${financeRowActions(r.id, 'compra')}
                 const bindFinanceiroRowActions = (root = el) => {
                     root.querySelectorAll('[data-action="financeiro-edit"]').forEach((btn) => {
                         btn.onclick = () => {
+                            pulseFinanceAction(btn);
                             const tipo = btn.dataset.tipoRegistro || 'gasto_variado';
                             const item = itemMap.get(`${tipo}:${btn.dataset.id}`);
                             this.openFinanceiroModal(el, { item, defaultTipo: tipo });
@@ -9615,12 +9719,22 @@ ${financeRowActions(r.id, 'compra')}
                     });
                     root.querySelectorAll('[data-action="financeiro-delete"]').forEach((btn) => {
                         btn.onclick = () => {
+                            pulseFinanceAction(btn);
                             const tipo = btn.dataset.tipoRegistro || 'gasto_variado';
                             this.submitFinanceiroDelete(btn.dataset.id, tipo, el);
                         };
                     });
                     root.querySelectorAll('[data-action="financeiro-toggle-status"]').forEach((btn) => {
-                        btn.onclick = () => this.submitFinanceiroToggleStatus(btn.dataset.id, btn.dataset.statusAtual || 'pendente', el);
+                        btn.onclick = () => {
+                            pulseFinanceAction(btn);
+                            this.submitFinanceiroToggleStatus(btn.dataset.id, btn.dataset.statusAtual || 'pendente', el);
+                        };
+                    });
+                    root.querySelectorAll('[data-action="financeiro-toggle-pendente-mes"]').forEach((btn) => {
+                        btn.onclick = () => {
+                            pulseFinanceAction(btn);
+                            this.submitFinanceiroTogglePendenteMes(btn.dataset.id, btn.dataset.pendenteMes === 'true', el);
+                        };
                     });
                 };
                 bindFinanceiroRowActions();
@@ -9821,6 +9935,14 @@ ${financeRowActions(r.id, 'compra')}
                         const current = btn.dataset.statusAtual || 'pendente';
                         close();
                         await this.submitFinanceiroToggleStatus(itemId, current, el);
+                    };
+                });
+                overlay.querySelectorAll('[data-action="financeiro-toggle-pendente-mes"]').forEach((btn) => {
+                    btn.onclick = async () => {
+                        const itemId = btn.dataset.id;
+                        const current = btn.dataset.pendenteMes === 'true';
+                        close();
+                        await this.submitFinanceiroTogglePendenteMes(itemId, current, el);
                     };
                 });
                 document.body.appendChild(overlay);
@@ -10238,6 +10360,26 @@ ${financeRowActions(r.id, 'compra')}
                         }),
                     });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao atualizar status'));
+                    await this.refreshFinanceiroAfterMutation();
+                } catch (e) {
+                    alert(e.message);
+                }
+            }
+
+            async submitFinanceiroTogglePendenteMes(id, pendenteMesAtual, el) {
+                const nextFlag = !pendenteMesAtual;
+                try {
+                    const res = await fetch('/api/financeiro', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id,
+                            tipo_registro: 'despesa_fixa',
+                            pendente_mes: nextFlag,
+                            ...(nextFlag ? { status: 'pendente' } : {})
+                        }),
+                    });
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao atualizar pendencia do mes'));
                     await this.refreshFinanceiroAfterMutation();
                 } catch (e) {
                     alert(e.message);

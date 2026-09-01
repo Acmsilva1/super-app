@@ -226,6 +226,50 @@ describe('API do financeiro', () => {
     expect(res.body.tipo_registro).toBe('receita');
   });
 
+  it('marca despesa fixa como pendente do mes sem excluir o registro', async () => {
+    const currentRow = {
+      id: 77,
+      descricao: 'Energia',
+      valor: 210,
+      status: 'pago',
+      conta_fixa: true,
+      parcela_atual: null,
+      parcela_total: null,
+      pendente_mes: false,
+      created_at: '2026-08-01T12:00:00.000Z',
+    };
+    const tableMock = createDespesaFixaParceladaTableMock({
+      currentRow,
+      updatedRow: {
+        ...currentRow,
+        status: 'pendente',
+        pendente_mes: true,
+      },
+    });
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_despesas_fixas') return tableMock;
+      throw new Error(`Tabela inesperada: ${table}`);
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .patch('/api/test')
+      .send({
+        id: 77,
+        tipo_registro: 'despesa_fixa',
+        pendente_mes: true,
+      });
+
+    expect(res.status).toBe(200);
+    expect(tableMock.update).toHaveBeenCalledWith(expect.objectContaining({
+      pendente_mes: true,
+      status: 'pendente',
+    }));
+    expect(tableMock.deleteEq).not.toHaveBeenCalled();
+    expect(res.body.pendente_mes).toBe(true);
+  });
+
   it('realoca uma compra para debito pix criando em financas e removendo de compras', async () => {
     const financeInsert = vi.fn((payload) => ({
       select: vi.fn(() => ({

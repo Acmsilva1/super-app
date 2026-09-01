@@ -74,6 +74,15 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
       created_at: `${baseDate}03T09:15:00.000Z`,
       user_id: context.userId,
     },
+    {
+      id: 'mock-rec-2',
+      descricao: 'Freelance',
+      tipo: 'receita',
+      categoria: 'Servicos',
+      valor: 1450,
+      created_at: `${baseDate}18T16:20:00.000Z`,
+      user_id: context.userId,
+    },
   ];
   const gastosVariados = [
     {
@@ -103,6 +112,33 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
       created_at: `${baseDate}12T18:00:00.000Z`,
       user_id: context.userId,
     },
+    {
+      id: 'mock-gasto-4',
+      descricao: 'Supermercado',
+      tipo: 'despesa',
+      categoria: 'Alimentacao',
+      valor: 418.35,
+      created_at: `${baseDate}13T19:10:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-gasto-5',
+      descricao: 'Farmacia',
+      tipo: 'despesa',
+      categoria: 'Saude',
+      valor: 73.2,
+      created_at: `${baseDate}16T10:05:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-gasto-6',
+      descricao: 'Cinema',
+      tipo: 'despesa',
+      categoria: 'Lazer',
+      valor: 64,
+      created_at: `${baseDate}20T21:30:00.000Z`,
+      user_id: context.userId,
+    },
   ];
   const despesasFixasRowsRaw = [
     {
@@ -117,6 +153,7 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
       id: 'mock-fixa-2',
       descricao: 'Conta de luz',
       status: 'pendente',
+      pendente_mes: true,
       valor: 320.5,
       created_at: `${baseDate}02T10:30:00.000Z`,
       user_id: context.userId,
@@ -127,6 +164,33 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
       status: 'pago',
       valor: 169.9,
       created_at: `${baseDate}06T11:00:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-fixa-4',
+      descricao: 'Condominio',
+      status: 'pendente',
+      valor: 690,
+      created_at: `${baseDate}08T09:00:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-fixa-5',
+      descricao: 'Seguro do carro',
+      status: 'pago',
+      valor: 312.75,
+      conta_fixa: true,
+      created_at: `${baseDate}09T08:30:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-fixa-6',
+      descricao: 'Notebook parcelado',
+      status: 'pendente',
+      valor: 280,
+      parcela_atual: 3,
+      parcela_total: 10,
+      created_at: `${baseDate}11T08:45:00.000Z`,
       user_id: context.userId,
     },
   ];
@@ -160,6 +224,24 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
       categoria: 'Lazer',
       valor: 184.7,
       created_at: `${baseDate}15T17:20:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-compra-3',
+      descricao: 'Monitor',
+      tipo: 'compra',
+      categoria: 'Tecnologia',
+      valor: 1199.9,
+      created_at: `${baseDate}19T15:40:00.000Z`,
+      user_id: context.userId,
+    },
+    {
+      id: 'mock-compra-4',
+      descricao: 'Cadeira escritorio',
+      tipo: 'compra',
+      categoria: 'Casa',
+      valor: 849.5,
+      created_at: `${baseDate}24T13:15:00.000Z`,
       user_id: context.userId,
     },
   ];
@@ -200,7 +282,7 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
     categorias_gastos: [...categoriaMap.values()].sort((a, b) => b.valor - a.valor),
     pagos_pendentes: {
       pago: Number(despesasFixasRowsRaw.filter((row) => String(row?.status || '').toLowerCase() === STATUS_PAGO).reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2)),
-      pendente: Number(despesasFixasRowsRaw.filter((row) => String(row?.status || '').toLowerCase() !== STATUS_PAGO).reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2)),
+      pendente: Number(despesasFixasRowsRaw.filter((row) => row?.pendente_mes === true || String(row?.status || '').toLowerCase() !== STATUS_PAGO).reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2)),
     },
   };
 
@@ -316,6 +398,7 @@ function replicationOptionsFromPayload(payload = {}) {
 
 function buildDespesaFixaInsertPayloads(basePayload, mesAno) {
   const contaFixa = basePayload.conta_fixa === true;
+  const pendenteMes = basePayload.pendente_mes === true;
   const pt = Number(basePayload.parcela_total);
   const pa = Number(basePayload.parcela_atual);
   const hasParcelas = Number.isFinite(pt) && Number.isFinite(pa) && pt >= 1 && pa >= 1;
@@ -329,7 +412,8 @@ function buildDespesaFixaInsertPayloads(basePayload, mesAno) {
   return slots.map((slot) => ({
     descricao: basePayload.descricao,
     valor: basePayload.valor,
-    status: basePayload.status || 'pendente',
+    status: pendenteMes && slot.mes_ano === mesAno ? 'pendente' : (basePayload.status || 'pendente'),
+    pendente_mes: pendenteMes && slot.mes_ano === mesAno,
     conta_fixa: slot.conta_fixa === true,
     parcela_atual: slot.parcela_atual,
     parcela_total: slot.parcela_total,

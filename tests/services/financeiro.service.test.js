@@ -147,6 +147,38 @@ describe('financeiroService', () => {
     expect(upd.payload.created_at).toBe('2026-05-29T08:15:00.000Z');
   });
 
+  it('controla a flag pendente_mes em despesas fixas', () => {
+    const ins = payloadInsertFinanceiro({
+      tipo_registro: 'despesa_fixa',
+      descricao: 'Condominio',
+      valor: 450,
+      status: 'pago',
+      pendente_mes: true,
+    });
+    expect(ins.error).toBeUndefined();
+    expect(ins.payload.pendente_mes).toBe(true);
+    expect(ins.payload.status).toBe('pendente');
+
+    const updFlag = payloadUpdateFinanceiro({
+      id: 'f1',
+      tipo_registro: 'despesa_fixa',
+      status: 'pago',
+      pendente_mes: true,
+    });
+    expect(updFlag.error).toBeUndefined();
+    expect(updFlag.payload.pendente_mes).toBe(true);
+    expect(updFlag.payload.status).toBe('pendente');
+
+    const updPago = payloadUpdateFinanceiro({
+      id: 'f1',
+      tipo_registro: 'despesa_fixa',
+      status: 'pago',
+    });
+    expect(updPago.error).toBeUndefined();
+    expect(updPago.payload.pendente_mes).toBe(false);
+    expect(updPago.payload.status).toBe('pago');
+  });
+
   it('grava metodo_pagamento em gasto variavel no insert e no update', () => {
     const ins = payloadInsertFinanceiro({
       tipo_registro: 'gasto_variado',

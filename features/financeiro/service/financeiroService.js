@@ -307,6 +307,10 @@ function validateExclusividadeContaFixaParcelas(body) {
   return { contaFixa, parcelas };
 }
 
+function parseBooleanFlag(value) {
+  return value === true || value === 'true' || value === 1 || value === '1';
+}
+
 export function payloadInsertFinanceiro(body = {}) {
   const tipoRegistro = inferTipoRegistro(body);
   if (!tipoRegistro) return { error: 'tipo_registro obrigatorio' };
@@ -317,12 +321,14 @@ export function payloadInsertFinanceiro(body = {}) {
     if ('error' in exclusividade) return { error: exclusividade.error };
     const par = parcelasDespesaFixaFromBody(body);
     if ('error' in par) return { error: par.error };
+    const pendenteMes = parseBooleanFlag(body.pendente_mes);
     return {
       tipo_registro: tipoRegistro,
       payload: {
         descricao: String(body.descricao || '').trim(),
         valor: Math.round((Number(body.valor) || 0) * 100) / 100,
-        status: String(body.status || STATUS_PENDENTE).toLowerCase() === STATUS_PAGO ? STATUS_PAGO : STATUS_PENDENTE,
+        status: pendenteMes ? STATUS_PENDENTE : (String(body.status || STATUS_PENDENTE).toLowerCase() === STATUS_PAGO ? STATUS_PAGO : STATUS_PENDENTE),
+        pendente_mes: pendenteMes,
         parcela_atual: par.parcela_atual,
         parcela_total: par.parcela_total,
         conta_fixa: exclusividade.contaFixa,
@@ -409,7 +415,14 @@ export function payloadUpdateFinanceiro(body = {}) {
     const out = {};
     if (body.descricao !== undefined) out.descricao = String(body.descricao).trim();
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
-    if (body.status !== undefined) out.status = String(body.status).toLowerCase() === STATUS_PAGO ? STATUS_PAGO : STATUS_PENDENTE;
+    if (body.status !== undefined) {
+      out.status = String(body.status).toLowerCase() === STATUS_PAGO ? STATUS_PAGO : STATUS_PENDENTE;
+      if (out.status === STATUS_PAGO && body.pendente_mes === undefined) out.pendente_mes = false;
+    }
+    if (body.pendente_mes !== undefined) {
+      out.pendente_mes = parseBooleanFlag(body.pendente_mes);
+      if (out.pendente_mes) out.status = STATUS_PENDENTE;
+    }
     if (body.mes_ano !== undefined) {
       const ma = String(body.mes_ano || '').trim();
       if (ma && /^\d{4}-\d{2}$/.test(ma)) {
