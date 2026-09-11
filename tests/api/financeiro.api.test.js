@@ -226,6 +226,19 @@ describe('API do financeiro', () => {
     expect(res.body.tipo_registro).toBe('receita');
   });
 
+  it('simula mutacoes no modo offline sem acessar Supabase', async () => {
+    vi.stubEnv('OFFLINE_DEV', 'true');
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .patch('/api/test')
+      .send({ id: 77, tipo_registro: 'despesa_fixa', status: 'pago' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: 77, tipo_registro: 'despesa_fixa', status: 'pago' });
+    expect(fromMock).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+
   it('marca despesa fixa como pendente do mes sem excluir o registro', async () => {
     const currentRow = {
       id: 77,
@@ -538,6 +551,10 @@ describe('API do financeiro', () => {
       }),
       order: vi.fn(() => builder),
       limit: vi.fn(() => builder),
+      range: vi.fn((from, to) => {
+        track?.ranges?.push({ from, to });
+        return builder;
+      }),
       insert: vi.fn(() => Promise.resolve({ data: null, error: null })),
       then: result.then.bind(result),
       catch: result.catch.bind(result),
@@ -545,7 +562,7 @@ describe('API do financeiro', () => {
     return builder;
   }
 
-  it('GET do mes materializa so o mes aberto e filtra periodos no SQL', async () => {
+  it('GET legado filtra periodos no SQL sem materializar despesas durante leitura', async () => {
     const track = {
       tables: [],
       selects: [],
@@ -570,9 +587,7 @@ describe('API do financeiro', () => {
     expect(res.body.graficos_anuais).toHaveLength(12);
 
     const despesasCalls = track.tables.filter((t) => t === 'tb_despesas_fixas').length;
-    // materializacao (ano+mes) + leitura do mes = 2 (historico anual veio da view vw_financeiro_historico_anual)
-    expect(despesasCalls).toBeLessThanOrEqual(4);
-    expect(despesasCalls).toBeGreaterThanOrEqual(2);
+    expect(despesasCalls).toBe(1);
 
     expect(track.ors.length).toBeGreaterThan(0);
     expect(track.selects.some((cols) => String(cols).includes('*') || String(cols).includes('receitas'))).toBe(true);
@@ -594,5 +609,64 @@ describe('API do financeiro', () => {
     const lightAnnualSelects = track.selects.filter((cols) => cols === 'tipo, valor, data_lancamento, created_at'
       || cols === 'valor, created_at');
     expect(lightAnnualSelects).toHaveLength(0);
+  });
+
+  it('GET segmentado da aba Dados faz somente duas consultas e nao materializa no carregamento', async () => {
+    const track = { tables: [], selects: [], filters: [], ors: [], ranges: [] };
+
+    fromMock.mockImplementation((table) => {
+      track.tables.push(table);
+      return createThenableQuery({ data: [], track });
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app).get('/api/test?mes_ano=2026-07&secao=data');
+
+    expect(res.status).toBe(200);
+    expect(res.body.secao).toBe('data');
+    expect(track.tables).toEqual(['tb_financas', 'tb_despesas_fixas']);
+    expect(track.selects).toHaveLength(2);
+    expect(track.selects).not.toContain('*');
+  });
+
+  it('pagina o historico de poupanca em blocos de 50 registros', async () => {
+    const track = { tables: [], selects: [], filters: [], ors: [], ranges: [] };
+    const rows = Array.from({ length: 51 }, (_, index) => ({
+      id: index + 1,
+      descricao: `Reserva ${index + 1}`,
+      valor: 10,
+      created_at: '2026-07-01T12:00:00.000Z',
+    }));
+
+    fromMock.mockImplementation((table) => {
+      track.tables.push(table);
+      return createThenableQuery({ data: table === 'tb_poupanca' ? rows : [], track });
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app).get('/api/test?mes_ano=2026-07&secao=poupanca&page=1&limit=50');
+
+    expect(res.status).toBe(200);
+    expect(res.body.poupanca.logs).toHaveLength(50);
+    expect(res.body.poupanca.pagination).toEqual({ page: 1, limit: 50, has_more: true });
+    expect(track.ranges).toContainEqual({ from: 0, to: 50 });
+    expect(track.selects).not.toContain('*');
+  });
+
+  it('materializa despesas fixas apenas por acao explicita', async () => {
+    const track = { tables: [], selects: [], filters: [], ors: [], ranges: [] };
+    fromMock.mockImplementation((table) => {
+      track.tables.push(table);
+      return createThenableQuery({ data: [], track });
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .post('/api/test')
+      .send({ acao: 'materializar_despesas_fixas', mes_ano: '2026-07' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, mes_ano: '2026-07' });
+    expect(track.tables).toEqual(['tb_despesas_fixas']);
   });
 });

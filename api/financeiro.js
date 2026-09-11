@@ -1,5 +1,6 @@
 import {
   obterFinanceiroMes,
+  garantirDespesasFixasMes,
   criarRegistroFinanceiro,
   atualizarRegistroFinanceiro,
   removerRegistroFinanceiro,
@@ -18,6 +19,29 @@ function getBody(req) {
   try { return JSON.parse(raw); } catch { return {}; }
 }
 
+function isOfflineDev() {
+  return process.env.OFFLINE_DEV === 'true';
+}
+
+async function handleOfflineMutation(req) {
+  const body = getBody(req);
+  await new Promise((resolve) => setTimeout(resolve, 700));
+  if (req.method === 'DELETE') return { status: 200, data: { ok: true } };
+  if (req.method === 'POST' && body.acao === 'materializar_despesas_fixas') {
+    return { status: 200, data: { ok: true, mes_ano: body.mes_ano } };
+  }
+  const id = body.id || `mock-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  return {
+    status: req.method === 'POST' ? 201 : 200,
+    data: {
+      ...body,
+      id,
+      created_at: body.created_at || new Date().toISOString(),
+      tipo_registro: body.tipo_registro || 'gasto_variado',
+    },
+  };
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET' && req.query?.health === '1') {
@@ -28,12 +52,25 @@ export default async function handler(req, res) {
     if (!auth.ok) return json(res, auth.status, auth.data);
     const context = { userId: auth.user.id, isAdmin: auth.isAdmin };
 
+    if (isOfflineDev() && ['POST', 'PATCH', 'DELETE'].includes(req.method)) {
+      const result = await handleOfflineMutation(req);
+      return json(res, result.status, result.data);
+    }
+
     // ── Rotas padrão CRUD ──────────────────────────────────────────────────
     if (req.method === 'GET') {
       const result = await obterFinanceiroMes(req.query || {}, context);
       return json(res, result.status, result.data || { error: result.error || 'Erro ao carregar financeiro' });
     }
     if (req.method === 'POST') {
+      const body = getBody(req);
+      if (body.acao === 'materializar_despesas_fixas') {
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(body.mes_ano || ''))) {
+          return json(res, 400, { error: 'mes_ano invalido' });
+        }
+        await garantirDespesasFixasMes(body.mes_ano, context);
+        return json(res, 200, { ok: true, mes_ano: body.mes_ano });
+      }
       const result = await criarRegistroFinanceiro(req, context);
       return json(res, result.status, result.data);
     }

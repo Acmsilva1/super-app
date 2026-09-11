@@ -4006,6 +4006,28 @@
         .finance-data-section-head--receitas {
             border-bottom: 1px solid rgba(34, 197, 94, 0.18);
         }
+
+        .finance-sync-status {
+            position: fixed;
+            right: max(1rem, env(safe-area-inset-right));
+            bottom: max(1rem, env(safe-area-inset-bottom));
+            z-index: 12000;
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            max-width: min(360px, calc(100vw - 2rem));
+            padding: .72rem .9rem;
+            border: 1px solid rgba(96, 165, 250, .4);
+            border-radius: 12px;
+            background: rgba(8, 20, 38, .96);
+            color: #dbeafe;
+            box-shadow: 0 14px 34px rgba(0, 0, 0, .34);
+            font-size: .82rem;
+            font-weight: 700;
+        }
+        .finance-sync-status.is-success { border-color: rgba(34, 197, 94, .55); color: #bbf7d0; }
+        .finance-sync-status.is-error { border-color: rgba(239, 68, 68, .62); color: #fecaca; }
+        .finance-sync-status i { font-size: .92rem; }
         .finance-data-section-titlebar {
             display: flex;
             justify-content: space-between;
@@ -7631,6 +7653,10 @@
                 this.notificationTimer = null;
                 this.notificationDismissed = { targetDate: '', keys: [] };
                 this.NOTIFICATION_DISMISS_KEY = 'superapp_notifications_dismissed_v1';
+                this.FINANCEIRO_OPERATIONS_KEY = 'superapp_financeiro_operations_v1';
+                this.FINANCEIRO_OPERATION_TIMEOUT_MS = 2 * 60 * 1000;
+                this.financeiroOperationAlerts = [];
+                this.financeiroOperationTimers = new Map();
                 this.financeiroSaldoStorePromise = null;
                 this._resumeNeedsHomeReset = false;
                 this.init();
@@ -7644,9 +7670,10 @@
                 if (!canOpenApp) return;
                 this.setupEventListeners();
                 await this.ensureVisualizationLibraries();
-                this.loadData();
+                await this.loadData();
                 this.updateStatistics();
                 this.startNotificationCenter();
+                this.restoreFinanceiroOperations();
             }
 
             loadUiState() {
@@ -8455,17 +8482,32 @@
                     let url = '/api/' + path;
                     if (appId === 'financeiro') {
                         const resolvedMesAno = mesAno || this.getMesAnoAtual();
+                        const section = String(contentEl.getAttribute('data-active-tab') || 'data').toLowerCase();
                         const ano = String(resolvedMesAno).slice(0, 4);
                         const userId = this.getFinanceiroAuthUserId();
                         const cachedAnual = window.FinanceiroAnualCache?.getFinanceiroAnualCache?.(userId, ano) || null;
-                        const useBi = !cachedAnual;
-                        url = '/api/financeiro?mes_ano=' + encodeURIComponent(resolvedMesAno) + (useBi ? '&bi=1' : '');
+                        const useBi = section === 'summary' && !cachedAnual;
+                        url = '/api/financeiro?mes_ano=' + encodeURIComponent(resolvedMesAno)
+                            + '&secao=' + encodeURIComponent(section)
+                            + (useBi ? '&bi=1' : '');
                         contentEl._financeiroAnualCacheHit = cachedAnual;
                         contentEl._financeiroAnualFetchWithBi = useBi;
                     }
                     const res = await fetch(url, appId === 'financeiro' ? { cache: 'no-store' } : undefined);
                     const data = await this.readApiJsonOrThrow(res, 'Falha ao carregar');
-                    if (appId === 'financeiro') { contentEl.setAttribute('data-mes-ano', data.mes_ano || mesAno); this.renderFinanceiroContent(contentEl, data); }
+                    if (appId === 'financeiro') {
+                        const resolvedMesAno = data.mes_ano || mesAno;
+                        if (contentEl._financeiroDataMes !== resolvedMesAno) {
+                            contentEl._financeiroData = null;
+                            contentEl._financeiroLoadedSections = new Set();
+                            contentEl._financeiroDataMes = resolvedMesAno;
+                        }
+                        contentEl.setAttribute('data-mes-ano', resolvedMesAno);
+                        contentEl._financeiroData = this.mergeFinanceiroSectionData(contentEl._financeiroData, data);
+                        contentEl._financeiroLoadedSections ||= new Set();
+                        contentEl._financeiroLoadedSections.add(data.secao || contentEl.getAttribute('data-active-tab') || 'data');
+                        this.renderFinanceiroContent(contentEl, contentEl._financeiroData);
+                    }
                     else if (appId === 'lista_compras') this.renderListaComprasContent(contentEl, data);
                     const savedScroll = Number(this.uiState.windowScrolls?.[appId]);
                     const scrollToRestore = Number.isFinite(savedScroll) ? savedScroll : previousScrollTop;
@@ -8501,6 +8543,243 @@
                 return SuperAppAuth?.session?.user?.id || '';
             }
 
+            mergeFinanceiroSectionData(current, incoming) {
+                const base = current && current.mes_ano === incoming.mes_ano ? current : { mes_ano: incoming.mes_ano };
+                return {
+                    ...base,
+                    ...incoming,
+                    dashboard: incoming.dashboard || base.dashboard,
+                    graficos: { ...(base.graficos || {}), ...(incoming.graficos || {}) },
+                    tabelas: { ...(base.tabelas || {}), ...(incoming.tabelas || {}) },
+                    poupanca: incoming.poupanca || base.poupanca,
+                    compras: incoming.compras || base.compras,
+                    graficos_anuais: incoming.graficos_anuais || base.graficos_anuais,
+                };
+            }
+
+            getFinanceiroOperations() {
+                try {
+                    const parsed = JSON.parse(localStorage.getItem(this.financeiroOperationsStorageKey()) || '[]');
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (_) {
+                    return [];
+                }
+            }
+
+            saveFinanceiroOperations(operations) {
+                try {
+                    localStorage.setItem(this.financeiroOperationsStorageKey(), JSON.stringify(operations));
+                } catch (_) {}
+            }
+
+            financeiroOperationsStorageKey() {
+                const value = this.getFinanceiroAuthUserId() || 'anon';
+                let hash = 2166136261;
+                for (let index = 0; index < value.length; index += 1) {
+                    hash ^= value.charCodeAt(index);
+                    hash = Math.imul(hash, 16777619);
+                }
+                return `${this.FINANCEIRO_OPERATIONS_KEY}:${(hash >>> 0).toString(16)}`;
+            }
+
+            showFinanceiroSyncStatus(message, state = 'pending') {
+                let statusEl = document.getElementById('financeiroSyncStatus');
+                if (!statusEl) {
+                    statusEl = document.createElement('div');
+                    statusEl.id = 'financeiroSyncStatus';
+                    statusEl.className = 'finance-sync-status';
+                    statusEl.setAttribute('role', 'status');
+                    statusEl.setAttribute('aria-live', 'polite');
+                    document.body.appendChild(statusEl);
+                }
+                statusEl.className = `finance-sync-status ${state === 'success' ? 'is-success' : (state === 'error' ? 'is-error' : '')}`;
+                const icon = state === 'success' ? 'fa-circle-check' : (state === 'error' ? 'fa-triangle-exclamation' : 'fa-arrows-rotate fa-spin');
+                statusEl.innerHTML = `<i class="fas ${icon}" aria-hidden="true"></i><span>${escapeHtml(message)}</span>`;
+                clearTimeout(this._financeiroSyncStatusTimer);
+                const helpers = this.getMotionHelpers();
+                if (helpers) {
+                    try { helpers.animate(statusEl, { opacity: [0, 1], y: [12, 0], scale: [.98, 1] }, { duration: .22, easing: 'ease-out' }); } catch (_) {}
+                }
+                if (state !== 'pending') {
+                    this._financeiroSyncStatusTimer = setTimeout(() => {
+                        const current = document.getElementById('financeiroSyncStatus');
+                        if (!current) return;
+                        try {
+                            if (helpers) helpers.animate(current, { opacity: [1, 0], y: [0, 8] }, { duration: .18 }).finished.then(() => current.remove());
+                            else current.remove();
+                        } catch (_) { current.remove(); }
+                    }, state === 'error' ? 6000 : 1800);
+                }
+            }
+
+            beginFinanceiroOperation({ kind, section, label }) {
+                const operation = {
+                    id: crypto.randomUUID(),
+                    kind: String(kind || 'alteracao'),
+                    section: String(section || 'data'),
+                    label: String(label || 'Alteracao financeira').slice(0, 100),
+                    startedAt: Date.now(),
+                    status: 'pending',
+                };
+                const operations = this.getFinanceiroOperations().filter((item) => item.status !== 'completed');
+                operations.push(operation);
+                this.saveFinanceiroOperations(operations);
+                this.scheduleFinanceiroOperationTimeout(operation);
+                this.showFinanceiroSyncStatus('Sincronizando com o banco…');
+                return operation;
+            }
+
+            finishFinanceiroOperation(operationId) {
+                const timer = this.financeiroOperationTimers.get(operationId);
+                if (timer) clearTimeout(timer);
+                this.financeiroOperationTimers.delete(operationId);
+                this.financeiroOperationAlerts = this.financeiroOperationAlerts.filter((item) => item.id !== operationId);
+                const remaining = this.getFinanceiroOperations().filter((item) => item.id !== operationId);
+                this.saveFinanceiroOperations(remaining);
+                const pendingCount = remaining.filter((item) => item.status === 'pending').length;
+                this.showFinanceiroSyncStatus(pendingCount ? `${pendingCount} ação(ões) ainda sincronizando…` : 'Alteração confirmada pelo banco.', pendingCount ? 'pending' : 'success');
+                this.refreshNotificationBadge();
+            }
+
+            failFinanceiroOperation(operation, message, { showNow = true } = {}) {
+                const operations = this.getFinanceiroOperations();
+                const current = operations.find((item) => item.id === operation.id) || operation;
+                current.status = 'failed';
+                current.failedAt = Date.now();
+                current.message = String(message || 'O banco nao confirmou a operacao.').slice(0, 180);
+                this.saveFinanceiroOperations([...operations.filter((item) => item.id !== current.id), current]);
+                if (!this.financeiroOperationAlerts.some((item) => item.id === current.id)) {
+                    this.financeiroOperationAlerts.push(current);
+                }
+                this.refreshNotificationBadge();
+                this.showFinanceiroSyncStatus(current.message, 'error');
+                if (showNow) this.showFinanceiroOperationAlert(current);
+            }
+
+            scheduleFinanceiroOperationTimeout(operation) {
+                const elapsed = Date.now() - Number(operation.startedAt || 0);
+                const remaining = Math.max(0, this.FINANCEIRO_OPERATION_TIMEOUT_MS - elapsed);
+                const previous = this.financeiroOperationTimers.get(operation.id);
+                if (previous) clearTimeout(previous);
+                const timer = setTimeout(() => {
+                    this.financeiroOperationTimers.delete(operation.id);
+                    const stored = this.getFinanceiroOperations().find((item) => item.id === operation.id);
+                    if (stored?.status === 'pending') {
+                        this.failFinanceiroOperation(stored, 'O banco nao confirmou esta acao em ate 2 minutos.');
+                    }
+                }, remaining);
+                this.financeiroOperationTimers.set(operation.id, timer);
+            }
+
+            restoreFinanceiroOperations() {
+                const operations = this.getFinanceiroOperations();
+                for (const operation of operations) {
+                    if (operation.status === 'failed') {
+                        this.financeiroOperationAlerts.push(operation);
+                        continue;
+                    }
+                    this.scheduleFinanceiroOperationTimeout(operation);
+                }
+                if (operations.some((item) => item.status === 'pending')) {
+                    this.showFinanceiroSyncStatus('Aguardando confirmação de ação anterior…');
+                }
+                this.refreshNotificationBadge();
+                const failed = this.financeiroOperationAlerts[0];
+                if (failed) setTimeout(() => this.showFinanceiroOperationAlert(failed), 0);
+            }
+
+            showFinanceiroOperationAlert(operation) {
+                if (document.querySelector(`[data-financeiro-operation-alert="${operation.id}"]`)) return;
+                const overlay = document.createElement('div');
+                overlay.className = 'app-confirm-overlay';
+                overlay.dataset.financeiroOperationAlert = operation.id;
+                overlay.innerHTML = `
+                    <div class="app-confirm-modal">
+                        <h4><i class="fas fa-triangle-exclamation" style="color:#ef4444"></i> Ação financeira não confirmada</h4>
+                        <p>${escapeHtml(operation.label)}. ${escapeHtml(operation.message || 'A confirmação do banco foi perdida.')}</p>
+                        <p style="font-size:.8rem;color:var(--text-light);">Sincronize para conferir o estado oficial ou volte ao Financeiro para repetir a ação.</p>
+                        <div class="app-confirm-actions">
+                            <button type="button" class="app-confirm-btn cancel" data-action="finance-op-return">Voltar à ação</button>
+                            <button type="button" class="app-confirm-btn confirm" data-action="finance-op-sync">Sincronizar</button>
+                        </div>
+                    </div>`;
+                const openSection = async () => {
+                    if (!this.openWindows.has('financeiro')) {
+                        this.rememberAppCheckpoint('financeiro', {
+                            activeTab: operation.section || 'data',
+                            activeDataFilter: '',
+                            mesAno: this.getMesAnoAtual(),
+                        });
+                        this.launchApp('financeiro');
+                        this.finishFinanceiroOperation(operation.id);
+                        overlay.remove();
+                        return;
+                    }
+                    const contentEl = this.openWindows.get('financeiro')?.querySelector('.window-content');
+                    if (contentEl) {
+                        contentEl.setAttribute('data-active-tab', operation.section || 'data');
+                        contentEl._financeiroLoadedSections?.delete(operation.section || 'data');
+                        await this.refreshAppContent('financeiro');
+                    }
+                    this.finishFinanceiroOperation(operation.id);
+                    overlay.remove();
+                };
+                overlay.querySelector('[data-action="finance-op-return"]').onclick = openSection;
+                overlay.querySelector('[data-action="finance-op-sync"]').onclick = openSection;
+                document.body.appendChild(overlay);
+            }
+
+            runFinanceiroBackgroundOperation({ operation, request, onSuccess, onFailure }) {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), this.FINANCEIRO_OPERATION_TIMEOUT_MS);
+                void (async () => {
+                    try {
+                        const res = await fetch(request.url, { ...request.options, signal: controller.signal });
+                        const data = await this.readApiJsonOrThrow(res, request.errorMessage || 'Erro na operacao financeira');
+                        await onSuccess?.(data);
+                        this.finishFinanceiroOperation(operation.id);
+                    } catch (error) {
+                        onFailure?.(error);
+                        const message = error?.name === 'AbortError'
+                            ? 'O banco nao confirmou esta acao em ate 2 minutos.'
+                            : (error?.message || 'Falha ao confirmar a acao no banco.');
+                        this.failFinanceiroOperation(operation, message);
+                    } finally {
+                        clearTimeout(timeout);
+                    }
+                })();
+            }
+
+            async loadMoreFinanceiroSection(el, section) {
+                const sectionData = el._financeiroData?.[section];
+                const pagination = sectionData?.pagination;
+                if (!pagination?.has_more) return;
+                const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
+                const nextPage = Number(pagination.page || 1) + 1;
+                const res = await fetch(`/api/financeiro?mes_ano=${encodeURIComponent(mesAno)}&secao=${encodeURIComponent(section)}&page=${nextPage}&limit=${Number(pagination.limit || 50)}`, { cache: 'no-store' });
+                const incoming = await this.readApiJsonOrThrow(res, 'Falha ao carregar mais registros');
+                const currentLogs = Array.isArray(sectionData.logs) ? sectionData.logs : [];
+                const incomingLogs = Array.isArray(incoming?.[section]?.logs) ? incoming[section].logs : [];
+                incoming[section].logs = [...currentLogs, ...incomingLogs];
+                el._financeiroData = this.mergeFinanceiroSectionData(el._financeiroData, incoming);
+                this.renderFinanceiroContent(el, el._financeiroData);
+            }
+
+            async refreshFinanceiroSectionSilently(el, section) {
+                const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
+                const ano = String(mesAno).slice(0, 4);
+                const cachedAnual = window.FinanceiroAnualCache?.getFinanceiroAnualCache?.(this.getFinanceiroAuthUserId(), ano) || null;
+                const useBi = section === 'summary' && !cachedAnual;
+                const res = await fetch(`/api/financeiro?mes_ano=${encodeURIComponent(mesAno)}&secao=${encodeURIComponent(section)}${useBi ? '&bi=1' : ''}`, { cache: 'no-store' });
+                const incoming = await this.readApiJsonOrThrow(res, 'Falha ao sincronizar financeiro');
+                el._financeiroAnualCacheHit = cachedAnual;
+                el._financeiroAnualFetchWithBi = useBi;
+                el._financeiroData = this.mergeFinanceiroSectionData(el._financeiroData, incoming);
+                el._financeiroLoadedSections ||= new Set();
+                el._financeiroLoadedSections.add(section);
+                this.renderFinanceiroOptimistic(el, section);
+            }
+
             clearFinanceiroAnualCacheForUser() {
                 try {
                     window.FinanceiroAnualCache?.clearFinanceiroAnualCache?.(this.getFinanceiroAuthUserId());
@@ -8509,7 +8788,164 @@
 
             async refreshFinanceiroAfterMutation() {
                 this.clearFinanceiroAnualCacheForUser();
+                const win = this.openWindows.get('financeiro');
+                const contentEl = win?.querySelector('.window-content');
+                if (contentEl) {
+                    const activeSection = contentEl.getAttribute('data-active-tab') || 'data';
+                    contentEl._financeiroLoadedSections?.delete(activeSection);
+                    contentEl._financeiroLoadedSections?.delete('summary');
+                    if (contentEl._financeiroData) {
+                        if (activeSection === 'data') delete contentEl._financeiroData.tabelas;
+                        if (activeSection === 'poupanca') delete contentEl._financeiroData.poupanca;
+                        if (activeSection === 'compras') delete contentEl._financeiroData.compras;
+                    }
+                }
                 await this.refreshAppContent('financeiro');
+            }
+
+            applyFinanceiroFixedRowOptimistic(el, id, patch) {
+                const rows = el._financeiroData?.tabelas?.despesas_fixas;
+                if (!Array.isArray(rows)) return null;
+                const row = rows.find((item) => String(item.id) === String(id));
+                if (!row) return null;
+                const previous = { status: row.status, pendente_mes: row.pendente_mes };
+                Object.assign(row, patch);
+                const pago = rows
+                    .filter((item) => String(item.status || '').toLowerCase() === 'pago')
+                    .reduce((sum, item) => sum + Number(item.valor || 0), 0);
+                const total = rows.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+                el._financeiroData.graficos ||= {};
+                el._financeiroData.graficos.pagos_pendentes = { pago, pendente: total - pago };
+                el._financeiroLoadedSections?.delete('summary');
+                el._refreshFinanceiroFixas?.();
+                return () => {
+                    Object.assign(row, previous);
+                    const rollbackPago = rows
+                        .filter((item) => String(item.status || '').toLowerCase() === 'pago')
+                        .reduce((sum, item) => sum + Number(item.valor || 0), 0);
+                    el._financeiroData.graficos.pagos_pendentes = { pago: rollbackPago, pendente: total - rollbackPago };
+                    el._refreshFinanceiroFixas?.();
+                };
+            }
+
+            financeiroSectionForType(tipo) {
+                if (tipo === 'poupanca' || tipo === 'meta_poupanca') return 'poupanca';
+                if (tipo === 'compra') return 'compras';
+                return 'data';
+            }
+
+            renderFinanceiroOptimistic(el, section) {
+                if (!el?._financeiroData) return;
+                if ((el.getAttribute('data-active-tab') || 'data') !== section) return;
+                const scrollTop = el.scrollTop;
+                this.renderFinanceiroContent(el, el._financeiroData);
+                requestAnimationFrame(() => { el.scrollTop = scrollTop; });
+            }
+
+            applyFinanceiroRecordOptimistic(el, { method, body }) {
+                if (!el?._financeiroData) return { rollback: () => {}, reconcile: () => {} };
+                const snapshot = typeof structuredClone === 'function'
+                    ? structuredClone(el._financeiroData)
+                    : JSON.parse(JSON.stringify(el._financeiroData));
+                const originalType = body.original_tipo_registro || body.tipo_registro;
+                const targetType = body.tipo_registro;
+                const originalSection = this.financeiroSectionForType(originalType);
+                const targetSection = this.financeiroSectionForType(targetType);
+                const collectionFor = (type) => {
+                    if (type === 'despesa_fixa') return el._financeiroData.tabelas?.despesas_fixas;
+                    if (type === 'gasto_variado') return el._financeiroData.tabelas?.gastos_variados;
+                    if (type === 'receita') return el._financeiroData.tabelas?.receitas;
+                    if (type === 'poupanca') return el._financeiroData.poupanca?.logs;
+                    if (type === 'compra') return el._financeiroData.compras?.logs;
+                    return null;
+                };
+                const originalCollection = collectionFor(originalType);
+                const oldIndex = Array.isArray(originalCollection)
+                    ? originalCollection.findIndex((item) => String(item.id) === String(body.id))
+                    : -1;
+                const oldRow = oldIndex >= 0 ? originalCollection[oldIndex] : null;
+                const oldValue = Number(oldRow?.valor || 0);
+                const tempId = body.id || `local-${crypto.randomUUID()}`;
+                const optimisticRow = {
+                    ...(oldRow || {}),
+                    ...body,
+                    id: tempId,
+                    tipo_registro: targetType,
+                    created_at: body.created_at || oldRow?.created_at || new Date().toISOString(),
+                };
+
+                if (targetType === 'meta_poupanca' && method === 'DELETE') {
+                    if (el._financeiroData.poupanca) el._financeiroData.poupanca.meta_ativa = null;
+                } else if (method === 'DELETE') {
+                    if (oldIndex >= 0) originalCollection.splice(oldIndex, 1);
+                } else if (targetType === 'meta_poupanca') {
+                    el._financeiroData.poupanca ||= { logs: [], total: 0 };
+                    el._financeiroData.poupanca.meta_ativa = optimisticRow;
+                } else {
+                    if (oldIndex >= 0) originalCollection.splice(oldIndex, 1);
+                    const targetCollection = collectionFor(targetType);
+                    if (Array.isArray(targetCollection)) targetCollection.unshift(optimisticRow);
+                }
+
+                const newValue = method === 'DELETE' ? 0 : Number(body.valor || 0);
+                if (originalType === 'poupanca' && el._financeiroData.poupanca) {
+                    el._financeiroData.poupanca.total = Math.max(0, Number(el._financeiroData.poupanca.total || 0) - oldValue);
+                }
+                if (targetType === 'poupanca' && method !== 'DELETE' && el._financeiroData.poupanca) {
+                    el._financeiroData.poupanca.total = Math.max(0, Number(el._financeiroData.poupanca.total || 0) + newValue);
+                }
+                if (originalType === 'compra' && el._financeiroData.compras) {
+                    el._financeiroData.compras.total = Math.max(0, Number(el._financeiroData.compras.total || 0) - oldValue);
+                }
+                if (targetType === 'compra' && method !== 'DELETE' && el._financeiroData.compras) {
+                    el._financeiroData.compras.total = Math.max(0, Number(el._financeiroData.compras.total || 0) + newValue);
+                }
+                const tabelas = el._financeiroData.tabelas || {};
+                if (targetSection === 'data' || originalSection === 'data') {
+                    const receitas = tabelas.receitas || [];
+                    const variadas = tabelas.gastos_variados || [];
+                    const fixas = tabelas.despesas_fixas || [];
+                    const receitasTotal = receitas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+                    const variadasTotal = variadas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+                    const fixasTotal = fixas.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+                    const pago = fixas.filter((item) => String(item.status || '').toLowerCase() === 'pago')
+                        .reduce((sum, item) => sum + Number(item.valor || 0), 0);
+                    el._financeiroData.dashboard = {
+                        receitas: receitasTotal,
+                        despesas_fixas: fixasTotal,
+                        despesas_variadas: variadasTotal,
+                        despesas_totais: fixasTotal + variadasTotal,
+                        saldo: receitasTotal - fixasTotal - variadasTotal,
+                        liquido: receitasTotal - fixasTotal - variadasTotal,
+                    };
+                    el._financeiroData.graficos ||= {};
+                    el._financeiroData.graficos.pagos_pendentes = { pago, pendente: fixasTotal - pago };
+                    el._financeiroLoadedSections?.delete('summary');
+                    this.clearFinanceiroAnualCacheForUser();
+                }
+
+                const visibleSection = el.getAttribute('data-active-tab') || targetSection;
+                this.renderFinanceiroOptimistic(el, visibleSection);
+                return {
+                    rollback: () => {
+                        el._financeiroData = snapshot;
+                        this.renderFinanceiroOptimistic(el, originalSection === targetSection ? targetSection : (el.getAttribute('data-active-tab') || targetSection));
+                    },
+                    reconcile: (serverRow) => {
+                        if (method === 'DELETE' || !serverRow) return;
+                        if (targetType === 'meta_poupanca') {
+                            el._financeiroData.poupanca.meta_ativa = { ...el._financeiroData.poupanca.meta_ativa, ...serverRow };
+                            this.renderFinanceiroOptimistic(el, visibleSection);
+                            return;
+                        }
+                        const targetCollection = collectionFor(targetType);
+                        const index = Array.isArray(targetCollection)
+                            ? targetCollection.findIndex((item) => String(item.id) === String(tempId))
+                            : -1;
+                        if (index >= 0) targetCollection[index] = { ...targetCollection[index], ...serverRow, tipo_registro: targetType };
+                        this.renderFinanceiroOptimistic(el, visibleSection);
+                    },
+                };
             }
 
             renderFinanceiroContent(el, data) {
@@ -8517,6 +8953,8 @@
                 if (el._financeiroChartCategoria) { try { el._financeiroChartCategoria.dispose(); } catch (_) {} el._financeiroChartCategoria = null; }
                 if (el._financeiroChartStatus) { try { el._financeiroChartStatus.dispose(); } catch (_) {} el._financeiroChartStatus = null; }
                 if (el._financeiroChartReceitasAnual) { try { el._financeiroChartReceitasAnual.dispose(); } catch (_) {} el._financeiroChartReceitasAnual = null; }
+                if (el._financeiroChartDespesasAnual) { try { el._financeiroChartDespesasAnual.dispose(); } catch (_) {} el._financeiroChartDespesasAnual = null; }
+                if (el._financeiroPoupancaMetaChart) { try { el._financeiroPoupancaMetaChart.dispose(); } catch (_) {} el._financeiroPoupancaMetaChart = null; }
                 const tabRaw = (el.getAttribute('data-active-tab') || '').toLowerCase();
                 const activeTab = ['summary', 'data', 'poupanca', 'compras'].includes(tabRaw) ? tabRaw : 'data';
                 const dataFilterRaw = String(el.getAttribute('data-active-data-filter') || '').toLowerCase();
@@ -8529,11 +8967,13 @@
                 const gastosVariados = tabelas.gastos_variados || [];
                 const receitas = tabelas.receitas || [];
                 const poupancaLogs = (data.poupanca && data.poupanca.logs) || tabelas.poupanca || [];
+                const poupancaPagination = data.poupanca?.pagination || null;
                 const poupancaTotal = Number((data.poupanca && data.poupanca.total) || 0);
                 const poupancaConfigurada = data.poupanca ? data.poupanca.configurada !== false : true;
                 const poupancaMetaConfigurada = data.poupanca ? data.poupanca.meta_configurada !== false : true;
                 const poupancaMetaAtiva = (data.poupanca && data.poupanca.meta_ativa) || null;
                 const comprasLogs = (data.compras && data.compras.logs) || tabelas.compras || [];
+                const comprasPagination = data.compras?.pagination || null;
                 const comprasTotal = Number((data.compras && data.compras.total) || 0);
                 const comprasConfigurada = data.compras ? data.compras.configurada !== false : true;
                 const pagosPendentes = graficos.pagos_pendentes || {};
@@ -8986,6 +9426,7 @@ ${financeRowActions(r.id, 'compra')}
                                     </table>
                                 </div>
                             </div>
+                            ${poupancaPagination?.has_more ? '<button type="button" class="app-btn app-btn-secondary" data-action="financeiro-load-more" data-section="poupanca">Carregar mais</button>' : ''}
                         </div>
                         <div class="module-tab-panel ${activeTab === 'compras' ? '' : 'hidden'}" data-tab-panel="compras">
                             <div class="app-totais">
@@ -9000,6 +9441,7 @@ ${financeRowActions(r.id, 'compra')}
                                     </table>
                                 </div>
                             </div>
+                            ${comprasPagination?.has_more ? '<button type="button" class="app-btn app-btn-secondary" data-action="financeiro-load-more" data-section="compras">Carregar mais</button>' : ''}
                         </div>
                         <button type="button" class="finance-fab finance-fab-pulse" data-action="financeiro-open-modal" aria-label="Adicionar registro financeiro">+</button>
                     </div>
@@ -9532,8 +9974,13 @@ ${financeRowActions(r.id, 'compra')}
                 };
 
                 el.querySelectorAll('[data-action="module-tab"]').forEach((btn) => {
-                    btn.onclick = () => {
+                    btn.onclick = async () => {
                         const t = btn.dataset.tab || 'data';
+                        if (!el._financeiroLoadedSections?.has(t)) {
+                            el.setAttribute('data-active-tab', t);
+                            await this.refreshAppContent('financeiro');
+                            return;
+                        }
                         setTab(t);
                         if (t === 'data') applyFinanceDataFilter(el.getAttribute('data-active-data-filter') || '');
                     };
@@ -9620,8 +10067,8 @@ ${financeRowActions(r.id, 'compra')}
 
                 const applyFixasCategoriaFilter = (selected) => {
                     const filterRow = (r) => !selected || fixaCategoriaKey(r) === selected;
-                    const pendentes = despesasFixasPendentes.filter(filterRow);
-                    const pagas = despesasFixasPagas.filter(filterRow);
+                    const pendentes = sortByValorDesc(despesasFixas.filter(r => String(r.status || 'pendente').toLowerCase() !== 'pago')).filter(filterRow);
+                    const pagas = sortByValorDesc(despesasFixas.filter(r => String(r.status || 'pendente').toLowerCase() === 'pago')).filter(filterRow);
                     const totalPendentes = pendentes.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                     const totalPagas = pagas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
                     const tbodyPendentes = el.querySelector('#financeiro-table-fixas-pendentes');
@@ -9650,6 +10097,7 @@ ${financeRowActions(r.id, 'compra')}
                         animateFinanceRows(tbodyPagas);
                     }
                 };
+                el._refreshFinanceiroFixas = () => applyFixasCategoriaFilter(categoriaFixasSelect?.value || '');
 
                 const categoriaFixasSelect = el.querySelector('#financeiro-filter-categoria-fixas');
                 if (categoriaFixasSelect) {
@@ -9661,7 +10109,8 @@ ${financeRowActions(r.id, 'compra')}
                         const isPaid = target === 'pagas';
                         const selected = categoriaFixasSelect ? categoriaFixasSelect.value : '';
                         const filterRow = (r) => !selected || fixaCategoriaKey(r) === selected;
-                        const modalRows = (isPaid ? despesasFixasPagas : despesasFixasPendentes).filter(filterRow);
+                        const liveRows = despesasFixas.filter((r) => (String(r.status || 'pendente').toLowerCase() === 'pago') === isPaid);
+                        const modalRows = sortByValorDesc(liveRows).filter(filterRow);
                         const modalRowsHtml = modalRows.length
                             ? modalRows.map(mkRowFixa).join('')
                             : `<tr><td colspan="5" class="module-table-empty">${isPaid ? 'Nenhuma despesa paga nesta categoria.' : 'Nenhuma despesa pendente nesta categoria.'}</td></tr>`;
@@ -9669,8 +10118,8 @@ ${financeRowActions(r.id, 'compra')}
                         this.openFinanceiroFixasListModal(el, {
                             status: isPaid ? 'pago' : 'pendente',
                             rows: modalRows,
-                            rowsHtml: selected ? modalRowsHtml : (isPaid ? rowsFixasPagasHtml : rowsFixasPendentesHtml),
-                            total: selected ? modalTotal : (isPaid ? totalPagoFixas : totalPendenteFixas),
+                            rowsHtml: modalRowsHtml,
+                            total: modalTotal,
                             itemMap,
                         });
                     };
@@ -9738,6 +10187,17 @@ ${financeRowActions(r.id, 'compra')}
                     });
                 };
                 bindFinanceiroRowActions();
+                el.querySelectorAll('[data-action="financeiro-load-more"]').forEach((btn) => {
+                    btn.onclick = async () => {
+                        btn.disabled = true;
+                        try {
+                            await this.loadMoreFinanceiroSection(el, btn.dataset.section);
+                        } catch (error) {
+                            btn.disabled = false;
+                            alert(error.message || 'Erro ao carregar mais registros.');
+                        }
+                    };
+                });
                 const importFixasBtn = el.querySelector('[data-action="financeiro-import-fixas-prev-month"]');
                 if (importFixasBtn) {
                     importFixasBtn.onclick = () => this.importFinanceiroFixasFromPreviousMonth(el);
@@ -9778,38 +10238,51 @@ ${financeRowActions(r.id, 'compra')}
             async submitFinanceiroMetaSave(el, { editId = 0, nomeMeta, dataInicio, valorMeta } = {}) {
                 if (!nomeMeta) { alert('Nome da meta é obrigatório'); return false; }
                 if (!(valorMeta > 0)) { alert('Valor da meta precisa ser maior que zero'); return false; }
-                try {
-                    const res = await fetch('/api/financeiro', {
-                        method: editId > 0 ? 'PATCH' : 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            ...(editId > 0 ? { id: editId } : {}),
-                            tipo_registro: 'meta_poupanca',
-                            nome_meta: nomeMeta,
-                            data_inicio: dataInicio || this.getBrazilDateIsoFrom(new Date()),
-                            valor_meta: valorMeta,
-                        }),
-                    });
-                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao salvar meta'));
-                    await this.refreshFinanceiroAfterMutation();
-                    return true;
-                } catch (e) {
-                    alert(e.message);
-                    return false;
-                }
+                const body = {
+                    ...(editId > 0 ? { id: editId } : {}),
+                    tipo_registro: 'meta_poupanca',
+                    nome_meta: nomeMeta,
+                    data_inicio: dataInicio || this.getBrazilDateIsoFrom(new Date()),
+                    valor_meta: valorMeta,
+                };
+                const operation = this.beginFinanceiroOperation({
+                    kind: editId > 0 ? 'editar_meta' : 'criar_meta',
+                    section: 'poupanca',
+                    label: editId > 0 ? 'Editar meta de poupança' : 'Criar meta de poupança',
+                });
+                const optimistic = this.applyFinanceiroRecordOptimistic(el, { method: editId > 0 ? 'PATCH' : 'POST', body });
+                this.runFinanceiroBackgroundOperation({
+                    operation,
+                    request: {
+                        url: '/api/financeiro',
+                        options: {
+                            method: editId > 0 ? 'PATCH' : 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body),
+                        },
+                        errorMessage: 'Erro ao salvar meta',
+                    },
+                    onSuccess: optimistic.reconcile,
+                    onFailure: optimistic.rollback,
+                });
+                return true;
             }
 
             async submitFinanceiroMetaDelete(id, el) {
                 if (!(await this.showConfirm('Excluir meta', 'Tem certeza que deseja excluir esta meta de poupança?'))) return false;
-                try {
-                    const res = await fetch(`/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=meta_poupanca`, { method: 'DELETE' });
-                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir meta'));
-                    await this.refreshFinanceiroAfterMutation();
-                    return true;
-                } catch (e) {
-                    alert(e.message);
-                    return false;
-                }
+                const body = { id, tipo_registro: 'meta_poupanca' };
+                const operation = this.beginFinanceiroOperation({ kind: 'excluir_meta', section: 'poupanca', label: 'Excluir meta de poupança' });
+                const optimistic = this.applyFinanceiroRecordOptimistic(el, { method: 'DELETE', body });
+                this.runFinanceiroBackgroundOperation({
+                    operation,
+                    request: {
+                        url: `/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=meta_poupanca`,
+                        options: { method: 'DELETE' },
+                        errorMessage: 'Erro ao excluir meta',
+                    },
+                    onFailure: optimistic.rollback,
+                });
+                return true;
             }
 
             async readApiErrorMessage(res, fallback = 'Erro na requisição') {
@@ -10261,7 +10734,6 @@ ${financeRowActions(r.id, 'compra')}
             }
 
             async submitFinanceiroSave(el, payload = null, options = {}) {
-                const skipRefresh = options.skipRefresh === true;
                 const editId = String(payload?.editId || '').trim();
                 const tipoRegistro = String(payload?.tipo_registro || '').trim();
                 const descricao = String(payload?.descricao || '').trim();
@@ -10305,22 +10777,31 @@ ${financeRowActions(r.id, 'compra')}
                     requestBody.metodo_pagamento = String(payload?.metodo_pagamento || 'debito_pix').trim() || 'debito_pix';
                 }
                 if (editId) requestBody.id = editId;
-                try {
-                    const res = await fetch('/api/financeiro', {
-                        method: editId ? 'PATCH' : 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestBody),
-                    });
-                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao salvar'));
-                    if ((tipoRegistro === 'despesa_fixa' || tipoRegistro === 'gasto_variado' || tipoRegistro === 'receita' || tipoRegistro === 'compra') && mesAno) {
-                        el.setAttribute('data-mes-ano', mesAno);
-                    }
-                    await this.refreshFinanceiroAfterMutation();
-                    return true;
-                } catch (e) {
-                    alert(e.message);
-                    return false;
+                if ((tipoRegistro === 'despesa_fixa' || tipoRegistro === 'gasto_variado' || tipoRegistro === 'receita' || tipoRegistro === 'compra') && mesAno) {
+                    el.setAttribute('data-mes-ano', mesAno);
                 }
+                const section = this.financeiroSectionForType(tipoRegistro);
+                const operation = this.beginFinanceiroOperation({
+                    kind: editId ? 'editar_registro' : 'criar_registro',
+                    section,
+                    label: editId ? 'Editar registro financeiro' : 'Criar registro financeiro',
+                });
+                const optimistic = this.applyFinanceiroRecordOptimistic(el, { method: editId ? 'PATCH' : 'POST', body: requestBody });
+                this.runFinanceiroBackgroundOperation({
+                    operation,
+                    request: {
+                        url: '/api/financeiro',
+                        options: {
+                            method: editId ? 'PATCH' : 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestBody),
+                        },
+                        errorMessage: 'Erro ao salvar',
+                    },
+                    onSuccess: optimistic.reconcile,
+                    onFailure: optimistic.rollback,
+                });
+                return true;
             }
 
             async importFinanceiroFixasFromPreviousMonth(el) {
@@ -10331,59 +10812,123 @@ ${financeRowActions(r.id, 'compra')}
                     `Contas fixas e parcelas já cadastradas no ano serão geradas para ${labelAtual}, com a parcela correta de cada mês. Deseja continuar?`
                 );
                 if (!okConfirm) return;
-                try {
-                    await this.refreshFinanceiroAfterMutation();
-                } catch (e) {
-                    alert(e.message || 'Erro ao preencher o mês.');
+                const button = el.querySelector('[data-action="financeiro-import-fixas-prev-month"]');
+                const previousLabel = button?.textContent || '';
+                if (button) {
+                    button.disabled = true;
+                    button.textContent = 'Preenchendo em segundo plano…';
                 }
+                const operation = this.beginFinanceiroOperation({ kind: 'materializar_fixas', section: 'data', label: 'Preencher despesas fixas do mês' });
+                this.runFinanceiroBackgroundOperation({
+                    operation,
+                    request: {
+                        url: '/api/financeiro',
+                        options: {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ acao: 'materializar_despesas_fixas', mes_ano: mesAtual }),
+                        },
+                        errorMessage: 'Erro ao preencher despesas fixas',
+                    },
+                    onSuccess: async () => {
+                        await this.refreshFinanceiroSectionSilently(el, 'data');
+                    },
+                    onFailure: () => {
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = previousLabel;
+                        }
+                    },
+                });
             }
 
             async submitFinanceiroDelete(id, tipoRegistro, el) {
                 if (!(await this.showConfirm('Excluir registro', 'Tem certeza que deseja excluir este registro financeiro?'))) return;
-                try {
-                    const res = await fetch(`/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=${encodeURIComponent(tipoRegistro)}`, { method: 'DELETE' });
-                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir'));
-                    await this.refreshFinanceiroAfterMutation();
-                } catch (e) { alert(e.message); }
+                const body = { id, tipo_registro: tipoRegistro };
+                const operation = this.beginFinanceiroOperation({
+                    kind: 'excluir_registro',
+                    section: this.financeiroSectionForType(tipoRegistro),
+                    label: 'Excluir registro financeiro',
+                });
+                const optimistic = this.applyFinanceiroRecordOptimistic(el, { method: 'DELETE', body });
+                this.runFinanceiroBackgroundOperation({
+                    operation,
+                    request: {
+                        url: `/api/financeiro?id=${encodeURIComponent(id)}&tipo_registro=${encodeURIComponent(tipoRegistro)}`,
+                        options: { method: 'DELETE' },
+                        errorMessage: 'Erro ao excluir',
+                    },
+                    onFailure: optimistic.rollback,
+                });
             }
 
             async submitFinanceiroToggleStatus(id, statusAtual, el) {
                 const nextStatus = String(statusAtual || '').toLowerCase() === 'pago' ? 'pendente' : 'pago';
-                try {
-                    const res = await fetch('/api/financeiro', {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            id,
-                            tipo_registro: 'despesa_fixa',
-                            status: nextStatus
-                        }),
-                    });
-                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao atualizar status'));
-                    await this.refreshFinanceiroAfterMutation();
-                } catch (e) {
-                    alert(e.message);
-                }
+                el._financeiroPendingUpdates ||= new Set();
+                const operationKey = `fixa:${id}`;
+                if (el._financeiroPendingUpdates.has(operationKey)) return;
+                el._financeiroPendingUpdates.add(operationKey);
+                const rollback = this.applyFinanceiroFixedRowOptimistic(el, id, {
+                    status: nextStatus,
+                    ...(nextStatus === 'pago' ? { pendente_mes: false } : {}),
+                });
+                const operation = this.beginFinanceiroOperation({ kind: 'alterar_status', section: 'data', label: 'Alterar status da despesa fixa' });
+                this.runFinanceiroBackgroundOperation({
+                    operation,
+                    request: {
+                        url: '/api/financeiro',
+                        options: {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id,
+                                tipo_registro: 'despesa_fixa',
+                                status: nextStatus,
+                            }),
+                        },
+                        errorMessage: 'Erro ao atualizar status',
+                    },
+                    onSuccess: () => el._financeiroPendingUpdates.delete(operationKey),
+                    onFailure: () => {
+                        rollback?.();
+                        el._financeiroPendingUpdates.delete(operationKey);
+                    },
+                });
             }
 
             async submitFinanceiroTogglePendenteMes(id, pendenteMesAtual, el) {
                 const nextFlag = !pendenteMesAtual;
-                try {
-                    const res = await fetch('/api/financeiro', {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            id,
-                            tipo_registro: 'despesa_fixa',
-                            pendente_mes: nextFlag,
-                            ...(nextFlag ? { status: 'pendente' } : {})
-                        }),
-                    });
-                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao atualizar pendencia do mes'));
-                    await this.refreshFinanceiroAfterMutation();
-                } catch (e) {
-                    alert(e.message);
-                }
+                el._financeiroPendingUpdates ||= new Set();
+                const operationKey = `fixa:${id}`;
+                if (el._financeiroPendingUpdates.has(operationKey)) return;
+                el._financeiroPendingUpdates.add(operationKey);
+                const rollback = this.applyFinanceiroFixedRowOptimistic(el, id, {
+                    pendente_mes: nextFlag,
+                    ...(nextFlag ? { status: 'pendente' } : {}),
+                });
+                const operation = this.beginFinanceiroOperation({ kind: 'alterar_pendencia', section: 'data', label: 'Alterar pendência mensal' });
+                this.runFinanceiroBackgroundOperation({
+                    operation,
+                    request: {
+                        url: '/api/financeiro',
+                        options: {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id,
+                                tipo_registro: 'despesa_fixa',
+                                pendente_mes: nextFlag,
+                                ...(nextFlag ? { status: 'pendente' } : {}),
+                            }),
+                        },
+                        errorMessage: 'Erro ao atualizar pendência do mês',
+                    },
+                    onSuccess: () => el._financeiroPendingUpdates.delete(operationKey),
+                    onFailure: () => {
+                        rollback?.();
+                        el._financeiroPendingUpdates.delete(operationKey);
+                    },
+                });
             }
 
             async renderFluxogramaContent(el) {
@@ -11159,7 +11704,7 @@ ${financeRowActions(r.id, 'compra')}
                 const badge = document.getElementById('notificationBadge');
                 if (!badge) return;
                 const pwaPending = window._superappPwaUpdatePending === true;
-                const hasEvents = (this.notificationItems || []).length > 0;
+                const hasEvents = (this.notificationItems || []).length > 0 || (this.financeiroOperationAlerts || []).length > 0;
                 if (pwaPending || hasEvents) badge.classList.add('visible');
                 else badge.classList.remove('visible');
             }
@@ -11170,6 +11715,15 @@ ${financeRowActions(r.id, 'compra')}
             }
             openNotificationsModal() {
                 const items = [...(this.notificationItems || [])];
+                for (const operation of this.financeiroOperationAlerts || []) {
+                    items.unshift({
+                        source: 'financeiro',
+                        date: '',
+                        time: '',
+                        title: operation.label || 'Ação financeira não confirmada',
+                        details: operation.message || 'Abra o Financeiro para sincronizar ou repetir a ação.',
+                    });
+                }
                 const hasEventItems = items.length > 0;
                 if (window._superappPwaUpdatePending === true) {
                     items.unshift({

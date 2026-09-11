@@ -1,3 +1,19 @@
+=== CHECKPOINT — OTIMIZAÇÃO DO MÓDULO FINANCEIRO ===
+Data: 2026-09-11
+
+- GET segmentado por aba (`data`, `summary`, `poupanca`, `compras`).
+- Abertura inicial reduzida de até 10 para 2 consultas simuladas.
+- Payload inicial local reduzido de 8.263 para 3.321 bytes (-59,8%).
+- Históricos de poupança e compras paginados em 50 registros.
+- Materialização de despesas fixas removida do GET e exposta como ação POST explícita.
+- Instâncias ECharts de despesas anuais e poupança descartadas no refresh.
+- Status pago/pendente e pendência mensal atualizam imediatamente com Motion, PATCH em segundo plano e rollback em caso de falha.
+- Todas as mutações financeiras usam cache otimista em memória, confirmação em segundo plano, timeout de 2 minutos e alerta persistente após reabrir.
+- O armazenamento persistente contém somente metadados saneados da operação; valores, descrições e payloads financeiros não são gravados localmente.
+- O modo OFFLINE_DEV simula mutações em 700 ms sem Supabase, eliminando o `fetch failed` no teste local; a tela mostra sincronização e confirmação sem bloquear a interação.
+- `.gitignore` reforçado para impedir envio de caches, cobertura, temporários, configurações locais de IDE/agentes e chaves/certificados comuns.
+- Checkpoint Git: indisponível; workspace não é um repositório Git válido.
+
 === CHECKPOINT — Correção dos Valores Zerados das Tabelas e Cards Históricos ===
 Data: 2026-07-27
 

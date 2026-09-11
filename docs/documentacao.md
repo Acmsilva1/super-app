@@ -189,13 +189,40 @@ Abrir modulo -> perfis -> selecionar perfil -> treinos do perfil -> voltar para 
 
 ### Regras do Financeiro
 
-- `GET /api/financeiro` retorna dashboard, graficos, tabelas, poupanca, compras, risco e padroes.
+- `GET /api/financeiro` sem `secao` preserva o contrato legado completo.
+- `GET /api/financeiro?secao=data|summary|poupanca|compras` carrega somente a aba solicitada. O frontend usa esse contrato segmentado e guarda em memoria as secoes ja visitadas.
+- A aba `data` executa duas consultas mensais, com colunas explicitas. `summary` consulta as views agregadas apenas quando o dashboard e aberto.
+- Poupanca e compras usam paginacao de 50 registros e retornam `pagination.page`, `pagination.limit` e `pagination.has_more`.
+- A materializacao de despesas fixas nao ocorre mais durante GET. Ela e acionada explicitamente por `POST` com `acao=materializar_despesas_fixas`.
 - `POST/PATCH/DELETE` usam `tipo_registro` para escolher a tabela correta.
 - Despesa fixa parcelada e conta fixa nao podem coexistir.
 - Conta fixa e parcelas podem gerar registros futuros por serie.
 - `pendente_mes=true` em despesa fixa sempre forca `status='pendente'`; alterar status para `pago` limpa a flag.
-- `OFFLINE_DEV=true` retorna mock financeiro expandido com receitas, gastos variados, despesas fixas pagas/pendentes, compras e um item com `pendente_mes=true` para preview visual.
+- `OFFLINE_DEV=true` retorna mock financeiro expandido e simula mutacoes com 700 ms de latencia, sem acessar o Supabase. Esse modo valida a interacao otimista, mas nao persiste alteracoes apos recarregar a pagina.
 - O endpoint usa views agregadas do banco para reduzir calculo no Node.js.
+- As consultas segmentadas mantem escopo por `user_id`/RLS e reduzem dados pessoais em transito usando selecao explicita de colunas, em linha com minimizacao da LGPD.
+
+### Desempenho do Financeiro
+
+Benchmark local em `OFFLINE_DEV=true`, 30 requisicoes sequenciais por rota, em 2026-09-11:
+
+| Cenario | Media | P95 | Payload |
+|---|---:|---:|---:|
+| Contrato legado completo | 35,55 ms | 39,13 ms | 8.263 bytes |
+| Abertura inicial em `data` | 21,02 ms | 29,66 ms | 3.321 bytes |
+| `summary` sob demanda | 20,47 ms | 28,77 ms | 1.743 bytes |
+| `poupanca` sob demanda | 16,82 ms | 31,83 ms | 551 bytes |
+| `compras` sob demanda | 19,28 ms | 33,32 ms | 957 bytes |
+
+A abertura inicial reduziu o payload em 59,8%, a media local em 40,9% e a quantidade de consultas simuladas de ate 10 para 2. Os tempos sao de mock local e nao representam a latencia do Supabase real; medicao integrada depende de autorizacao explicita.
+
+Alteracoes de `status` e `pendente_mes` em despesas fixas usam interface otimista: a linha muda imediatamente entre as listas, totais e termometro sao recalculados localmente e Motion anima as linhas. O PATCH ocorre em segundo plano, sem recarregar o modulo; falhas restauram o estado anterior e exibem o erro. Operacoes concorrentes no mesmo registro sao bloqueadas ate a resposta.
+
+O mesmo modelo otimista cobre criacao, edicao, exclusao, realocacao entre tipos, metas de poupanca e materializacao de despesas fixas. A UI altera primeiro o cache em memoria e preserva aba/scroll; a resposta do servidor reconcilia IDs e dados oficiais sem tela de loading. Cada escrita possui limite de confirmacao de 2 minutos.
+
+Operacoes ainda pendentes ou com falha sao registradas no `localStorage` por usuario usando apenas metadados saneados (`id` da operacao, tipo, secao, rotulo, horario e status). Descricao, valor e payload financeiro nao sao persistidos, evitando ampliar exposicao LGPD. Se o app fechar antes da confirmacao, o timer e restaurado na proxima abertura; ao vencer, o app mostra alerta persistente e oferece sincronizar ou voltar ao Financeiro para repetir a acao. Como o payload nao e persistido, nenhuma escrita financeira e repetida silenciosamente apos reinicio.
+
+Durante uma mutacao, a UI exibe `Sincronizando com o banco...` sem bloquear a tela. A confirmacao troca o aviso para sucesso; falha ou timeout exibe erro e mantem o fluxo de recuperacao. Isso permite verificar visualmente que a mudanca local ocorreu antes da resposta do backend.
 
 ### Analista Financeiro
 
@@ -258,7 +285,6 @@ Arquivo principal: `migration/20260830_financeiro_views_agregadas.sql`.
 | `vw_financeiro_compras_mensal` | Total, quantidade e ticket medio de compras por mes |
 
 As views usam `security_invoker = true` para respeitar RLS das tabelas base.
-A migration `20260830_financeiro_views_agregadas.sql` remove as views existentes antes de recria-las para evitar erro do PostgreSQL `42P16` ao mudar tipos expostos, como `numeric` para `numeric(12,2)`.
 
 ### Outras Tabelas
 
@@ -384,7 +410,11 @@ Suites principais:
 | 2026-08-30 | Mock financeiro expandido para preview local da UI; checkpoint sem hash porque o workspace local nao esta em repo Git valido |
 | 2026-08-30 | Ajuste de respiro nos headers de despesas fixas no desktop e mobile; checkpoint sem hash porque o workspace local nao esta em repo Git valido |
 | 2026-08-30 | Motion aplicado na aba Dados do Financeiro para troca de filtros, rows e botoes de acao; checkpoint sem hash porque o workspace local nao esta em repo Git valido |
-| 2026-08-31 | Ajuste da migration de views agregadas para dropar views antes de recriar e evitar erro `42P16` no Supabase; checkpoint base `0f0e5f5` |
+| 2026-09-11 | Financeiro segmentado por aba, paginacao de historicos, materializacao explicita, descarte completo de graficos e benchmark local; checkpoint sem hash porque o workspace nao e um repositorio Git valido |
+| 2026-09-11 | Atualizacao otimista de status e pendencia mensal, com Motion, rollback em falha e sem reset da tela; checkpoint sem hash porque o workspace nao e um repositorio Git valido |
+| 2026-09-11 | Cache otimista para todas as mutacoes financeiras, timeout persistente de 2 minutos e alerta restaurado na reabertura sem armazenar payload financeiro; checkpoint sem hash porque o workspace nao e um repositorio Git valido |
+| 2026-09-11 | Mutacoes simuladas no modo offline corrigem `fetch failed` no preview local e indicador visual diferencia sincronizacao e confirmacao; checkpoint sem hash porque o workspace nao e um repositorio Git valido |
+| 2026-09-11 | `.gitignore` reforcado para excluir relatorios de cobertura, caches, temporarios, configuracoes locais de IDE/agentes e arquivos comuns de credenciais; assets da aplicacao permanecem versionaveis |
 
 ## 6. Como Rodar
 

@@ -34,6 +34,7 @@ function createThenableQuery({ data = [], counters } = {}) {
     or: vi.fn(() => builder),
     order: vi.fn(() => builder),
     limit: vi.fn(() => builder),
+    range: vi.fn(() => builder),
     insert: vi.fn(() => Promise.resolve({ data: null, error: null })),
     then: result.then.bind(result),
     catch: result.catch.bind(result),
@@ -59,17 +60,16 @@ describe('Carga do GET financeiro', () => {
     const started = Date.now();
 
     const results = await Promise.all(
-      Array.from({ length: concurrentUsers }, () => request(app).get('/api/test?mes_ano=2026-07&bi=1')),
+      Array.from({ length: concurrentUsers }, () => request(app).get('/api/test?mes_ano=2026-07&secao=data')),
     );
     const elapsedMs = Date.now() - started;
 
     expect(results.every((res) => res.status === 200)).toBe(true);
     expect(elapsedMs).toBeLessThan(15000);
 
-    // Antes: ~24+ selects so de materializacao anual por request.
-    // Depois: materializacao do mes + leituras filtradas (orcamento bem menor).
+    // O carregamento inicial da aba Dados consulta apenas financas e despesas fixas.
     const avgFromCalls = counters.fromCalls / concurrentUsers;
-    expect(avgFromCalls).toBeLessThanOrEqual(10);
-    expect(counters.selects / concurrentUsers).toBeLessThanOrEqual(10);
+    expect(avgFromCalls).toBe(2);
+    expect(counters.selects / concurrentUsers).toBe(2);
   });
 });

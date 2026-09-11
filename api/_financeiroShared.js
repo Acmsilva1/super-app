@@ -304,7 +304,7 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
   });
   const { grupos: padroeGrupos, inconsistencias } = detectarPadroesEInconsistencias(gastosVariados);
 
-  return {
+  const response = {
     status: 200,
     data: {
       mes_ano,
@@ -344,6 +344,8 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
       },
     },
   };
+  response.data = filterMockFinanceiroSection(response.data, query);
+  return response;
 }
 
 function tableForTipoRegistro(tipoRegistro) {
@@ -604,6 +606,54 @@ function periodOrFilter({ dayStart, dayEnd, start, end }) {
   return `and(data_lancamento.gte.${dayStart},data_lancamento.lte.${dayEnd}),and(created_at.gte.${start},created_at.lte.${end})`;
 }
 
+const FINANCEIRO_PAGE_SIZE = 50;
+const FINANCAS_LIST_COLUMNS = 'id,descricao,valor,tipo,tipo_gasto,metodo_pagamento,categoria,data_lancamento,created_at';
+const FIXAS_LIST_COLUMNS = 'id,descricao,valor,status,pendente_mes,conta_fixa,parcela_atual,parcela_total,serie_id,created_at';
+const POUPANCA_LIST_COLUMNS = 'id,descricao,valor,data_lancamento,created_at';
+const COMPRAS_LIST_COLUMNS = 'id,descricao,valor,categoria,data_lancamento,created_at';
+
+function normalizeFinanceiroSection(value) {
+  const section = String(value || '').trim().toLowerCase();
+  return ['data', 'summary', 'poupanca', 'compras'].includes(section) ? section : '';
+}
+
+function parseFinanceiroPage(query = {}) {
+  const page = Math.max(1, Math.min(10000, Number.parseInt(String(query.page || '1'), 10) || 1));
+  const limit = Math.max(10, Math.min(100, Number.parseInt(String(query.limit || FINANCEIRO_PAGE_SIZE), 10) || FINANCEIRO_PAGE_SIZE));
+  return { page, limit, from: (page - 1) * limit, to: page * limit };
+}
+
+function paginatedRows(rows, page, limit) {
+  const source = Array.isArray(rows) ? rows : [];
+  return {
+    rows: source.slice(0, limit),
+    pagination: { page, limit, has_more: source.length > limit },
+  };
+}
+
+function filterMockFinanceiroSection(data, query = {}) {
+  const section = normalizeFinanceiroSection(query.secao);
+  if (!section) return data;
+  const base = { mes_ano: data.mes_ano, secao: section };
+  if (section === 'data') {
+    return {
+      ...base,
+      dashboard: data.dashboard,
+      graficos: { pagos_pendentes: data.graficos?.pagos_pendentes || {} },
+      tabelas: {
+        despesas_fixas: data.tabelas?.despesas_fixas || [],
+        gastos_variados: data.tabelas?.gastos_variados || [],
+        receitas: data.tabelas?.receitas || [],
+      },
+    };
+  }
+  if (section === 'summary') {
+    return { ...base, dashboard: data.dashboard, graficos: data.graficos, graficos_anuais: data.graficos_anuais };
+  }
+  if (section === 'poupanca') return { ...base, poupanca: data.poupanca };
+  return { ...base, compras: data.compras };
+}
+
 export async function materializeDespesasFixasMes(mesAno, context = {}) {
   if (!mesAno || !/^\d{4}-\d{2}$/.test(mesAno)) return;
   const { ano, mes } = parseMesAno(mesAno);
@@ -652,9 +702,185 @@ export async function garantirDespesasFixasMes(mesAno, context = {}) {
   await materializeDespesasFixasMes(mesAno, context);
 }
 
+async function obterFinanceiroSecao(query = {}, context = {}) {
+  const section = normalizeFinanceiroSection(query.secao);
+  const { ano, mes } = parseMesAno(query.mes_ano);
+  const { start, end, mes_ano } = rangeMes(ano, mes);
+  const { dayStart, dayEnd } = rangeDiasMes(ano, mes);
+  const monthPeriodFilter = periodOrFilter({ dayStart, dayEnd, start, end });
+  const base = { mes_ano, secao: section };
+
+  if (section === 'data') {
+    const [financasResult, fixasResult] = await Promise.all([
+      scopeQueryByUser(
+        supabase.from(TABLE_FINANCAS).select(FINANCAS_LIST_COLUMNS).or(monthPeriodFilter).order('created_at', { ascending: false }),
+        context
+      ),
+      scopeQueryByUser(
+        supabase.from(TABLE_DESPESAS_FIXAS).select(FIXAS_LIST_COLUMNS).gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false }),
+        context
+      ),
+    ]);
+    if (financasResult.error) return { error: financasResult.error.message, status: 500 };
+    if (fixasResult.error) return { error: fixasResult.error.message, status: 500 };
+
+    const financasMes = filtrarFinancasPorMes(financasResult.data || [], ano, mes);
+    const { receitas, gastosVariados } = classificarFinancas(financasMes);
+    const fixas = fixasResult.data || [];
+    const receitasTotal = receitas.reduce((sum, row) => sum + Number(row.valor || 0), 0);
+    const variadasTotal = gastosVariados.reduce((sum, row) => sum + Number(row.valor || 0), 0);
+    const fixasTotal = fixas.reduce((sum, row) => sum + Number(row.valor || 0), 0);
+    const pago = fixas.filter((row) => String(row.status || '').toLowerCase() === STATUS_PAGO)
+      .reduce((sum, row) => sum + Number(row.valor || 0), 0);
+    const pendente = fixasTotal - pago;
+    const despesasTotais = fixasTotal + variadasTotal;
+
+    return {
+      status: 200,
+      data: {
+        ...base,
+        dashboard: {
+          receitas: receitasTotal,
+          despesas_fixas: fixasTotal,
+          despesas_variadas: variadasTotal,
+          despesas_totais: despesasTotais,
+          saldo: receitasTotal - despesasTotais,
+          liquido: receitasTotal - despesasTotais,
+        },
+        graficos: { pagos_pendentes: { pago, pendente } },
+        tabelas: {
+          despesas_fixas: montarTabelaFinanceiroRows(fixas, TIPO_REGISTRO_DESPESA_FIXA),
+          gastos_variados: montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO)
+            .map((row) => ({ ...row, tipo_registro: resolveTipoRegistroFinanceiro(row, TIPO_REGISTRO_GASTO_VARIADO) })),
+          receitas: montarTabelaFinanceiroRows(receitas, TIPO_REGISTRO_RECEITA),
+        },
+      },
+    };
+  }
+
+  if (section === 'summary') {
+    const includeAnuais = wantsGraficosAnuais(query);
+    const [resumoResult, categoriasResult, historicoResult] = await Promise.all([
+      scopeQueryByUser(
+        supabase.from('vw_financeiro_resumo_mensal').select('receitas,despesas_variadas,despesas_fixas,saldo,fixas_pagas,fixas_pendentes').eq('mes_ano', mes_ano),
+        context
+      ),
+      scopeQueryByUser(
+        supabase.from('vw_financeiro_categoria_mensal').select('categoria,valor_total,quantidade_lancamentos,media_lancamento,ranking_maior,ranking_menor').eq('mes_ano', mes_ano).order('ranking_maior', { ascending: true }),
+        context
+      ),
+      includeAnuais
+        ? scopeQueryByUser(
+            supabase.from('vw_financeiro_historico_anual').select('mes_ano,receitas,despesas_fixas,despesas_variadas,despesas_totais,saldo').eq('ano', ano),
+            context
+          )
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    const error = resumoResult.error || categoriasResult.error || historicoResult.error;
+    if (error) return { error: error.message, status: 500 };
+    const row = resumoResult.data?.[0] || {};
+    const despesasFixas = Number(row.despesas_fixas || 0);
+    const despesasVariadas = Number(row.despesas_variadas || 0);
+    const saldo = Number(row.saldo || 0);
+    return {
+      status: 200,
+      data: {
+        ...base,
+        dashboard: {
+          receitas: Number(row.receitas || 0),
+          despesas_fixas: despesasFixas,
+          despesas_variadas: despesasVariadas,
+          despesas_totais: despesasFixas + despesasVariadas,
+          saldo,
+          liquido: saldo,
+        },
+        graficos: {
+          categorias_gastos: (categoriasResult.data || []).map((item) => ({
+            categoria: item.categoria,
+            valor: Number(item.valor_total || 0),
+            quantidade: item.quantidade_lancamentos,
+            media: Number(item.media_lancamento || 0),
+          })),
+          pagos_pendentes: { pago: Number(row.fixas_pagas || 0), pendente: Number(row.fixas_pendentes || 0) },
+        },
+        graficos_anuais: buildGraficosAnuaisFromView(ano, historicoResult.data || []),
+      },
+    };
+  }
+
+  const { page, limit, from, to } = parseFinanceiroPage(query);
+  if (section === 'poupanca') {
+    const [resumoResult, logsResult] = await Promise.all([
+      scopeQueryByUser(
+        supabase.from('vw_financeiro_poupanca_resumo').select('total_acumulado,meta_id,nome_meta,valor_meta,data_inicio,progresso,status_meta'),
+        context
+      ),
+      scopeQueryByUser(
+        supabase.from(TABLE_POUPANCA).select(POUPANCA_LIST_COLUMNS).order('created_at', { ascending: false }).range(from, to),
+        context
+      ),
+    ]);
+    if (logsResult.error && !isMissingTableError(logsResult.error)) return { error: logsResult.error.message, status: 500 };
+    const pageData = paginatedRows(logsResult.data, page, limit);
+    const resumo = resumoResult.data?.[0] || {};
+    const metaAtiva = resumo.meta_id ? {
+      id: resumo.meta_id,
+      nome_meta: String(resumo.nome_meta || ''),
+      valor_meta: Number(resumo.valor_meta || 0),
+      data_inicio: normalizeDate(resumo.data_inicio),
+      progresso: Number(resumo.progresso || 0),
+      status: resumo.status_meta || 'sem_meta',
+    } : null;
+    return {
+      status: 200,
+      data: {
+        ...base,
+        poupanca: {
+          configurada: !logsResult.error,
+          meta_configurada: !resumoResult.error,
+          total: Number(resumo.total_acumulado || 0),
+          logs: montarTabelaFinanceiroRows(pageData.rows, TIPO_REGISTRO_POUPANCA),
+          meta_ativa: metaAtiva,
+          pagination: pageData.pagination,
+        },
+      },
+    };
+  }
+
+  const [resumoResult, logsResult] = await Promise.all([
+    scopeQueryByUser(
+      supabase.from('vw_financeiro_compras_mensal').select('valor_total,quantidade_compras,ticket_medio').eq('mes_ano', mes_ano),
+      context
+    ),
+    scopeQueryByUser(
+      supabase.from(TABLE_COMPRAS).select(COMPRAS_LIST_COLUMNS).or(monthPeriodFilter).order('created_at', { ascending: false }).range(from, to),
+      context
+    ),
+  ]);
+  if (resumoResult.error && !isMissingTableError(resumoResult.error)) return { error: resumoResult.error.message, status: 500 };
+  if (logsResult.error && !isMissingTableError(logsResult.error)) return { error: logsResult.error.message, status: 500 };
+  const pageData = paginatedRows(logsResult.data, page, limit);
+  return {
+    status: 200,
+    data: {
+      ...base,
+      compras: {
+        configurada: !logsResult.error,
+        total: Number(resumoResult.data?.[0]?.valor_total || 0),
+        logs: montarTabelaFinanceiroRows(pageData.rows, TIPO_REGISTRO_COMPRA),
+        pagination: pageData.pagination,
+      },
+    },
+  };
+}
+
 export async function obterFinanceiroMes(query = {}, context = {}) {
   if (isOfflineDev()) {
     return buildFinanceiroMockResponse(query, context);
+  }
+
+  if (normalizeFinanceiroSection(query.secao)) {
+    return obterFinanceiroSecao(query, context);
   }
 
   const { ano, mes } = parseMesAno(query.mes_ano);
@@ -662,8 +888,6 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
   const { dayStart, dayEnd } = rangeDiasMes(ano, mes);
   const includeAnuais = wantsGraficosAnuais(query);
   const monthPeriodFilter = periodOrFilter({ dayStart, dayEnd, start, end });
-
-  await garantirDespesasFixasMes(mes_ano, context);
 
   const [
     resumoMensalResult,
