@@ -41,6 +41,15 @@ export const APPS = [
     category: 'Sa\u00fade',
     health_path: '/api/missoes-treino?health=1',
   },
+  {
+    id: 'saude',
+    icon: 'fa-heart-pulse',
+    status: 'active',
+    title: 'Saúde',
+    description: 'Módulo de saúde preparado para receber novas funcionalidades.',
+    category: 'Saúde',
+    health_path: '/api/saude?health=1',
+  },
 ];
 
 function json(res, status, data) {

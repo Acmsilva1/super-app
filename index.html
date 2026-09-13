@@ -7940,7 +7940,7 @@
 
             isRemovedLegacyApp(appId) {
                 const id = String(appId || '').toLowerCase();
-                return id === 'vendas' || id === 'saude';
+                return id === 'vendas';
             }
 
             getAppHealthUrl(app) {
@@ -7951,6 +7951,7 @@
                     lista_compras: '/api/lista-compras?health=1',
                     fluxograma: '/api/fluxograma?health=1',
                     missoes_treino: '/api/missoes-treino?health=1',
+                    saude: '/api/saude?health=1',
                 };
                 return map[String(app?.id || '')] || '';
             }
@@ -8013,7 +8014,8 @@
                 if (id.includes('fin') || id.includes('despesa')) return '/icone%20financeiro.png';
                 if (id.includes('flux')) return '/icone%20fluxograma.png';
                 if (id.includes('lista') || id.includes('compra')) return '/icone%20lista%20de%20compras.png';
-                if (id.includes('saude') || id.includes('treino')) return '/icone%20treino.png';
+                if (id.includes('saude')) return '/icone%20saude.png';
+                if (id.includes('treino')) return '/icone%20treino.png';
                 return '/icon-192.png';
             }
 
@@ -8453,6 +8455,16 @@
                     } catch (err) {
                         console.error(err);
                         contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Nao foi possivel carregar Missoes de Treino.</div>';
+                    }
+                    return;
+                }
+                if (appId === 'saude') {
+                    try {
+                        const mod = await import('./features/saude/index.js?v=2026-09-13-tabela-nutricional');
+                        await mod.renderSaudeContent(contentEl);
+                    } catch (err) {
+                        console.error(err);
+                        contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Não foi possível carregar o módulo Saúde.</div>';
                     }
                     return;
                 }

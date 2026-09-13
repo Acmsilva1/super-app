@@ -75,3 +75,12 @@ features/missoes_treino/mock.js
 # ---------------------------------------------------------------------------
 scratch/
 
+# ---------------------------------------------------------------------------
+# Fontes de dados locais (dados ja convertidos para o modulo e para o seed)
+# ---------------------------------------------------------------------------
+tabelas nutricionais dieta.xlsx
+~$*.xlsx
+
+# Seed ja aplicado no Supabase; manter apenas como copia local.
+scripts/seed-saude-tabela-nutricional.sql
+
