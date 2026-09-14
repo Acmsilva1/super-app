@@ -313,11 +313,11 @@ function renderTabelaNutricional(container, state) {
       </div>
       <p class="saude-results" aria-live="polite">${pagination.totalItems} ${pagination.totalItems === 1 ? 'item encontrado' : 'itens encontrados'}.</p>
       ${tableContent}
-      ${pagination.totalItems ? `<nav class="saude-pagination" aria-label="Páginas da tabela nutricional">
+      ${pagination.totalItems ? `<div class="saude-pagination" role="navigation" aria-label="Páginas da tabela nutricional">
         <button type="button" class="saude-btn" data-saude-page="${pagination.currentPage - 1}"${pagination.currentPage === 1 ? ' disabled' : ''}><i class="fas fa-chevron-left" aria-hidden="true"></i> Anterior</button>
         <div class="saude-pagination__pages">${pageButtons}</div>
         <button type="button" class="saude-btn" data-saude-page="${pagination.currentPage + 1}"${pagination.currentPage === pagination.totalPages ? ' disabled' : ''}>Próxima <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
-      </nav>` : ''}
+      </div>` : ''}
     </section>
   `);
 }

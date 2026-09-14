@@ -1,0 +1,21 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const source = fs.readFileSync(path.join(root, 'features/saude/index.js'), 'utf8');
+
+describe('UI mobile do módulo Saúde', () => {
+  it('isola a paginação do menu nav global no mobile', () => {
+    expect(source).toContain('<div class="saude-pagination" role="navigation"');
+    expect(source).not.toContain('<nav class="saude-pagination"');
+    expect(source).toContain('data-saude-page="${page}"');
+  });
+
+  it('mantém lista mobile sem rolagem horizontal', () => {
+    expect(source).toContain('@media (max-width: 760px)');
+    expect(source).toContain('.saude-table-wrap { width: 100%; overflow: hidden;');
+    expect(source).toContain('.saude-table tr { display: grid;');
+  });
+});
