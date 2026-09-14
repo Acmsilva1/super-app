@@ -42,10 +42,73 @@ describe('API de saúde', () => {
     expect(res.body.protocolos).toEqual(['Perder Peso', 'Manutenção']);
   });
 
-  it('bloqueia métodos ainda não definidos', async () => {
-    const res = await request(createApp()).post('/api/saude').send({});
+  it('insere, edita e exclui um item da tabela nutricional', async () => {
+    const app = createApp();
+    const created = await request(app)
+      .post('/api/saude?resource=tabelas-nutricionais')
+      .send({ item: 'Item de teste', categoria: 'Testes', porcao: '100 g' });
+
+    expect(created.status).toBe(201);
+    expect(created.body.row).toMatchObject({ item: 'Item de teste', categoria: 'Testes', porcao: '100 g' });
+    expect(created.body.row.protocolo).toBeNull();
+
+    const updated = await request(app)
+      .patch('/api/saude?resource=tabelas-nutricionais')
+      .send({ id: created.body.row.id, item: 'Item editado', categoria: 'Testes', porcao: '2 unidades' });
+
+    expect(updated.status).toBe(200);
+    expect(updated.body.row).toMatchObject({ item: 'Item editado', porcao: '2 unidades' });
+
+    const deleted = await request(app)
+      .delete('/api/saude?resource=tabelas-nutricionais')
+      .send({ id: created.body.row.id });
+
+    expect(deleted.status).toBe(200);
+    expect(deleted.body.ok).toBe(true);
+  });
+
+  it('valida os campos obrigatórios antes de gravar', async () => {
+    const res = await request(createApp())
+      .post('/api/saude?resource=tabelas-nutricionais')
+      .send({ item: '', categoria: '', porcao: '' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('lista o protocolo Detox e executa o CRUD de dietas', async () => {
+    const app = createApp();
+    const listed = await request(app).get('/api/saude?resource=dietas');
+
+    expect(listed.status).toBe(200);
+    expect(listed.body.rows[0]).toMatchObject({ slug: 'detox-7-dias-perder-peso', duracao_dias: 7 });
+    expect(listed.body.rows[0].dias).toHaveLength(7);
+
+    const payload = {
+      titulo: 'Dieta de teste',
+      objetivo: 'Validar CRUD',
+      duracao_dias: 1,
+      descricao: 'Teste',
+      orientacoes_gerais: 'Orientações',
+      ritual_diario: '',
+      observacoes: '',
+      dias: [{ numero: 1, titulo: 'Início', jejum_horas: 8, quantidade_refeicoes: 3, carboidrato: 'Livre', conteudo: 'Plano do dia' }],
+    };
+    const created = await request(app).post('/api/saude?resource=dietas').send(payload);
+    expect(created.status).toBe(201);
+    expect(created.body.row.titulo).toBe('Dieta de teste');
+
+    const updated = await request(app).patch('/api/saude?resource=dietas').send({ ...payload, id: created.body.row.id, objetivo: 'Objetivo atualizado' });
+    expect(updated.status).toBe(200);
+    expect(updated.body.row.objetivo).toBe('Objetivo atualizado');
+
+    const deleted = await request(app).delete('/api/saude?resource=dietas').send({ id: created.body.row.id });
+    expect(deleted.status).toBe(200);
+  });
+
+  it('bloqueia métodos não suportados', async () => {
+    const res = await request(createApp()).put('/api/saude?resource=tabelas-nutricionais').send({});
 
     expect(res.status).toBe(405);
-    expect(res.headers.allow).toBe('GET');
+    expect(res.headers.allow).toBe('GET, POST, PATCH, DELETE');
   });
 });
