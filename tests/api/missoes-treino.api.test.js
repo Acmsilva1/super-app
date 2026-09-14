@@ -84,6 +84,29 @@ describe('API missoes-treino', () => {
     });
   });
 
+  it('GET ?resource=profiles permite lista vazia sem recriar o perfil Oficial', async () => {
+    const profileInsert = vi.fn();
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_missoes_treino_perfis') {
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn().mockResolvedValue({ data: [], error: null }),
+          })),
+          insert: profileInsert,
+        };
+      }
+      return { select: vi.fn() };
+    });
+
+    const app = createApp(missoesTreinoHandler);
+    const res = await request(app).get('/api/test?resource=profiles');
+
+    expect(res.status).toBe(200);
+    expect(res.body.profiles).toEqual([]);
+    expect(profileInsert).not.toHaveBeenCalled();
+  });
+
   it('GET ?resource=profiles adota missoes antigas sem perfil_id', async () => {
     const profileRows = [
       {

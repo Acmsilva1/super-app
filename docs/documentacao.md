@@ -378,6 +378,7 @@ As views usam `security_invoker = true` para respeitar RLS das tabelas base.
 | `20260718_enable_rls_user_permissions.sql` | RLS, roles e permissoes |
 | `20260812_add_missoes_treino_perfis.sql` | Perfis de treino |
 | `20260813_adopt_orphan_missoes_treino.sql` | Backfill de missoes sem perfil |
+| `20260914_remove_legacy_missoes_treino_profile.sql` | Remove com seguranca o perfil automatico legado Oficial quando estiver sem missoes |
 | `20260830_financeiro_views_agregadas.sql` | Views agregadas financeiras |
 | `20260830_tb_despesas_fixas_pendente_mes.sql` | Flag mensal de pendencia em despesas fixas |
 | `20260913_create_saude_module.sql` | Modulo Saude, tabela nutricional, permissoes e RLS |
@@ -462,6 +463,7 @@ Suites principais:
 | 2026-09-11 | `.gitignore` reforcado para excluir relatorios de cobertura, caches, temporarios, configuracoes locais de IDE/agentes e arquivos comuns de credenciais; assets da aplicacao permanecem versionaveis |
 | 2026-09-14 | Subtopico Perfil em Saude com perfis familiares, calculo automatico de IMC, snapshots de medidas, linha do tempo, RLS por usuario e QA visual desktop/mobile; workspace atual sem `.git` |
 | 2026-09-14 | CRUD de Missoes de Treino corrigido para IDs do Supabase, criacao direta com exercicio preenchido, limpeza de dependencias na exclusao e rollback de missao incompleta |
+| 2026-09-14 | Perfil automatico legado Oficial deixou de ser recriado pela API; migration aditiva remove somente o registro vazio com a assinatura legada |
 
 ## 6. Como Rodar
 
@@ -479,6 +481,7 @@ Para rodar com Supabase real, configure as variaveis de ambiente localmente ou n
 - Aplicar `migration/20260830_financeiro_views_agregadas.sql` no Supabase real antes de depender da nova view anual em producao.
 - Aplicar `migration/20260830_tb_despesas_fixas_pendente_mes.sql` no Supabase real antes de usar a flag mensal de pendencias.
 - Aplicar `migration/20260914_create_saude_perfis.sql` no Supabase real antes de usar os perfis de Saude fora do modo offline. A migration `20260913_create_saude_module.sql` e pre-requisito.
+- Aplicar `migration/20260914_remove_legacy_missoes_treino_profile.sql` no Supabase real para remover o perfil automatico legado Oficial quando estiver sem missoes.
 - Corrigir encoding mojibake herdado em arquivos antigos e alguns textos existentes.
 - Avaliar avisos do `npm run test:ux`: atualmente sao warnings, sem bloqueio critico.
 - Rodar SAST/secret scanning antes de qualquer deploy relevante: Gitleaks e, quando aplicavel, Opengrep.

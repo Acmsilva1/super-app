@@ -78,7 +78,7 @@ async function adoptOrphanMissions(profileId) {
   return data.length;
 }
 
-async function ensureDefaultProfileRows() {
+async function fetchProfileRows() {
   const { data, error } = await supabase
     .from(TABLE_PERFIS)
     .select('id,nome,descricao,cor,icone,created_at,updated_at')
@@ -88,21 +88,7 @@ async function ensureDefaultProfileRows() {
     throw new Error(error.message);
   }
 
-  let rows = Array.isArray(data) ? data : [];
-  if (!rows.length) {
-    const { data: created, error: createErr } = await supabase
-      .from(TABLE_PERFIS)
-      .insert({
-        nome: 'Oficial',
-        descricao: 'Perfil principal — treinos salvos antes da divisão por perfil',
-        cor: '#00e5ff',
-        icone: 'fa-dumbbell',
-      })
-      .select('id,nome,descricao,cor,icone,created_at,updated_at')
-      .single();
-    if (createErr) throw new Error(createErr.message);
-    if (created) rows = [created];
-  }
+  const rows = Array.isArray(data) ? data : [];
 
   const targetId = rows[0]?.id;
   if (targetId) await adoptOrphanMissions(targetId);
@@ -110,7 +96,7 @@ async function ensureDefaultProfileRows() {
 }
 
 async function fetchProfiles() {
-  const data = await ensureDefaultProfileRows();
+  const data = await fetchProfileRows();
   const profileIds = (data || []).map((row) => row.id).filter(Boolean);
   const counts = await countMissionsByProfileIds(profileIds);
   return (data || []).map((row) => mapProfileRow({ ...row, missions_count: counts.get(row.id) || 0 }));
@@ -1059,7 +1045,7 @@ export default async function handler(req, res) {
         return json(res, 400, { error: 'profile_id obrigatório para carregar treinos' });
       }
 
-      await ensureDefaultProfileRows();
+      await fetchProfileRows();
 
       const queryDate = req.query?.date;
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
