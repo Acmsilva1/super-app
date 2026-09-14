@@ -32,6 +32,12 @@ function normalizeCompare(value) {
   return String(value ?? '').trim().toLowerCase();
 }
 
+export function sameEntityId(left, right) {
+  const leftId = String(left ?? '').trim();
+  const rightId = String(right ?? '').trim();
+  return Boolean(leftId && rightId && leftId === rightId);
+}
+
 function normalizeWeekdayText(value) {
   return String(value ?? '')
     .normalize('NFD')
@@ -288,7 +294,7 @@ class MissoesTreinoApp {
   }
 
   selectProfile(profileId) {
-    const profile = this.profiles.find((item) => String(item.id) === String(profileId));
+    const profile = this.profiles.find((item) => sameEntityId(item.id, profileId));
     if (!profile) return;
     this.selectedProfile = profile;
     this.currentView = 'training';
@@ -308,7 +314,7 @@ class MissoesTreinoApp {
 
   openProfileModal(profileId = null) {
     this.editingProfileId = profileId;
-    const profile = profileId ? this.profiles.find((item) => String(item.id) === String(profileId)) : null;
+    const profile = profileId ? this.profiles.find((item) => sameEntityId(item.id, profileId)) : null;
     if (profile) {
       this.profileModalTitleEl.textContent = 'EDITAR PERFIL';
       this.profileModalDescEl.textContent = 'Atualize nome, descrição e cor deste perfil.';
@@ -380,7 +386,7 @@ class MissoesTreinoApp {
   }
 
   async deleteProfile(profileId) {
-    const profile = this.profiles.find((item) => String(item.id) === String(profileId));
+    const profile = this.profiles.find((item) => sameEntityId(item.id, profileId));
     if (!profile) return;
     const confirmed = await this.openConfirm({
       title: 'EXCLUIR PERFIL',
@@ -395,7 +401,7 @@ class MissoesTreinoApp {
         method: 'DELETE',
         body: JSON.stringify({ resource: 'profile', profile_id: profileId }),
       });
-      if (this.selectedProfile && String(this.selectedProfile.id) === String(profileId)) {
+      if (this.selectedProfile && sameEntityId(this.selectedProfile.id, profileId)) {
         this.backToProfiles();
         return;
       }
@@ -587,7 +593,7 @@ class MissoesTreinoApp {
   openModal(missionId = null) {
     this.editingMissionId = missionId;
     if (missionId) {
-      const mission = this.missions.find((m) => m.id === missionId);
+      const mission = this.missions.find((m) => sameEntityId(m.id, missionId));
       this.tempMissions = (mission?.items || []).map((item) => {
         const meta = parseExerciseMeta(item);
         const series = Number(item.series || meta.series || 1);
@@ -650,7 +656,7 @@ class MissoesTreinoApp {
       completed: false,
     };
     if (this.editingTempItemId) {
-      this.tempMissions = this.tempMissions.map((item) => (item.id === this.editingTempItemId ? { ...item, ...payload } : item));
+      this.tempMissions = this.tempMissions.map((item) => (sameEntityId(item.id, this.editingTempItemId) ? { ...item, ...payload } : item));
     } else {
       this.tempMissions.push(payload);
     }
@@ -660,7 +666,7 @@ class MissoesTreinoApp {
   }
 
   startEditTempItem(id) {
-    const item = this.tempMissions.find((row) => row.id === id);
+    const item = this.tempMissions.find((row) => sameEntityId(row.id, id));
     if (!item) return;
     this.editingTempItemId = item.id;
     this.tempNameInput.value = item.name || '';
@@ -672,8 +678,8 @@ class MissoesTreinoApp {
   }
 
   removeTempItem(id) {
-    this.tempMissions = this.tempMissions.filter((item) => item.id !== id);
-    if (this.editingTempItemId === id) this.resetTempInputs();
+    this.tempMissions = this.tempMissions.filter((item) => !sameEntityId(item.id, id));
+    if (sameEntityId(this.editingTempItemId, id)) this.resetTempInputs();
     this.renderTempList();
   }
 
@@ -686,7 +692,12 @@ class MissoesTreinoApp {
   }
 
   async commitMissions() {
-    if (!this.tempMissions.length) return;
+    if (!this.tempMissions.length) this.addTempItem();
+    if (!this.tempMissions.length) {
+      this.showToast('Preencha um exercício, séries e repetições antes de criar a missão.', 'error');
+      this.tempNameInput?.focus();
+      return;
+    }
     const isEditingMission = Boolean(this.editingMissionId);
     if (!isEditingMission) {
       const missionTitle = String(this.tempTitleInput?.value || '').trim() || 'Novo treino';
@@ -758,7 +769,7 @@ class MissoesTreinoApp {
   }
 
   async deleteMission(missionId) {
-    const mission = this.missions.find((m) => m.id === missionId);
+    const mission = this.missions.find((m) => sameEntityId(m.id, missionId));
     if (!mission) return;
     const confirmed = await this.openConfirm({
       title: 'EXCLUIR MISSÃO',
@@ -775,7 +786,7 @@ class MissoesTreinoApp {
         method: 'DELETE',
         body: JSON.stringify({ mission_id: missionId }),
       });
-      this.missions = this.missions.filter((m) => m.id !== missionId);
+      this.missions = this.missions.filter((m) => !sameEntityId(m.id, missionId));
       this.setNotice('Missão removida do banco.');
       this.showToast({
         type: 'confirm-delete',

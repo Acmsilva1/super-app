@@ -18,4 +18,13 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('.saude-table-wrap { width: 100%; overflow: hidden;');
     expect(source).toContain('.saude-table tr { display: grid;');
   });
+
+  it('oferece perfis familiares com formulario, IMC e linha do tempo responsiva', () => {
+    expect(source).toContain('data-saude-action="open-profiles"');
+    expect(source).toContain('data-saude-profile-form');
+    expect(source).toContain('Linha do tempo');
+    expect(source).toContain('calcularImc(profile.peso_kg, profile.altura_cm)');
+    expect(source).toContain('.saude-profile-summary { grid-template-columns: 1fr 1fr; }');
+    expect(source).toContain('.saude-profile-form__grid { grid-template-columns: 1fr; }');
+  });
 });

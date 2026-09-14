@@ -3,6 +3,7 @@ import {
   opcoesTabelaNutricional,
   paginarTabelaNutricional,
 } from './service/tabelaNutricionalService.js';
+import { calcularImc, classificarImc, formatarNumeroSaude } from './service/perfilSaudeService.js';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -64,9 +65,9 @@ const SAUDE_STYLES = `
     .saude-editor__grid { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: .75rem; }
     .saude-editor__actions { display: flex; justify-content: flex-end; gap: .65rem; margin-top: .9rem; }
     .saude-filters { display: grid; grid-template-columns: minmax(14rem, 2fr) minmax(10rem, 1fr); gap: .85rem; margin-bottom: 1rem; padding: 1rem; border: 1px solid rgba(148, 163, 184, .18); border-radius: 1rem; background: rgba(15, 23, 42, .94); box-shadow: 0 12px 28px rgba(0, 0, 0, .2); }
-    .saude-field-group { display: grid; gap: .35rem; }
+    .saude-field-group { min-width: 0; display: grid; gap: .35rem; }
     .saude-field-group label { color: var(--saude-texto-secundario); font-size: .76rem; font-weight: 700; }
-    .saude-field { width: 100%; min-height: 2.65rem; padding: .65rem .75rem; border: 1px solid var(--saude-frame); border-radius: .7rem; background: #0b1324; color: var(--saude-texto); font: inherit; }
+    .saude-field { box-sizing: border-box; width: 100%; min-width: 0; min-height: 2.65rem; padding: .65rem .75rem; border: 1px solid var(--saude-frame); border-radius: .7rem; background: #0b1324; color: var(--saude-texto); font: inherit; }
     textarea.saude-field { min-height: 4.35rem; resize: vertical; }
     .saude-field::placeholder { color: #708198; }
     .saude-notice { display: flex; align-items: flex-start; gap: .55rem; margin: 0 0 1rem; padding: .75rem .85rem; border: 1px solid rgba(74, 164, 85, .35); border-radius: .75rem; background: rgba(50, 119, 70, .16); color: #d9f5df; font-size: .82rem; }
@@ -121,6 +122,26 @@ const SAUDE_STYLES = `
     .saude-diet-day__body { padding: 0 .8rem .9rem; }
     .saude-diet-day__stats { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .7rem; }
     .saude-diet-day__stats span { padding: .25rem .5rem; border-radius: .55rem; background: rgba(50, 119, 70, .2); color: #d9f5df; font-size: .72rem; }
+    .saude-profile-list { display: grid; gap: 1rem; }
+    .saude-profile-card { overflow: hidden; border: 1px solid rgba(148, 163, 184, .18); border-radius: 1rem; background: var(--saude-painel); box-shadow: 0 14px 30px rgba(0, 0, 0, .24); }
+    .saude-profile-card__header { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: 1rem; }
+    .saude-profile-card__identity { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+    .saude-profile-avatar { width: 3rem; height: 3rem; display: grid; place-items: center; flex: 0 0 auto; border-radius: 50%; background: linear-gradient(135deg, var(--saude-musgo), var(--saude-verde)); color: #fff; font-size: 1.2rem; }
+    .saude-profile-card h3 { margin: 0; font-size: 1.05rem; }
+    .saude-profile-card__subtitle { margin: .2rem 0 0; color: var(--saude-texto-secundario); font-size: .78rem; }
+    .saude-profile-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; padding: 0 1rem 1rem; }
+    .saude-profile-stat { padding: .75rem; border: 1px solid rgba(148, 163, 184, .14); border-radius: .75rem; background: rgba(22, 34, 56, .62); }
+    .saude-profile-stat span { display: block; color: var(--saude-texto-secundario); font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+    .saude-profile-stat strong { display: block; margin-top: .25rem; font-size: 1rem; }
+    .saude-profile-timeline { padding: 0 1rem 1rem; }
+    .saude-profile-timeline > summary { padding: .75rem 0; border-top: 1px solid rgba(148, 163, 184, .14); color: var(--saude-lima); font-size: .82rem; font-weight: 700; cursor: pointer; }
+    .saude-timeline-list { display: grid; gap: .7rem; margin-top: .3rem; }
+    .saude-timeline-item { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: .8rem; padding-left: .85rem; border-left: 2px solid var(--saude-verde); }
+    .saude-timeline-date { color: var(--saude-texto-secundario); font-size: .75rem; line-height: 1.4; }
+    .saude-timeline-values { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .saude-timeline-values span { padding: .25rem .5rem; border-radius: .5rem; background: rgba(50, 119, 70, .18); color: #d9f5df; font-size: .72rem; }
+    .saude-profile-form__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+    .saude-profile-form__section { grid-column: 1 / -1; margin: .25rem 0 0; color: var(--saude-lima); font-size: .78rem; font-weight: 700; text-transform: uppercase; }
     @media (max-width: 760px) {
       .saude-root { padding: .85rem; }
       .saude-hero__image { width: 3.75rem; height: 3.75rem; }
@@ -136,6 +157,9 @@ const SAUDE_STYLES = `
       .saude-diet-form__grid, .saude-diet-day-editor__body { grid-template-columns: 1fr; }
       .saude-diet-row { padding: .8rem; }
       .saude-diet-row__actions { flex-direction: column; }
+      .saude-profile-form__grid { grid-template-columns: 1fr; }
+      .saude-profile-summary { grid-template-columns: 1fr 1fr; }
+      .saude-timeline-item { grid-template-columns: 1fr; gap: .3rem; }
       .saude-diet-open span { display: none; }
       .saude-filters { grid-template-columns: 1fr; }
       .saude-table-wrap { overflow: hidden; border: 1px solid rgba(148, 163, 184, .18); border-radius: .85rem; background: var(--saude-painel); box-shadow: 0 10px 24px rgba(0, 0, 0, .2); }
@@ -163,6 +187,7 @@ const SAUDE_STYLES = `
       .saude-btn--insert span { display: none; }
       .saude-btn--insert { width: 2.8rem; padding: 0; }
       .saude-filters { padding: .8rem; }
+      .saude-profile-card__header { align-items: flex-start; }
     }
   </style>
 `;
@@ -207,6 +232,12 @@ function renderHome(container) {
           <span class="saude-access-card__icon"><i class="fas fa-bowl-food" aria-hidden="true"></i></span>
           <h2>Dietas</h2>
           <p>Crie e consulte planos alimentares organizados por dia.</p>
+          <span class="saude-access-card__action">Acessar <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+        </button>
+        <button type="button" class="saude-access-card" data-saude-action="open-profiles">
+          <span class="saude-access-card__icon"><i class="fas fa-user-group" aria-hidden="true"></i></span>
+          <h2>Perfil</h2>
+          <p>Acompanhe peso, medidas, IMC e a evolução de cada pessoa da família.</p>
           <span class="saude-access-card__action">Acessar <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
         </button>
       </div>
@@ -440,6 +471,90 @@ async function loadDietas(container, state) {
   }
 }
 
+function blankProfileDraft() {
+  return { nome: '', sexo: '', data_nascimento: '', peso_kg: '', altura_cm: '', cintura_cm: '', quadril_cm: '', peito_cm: '', braco_cm: '', coxa_cm: '' };
+}
+
+function profileAge(birthDate) {
+  const birth = new Date(`${birthDate}T12:00:00`);
+  if (Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age -= 1;
+  return age;
+}
+
+function formatDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Data indisponível';
+  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function profileSexLabel(value) {
+  return ({ feminino: 'Feminino', masculino: 'Masculino', outro: 'Outro', nao_informado: 'Prefere não informar' })[value] || value;
+}
+
+function renderProfileForm(state) {
+  if (!state.profileEditorOpen) return '';
+  const draft = state.profileDraft || blankProfileDraft();
+  const numberField = (name, label, min, max, required = false) => `<div class="saude-field-group"><label for="profile-${name}">${label}</label><input id="profile-${name}" name="${name}" class="saude-field" type="number" inputmode="decimal" step="0.1" min="${min}" max="${max}"${required ? ' required' : ''} value="${escapeHtml(draft[name])}"></div>`;
+  return `<form class="saude-editor" data-saude-profile-form>
+    <h3 class="saude-editor__title">${state.profileEditingId ? 'Atualizar perfil' : 'Criar perfil'}</h3>
+    <div class="saude-profile-form__grid">
+      <div class="saude-field-group"><label for="profile-nome">Nome</label><input id="profile-nome" name="nome" class="saude-field" required maxlength="120" autocomplete="off" value="${escapeHtml(draft.nome)}" placeholder="Ex.: André"></div>
+      <div class="saude-field-group"><label for="profile-sexo">Sexo</label><select id="profile-sexo" name="sexo" class="saude-field" required><option value="">Selecione</option>${[['feminino', 'Feminino'], ['masculino', 'Masculino'], ['outro', 'Outro'], ['nao_informado', 'Prefere não informar']].map(([value, label]) => `<option value="${value}"${draft.sexo === value ? ' selected' : ''}>${label}</option>`).join('')}</select></div>
+      <div class="saude-field-group"><label for="profile-data-nascimento">Data de nascimento</label><input id="profile-data-nascimento" name="data_nascimento" class="saude-field" type="date" min="1900-01-01" max="${new Date().toISOString().slice(0, 10)}" required value="${escapeHtml(draft.data_nascimento)}"></div>
+      <p class="saude-profile-form__section">Dados para o IMC</p>
+      ${numberField('peso_kg', 'Peso (kg)', 1, 500, true)}
+      ${numberField('altura_cm', 'Altura (cm)', 30, 260, true)}
+      <p class="saude-profile-form__section">Medidas opcionais (cm)</p>
+      ${numberField('cintura_cm', 'Cintura', 10, 400)}
+      ${numberField('quadril_cm', 'Quadril', 10, 400)}
+      ${numberField('peito_cm', 'Peito', 10, 400)}
+      ${numberField('braco_cm', 'Braço', 5, 200)}
+      ${numberField('coxa_cm', 'Coxa', 5, 250)}
+    </div>
+    <div class="saude-editor__actions"><button type="button" class="saude-btn" data-saude-action="cancel-profile-editor"${state.busy ? ' disabled' : ''}>Cancelar</button><button type="submit" class="saude-btn saude-btn--primary"${state.busy ? ' disabled' : ''}>${state.busy ? '<i class="fas fa-spinner fa-spin"></i> Salvando' : '<i class="fas fa-check"></i> Salvar perfil'}</button></div>
+  </form>`;
+}
+
+function renderProfileTimeline(profile) {
+  const history = Array.isArray(profile.historico) ? profile.historico : [];
+  if (!history.length) return '';
+  const optionalMeasures = [['cintura_cm', 'Cintura'], ['quadril_cm', 'Quadril'], ['peito_cm', 'Peito'], ['braco_cm', 'Braço'], ['coxa_cm', 'Coxa']];
+  return `<details class="saude-profile-timeline"><summary>Linha do tempo · ${history.length} ${history.length === 1 ? 'registro' : 'registros'}</summary><div class="saude-timeline-list">${history.map((entry) => `<div class="saude-timeline-item"><time class="saude-timeline-date" datetime="${escapeHtml(entry.registrado_em)}">${escapeHtml(formatDateTime(entry.registrado_em))}</time><div class="saude-timeline-values"><span>${formatarNumeroSaude(entry.peso_kg)} kg</span><span>${formatarNumeroSaude(entry.altura_cm)} cm</span><span>IMC ${formatarNumeroSaude(entry.imc, 2)}</span>${optionalMeasures.filter(([field]) => entry[field] !== null && entry[field] !== undefined).map(([field, label]) => `<span>${label} ${formatarNumeroSaude(entry[field])} cm</span>`).join('')}</div></div>`).join('')}</div></details>`;
+}
+
+function renderProfiles(container, state) {
+  const content = state.profiles.length ? `<div class="saude-profile-list">${state.profiles.map((profile) => {
+    const age = profileAge(profile.data_nascimento);
+    const imc = profile.imc ?? calcularImc(profile.peso_kg, profile.altura_cm);
+    const classification = age !== null && age < 20 ? 'Referência varia por idade' : classificarImc(imc);
+    return `<article class="saude-profile-card"><div class="saude-profile-card__header"><div class="saude-profile-card__identity"><span class="saude-profile-avatar"><i class="fas fa-user"></i></span><div><h3>${escapeHtml(profile.nome)}</h3><p class="saude-profile-card__subtitle">${escapeHtml(profileSexLabel(profile.sexo))}${age === null ? '' : ` · ${age} ${age === 1 ? 'ano' : 'anos'}`}</p></div></div><button type="button" class="saude-btn" data-saude-action="edit-profile" data-saude-id="${escapeHtml(profile.id)}"><i class="fas fa-pencil"></i> Editar</button></div><div class="saude-profile-summary"><div class="saude-profile-stat"><span>Peso</span><strong>${formatarNumeroSaude(profile.peso_kg)} kg</strong></div><div class="saude-profile-stat"><span>Altura</span><strong>${formatarNumeroSaude(profile.altura_cm)} cm</strong></div><div class="saude-profile-stat"><span>IMC</span><strong>${formatarNumeroSaude(imc, 2)}</strong></div><div class="saude-profile-stat"><span>Referência</span><strong>${escapeHtml(classification)}</strong></div></div>${renderProfileTimeline(profile)}</article>`;
+  }).join('')}</div>` : '<div class="saude-empty"><i class="fas fa-user-group"></i>Nenhum perfil cadastrado. Crie o primeiro para começar a linha do tempo.</div>';
+  renderShell(container, `<section class="saude-page" aria-labelledby="profiles-title"><div class="saude-page-toolbar"><div class="saude-page-header"><button type="button" class="saude-btn" data-saude-action="home" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button><div><h2 id="profiles-title">Perfil</h2><p>Dados atuais e histórico de evolução da família.</p></div></div><button type="button" class="saude-btn saude-btn--primary saude-btn--insert" data-saude-action="add-profile"><i class="fas fa-plus"></i><span>Novo perfil</span></button></div>${state.notice ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>` : ''}${renderProfileForm(state)}${content}</section>`);
+}
+
+async function requestProfiles(method, payload) {
+  const response = await fetch('/api/saude?resource=perfis', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Não foi possível salvar o perfil.');
+  return data;
+}
+
+async function loadProfiles(container, state) {
+  renderLoading(container, 'Carregando perfis...');
+  try {
+    const response = await fetch('/api/saude?resource=perfis', { cache: 'no-store' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'O endpoint de perfis não respondeu corretamente.');
+    state.profiles = Array.isArray(data.rows) ? data.rows : [];
+    renderProfiles(container, state);
+  } catch (error) {
+    renderError(container, error instanceof Error ? error.message : 'Não foi possível carregar os perfis.');
+  }
+}
+
 function renderError(container, message) {
   renderShell(container, `
     <section class="saude-page saude-error" role="alert">
@@ -501,6 +616,10 @@ export async function renderSaudeContent(container) {
     dietEditorOpen: false,
     dietEditingId: null,
     dietDraft: blankDietDraft(),
+    profiles: [],
+    profileEditorOpen: false,
+    profileEditingId: null,
+    profileDraft: blankProfileDraft(),
   };
 
   const onClick = async (event) => {
@@ -511,7 +630,11 @@ export async function renderSaudeContent(container) {
       renderHome(container);
       return;
     }
-    if (action === 'open-tabela-nutricional' || (action === 'retry' && state.view !== 'dietas')) {
+    if (action === 'retry' && state.view === 'home') {
+      await renderSaudeContent(container);
+      return;
+    }
+    if (action === 'open-tabela-nutricional' || (action === 'retry' && state.view === 'tabela-nutricional')) {
       state.view = 'tabela-nutricional';
       await loadTabelaNutricional(container, state);
       return;
@@ -519,6 +642,38 @@ export async function renderSaudeContent(container) {
     if (action === 'open-dietas' || (action === 'retry' && state.view === 'dietas')) {
       state.view = 'dietas';
       await loadDietas(container, state);
+      return;
+    }
+    if (action === 'open-profiles' || (action === 'retry' && state.view === 'profiles')) {
+      state.view = 'profiles';
+      await loadProfiles(container, state);
+      return;
+    }
+    if (action === 'add-profile') {
+      state.profileEditorOpen = true;
+      state.profileEditingId = null;
+      state.profileDraft = blankProfileDraft();
+      state.notice = null;
+      renderProfiles(container, state);
+      requestAnimationFrame(() => container.querySelector('#profile-nome')?.focus());
+      return;
+    }
+    if (action === 'cancel-profile-editor') {
+      state.profileEditorOpen = false;
+      state.profileEditingId = null;
+      state.profileDraft = blankProfileDraft();
+      renderProfiles(container, state);
+      return;
+    }
+    if (action === 'edit-profile') {
+      const profile = state.profiles.find((item) => Number(item.id) === Number(actionElement.dataset.saudeId));
+      if (!profile) return;
+      state.profileEditorOpen = true;
+      state.profileEditingId = Number(profile.id);
+      state.profileDraft = { ...blankProfileDraft(), ...profile };
+      state.notice = null;
+      renderProfiles(container, state);
+      requestAnimationFrame(() => container.querySelector('#profile-nome')?.focus());
       return;
     }
     if (action === 'back-diets') {
@@ -627,6 +782,49 @@ export async function renderSaudeContent(container) {
   };
 
   const onSubmit = async (event) => {
+    const profileForm = event.target.closest('[data-saude-profile-form]');
+    if (profileForm) {
+      event.preventDefault();
+      if (state.busy || !profileForm.reportValidity()) return;
+      const values = new FormData(profileForm);
+      const decimal = (name) => {
+        const value = String(values.get(name) || '').trim();
+        return value === '' ? null : Number(value.replace(',', '.'));
+      };
+      state.profileDraft = {
+        nome: String(values.get('nome') || '').trim(),
+        sexo: String(values.get('sexo') || ''),
+        data_nascimento: String(values.get('data_nascimento') || ''),
+        peso_kg: decimal('peso_kg'),
+        altura_cm: decimal('altura_cm'),
+        cintura_cm: decimal('cintura_cm'),
+        quadril_cm: decimal('quadril_cm'),
+        peito_cm: decimal('peito_cm'),
+        braco_cm: decimal('braco_cm'),
+        coxa_cm: decimal('coxa_cm'),
+      };
+      state.busy = true;
+      state.notice = null;
+      renderProfiles(container, state);
+      try {
+        const editingId = state.profileEditingId;
+        const result = await requestProfiles(editingId ? 'PATCH' : 'POST', { ...(editingId ? { id: editingId } : {}), ...state.profileDraft });
+        state.profiles = editingId
+          ? state.profiles.map((profile) => Number(profile.id) === editingId ? result.row : profile)
+          : [...state.profiles, result.row];
+        state.profileEditorOpen = false;
+        state.profileEditingId = null;
+        state.profileDraft = blankProfileDraft();
+        state.notice = { type: 'success', text: editingId ? 'Perfil atualizado com sucesso.' : 'Perfil criado e primeiro registro salvo na linha do tempo.' };
+      } catch (error) {
+        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível salvar o perfil.' };
+      } finally {
+        state.busy = false;
+        renderProfiles(container, state);
+      }
+      return;
+    }
+
     const dietForm = event.target.closest('[data-saude-diet-form]');
     if (dietForm) {
       event.preventDefault();

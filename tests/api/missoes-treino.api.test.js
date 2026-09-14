@@ -218,10 +218,24 @@ describe('API missoes-treino', () => {
   });
 
   it('DELETE resource=profile remove perfil', async () => {
-    const eq = vi.fn().mockResolvedValue({ error: null });
-    const del = vi.fn(() => ({ eq }));
+    const profileEq = vi.fn().mockResolvedValue({ error: null });
+    const missionSelectEq = vi.fn().mockResolvedValue({ data: [{ id: 10 }, { id: 11 }], error: null });
+    const missionDeleteEq = vi.fn().mockResolvedValue({ error: null });
+    const itemsIn = vi.fn().mockResolvedValue({ error: null });
+    const flamesIn = vi.fn().mockResolvedValue({ error: null });
 
-    fromMock.mockReturnValue({ delete: del });
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_missoes_treino_perfis') return { delete: vi.fn(() => ({ eq: profileEq })) };
+      if (table === 'tb_missoes_treino') {
+        return {
+          select: vi.fn(() => ({ eq: missionSelectEq })),
+          delete: vi.fn(() => ({ eq: missionDeleteEq })),
+        };
+      }
+      if (table === 'tb_missoes_treino_itens') return { delete: vi.fn(() => ({ in: itemsIn })) };
+      if (table === 'tb_missoes_treino_chamas') return { delete: vi.fn(() => ({ in: flamesIn })) };
+      return {};
+    });
 
     const app = createApp(missoesTreinoHandler);
     const res = await request(app)
@@ -230,8 +244,10 @@ describe('API missoes-treino', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true, profile_id: 3 });
-    expect(del).toHaveBeenCalled();
-    expect(eq).toHaveBeenCalledWith('id', 3);
+    expect(itemsIn).toHaveBeenCalledWith('missao_id', [10, 11]);
+    expect(flamesIn).toHaveBeenCalledWith('mission_id', [10, 11]);
+    expect(missionDeleteEq).toHaveBeenCalledWith('perfil_id', 3);
+    expect(profileEq).toHaveBeenCalledWith('id', 3);
   });
 
   it('POST missao sem profile_id retorna 400', async () => {

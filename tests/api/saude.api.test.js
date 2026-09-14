@@ -111,4 +111,35 @@ describe('API de saúde', () => {
     expect(res.status).toBe(405);
     expect(res.headers.allow).toBe('GET, POST, PATCH, DELETE');
   });
+
+  it('cria perfis, calcula IMC e registra nova linha ao alterar medidas', async () => {
+    const app = createApp();
+    const payload = {
+      nome: 'Perfil de teste', sexo: 'masculino', data_nascimento: '1990-05-10',
+      peso_kg: 80, altura_cm: 180, cintura_cm: 90, quadril_cm: null, peito_cm: null, braco_cm: null, coxa_cm: null,
+    };
+    const created = await request(app).post('/api/saude?resource=perfis').send(payload);
+    expect(created.status).toBe(201);
+    expect(created.body.row.imc).toBe(24.69);
+    expect(created.body.row.historico).toHaveLength(1);
+
+    const updated = await request(app).patch('/api/saude?resource=perfis').send({ ...payload, id: created.body.row.id, peso_kg: 78 });
+    expect(updated.status).toBe(200);
+    expect(updated.body.row.imc).toBe(24.07);
+    expect(updated.body.row.historico).toHaveLength(2);
+
+    const renamed = await request(app).patch('/api/saude?resource=perfis').send({ ...payload, id: created.body.row.id, nome: 'Nome atualizado', peso_kg: 78 });
+    expect(renamed.status).toBe(200);
+    expect(renamed.body.row.historico).toHaveLength(2);
+
+    const listed = await request(app).get('/api/saude?resource=perfis');
+    expect(listed.body.rows.some((profile) => profile.nome === 'Nome atualizado')).toBe(true);
+  });
+
+  it('rejeita perfil com data futura ou medidas fora do limite', async () => {
+    const res = await request(createApp()).post('/api/saude?resource=perfis').send({
+      nome: 'Invalido', sexo: 'masculino', data_nascimento: '2999-01-01', peso_kg: 0, altura_cm: 180,
+    });
+    expect(res.status).toBe(400);
+  });
 });

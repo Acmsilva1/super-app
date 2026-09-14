@@ -44,6 +44,7 @@ super-app/
 | `lista_compras` | Lista com prioridade e check | `/api/lista-compras` |
 | `fluxograma` | Diagramas locais e em nuvem | `/api/fluxograma`, `/api/fluxograma-export` |
 | `missoes_treino` | Perfis e treinos | `/api/missoes-treino` |
+| `saude` | Tabela nutricional, dietas e perfis familiares | `/api/saude` |
 
 ### Fluxo Geral
 
@@ -83,6 +84,7 @@ Config publica consumida pelo frontend: `GET /api/auth-config`.
 | `lista_compras` | Inline | `index.html` |
 | `fluxograma` | Dynamic import | `features/fluxograma/index.js` |
 | `missoes_treino` | Dynamic import | `features/missoes_treino/index.js` |
+| `saude` | Dynamic import | `features/saude/index.js` |
 
 Padrao de cleanup ao fechar janela:
 
@@ -140,6 +142,27 @@ Abrir modulo -> perfis -> selecionar perfil -> treinos do perfil -> voltar para 
 - Sem filtro obrigatorio por dia da semana.
 - Sem carry-over automatico.
 - Mock local ativo em `localhost`, `127.0.0.1` e `[::1]`.
+- IDs vindos do Supabase sao normalizados na UI antes de editar ou excluir, evitando divergencia entre IDs numericos da API e atributos textuais do HTML.
+- Ao criar uma missao, o exercicio ainda preenchido no formulario e adicionado automaticamente; se os campos estiverem invalidos, a UI mostra feedback em vez de ignorar o clique.
+- A exclusao de perfil remove primeiro itens, chamas e missoes vinculadas, sem depender exclusivamente de cascata implicita no banco.
+- Se a insercao dos itens falhar depois da criacao da missao, a API remove a missao incompleta para nao deixar registro orfao.
+
+### Saude
+
+| Arquivo | Papel |
+|---|---|
+| `features/saude/index.js` | UI da tabela nutricional, dietas e perfis |
+| `features/saude/service/perfilSaudeService.js` | Calculo, classificacao e formatacao do IMC |
+| `features/saude/service/tabelaNutricionalService.js` | Filtros e paginacao nutricional |
+| `api/saude.js` | Contratos e persistencia do modulo |
+
+O subtopico `Perfil` permite cadastrar varias pessoas da familia. Cada perfil possui nome, sexo, data de nascimento, peso e altura obrigatorios, alem de cintura, quadril, peito, braco e coxa opcionais.
+
+O IMC e calculado automaticamente por `peso_kg / (altura_m * altura_m)`. Para menores de 20 anos, a interface exibe o valor, mas nao aplica a classificacao adulta, pois a referencia pediatrica depende de idade e sexo.
+
+Na criacao do perfil, o banco grava o primeiro snapshot de medidas. Atualizacoes de peso, altura ou circunferencias geram automaticamente outro registro com `registrado_em`, formando a linha do tempo. Alteracoes somente em nome, sexo ou nascimento nao duplicam o historico de medidas.
+
+O modo `OFFLINE_DEV=true` simula o CRUD e a linha do tempo em memoria. Esses dados sao descartados quando o servidor local e reiniciado.
 
 ## 3. Backend
 
@@ -186,6 +209,15 @@ Abrir modulo -> perfis -> selecionar perfil -> treinos do perfil -> voltar para 
 | `/api/fluxograma` | GET, POST, PATCH, DELETE | Admin | Projetos de fluxograma |
 | `/api/fluxograma-export` | GET | Admin | Exportacao PNG |
 | `/api/missoes-treino` | GET, POST, PATCH, DELETE | Admin | Perfis, missoes e itens |
+| `/api/saude` | GET, POST, PATCH, DELETE | Admin | Tabela nutricional e dietas; `resource=perfis` aceita GET, POST e PATCH |
+
+### Regras dos Perfis de Saude
+
+- `GET /api/saude?resource=perfis` lista somente os perfis do usuario autenticado e inclui o historico de medidas.
+- `POST /api/saude?resource=perfis` cria o perfil e o primeiro ponto da linha do tempo.
+- `PATCH /api/saude?resource=perfis` atualiza o perfil; o trigger do banco registra novo snapshot apenas quando uma medida muda.
+- A API valida data de nascimento, sexo e limites de peso, altura e circunferencias antes da gravacao.
+- Mesmo em chamadas administrativas, a API filtra `created_by` explicitamente para impedir mistura de dados entre contas.
 
 ### Regras do Financeiro
 
@@ -296,12 +328,17 @@ As views usam `security_invoker = true` para respeitar RLS das tabelas base.
 | `tb_missoes_treino` | Missoes de treino |
 | `tb_missoes_treino_itens` | Itens das missoes |
 | `tb_missoes_treino_chamas` | Historico/estado mensal de conclusao |
+| `tb_saude_tabela_nutricional` | Itens e porcoes equivalentes |
+| `tb_saude_dietas` | Planos alimentares estruturados por dia |
+| `tb_saude_perfis` | Dados atuais dos perfis familiares |
+| `tb_saude_perfil_medidas` | Snapshots com IMC e timestamp da linha do tempo |
 
 ### RLS e LGPD
 
 - Tabelas financeiras: acesso por `user_id = auth.uid()` ou admin.
 - Lista de compras: acesso por usuario.
 - Fluxograma e missoes de treino: acesso admin-only no desenho atual.
+- Perfis de saude: acesso restrito a `created_by = auth.uid()` nas tabelas de perfis e medidas; a API repete o filtro por usuario.
 - `anon` nao deve ter acesso direto as tabelas de dados.
 - `.env`, tokens, service role e credenciais nao devem ser versionados.
 - `SUPABASE_SERVICE_ROLE_KEY` nunca deve ir para frontend, bundle ou arquivo publico.
@@ -343,6 +380,9 @@ As views usam `security_invoker = true` para respeitar RLS das tabelas base.
 | `20260813_adopt_orphan_missoes_treino.sql` | Backfill de missoes sem perfil |
 | `20260830_financeiro_views_agregadas.sql` | Views agregadas financeiras |
 | `20260830_tb_despesas_fixas_pendente_mes.sql` | Flag mensal de pendencia em despesas fixas |
+| `20260913_create_saude_module.sql` | Modulo Saude, tabela nutricional, permissoes e RLS |
+| `20260914_create_saude_dietas.sql` | Dietas estruturadas e RLS |
+| `20260914_create_saude_perfis.sql` | Perfis familiares, IMC, historico automatico e RLS por usuario |
 
 ### Scripts
 
@@ -395,6 +435,11 @@ Suites principais:
 | `tests/api/fluxograma-export.api.test.js` | Export PNG |
 | `tests/api/missoes-treino.api.test.js` | Perfis e treinos |
 | `tests/api/disponibilidade.api.test.js` | Health checks |
+| `tests/api/saude.api.test.js` | CRUD de Saude, perfis, IMC e linha do tempo |
+| `tests/database/saudeSql.test.js` | Migrations, triggers e RLS de Saude |
+| `tests/ui/saudeUi.test.js` | Estrutura responsiva do modulo Saude |
+| `tests/services/perfilSaude.service.test.js` | Calculo e classificacao do IMC |
+| `tests/services/missoesTreinoUi.test.js` | IDs numericos/textuais e criacao direta de missao |
 | `tests/services/*.test.js` | Services e regras de dominio |
 
 ### Checkpoints
@@ -415,6 +460,8 @@ Suites principais:
 | 2026-09-11 | Cache otimista para todas as mutacoes financeiras, timeout persistente de 2 minutos e alerta restaurado na reabertura sem armazenar payload financeiro; checkpoint sem hash porque o workspace nao e um repositorio Git valido |
 | 2026-09-11 | Mutacoes simuladas no modo offline corrigem `fetch failed` no preview local e indicador visual diferencia sincronizacao e confirmacao; checkpoint sem hash porque o workspace nao e um repositorio Git valido |
 | 2026-09-11 | `.gitignore` reforcado para excluir relatorios de cobertura, caches, temporarios, configuracoes locais de IDE/agentes e arquivos comuns de credenciais; assets da aplicacao permanecem versionaveis |
+| 2026-09-14 | Subtopico Perfil em Saude com perfis familiares, calculo automatico de IMC, snapshots de medidas, linha do tempo, RLS por usuario e QA visual desktop/mobile; workspace atual sem `.git` |
+| 2026-09-14 | CRUD de Missoes de Treino corrigido para IDs do Supabase, criacao direta com exercicio preenchido, limpeza de dependencias na exclusao e rollback de missao incompleta |
 
 ## 6. Como Rodar
 
@@ -431,6 +478,7 @@ Para rodar com Supabase real, configure as variaveis de ambiente localmente ou n
 
 - Aplicar `migration/20260830_financeiro_views_agregadas.sql` no Supabase real antes de depender da nova view anual em producao.
 - Aplicar `migration/20260830_tb_despesas_fixas_pendente_mes.sql` no Supabase real antes de usar a flag mensal de pendencias.
+- Aplicar `migration/20260914_create_saude_perfis.sql` no Supabase real antes de usar os perfis de Saude fora do modo offline. A migration `20260913_create_saude_module.sql` e pre-requisito.
 - Corrigir encoding mojibake herdado em arquivos antigos e alguns textos existentes.
 - Avaliar avisos do `npm run test:ux`: atualmente sao warnings, sem bloqueio critico.
 - Rodar SAST/secret scanning antes de qualquer deploy relevante: Gitleaks e, quando aplicavel, Opengrep.

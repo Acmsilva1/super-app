@@ -157,6 +157,24 @@ async function updateProfile(profileId, body = {}) {
 }
 
 async function deleteProfile(profileId) {
+  const { data: missions, error: missionsError } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id')
+    .eq('perfil_id', profileId);
+  if (missionsError) throw new Error(missionsError.message);
+
+  const missionIds = (missions || []).map((mission) => mission.id).filter(Boolean);
+  if (missionIds.length) {
+    const { error: itemsError } = await supabase.from(TABLE_ITENS).delete().in('missao_id', missionIds);
+    if (itemsError) throw new Error(itemsError.message);
+
+    const { error: flamesError } = await supabase.from(TABLE_CHAMAS).delete().in('mission_id', missionIds);
+    if (flamesError && !isMissingChamasTableError(flamesError.message)) throw new Error(flamesError.message);
+
+    const { error: deleteMissionsError } = await supabase.from(TABLE_MISSOES).delete().eq('perfil_id', profileId);
+    if (deleteMissionsError) throw new Error(deleteMissionsError.message);
+  }
+
   const { error } = await supabase.from(TABLE_PERFIS).delete().eq('id', profileId);
   if (error) throw new Error(error.message);
   return { ok: true, profile_id: profileId };
@@ -1087,7 +1105,10 @@ export default async function handler(req, res) {
         concluida: Boolean(item.concluida),
       }));
       const { error: iErr } = await supabase.from(TABLE_ITENS).insert(payload);
-      if (iErr) return json(res, 500, { error: iErr.message });
+      if (iErr) {
+        await supabase.from(TABLE_MISSOES).delete().eq('id', mission.id);
+        return json(res, 500, { error: iErr.message });
+      }
 
       const missions = await fetchMissionsByProfile(profileId);
       const created = missions.find((m) => m.id === mission.id) || null;
