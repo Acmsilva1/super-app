@@ -14,6 +14,12 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
+function todayIsoDate() {
+  const now = new Date();
+  const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+  return localDate.toISOString().slice(0, 10);
+}
+
 const SAUDE_STYLES = `
   <style>
     .saude-root {
@@ -136,7 +142,7 @@ const SAUDE_STYLES = `
     .saude-profile-timeline { padding: 0 1rem 1rem; }
     .saude-profile-timeline > summary { padding: .75rem 0; border-top: 1px solid rgba(148, 163, 184, .14); color: var(--saude-lima); font-size: .82rem; font-weight: 700; cursor: pointer; }
     .saude-timeline-list { display: grid; gap: .7rem; margin-top: .3rem; }
-    .saude-timeline-item { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: .8rem; padding-left: .85rem; border-left: 2px solid var(--saude-verde); }
+    .saude-timeline-item { display: grid; grid-template-columns: 8rem minmax(0, 1fr) auto; align-items: start; gap: .8rem; padding-left: .85rem; border-left: 2px solid var(--saude-verde); }
     .saude-timeline-date { color: var(--saude-texto-secundario); font-size: .75rem; line-height: 1.4; }
     .saude-timeline-values { display: flex; flex-wrap: wrap; gap: .35rem; }
     .saude-timeline-values span { padding: .25rem .5rem; border-radius: .5rem; background: rgba(50, 119, 70, .18); color: #d9f5df; font-size: .72rem; }
@@ -472,7 +478,7 @@ async function loadDietas(container, state) {
 }
 
 function blankProfileDraft() {
-  return { nome: '', sexo: '', data_nascimento: '', peso_kg: '', altura_cm: '', cintura_cm: '', quadril_cm: '', peito_cm: '', braco_cm: '', coxa_cm: '' };
+  return { nome: '', sexo: '', data_nascimento: '', data_medicao: todayIsoDate(), peso_kg: '', altura_cm: '', cintura_cm: '', quadril_cm: '', peito_cm: '', braco_cm: '', coxa_cm: '' };
 }
 
 function profileAge(birthDate) {
@@ -487,7 +493,15 @@ function profileAge(birthDate) {
 function formatDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Data indisponível';
-  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
+
+function dateInputFromTimestamp(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return todayIsoDate();
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${byType.year}-${byType.month}-${byType.day}`;
 }
 
 function profileSexLabel(value) {
@@ -504,6 +518,7 @@ function renderProfileForm(state) {
       <div class="saude-field-group"><label for="profile-nome">Nome</label><input id="profile-nome" name="nome" class="saude-field" required maxlength="120" autocomplete="off" value="${escapeHtml(draft.nome)}" placeholder="Ex.: André"></div>
       <div class="saude-field-group"><label for="profile-sexo">Sexo</label><select id="profile-sexo" name="sexo" class="saude-field" required><option value="">Selecione</option>${[['feminino', 'Feminino'], ['masculino', 'Masculino'], ['outro', 'Outro'], ['nao_informado', 'Prefere não informar']].map(([value, label]) => `<option value="${value}"${draft.sexo === value ? ' selected' : ''}>${label}</option>`).join('')}</select></div>
       <div class="saude-field-group"><label for="profile-data-nascimento">Data de nascimento</label><input id="profile-data-nascimento" name="data_nascimento" class="saude-field" type="date" min="1900-01-01" max="${new Date().toISOString().slice(0, 10)}" required value="${escapeHtml(draft.data_nascimento)}"></div>
+      <div class="saude-field-group"><label for="profile-data-medicao">Data da medição</label><input id="profile-data-medicao" name="data_medicao" class="saude-field" type="date" required value="${escapeHtml(draft.data_medicao)}"></div>
       <p class="saude-profile-form__section">Dados para o IMC</p>
       ${numberField('peso_kg', 'Peso (kg)', 1, 500, true)}
       ${numberField('altura_cm', 'Altura (cm)', 30, 260, true)}
@@ -518,11 +533,31 @@ function renderProfileForm(state) {
   </form>`;
 }
 
-function renderProfileTimeline(profile) {
+function renderMeasurementForm(state) {
+  if (!state.measurementEditorOpen) return '';
+  const draft = state.measurementDraft || {};
+  const numberField = (name, label, min, max, required = false) => `<div class="saude-field-group"><label for="measurement-${name}">${label}</label><input id="measurement-${name}" name="${name}" class="saude-field" type="number" inputmode="decimal" step="0.1" min="${min}" max="${max}"${required ? ' required' : ''} value="${escapeHtml(draft[name])}"></div>`;
+  return `<form class="saude-editor" data-saude-measurement-form>
+    <h3 class="saude-editor__title">Editar medição salva</h3>
+    <div class="saude-profile-form__grid">
+      <div class="saude-field-group"><label for="measurement-data">Data da medição</label><input id="measurement-data" name="data_medicao" class="saude-field" type="date" required value="${escapeHtml(draft.data_medicao)}"></div>
+      ${numberField('peso_kg', 'Peso (kg)', 1, 500, true)}
+      ${numberField('altura_cm', 'Altura (cm)', 30, 260, true)}
+      ${numberField('cintura_cm', 'Cintura (cm)', 10, 400)}
+      ${numberField('quadril_cm', 'Quadril (cm)', 10, 400)}
+      ${numberField('peito_cm', 'Peito (cm)', 10, 400)}
+      ${numberField('braco_cm', 'Braço (cm)', 5, 200)}
+      ${numberField('coxa_cm', 'Coxa (cm)', 5, 250)}
+    </div>
+    <div class="saude-editor__actions"><button type="button" class="saude-btn" data-saude-action="cancel-measurement-editor"${state.busy ? ' disabled' : ''}>Cancelar</button><button type="submit" class="saude-btn saude-btn--primary"${state.busy ? ' disabled' : ''}>${state.busy ? '<i class="fas fa-spinner fa-spin"></i> Salvando' : '<i class="fas fa-check"></i> Salvar medição'}</button></div>
+  </form>`;
+}
+
+function renderProfileTimeline(profile, state) {
   const history = Array.isArray(profile.historico) ? profile.historico : [];
   if (!history.length) return '';
   const optionalMeasures = [['cintura_cm', 'Cintura'], ['quadril_cm', 'Quadril'], ['peito_cm', 'Peito'], ['braco_cm', 'Braço'], ['coxa_cm', 'Coxa']];
-  return `<details class="saude-profile-timeline"><summary>Linha do tempo · ${history.length} ${history.length === 1 ? 'registro' : 'registros'}</summary><div class="saude-timeline-list">${history.map((entry) => `<div class="saude-timeline-item"><time class="saude-timeline-date" datetime="${escapeHtml(entry.registrado_em)}">${escapeHtml(formatDateTime(entry.registrado_em))}</time><div class="saude-timeline-values"><span>${formatarNumeroSaude(entry.peso_kg)} kg</span><span>${formatarNumeroSaude(entry.altura_cm)} cm</span><span>IMC ${formatarNumeroSaude(entry.imc, 2)}</span>${optionalMeasures.filter(([field]) => entry[field] !== null && entry[field] !== undefined).map(([field, label]) => `<span>${label} ${formatarNumeroSaude(entry[field])} cm</span>`).join('')}</div></div>`).join('')}</div></details>`;
+  return `<details class="saude-profile-timeline"><summary>Linha do tempo · ${history.length} ${history.length === 1 ? 'registro' : 'registros'}</summary><div class="saude-timeline-list">${history.map((entry) => `<div class="saude-timeline-item"><time class="saude-timeline-date" datetime="${escapeHtml(entry.registrado_em)}">${escapeHtml(formatDateTime(entry.registrado_em))}</time><div class="saude-timeline-values"><span>${formatarNumeroSaude(entry.peso_kg)} kg</span><span>${formatarNumeroSaude(entry.altura_cm)} cm</span><span>IMC ${formatarNumeroSaude(entry.imc, 2)}</span>${optionalMeasures.filter(([field]) => entry[field] !== null && entry[field] !== undefined).map(([field, label]) => `<span>${label} ${formatarNumeroSaude(entry[field])} cm</span>`).join('')}</div><div><button type="button" class="saude-icon-btn" data-saude-action="edit-measurement" data-saude-profile-id="${escapeHtml(profile.id)}" data-saude-measurement-id="${escapeHtml(entry.id)}" aria-label="Editar medição de ${escapeHtml(formatDateTime(entry.registrado_em))}" title="Editar medição"${state.busy ? ' disabled' : ''}><i class="fas fa-pencil"></i></button><button type="button" class="saude-icon-btn saude-icon-btn--danger" data-saude-action="delete-measurement" data-saude-profile-id="${escapeHtml(profile.id)}" data-saude-measurement-id="${escapeHtml(entry.id)}" aria-label="Excluir medição de ${escapeHtml(formatDateTime(entry.registrado_em))}" title="Excluir medição"${state.busy ? ' disabled' : ''}><i class="fas fa-trash"></i></button></div></div>`).join('')}</div></details>`;
 }
 
 function renderProfiles(container, state) {
@@ -530,15 +565,29 @@ function renderProfiles(container, state) {
     const age = profileAge(profile.data_nascimento);
     const imc = profile.imc ?? calcularImc(profile.peso_kg, profile.altura_cm);
     const classification = age !== null && age < 20 ? 'Referência varia por idade' : classificarImc(imc);
-    return `<article class="saude-profile-card"><div class="saude-profile-card__header"><div class="saude-profile-card__identity"><span class="saude-profile-avatar"><i class="fas fa-user"></i></span><div><h3>${escapeHtml(profile.nome)}</h3><p class="saude-profile-card__subtitle">${escapeHtml(profileSexLabel(profile.sexo))}${age === null ? '' : ` · ${age} ${age === 1 ? 'ano' : 'anos'}`}</p></div></div><button type="button" class="saude-btn" data-saude-action="edit-profile" data-saude-id="${escapeHtml(profile.id)}"><i class="fas fa-pencil"></i> Editar</button></div><div class="saude-profile-summary"><div class="saude-profile-stat"><span>Peso</span><strong>${formatarNumeroSaude(profile.peso_kg)} kg</strong></div><div class="saude-profile-stat"><span>Altura</span><strong>${formatarNumeroSaude(profile.altura_cm)} cm</strong></div><div class="saude-profile-stat"><span>IMC</span><strong>${formatarNumeroSaude(imc, 2)}</strong></div><div class="saude-profile-stat"><span>Referência</span><strong>${escapeHtml(classification)}</strong></div></div>${renderProfileTimeline(profile)}</article>`;
+    return `<article class="saude-profile-card"><div class="saude-profile-card__header"><div class="saude-profile-card__identity"><span class="saude-profile-avatar"><i class="fas fa-user"></i></span><div><h3>${escapeHtml(profile.nome)}</h3><p class="saude-profile-card__subtitle">${escapeHtml(profileSexLabel(profile.sexo))}${age === null ? '' : ` · ${age} ${age === 1 ? 'ano' : 'anos'}`}</p></div></div><button type="button" class="saude-btn" data-saude-action="edit-profile" data-saude-id="${escapeHtml(profile.id)}"><i class="fas fa-pencil"></i> Editar</button></div><div class="saude-profile-summary"><div class="saude-profile-stat"><span>Peso</span><strong>${formatarNumeroSaude(profile.peso_kg)} kg</strong></div><div class="saude-profile-stat"><span>Altura</span><strong>${formatarNumeroSaude(profile.altura_cm)} cm</strong></div><div class="saude-profile-stat"><span>IMC</span><strong>${formatarNumeroSaude(imc, 2)}</strong></div><div class="saude-profile-stat"><span>Referência</span><strong>${escapeHtml(classification)}</strong></div></div>${renderProfileTimeline(profile, state)}</article>`;
   }).join('')}</div>` : '<div class="saude-empty"><i class="fas fa-user-group"></i>Nenhum perfil cadastrado. Crie o primeiro para começar a linha do tempo.</div>';
-  renderShell(container, `<section class="saude-page" aria-labelledby="profiles-title"><div class="saude-page-toolbar"><div class="saude-page-header"><button type="button" class="saude-btn" data-saude-action="home" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button><div><h2 id="profiles-title">Perfil</h2><p>Dados atuais e histórico de evolução da família.</p></div></div><button type="button" class="saude-btn saude-btn--primary saude-btn--insert" data-saude-action="add-profile"><i class="fas fa-plus"></i><span>Novo perfil</span></button></div>${state.notice ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>` : ''}${renderProfileForm(state)}${content}</section>`);
+  renderShell(container, `<section class="saude-page" aria-labelledby="profiles-title"><div class="saude-page-toolbar"><div class="saude-page-header"><button type="button" class="saude-btn" data-saude-action="home" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button><div><h2 id="profiles-title">Perfil</h2><p>Dados atuais e histórico de evolução da família.</p></div></div><button type="button" class="saude-btn saude-btn--primary saude-btn--insert" data-saude-action="add-profile"><i class="fas fa-plus"></i><span>Novo perfil</span></button></div>${state.notice ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>` : ''}${renderProfileForm(state)}${renderMeasurementForm(state)}${content}</section>`);
 }
 
 async function requestProfiles(method, payload) {
   const response = await fetch('/api/saude?resource=perfis', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'Não foi possível salvar o perfil.');
+  return data;
+}
+
+async function requestProfileMeasurement(payload) {
+  const response = await fetch('/api/saude?resource=perfil-medidas', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Não foi possível atualizar a medição.');
+  return data;
+}
+
+async function deleteProfileMeasurement(id) {
+  const response = await fetch('/api/saude?resource=perfil-medidas', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Não foi possível excluir a medição.');
   return data;
 }
 
@@ -620,6 +669,10 @@ export async function renderSaudeContent(container) {
     profileEditorOpen: false,
     profileEditingId: null,
     profileDraft: blankProfileDraft(),
+    measurementEditorOpen: false,
+    measurementEditingId: null,
+    measurementProfileId: null,
+    measurementDraft: null,
   };
 
   const onClick = async (event) => {
@@ -674,6 +727,55 @@ export async function renderSaudeContent(container) {
       state.notice = null;
       renderProfiles(container, state);
       requestAnimationFrame(() => container.querySelector('#profile-nome')?.focus());
+      return;
+    }
+    if (action === 'edit-measurement') {
+      const profile = state.profiles.find((item) => Number(item.id) === Number(actionElement.dataset.saudeProfileId));
+      const measurement = profile?.historico?.find((item) => Number(item.id) === Number(actionElement.dataset.saudeMeasurementId));
+      if (!profile || !measurement) return;
+      state.profileEditorOpen = false;
+      state.measurementEditorOpen = true;
+      state.measurementEditingId = Number(measurement.id);
+      state.measurementProfileId = Number(profile.id);
+      state.measurementDraft = { ...measurement, data_medicao: dateInputFromTimestamp(measurement.registrado_em) };
+      state.notice = null;
+      renderProfiles(container, state);
+      requestAnimationFrame(() => container.querySelector('#measurement-data')?.focus());
+      return;
+    }
+    if (action === 'cancel-measurement-editor') {
+      state.measurementEditorOpen = false;
+      state.measurementEditingId = null;
+      state.measurementProfileId = null;
+      state.measurementDraft = null;
+      renderProfiles(container, state);
+      return;
+    }
+    if (action === 'delete-measurement') {
+      const profileId = Number(actionElement.dataset.saudeProfileId);
+      const measurementId = Number(actionElement.dataset.saudeMeasurementId);
+      const profile = state.profiles.find((item) => Number(item.id) === profileId);
+      const measurement = profile?.historico?.find((item) => Number(item.id) === measurementId);
+      if (!profile || !measurement || !confirm(`Excluir a medição de ${formatDateTime(measurement.registrado_em)}? Esta ação não poderá ser desfeita.`)) return;
+      state.busy = true;
+      state.notice = null;
+      renderProfiles(container, state);
+      try {
+        const result = await deleteProfileMeasurement(measurementId);
+        state.profiles = state.profiles.map((item) => Number(item.id) === profileId ? result.row : item);
+        if (state.measurementEditingId === measurementId) {
+          state.measurementEditorOpen = false;
+          state.measurementEditingId = null;
+          state.measurementProfileId = null;
+          state.measurementDraft = null;
+        }
+        state.notice = { type: 'success', text: 'Medição excluída com sucesso.' };
+      } catch (error) {
+        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível excluir a medição.' };
+      } finally {
+        state.busy = false;
+        renderProfiles(container, state);
+      }
       return;
     }
     if (action === 'back-diets') {
@@ -782,6 +884,40 @@ export async function renderSaudeContent(container) {
   };
 
   const onSubmit = async (event) => {
+    const measurementForm = event.target.closest('[data-saude-measurement-form]');
+    if (measurementForm) {
+      event.preventDefault();
+      if (state.busy || !measurementForm.reportValidity()) return;
+      const values = new FormData(measurementForm);
+      const decimal = (name) => {
+        const value = String(values.get(name) || '').trim();
+        return value === '' ? null : Number(value.replace(',', '.'));
+      };
+      state.measurementDraft = {
+        data_medicao: String(values.get('data_medicao') || ''),
+        peso_kg: decimal('peso_kg'), altura_cm: decimal('altura_cm'), cintura_cm: decimal('cintura_cm'), quadril_cm: decimal('quadril_cm'),
+        peito_cm: decimal('peito_cm'), braco_cm: decimal('braco_cm'), coxa_cm: decimal('coxa_cm'),
+      };
+      state.busy = true;
+      state.notice = null;
+      renderProfiles(container, state);
+      try {
+        const result = await requestProfileMeasurement({ id: state.measurementEditingId, ...state.measurementDraft });
+        state.profiles = state.profiles.map((profile) => Number(profile.id) === state.measurementProfileId ? result.row : profile);
+        state.measurementEditorOpen = false;
+        state.measurementEditingId = null;
+        state.measurementProfileId = null;
+        state.measurementDraft = null;
+        state.notice = { type: 'success', text: 'Medição corrigida sem criar um novo registro.' };
+      } catch (error) {
+        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível atualizar a medição.' };
+      } finally {
+        state.busy = false;
+        renderProfiles(container, state);
+      }
+      return;
+    }
+
     const profileForm = event.target.closest('[data-saude-profile-form]');
     if (profileForm) {
       event.preventDefault();
@@ -795,6 +931,7 @@ export async function renderSaudeContent(container) {
         nome: String(values.get('nome') || '').trim(),
         sexo: String(values.get('sexo') || ''),
         data_nascimento: String(values.get('data_nascimento') || ''),
+        data_medicao: String(values.get('data_medicao') || ''),
         peso_kg: decimal('peso_kg'),
         altura_cm: decimal('altura_cm'),
         cintura_cm: decimal('cintura_cm'),

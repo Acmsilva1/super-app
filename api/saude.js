@@ -11,6 +11,7 @@ const RESOURCE_DIETAS = 'dietas';
 const TABELA_PERFIS = 'tb_saude_perfis';
 const TABELA_PERFIL_MEDIDAS = 'tb_saude_perfil_medidas';
 const RESOURCE_PERFIS = 'perfis';
+const RESOURCE_PERFIL_MEDIDAS = 'perfil-medidas';
 let offlineNutritionRows = bundledNutritionRows();
 let offlineDiets = DIETAS_INICIAIS.map((diet) => structuredClone(diet));
 let offlineProfiles = [];
@@ -65,6 +66,12 @@ function validateNutritionPayload(body) {
 function parseId(value) {
   const id = Number(value);
   return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+function dateInSaoPaulo(value) {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(value));
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${byType.year}-${byType.month}-${byType.day}`;
 }
 
 function slugify(value) {
@@ -124,8 +131,10 @@ function validateProfilePayload(body) {
   const nome = String(body?.nome || '').trim();
   const sexo = String(body?.sexo || '').trim();
   const data_nascimento = String(body?.data_nascimento || '').trim();
+  const data_medicao = String(body?.data_medicao || '').trim();
   const allowedSex = new Set(['feminino', 'masculino', 'outro', 'nao_informado']);
   const birthDate = /^\d{4}-\d{2}-\d{2}$/.test(data_nascimento) ? new Date(`${data_nascimento}T12:00:00Z`) : null;
+  const measurementDate = /^\d{4}-\d{2}-\d{2}$/.test(data_medicao) ? new Date(`${data_medicao}T12:00:00Z`) : null;
   const today = new Date();
 
   if (!nome || nome.length > 120) return { error: 'Nome deve ter entre 1 e 120 caracteres.' };
@@ -133,8 +142,31 @@ function validateProfilePayload(body) {
   if (!birthDate || Number.isNaN(birthDate.getTime()) || birthDate.toISOString().slice(0, 10) !== data_nascimento || birthDate > today || birthDate.getUTCFullYear() < 1900) {
     return { error: 'Data de nascimento invalida.' };
   }
+  if (!measurementDate || Number.isNaN(measurementDate.getTime()) || measurementDate.toISOString().slice(0, 10) !== data_medicao) {
+    return { error: 'Data da medicao invalida.' };
+  }
 
-  const data = { nome, sexo, data_nascimento };
+  const data = { nome, sexo, data_nascimento, data_medicao };
+  for (const field of PROFILE_MEASURE_FIELDS) data[field] = parseDecimal(body?.[field]);
+  if (!Number.isFinite(data.peso_kg) || data.peso_kg < 1 || data.peso_kg > 500) return { error: 'Peso deve estar entre 1 e 500 kg.' };
+  if (!Number.isFinite(data.altura_cm) || data.altura_cm < 30 || data.altura_cm > 260) return { error: 'Altura deve estar entre 30 e 260 cm.' };
+  const limits = { cintura_cm: [10, 400], quadril_cm: [10, 400], peito_cm: [10, 400], braco_cm: [5, 200], coxa_cm: [5, 250] };
+  for (const [field, [min, max]] of Object.entries(limits)) {
+    if (data[field] !== null && (!Number.isFinite(data[field]) || data[field] < min || data[field] > max)) {
+      return { error: 'Uma ou mais medidas corporais sao invalidas.' };
+    }
+  }
+  return { data };
+}
+
+function validateProfileMeasurementPayload(body) {
+  const data_medicao = String(body?.data_medicao || '').trim();
+  const measurementDate = /^\d{4}-\d{2}-\d{2}$/.test(data_medicao) ? new Date(`${data_medicao}T12:00:00Z`) : null;
+  if (!measurementDate || Number.isNaN(measurementDate.getTime()) || measurementDate.toISOString().slice(0, 10) !== data_medicao) {
+    return { error: 'Data da medicao invalida.' };
+  }
+
+  const data = { data_medicao };
   for (const field of PROFILE_MEASURE_FIELDS) data[field] = parseDecimal(body?.[field]);
   if (!Number.isFinite(data.peso_kg) || data.peso_kg < 1 || data.peso_kg > 500) return { error: 'Peso deve estar entre 1 e 500 kg.' };
   if (!Number.isFinite(data.altura_cm) || data.altura_cm < 30 || data.altura_cm > 260) return { error: 'Altura deve estar entre 30 e 260 cm.' };
@@ -170,7 +202,7 @@ async function loadProfiles(userId) {
   const { supabase } = await import('../lib/supabase.js');
   const { data: profiles, error } = await supabase
     .from(TABELA_PERFIS)
-    .select('id,nome,sexo,data_nascimento,peso_kg,altura_cm,cintura_cm,quadril_cm,peito_cm,braco_cm,coxa_cm,created_at,updated_at')
+    .select('id,nome,sexo,data_nascimento,data_medicao,peso_kg,altura_cm,cintura_cm,quadril_cm,peito_cm,braco_cm,coxa_cm,created_at,updated_at')
     .eq('created_by', userId)
     .order('created_at', { ascending: true });
   if (error) return { error };
@@ -191,12 +223,12 @@ async function createProfile(payload, userId) {
     const timestamp = new Date().toISOString();
     const row = { id, ...payload, created_at: timestamp, updated_at: timestamp };
     offlineProfiles.push(row);
-    offlineProfileMeasurements.unshift(profileMeasurement(row, offlineProfileMeasurements.length + 1, timestamp));
+    offlineProfileMeasurements.unshift(profileMeasurement(row, offlineProfileMeasurements.length + 1, `${payload.data_medicao}T12:00:00-03:00`));
     return { row: withProfileHistory([row], offlineProfileMeasurements)[0], storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
   const { data, error } = await supabase.from(TABELA_PERFIS).insert({ ...payload, created_by: userId })
-    .select('id,nome,sexo,data_nascimento,peso_kg,altura_cm,cintura_cm,quadril_cm,peito_cm,braco_cm,coxa_cm,created_at,updated_at').single();
+    .select('id,nome,sexo,data_nascimento,data_medicao,peso_kg,altura_cm,cintura_cm,quadril_cm,peito_cm,braco_cm,coxa_cm,created_at,updated_at').single();
   if (error) return { error };
   const loaded = await loadProfiles(userId);
   if (loaded.error) return loaded;
@@ -209,9 +241,17 @@ async function updateProfile(id, payload, userId) {
     if (index < 0) return { notFound: true };
     const previous = offlineProfiles[index];
     const measuresChanged = PROFILE_MEASURE_FIELDS.some((field) => previous[field] !== payload[field]);
+    const measurementDateChanged = previous.data_medicao !== payload.data_medicao;
     const row = { ...previous, ...payload, updated_at: new Date().toISOString() };
     offlineProfiles[index] = row;
-    if (measuresChanged) offlineProfileMeasurements.unshift(profileMeasurement(row, offlineProfileMeasurements.length + 1));
+    if (measuresChanged) {
+      offlineProfileMeasurements.unshift(profileMeasurement(row, offlineProfileMeasurements.length + 1, `${payload.data_medicao}T12:00:00-03:00`));
+    } else if (measurementDateChanged) {
+      const latest = offlineProfileMeasurements
+        .filter((measurement) => Number(measurement.perfil_id) === id)
+        .sort((a, b) => Number(b.id) - Number(a.id))[0];
+      if (latest) latest.registrado_em = `${payload.data_medicao}T12:00:00-03:00`;
+    }
     return { row: withProfileHistory([row], offlineProfileMeasurements)[0], storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
@@ -221,6 +261,108 @@ async function updateProfile(id, payload, userId) {
   const loaded = await loadProfiles(userId);
   if (loaded.error) return loaded;
   return { row: loaded.rows.find((profile) => Number(profile.id) === id), storage: 'supabase' };
+}
+
+async function updateProfileMeasurement(id, payload, userId) {
+  const timestamp = `${payload.data_medicao}T12:00:00-03:00`;
+  const measurementPayload = Object.fromEntries(PROFILE_MEASURE_FIELDS.map((field) => [field, payload[field]]));
+
+  if (isOfflineMode()) {
+    const index = offlineProfileMeasurements.findIndex((measurement) => Number(measurement.id) === id);
+    if (index < 0) return { notFound: true };
+    const current = offlineProfileMeasurements[index];
+    offlineProfileMeasurements[index] = { ...current, ...measurementPayload, imc: calcularImc(payload.peso_kg, payload.altura_cm), registrado_em: timestamp };
+    const latestId = Math.max(...offlineProfileMeasurements.filter((measurement) => Number(measurement.perfil_id) === Number(current.perfil_id)).map((measurement) => Number(measurement.id)));
+    if (id === latestId) {
+      const profileIndex = offlineProfiles.findIndex((profile) => Number(profile.id) === Number(current.perfil_id));
+      if (profileIndex >= 0) offlineProfiles[profileIndex] = { ...offlineProfiles[profileIndex], ...measurementPayload, data_medicao: payload.data_medicao, updated_at: new Date().toISOString() };
+    }
+    const profile = withProfileHistory(offlineProfiles, offlineProfileMeasurements).find((item) => Number(item.id) === Number(current.perfil_id));
+    return { row: profile, storage: 'memory' };
+  }
+
+  const { supabase } = await import('../lib/supabase.js');
+  const { data: current, error: currentError } = await supabase.from(TABELA_PERFIL_MEDIDAS)
+    .select('id,perfil_id').eq('id', id).eq('created_by', userId).maybeSingle();
+  if (currentError) return { error: currentError };
+  if (!current) return { notFound: true };
+
+  const { data: latestRows, error: latestError } = await supabase.from(TABELA_PERFIL_MEDIDAS)
+    .select('id').eq('perfil_id', current.perfil_id).eq('created_by', userId).order('id', { ascending: false }).limit(1);
+  if (latestError) return { error: latestError };
+
+  const { data: updated, error: updateError } = await supabase.from(TABELA_PERFIL_MEDIDAS)
+    .update({ ...measurementPayload, registrado_em: timestamp }).eq('id', id).eq('created_by', userId).select('id').maybeSingle();
+  if (updateError) return { error: updateError };
+  if (!updated) return { notFound: true };
+
+  if (Number(latestRows?.[0]?.id) === id) {
+    const { error: profileError } = await supabase.from(TABELA_PERFIS)
+      .update({ ...measurementPayload, data_medicao: payload.data_medicao }).eq('id', current.perfil_id).eq('created_by', userId);
+    if (profileError) return { error: profileError };
+  }
+
+  const loaded = await loadProfiles(userId);
+  if (loaded.error) return loaded;
+  return { row: loaded.rows.find((profile) => Number(profile.id) === Number(current.perfil_id)), storage: 'supabase' };
+}
+
+async function deleteProfileMeasurement(id, userId) {
+  if (isOfflineMode()) {
+    const current = offlineProfileMeasurements.find((measurement) => Number(measurement.id) === id);
+    if (!current) return { notFound: true };
+    const latestId = Math.max(...offlineProfileMeasurements.filter((measurement) => Number(measurement.perfil_id) === Number(current.perfil_id)).map((measurement) => Number(measurement.id)));
+    offlineProfileMeasurements = offlineProfileMeasurements.filter((measurement) => Number(measurement.id) !== id);
+    if (id === latestId) {
+      const replacement = offlineProfileMeasurements
+        .filter((measurement) => Number(measurement.perfil_id) === Number(current.perfil_id))
+        .sort((a, b) => Number(b.id) - Number(a.id))[0];
+      const profileIndex = offlineProfiles.findIndex((profile) => Number(profile.id) === Number(current.perfil_id));
+      if (replacement && profileIndex >= 0) {
+        offlineProfiles[profileIndex] = {
+          ...offlineProfiles[profileIndex],
+          ...Object.fromEntries(PROFILE_MEASURE_FIELDS.map((field) => [field, replacement[field]])),
+          data_medicao: replacement.registrado_em.slice(0, 10),
+          updated_at: new Date().toISOString(),
+        };
+      }
+    }
+    const profile = withProfileHistory(offlineProfiles, offlineProfileMeasurements).find((item) => Number(item.id) === Number(current.perfil_id));
+    return { row: profile, storage: 'memory' };
+  }
+
+  const { supabase } = await import('../lib/supabase.js');
+  const { data: current, error: currentError } = await supabase.from(TABELA_PERFIL_MEDIDAS)
+    .select('id,perfil_id').eq('id', id).eq('created_by', userId).maybeSingle();
+  if (currentError) return { error: currentError };
+  if (!current) return { notFound: true };
+
+  const { data: latestBefore, error: latestBeforeError } = await supabase.from(TABELA_PERFIL_MEDIDAS)
+    .select('id').eq('perfil_id', current.perfil_id).eq('created_by', userId).order('id', { ascending: false }).limit(1);
+  if (latestBeforeError) return { error: latestBeforeError };
+
+  const { data: deleted, error: deleteError } = await supabase.from(TABELA_PERFIL_MEDIDAS)
+    .delete().eq('id', id).eq('created_by', userId).select('id').maybeSingle();
+  if (deleteError) return { error: deleteError };
+  if (!deleted) return { notFound: true };
+
+  if (Number(latestBefore?.[0]?.id) === id) {
+    const { data: replacements, error: replacementError } = await supabase.from(TABELA_PERFIL_MEDIDAS)
+      .select('peso_kg,altura_cm,cintura_cm,quadril_cm,peito_cm,braco_cm,coxa_cm,registrado_em')
+      .eq('perfil_id', current.perfil_id).eq('created_by', userId).order('id', { ascending: false }).limit(1);
+    if (replacementError) return { error: replacementError };
+    const replacement = replacements?.[0];
+    if (replacement) {
+      const dataMedicao = dateInSaoPaulo(replacement.registrado_em);
+      const profilePayload = { ...Object.fromEntries(PROFILE_MEASURE_FIELDS.map((field) => [field, replacement[field]])), data_medicao: dataMedicao };
+      const { error: profileError } = await supabase.from(TABELA_PERFIS).update(profilePayload).eq('id', current.perfil_id).eq('created_by', userId);
+      if (profileError) return { error: profileError };
+    }
+  }
+
+  const loaded = await loadProfiles(userId);
+  if (loaded.error) return loaded;
+  return { row: loaded.rows.find((profile) => Number(profile.id) === Number(current.perfil_id)), storage: 'supabase' };
 }
 
 async function loadDiets() {
@@ -435,7 +577,7 @@ export default async function handler(req, res) {
     });
   }
 
-  if (![RESOURCE_TABELA_NUTRICIONAL, RESOURCE_DIETAS, RESOURCE_PERFIS].includes(req.query?.resource)) {
+  if (![RESOURCE_TABELA_NUTRICIONAL, RESOURCE_DIETAS, RESOURCE_PERFIS, RESOURCE_PERFIL_MEDIDAS].includes(req.query?.resource)) {
     return json(res, 400, { error: 'Recurso invalido.' });
   }
 
@@ -455,6 +597,30 @@ export default async function handler(req, res) {
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Perfil nao encontrado.' });
     return json(res, 200, result);
+  }
+
+  if (req.query?.resource === RESOURCE_PERFIL_MEDIDAS && req.method === 'PATCH') {
+    const body = readBody(req);
+    if (!body) return json(res, 400, { error: 'JSON invalido.' });
+    const id = parseId(body.id ?? req.query?.id);
+    if (!id) return json(res, 400, { error: 'ID invalido.' });
+    const validation = validateProfileMeasurementPayload(body);
+    if (validation.error) return json(res, 400, { error: validation.error });
+    const result = await updateProfileMeasurement(id, validation.data, auth.user.id);
+    if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.notFound) return json(res, 404, { error: 'Medicao nao encontrada.' });
+    return json(res, 200, result);
+  }
+
+  if (req.query?.resource === RESOURCE_PERFIL_MEDIDAS && req.method === 'DELETE') {
+    const body = readBody(req);
+    if (!body) return json(res, 400, { error: 'JSON invalido.' });
+    const id = parseId(body.id ?? req.query?.id);
+    if (!id) return json(res, 400, { error: 'ID invalido.' });
+    const result = await deleteProfileMeasurement(id, auth.user.id);
+    if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.notFound) return json(res, 404, { error: 'Medicao nao encontrada.' });
+    return json(res, 200, { ok: true, ...result });
   }
 
   if (req.query?.resource === RESOURCE_DIETAS && (req.method === 'POST' || req.method === 'PATCH')) {

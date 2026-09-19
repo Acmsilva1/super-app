@@ -11,6 +11,7 @@ const seed = fs.readFileSync(path.join(root, 'scripts/seed-saude-tabela-nutricio
 const dietsMigration = fs.readFileSync(path.join(root, 'migration/20260914_create_saude_dietas.sql'), 'utf8');
 const dietsSeed = fs.readFileSync(path.join(root, 'scripts/seed-saude-dietas.sql'), 'utf8');
 const profilesMigration = fs.readFileSync(path.join(root, 'migration/20260914_create_saude_perfis.sql'), 'utf8');
+const profilesDateMigration = fs.readFileSync(path.join(root, 'migration/20260918_add_data_medicao_saude_perfis.sql'), 'utf8');
 
 function parseSqlText(value) {
   return value.replaceAll("''", "'");
@@ -66,5 +67,11 @@ describe('SQL do módulo Saúde', () => {
     expect(profilesMigration).toContain('created_by = auth.uid()');
     expect(profilesMigration).toContain('alter table public.tb_saude_perfil_medidas force row level security');
     expect(profilesMigration.trim().endsWith('-- commit;')).toBe(true);
+    expect(profilesDateMigration).toContain('add column if not exists data_medicao date');
+    expect(profilesDateMigration).toContain('new.data_medicao is distinct from old.data_medicao');
+    expect(profilesDateMigration).toContain('update public.tb_saude_perfil_medidas');
+    expect(profilesDateMigration).toContain('grant update, delete on public.tb_saude_perfil_medidas to authenticated');
+    expect(profilesDateMigration).toContain('create policy tb_saude_perfil_medidas_own_delete');
+    expect(profilesDateMigration.trim().endsWith('-- commit;')).toBe(true);
   });
 });

@@ -22,9 +22,17 @@ describe('UI mobile do módulo Saúde', () => {
   it('oferece perfis familiares com formulario, IMC e linha do tempo responsiva', () => {
     expect(source).toContain('data-saude-action="open-profiles"');
     expect(source).toContain('data-saude-profile-form');
+    expect(source).toContain('name="data_medicao"');
+    expect(source).toContain('Data da medição');
+    expect(source).toContain("data_medicao: String(values.get('data_medicao') || '')");
+    expect(source).toContain('state.profileDraft = { ...blankProfileDraft(), ...profile }');
+    expect(source).toContain('data-saude-action="edit-measurement"');
+    expect(source).toContain('data-saude-action="delete-measurement"');
+    expect(source).toContain('Esta ação não poderá ser desfeita.');
     expect(source).toContain('Linha do tempo');
     expect(source).toContain('calcularImc(profile.peso_kg, profile.altura_cm)');
     expect(source).toContain('.saude-profile-summary { grid-template-columns: 1fr 1fr; }');
     expect(source).toContain('.saude-profile-form__grid { grid-template-columns: 1fr; }');
   });
+
 });
