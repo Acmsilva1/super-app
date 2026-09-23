@@ -17,7 +17,19 @@ function escapeHtml(value) {
 
 function formatProfileMissionCount(count) {
   const n = Number(count) || 0;
-  return n === 1 ? '1 MISSÃO' : `${n} MISSÕES`;
+  return n === 1 ? '1 TREINO' : `${n} TREINOS`;
+}
+
+const PROFILE_EMOJIS = ['🏋️', '💪', '🏃', '🚴', '🧘', '⚽', '🔥', '⭐'];
+
+function normalizeProfileEmoji(value) {
+  const icon = String(value || '').trim();
+  const legacyIcons = {
+    'fa-dumbbell': '🏋️',
+    'fa-fire': '🔥',
+    'fa-person-running': '🏃',
+  };
+  return PROFILE_EMOJIS.includes(icon) ? icon : (legacyIcons[icon] || '🏋️');
 }
 
 function getTodayKey() {
@@ -36,6 +48,14 @@ export function sameEntityId(left, right) {
   const leftId = String(left ?? '').trim();
   const rightId = String(right ?? '').trim();
   return Boolean(leftId && rightId && leftId === rightId);
+}
+
+export function formatWorkoutElapsed(elapsedMs) {
+  const totalSeconds = Math.max(0, Math.floor(Number(elapsedMs || 0) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
 }
 
 function normalizeWeekdayText(value) {
@@ -93,7 +113,7 @@ function composeExerciseName(name, series, repeticoes) {
 function tempItemHtml(item) {
   return `
     <div class="mt-temp-item">
-      <div class="mt-temp-text"><strong>${Number(item.series || 1)}x${Number(item.repeticoes || 0)}</strong> ${escapeHtml(item.name)}</div>
+      <div class="mt-temp-text"><strong>${Number(item.series || 1)} SÉRIE${Number(item.series || 1) === 1 ? '' : 'S'}</strong> ${escapeHtml(item.name)}</div>
       <div class="mt-temp-actions">
         <button class="mt-btn-link" data-action="edit-temp" data-id="${escapeHtml(item.id)}">Editar</button>
         <button class="mt-btn-link is-danger" data-action="remove-temp" data-id="${escapeHtml(item.id)}">Remover</button>
@@ -114,8 +134,8 @@ function missionCardHtml(mission, index, isTodayHighlight = false) {
   return `
     <section class="${shellClass}" style="--card-i:${index};">
       <header class="mt-mission-shell-header">
-        <h3>${escapeHtml(mission.title || `MISSÃO ${index + 1}`)} ${isTodayHighlight ? '<span class="mt-today-badge">TREINO DE HOJE</span>' : ''}</h3>
-        <span>${done}/${total} itens concluídos</span>
+        <h3>${escapeHtml(mission.title || `TREINO ${index + 1}`)} ${isTodayHighlight ? '<span class="mt-today-badge">TREINO DE HOJE</span>' : ''}</h3>
+        <span>${done}/${total} exercícios concluídos</span>
       </header>
       <div class="mt-mission-list">
         ${(mission.items || []).map((item) => {
@@ -124,13 +144,14 @@ function missionCardHtml(mission, index, isTodayHighlight = false) {
           <article class="mt-mission-row ${item.completed ? 'is-done' : ''}">
             <div class="mt-mission-main">
               <h4 class="mt-mission-title ${item.completed ? 'is-done' : ''}">${escapeHtml(meta.name)}</h4>
-              <p class="mt-mission-meta">SÉRIES/REPS: <strong>${Number(item.series || meta.series || 1)}x${Number(item.repeticoes || meta.repeticoes || item.reps || 0)}</strong> (TOTAL ${Number(item.reps || 0)})</p>
+              <p class="mt-mission-meta">SÉRIES: <strong>${Number(item.series || meta.series || 1)}</strong></p>
             </div>
           </article>
         `;
         }).join('')}
       </div>
       <footer class="mt-card-actions">
+        <button class="mt-btn" data-action="open-workout" data-mission-id="${escapeHtml(mission.id)}">Abrir treino</button>
         <button class="mt-btn-icon" data-action="edit-mission" data-mission-id="${escapeHtml(mission.id)}" ${mission._busy ? 'disabled' : ''}>Editar</button>
         <button class="mt-btn-icon is-danger" data-action="delete-mission" data-mission-id="${escapeHtml(mission.id)}" ${mission._busy ? 'disabled' : ''}>Excluir</button>
       </footer>
@@ -139,13 +160,12 @@ function missionCardHtml(mission, index, isTodayHighlight = false) {
 }
 
 function profileCardHtml(profile, index) {
-  const color = escapeHtml(profile.cor || '#00e5ff');
-  const icon = escapeHtml(profile.icone || 'fa-dumbbell');
+  const icon = escapeHtml(normalizeProfileEmoji(profile.icone));
   const count = Number(profile.missions_count || 0);
   return `
-    <article class="mt-profile-card" style="--profile-color:${color};--card-i:${index};">
+    <article class="mt-profile-card" style="--card-i:${index};">
       <button class="mt-profile-open" data-action="select-profile" data-profile-id="${escapeHtml(profile.id)}" aria-label="Abrir perfil ${escapeHtml(profile.nome)}">
-        <div class="mt-profile-icon"><i class="fas ${icon}" aria-hidden="true"></i></div>
+        <div class="mt-profile-icon" aria-hidden="true">${icon}</div>
         <div class="mt-profile-body">
           <h3>${escapeHtml(profile.nome)}</h3>
           <p>${escapeHtml(profile.descricao || 'Treinos personalizados deste perfil')}</p>
@@ -164,6 +184,7 @@ class MissoesTreinoApp {
   constructor(container) {
     this.container = container;
     this.missions = [];
+    this.workoutLogs = [];
     this.profiles = [];
     this.tempMissions = [];
     this.performance = null;
@@ -171,6 +192,8 @@ class MissoesTreinoApp {
     this.editingMissionId = null;
     this.editingTempItemId = null;
     this.editingProfileId = null;
+    this.viewingMissionId = null;
+    this.workoutTimerIntervalId = null;
     this.selectedProfile = null;
     this.selectedGoalsMonth = null;
     this.isLoading = false;
@@ -208,6 +231,7 @@ class MissoesTreinoApp {
 
   destroy() {
     if (!this.root) return;
+    this.stopWorkoutTimerUi();
     this.root.removeEventListener('click', this.onClick);
     this.tempNameInput?.removeEventListener('keypress', this.onKeyPress);
     this.container._cleanup = null;
@@ -226,19 +250,29 @@ class MissoesTreinoApp {
     this.tempTitleInput = this.container.querySelector('[data-role="temp-title"]');
     this.tempNameInput = this.container.querySelector('[data-role="temp-name"]');
     this.tempSeriesInput = this.container.querySelector('[data-role="temp-series"]');
-    this.tempRepsInput = this.container.querySelector('[data-role="temp-reps"]');
     this.tempListEl = this.container.querySelector('[data-role="temp-list"]');
     this.performanceHost = this.container.querySelector('[data-role="performance"]');
     this.toastHost = this.container.querySelector('[data-role="toasts"]');
     this.profilesHost = this.container.querySelector('[data-role="profiles-list"]');
+    this.workoutLogsHost = this.container.querySelector('[data-role="workout-logs"]');
     this.trainingHost = this.container.querySelector('[data-role="training-view"]');
     this.profileModalEl = this.container.querySelector('[data-role="profile-modal"]');
     this.profileModalTitleEl = this.container.querySelector('[data-role="profile-modal-title"]');
     this.profileModalDescEl = this.container.querySelector('[data-role="profile-modal-desc"]');
     this.profileModalSubmitEl = this.container.querySelector('[data-role="profile-modal-submit"]');
     this.profileNameInput = this.container.querySelector('[data-role="profile-name"]');
-    this.profileDescInput = this.container.querySelector('[data-role="profile-desc"]');
-    this.profileColorInput = this.container.querySelector('[data-role="profile-color"]');
+    this.profileEmojiInput = this.container.querySelector('[data-role="profile-emoji"]');
+    this.exerciseModalEl = this.container.querySelector('[data-role="exercise-modal"]');
+    this.exerciseModalTitleEl = this.container.querySelector('[data-role="exercise-modal-title"]');
+    this.exerciseModalSubmitEl = this.container.querySelector('[data-role="exercise-modal-submit"]');
+    this.workoutModalEl = this.container.querySelector('[data-role="workout-modal"]');
+    this.workoutModalCardEl = this.container.querySelector('[data-role="workout-modal-card"]');
+    this.workoutTitleEl = this.container.querySelector('[data-role="workout-title"]');
+    this.workoutStatusEl = this.container.querySelector('[data-role="workout-status"]');
+    this.workoutTimerEl = this.container.querySelector('[data-role="workout-timer"]');
+    this.workoutExercisesEl = this.container.querySelector('[data-role="workout-exercises"]');
+    this.workoutStartEl = this.container.querySelector('[data-role="workout-start"]');
+    this.workoutFinishEl = this.container.querySelector('[data-role="workout-finish"]');
     this.profileTitleEl = this.container.querySelector('[data-role="profile-title"]');
     this.profileSubtitleEl = this.container.querySelector('[data-role="profile-subtitle"]');
     this.confirmModalEl = this.container.querySelector('[data-role="confirm-modal"]');
@@ -303,9 +337,11 @@ class MissoesTreinoApp {
   }
 
   backToProfiles() {
+    if (this.viewingMissionId) this.closeWorkoutModal();
     this.currentView = 'profiles';
     this.selectedProfile = null;
     this.missions = [];
+    this.workoutLogs = [];
     this.performance = null;
     sessionStorage.removeItem('mt-selected-profile-id');
     this.render();
@@ -317,19 +353,18 @@ class MissoesTreinoApp {
     const profile = profileId ? this.profiles.find((item) => sameEntityId(item.id, profileId)) : null;
     if (profile) {
       this.profileModalTitleEl.textContent = 'EDITAR PERFIL';
-      this.profileModalDescEl.textContent = 'Atualize nome, descrição e cor deste perfil.';
+      this.profileModalDescEl.textContent = 'Atualize o nome e o emoji deste perfil.';
       this.profileModalSubmitEl.textContent = 'SALVAR PERFIL';
       if (this.profileNameInput) this.profileNameInput.value = String(profile.nome || '');
-      if (this.profileDescInput) this.profileDescInput.value = String(profile.descricao || '');
-      if (this.profileColorInput) this.profileColorInput.value = String(profile.cor || '#00e5ff');
+      if (this.profileEmojiInput) this.profileEmojiInput.value = normalizeProfileEmoji(profile.icone);
     } else {
       this.profileModalTitleEl.textContent = 'NOVO PERFIL';
       this.profileModalDescEl.textContent = 'Crie um perfil para organizar treinos personalizados.';
       this.profileModalSubmitEl.textContent = 'CRIAR PERFIL';
       if (this.profileNameInput) this.profileNameInput.value = '';
-      if (this.profileDescInput) this.profileDescInput.value = '';
-      if (this.profileColorInput) this.profileColorInput.value = '#00e5ff';
+      if (this.profileEmojiInput) this.profileEmojiInput.value = PROFILE_EMOJIS[0];
     }
+    this.renderProfileEmojiSelection();
     this.profileModalEl.classList.remove('is-hidden');
     window.setTimeout(() => this.profileModalEl.classList.add('is-open'), 10);
     this.profileNameInput?.focus();
@@ -341,10 +376,24 @@ class MissoesTreinoApp {
     this.editingProfileId = null;
   }
 
+  selectProfileEmoji(emoji) {
+    const selectedEmoji = normalizeProfileEmoji(emoji);
+    if (this.profileEmojiInput) this.profileEmojiInput.value = selectedEmoji;
+    this.renderProfileEmojiSelection();
+  }
+
+  renderProfileEmojiSelection() {
+    const selectedEmoji = normalizeProfileEmoji(this.profileEmojiInput?.value);
+    this.container.querySelectorAll('[data-action="select-profile-emoji"]').forEach((button) => {
+      const isSelected = button.getAttribute('data-emoji') === selectedEmoji;
+      button.classList.toggle('is-selected', isSelected);
+      button.setAttribute('aria-pressed', String(isSelected));
+    });
+  }
+
   async commitProfile() {
     const nome = String(this.profileNameInput?.value || '').trim();
-    const descricao = String(this.profileDescInput?.value || '').trim();
-    const cor = String(this.profileColorInput?.value || '#00e5ff').trim() || '#00e5ff';
+    const icone = normalizeProfileEmoji(this.profileEmojiInput?.value);
     if (!nome) {
       this.showToast('Informe o nome do perfil.', 'error');
       return;
@@ -359,8 +408,7 @@ class MissoesTreinoApp {
             resource: 'profile',
             profile_id: this.editingProfileId,
             nome,
-            descricao,
-            cor,
+            icone,
           }),
         });
         this.showToast('Perfil atualizado com sucesso.');
@@ -370,8 +418,7 @@ class MissoesTreinoApp {
           body: JSON.stringify({
             resource: 'profile',
             nome,
-            descricao,
-            cor,
+            icone,
           }),
         });
         this.showToast('Perfil criado com sucesso.');
@@ -468,10 +515,14 @@ class MissoesTreinoApp {
       this.missions = Array.isArray(data?.missions) ? data.missions : [];
       this.performance = data?.performance || null;
       await this.migrateLegacyLocalData(this.missions);
-      const refreshed = await this.api(this.buildApiQuery({ profile_id: this.selectedProfile.id }));
+      const [refreshed, logsData] = await Promise.all([
+        this.api(this.buildApiQuery({ profile_id: this.selectedProfile.id })),
+        this.api(this.buildApiQuery({ resource: 'workout-logs', profile_id: this.selectedProfile.id })),
+      ]);
       this.missions = Array.isArray(refreshed?.missions) ? refreshed.missions : [];
+      this.workoutLogs = Array.isArray(logsData?.logs) ? logsData.logs : [];
       this.performance = refreshed?.performance || this.performance;
-      this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem missões para este perfil.');
+      this.setNotice(this.missions.length ? 'Dados sincronizados.' : 'Sem treinos para este perfil.');
     } catch (err) {
       this.setNotice(err.message || 'Falha ao carregar missões.', true);
     } finally {
@@ -545,7 +596,7 @@ class MissoesTreinoApp {
   }
 
   onKeyPress(event) {
-    if (event.key === 'Enter') this.addTempItem();
+    if (event.key === 'Enter') this.commitExercise();
   }
 
   onClick(event) {
@@ -554,8 +605,10 @@ class MissoesTreinoApp {
     const action = actionEl.getAttribute('data-action');
     const id = actionEl.getAttribute('data-id');
     const missionId = actionEl.getAttribute('data-mission-id');
+    const logId = actionEl.getAttribute('data-log-id');
 
     const profileId = actionEl.getAttribute('data-profile-id');
+    const emoji = actionEl.getAttribute('data-emoji');
 
     if (action === 'refresh') {
       if (this.currentView === 'profiles') this.loadProfiles();
@@ -568,20 +621,29 @@ class MissoesTreinoApp {
     if (action === 'select-profile' && profileId) this.selectProfile(profileId);
     if (action === 'edit-profile' && profileId) this.openProfileModal(profileId);
     if (action === 'delete-profile' && profileId) this.deleteProfile(profileId);
+    if (action === 'select-profile-emoji' && emoji) this.selectProfileEmoji(emoji);
     if (action === 'confirm-submit') this.closeConfirm(true);
     if (action === 'confirm-cancel' || action === 'close-confirm') this.closeConfirm(false);
     if (action === 'open-modal') this.openModal();
     if (action === 'close-modal') this.closeModal();
+    if (action === 'open-exercise-modal') this.openExerciseModal();
+    if (action === 'close-exercise-modal') this.closeExerciseModal();
+    if (action === 'submit-exercise-modal') this.commitExercise();
     if (action === 'clear-temp') {
       this.tempMissions = [];
       this.renderTempList();
     }
-    if (action === 'add-temp') this.addTempItem();
     if (action === 'submit-modal') this.commitMissions();
-    if (action === 'edit-temp' && id) this.startEditTempItem(id);
+    if (action === 'edit-temp' && id) this.openExerciseModal(id);
     if (action === 'remove-temp' && id) this.removeTempItem(id);
     if (action === 'delete-mission' && missionId) this.deleteMission(missionId);
     if (action === 'edit-mission' && missionId) this.openModal(missionId);
+    if (action === 'open-workout' && missionId) this.openWorkoutModal(missionId);
+    if (action === 'close-workout') this.closeWorkoutModal();
+    if (action === 'minimize-workout') this.toggleWorkoutModalMinimized();
+    if (action === 'start-workout') this.startWorkout();
+    if (action === 'finish-workout') this.finishWorkout();
+    if (action === 'delete-workout-log' && logId) this.deleteWorkoutLog(logId);
   }
 
   updateDateDisplay() {
@@ -607,23 +669,23 @@ class MissoesTreinoApp {
           completed: Boolean(item.completed),
         };
       });
-      this.modalTitleEl.textContent = 'EDITAR MISSÃO';
-      this.modalDescEl.textContent = 'Edite os itens desta missão.';
-      this.modalSubmitEl.textContent = 'ATUALIZAR MISSÃO';
+      this.modalTitleEl.textContent = 'EDITAR TREINO';
+      this.modalDescEl.textContent = 'Edite o nome e os exercícios deste treino.';
+      this.modalSubmitEl.textContent = 'SALVAR TREINO';
       if (this.tempTitleInput) this.tempTitleInput.value = String(mission?.title || '').trim();
     } else {
       this.tempMissions = [];
-      this.modalTitleEl.textContent = 'NOVA MISSÃO';
+      this.modalTitleEl.textContent = 'NOVO TREINO';
       this.modalDescEl.textContent = 'Adicione os exercícios deste treino. Ele fica salvo neste perfil.';
-      this.modalSubmitEl.textContent = 'CRIAR MISSÃO';
+      this.modalSubmitEl.textContent = 'SALVAR TREINO';
       if (this.tempTitleInput) this.tempTitleInput.value = '';
     }
     this.editingTempItemId = null;
-    this.resetTempInputs();
+    this.resetExerciseInputs();
     this.renderTempList();
     this.modalEl.classList.remove('is-hidden');
     window.setTimeout(() => this.modalEl.classList.add('is-open'), 10);
-    this.tempNameInput?.focus();
+    this.tempTitleInput?.focus();
   }
 
   closeModal() {
@@ -631,28 +693,52 @@ class MissoesTreinoApp {
     window.setTimeout(() => this.modalEl.classList.add('is-hidden'), 180);
     this.editingMissionId = null;
     this.editingTempItemId = null;
+    this.closeExerciseModal();
   }
 
-  resetTempInputs() {
+  resetExerciseInputs() {
     this.tempNameInput.value = '';
     if (this.tempSeriesInput) this.tempSeriesInput.value = '3';
-    if (this.tempRepsInput) this.tempRepsInput.value = '12';
     this.editingTempItemId = null;
-    const addBtn = this.container.querySelector('[data-action="add-temp"]');
-    if (addBtn) addBtn.textContent = 'ADICIONAR';
   }
 
-  addTempItem() {
+  openExerciseModal(id = null) {
+    const item = id ? this.tempMissions.find((row) => sameEntityId(row.id, id)) : null;
+    this.editingTempItemId = item?.id || null;
+    this.exerciseModalTitleEl.textContent = item ? 'EDITAR EXERCÍCIO' : 'ADICIONAR EXERCÍCIO';
+    this.exerciseModalSubmitEl.textContent = item ? 'SALVAR ALTERAÇÃO' : 'SALVAR EXERCÍCIO';
+    this.tempNameInput.value = String(item?.name || '');
+    this.tempSeriesInput.value = String(Number(item?.series || 3));
+    this.exerciseModalEl.classList.remove('is-hidden');
+    window.setTimeout(() => this.exerciseModalEl.classList.add('is-open'), 10);
+    this.tempNameInput.focus();
+  }
+
+  closeExerciseModal() {
+    this.exerciseModalEl?.classList.remove('is-open');
+    window.setTimeout(() => this.exerciseModalEl?.classList.add('is-hidden'), 180);
+    this.resetExerciseInputs();
+  }
+
+  commitExercise() {
     const name = this.tempNameInput.value.trim();
     const series = Number.parseInt(this.tempSeriesInput?.value, 10);
-    const repeticoes = Number.parseInt(this.tempRepsInput.value, 10);
-    if (!name || !Number.isFinite(series) || series <= 0 || !Number.isFinite(repeticoes) || repeticoes <= 0) return;
+    if (!name) {
+      this.showToast('Informe o nome do exercício.', 'error');
+      this.tempNameInput.focus();
+      return;
+    }
+    if (!Number.isFinite(series) || series <= 0) {
+      this.showToast('Informe uma quantidade válida de séries.', 'error');
+      this.tempSeriesInput.focus();
+      return;
+    }
     const payload = {
       id: this.editingTempItemId || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name,
       series,
-      repeticoes,
-      reps: series * repeticoes,
+      repeticoes: 1,
+      reps: series,
       completed: false,
     };
     if (this.editingTempItemId) {
@@ -660,26 +746,13 @@ class MissoesTreinoApp {
     } else {
       this.tempMissions.push(payload);
     }
-    this.resetTempInputs();
-    this.tempNameInput.focus();
     this.renderTempList();
-  }
-
-  startEditTempItem(id) {
-    const item = this.tempMissions.find((row) => sameEntityId(row.id, id));
-    if (!item) return;
-    this.editingTempItemId = item.id;
-    this.tempNameInput.value = item.name || '';
-    if (this.tempSeriesInput) this.tempSeriesInput.value = String(Number(item.series || 1));
-    this.tempRepsInput.value = String(Number(item.repeticoes || item.reps || 1));
-    const addBtn = this.container.querySelector('[data-action="add-temp"]');
-    if (addBtn) addBtn.textContent = 'ATUALIZAR';
-    this.tempNameInput.focus();
+    this.closeExerciseModal();
   }
 
   removeTempItem(id) {
     this.tempMissions = this.tempMissions.filter((item) => !sameEntityId(item.id, id));
-    if (sameEntityId(this.editingTempItemId, id)) this.resetTempInputs();
+    if (sameEntityId(this.editingTempItemId, id)) this.closeExerciseModal();
     this.renderTempList();
   }
 
@@ -692,10 +765,8 @@ class MissoesTreinoApp {
   }
 
   async commitMissions() {
-    if (!this.tempMissions.length) this.addTempItem();
     if (!this.tempMissions.length) {
-      this.showToast('Preencha um exercício, séries e repetições antes de criar a missão.', 'error');
-      this.tempNameInput?.focus();
+      this.showToast('Adicione ao menos um exercício antes de salvar o treino.', 'error');
       return;
     }
     const isEditingMission = Boolean(this.editingMissionId);
@@ -703,16 +774,16 @@ class MissoesTreinoApp {
       const missionTitle = String(this.tempTitleInput?.value || '').trim() || 'Novo treino';
       const itemCount = this.tempMissions.length;
       const confirmed = await this.openConfirm({
-        title: 'REGISTRAR NOVA MISSÃO',
+        title: 'SALVAR NOVO TREINO',
         message: `Confirmar a criação de "${missionTitle}" com ${itemCount} exercício${itemCount === 1 ? '' : 's'} neste perfil?`,
-        confirmLabel: 'CRIAR MISSÃO',
-        cancelLabel: 'REVISAR ITENS',
+        confirmLabel: 'SALVAR TREINO',
+        cancelLabel: 'REVISAR EXERCÍCIOS',
         tone: 'create',
       });
       if (!confirmed) return;
     }
     this.modalSubmitEl.disabled = true;
-    this.setNotice('Salvando missão no banco...');
+    this.setNotice('Salvando treino no banco...');
     try {
       const payloadItems = this.tempMissions.map((item, idx) => ({
         name: composeExerciseName(String(item.name || '').trim(), Number(item.series || 0), Number(item.repeticoes || 0)),
@@ -749,22 +820,179 @@ class MissoesTreinoApp {
       this.closeModal();
       await this.loadFromApi();
       if (isEditingMission) {
-        this.setNotice('Missão atualizada com sucesso.');
-        this.showToast('MISSÃO ATUALIZADA COM SUCESSO');
+        this.setNotice('Treino atualizado com sucesso.');
+        this.showToast('TREINO ATUALIZADO COM SUCESSO');
       } else {
-        this.setNotice('Missão incluída com sucesso.');
+        this.setNotice('Treino incluído com sucesso.');
         this.showToast({
           type: 'confirm',
-          title: 'Missão Inserida',
-          message: 'Sua nova missão foi salva com sucesso no sistema.',
+          title: 'Treino inserido',
+          message: 'Seu novo treino foi salvo com sucesso.',
         });
       }
     } catch (err) {
-      this.setNotice(err.message || 'Falha ao salvar missão.', true);
-      this.showToast('ERRO AO SALVAR MISSÃO', 'error');
+      this.setNotice(err.message || 'Falha ao salvar treino.', true);
+      this.showToast('ERRO AO SALVAR TREINO', 'error');
     } finally {
       this.modalSubmitEl.disabled = false;
       this.render();
+    }
+  }
+
+  workoutTimerKey(missionId = this.viewingMissionId) {
+    return `mt-workout-start:${String(this.selectedProfile?.id || 'profile')}:${String(missionId || '')}`;
+  }
+
+  getWorkoutStartedAt(missionId = this.viewingMissionId) {
+    const startedAt = Number(localStorage.getItem(this.workoutTimerKey(missionId)) || 0);
+    return Number.isFinite(startedAt) && startedAt > 0 ? startedAt : 0;
+  }
+
+  openWorkoutModal(missionId) {
+    const mission = this.missions.find((item) => sameEntityId(item.id, missionId));
+    if (!mission) return;
+    this.viewingMissionId = mission.id;
+    this.workoutModalCardEl?.classList.remove('is-minimized');
+    this.workoutModalEl?.classList.remove('is-minimized', 'is-hidden');
+    window.setTimeout(() => this.workoutModalEl?.classList.add('is-open'), 10);
+    this.renderWorkoutModal();
+  }
+
+  closeWorkoutModal() {
+    this.stopWorkoutTimerUi();
+    this.workoutModalEl?.classList.remove('is-open', 'is-minimized');
+    this.workoutModalCardEl?.classList.remove('is-minimized');
+    window.setTimeout(() => this.workoutModalEl?.classList.add('is-hidden'), 180);
+    this.viewingMissionId = null;
+  }
+
+  toggleWorkoutModalMinimized() {
+    const minimized = !this.workoutModalEl?.classList.contains('is-minimized');
+    this.workoutModalEl?.classList.toggle('is-minimized', minimized);
+    this.workoutModalCardEl?.classList.toggle('is-minimized', minimized);
+    const button = this.container.querySelector('[data-action="minimize-workout"]');
+    if (button) {
+      button.textContent = minimized ? '□' : '—';
+      button.setAttribute('aria-label', minimized ? 'Restaurar treino' : 'Minimizar treino');
+    }
+  }
+
+  renderWorkoutModal() {
+    const mission = this.missions.find((item) => sameEntityId(item.id, this.viewingMissionId));
+    if (!mission) return;
+    this.workoutTitleEl.textContent = mission.title || 'Treino';
+    this.workoutExercisesEl.innerHTML = (mission.items || []).map((item, index) => {
+      const meta = parseExerciseMeta(item);
+      return `
+        <article class="mt-checkin-exercise ${item.completed ? 'is-done' : ''}">
+          <span>${index + 1}</span>
+          <div><strong>${escapeHtml(meta.name)}</strong><small>${Number(item.series || meta.series || 1)} série${Number(item.series || meta.series || 1) === 1 ? '' : 's'}</small></div>
+        </article>
+      `;
+    }).join('') || '<p class="mt-empty-small">Nenhum exercício cadastrado.</p>';
+
+    const isRunning = Boolean(this.getWorkoutStartedAt(mission.id));
+    this.workoutStatusEl.textContent = isRunning ? 'Treino em andamento' : 'Pronto para iniciar';
+    this.workoutStartEl.classList.toggle('mt-is-hidden', isRunning);
+    this.workoutFinishEl.classList.toggle('mt-is-hidden', !isRunning);
+    this.updateWorkoutTimer();
+    if (isRunning) this.startWorkoutTimerUi();
+    else this.stopWorkoutTimerUi();
+  }
+
+  startWorkout() {
+    const mission = this.missions.find((item) => sameEntityId(item.id, this.viewingMissionId));
+    if (!mission) return;
+    if (!this.getWorkoutStartedAt(mission.id)) {
+      localStorage.setItem(this.workoutTimerKey(mission.id), String(Date.now()));
+    }
+    this.renderWorkoutModal();
+  }
+
+  startWorkoutTimerUi() {
+    this.stopWorkoutTimerUi();
+    this.workoutTimerIntervalId = window.setInterval(() => this.updateWorkoutTimer(), 1000);
+  }
+
+  stopWorkoutTimerUi() {
+    if (this.workoutTimerIntervalId != null) {
+      window.clearInterval(this.workoutTimerIntervalId);
+      this.workoutTimerIntervalId = null;
+    }
+  }
+
+  updateWorkoutTimer() {
+    const startedAt = this.getWorkoutStartedAt();
+    const elapsed = startedAt ? Date.now() - startedAt : 0;
+    const formatted = formatWorkoutElapsed(elapsed);
+    if (this.workoutTimerEl) this.workoutTimerEl.textContent = formatted;
+    const miniTimer = this.container.querySelector('[data-role="workout-mini-timer"]');
+    if (miniTimer) miniTimer.textContent = formatted;
+  }
+
+  async finishWorkout() {
+    const mission = this.missions.find((item) => sameEntityId(item.id, this.viewingMissionId));
+    const startedAt = this.getWorkoutStartedAt(mission?.id);
+    if (!mission || !startedAt) return;
+    const elapsedMs = Math.max(1000, Date.now() - startedAt);
+    const durationSeconds = Math.max(1, Math.round(elapsedMs / 1000));
+    const duration = formatWorkoutElapsed(elapsedMs);
+    const confirmed = await this.openConfirm({
+      title: 'FINALIZAR TREINO',
+      message: `Finalizar "${mission.title || 'Treino'}" com duração de ${duration} e registrar este check-in?`,
+      confirmLabel: 'FINALIZAR TREINO',
+      cancelLabel: 'CONTINUAR TREINO',
+      tone: 'create',
+    });
+    if (!confirmed) return;
+
+    this.workoutFinishEl.disabled = true;
+    try {
+      await this.api('', {
+        method: 'POST',
+        body: JSON.stringify({
+          resource: 'workout-log',
+          mission_id: mission.id,
+          duration_seconds: durationSeconds,
+        }),
+      });
+      localStorage.removeItem(this.workoutTimerKey(mission.id));
+      this.stopWorkoutTimerUi();
+      await this.loadFromApi();
+      this.renderWorkoutModal();
+      this.showToast({
+        type: 'confirm',
+        title: 'Check-in concluído',
+        message: `Treino finalizado em ${duration}.`,
+      });
+    } catch (err) {
+      this.showToast(err.message || 'Falha ao finalizar treino.', 'error');
+    } finally {
+      this.workoutFinishEl.disabled = false;
+    }
+  }
+
+  async deleteWorkoutLog(logId) {
+    const log = this.workoutLogs.find((item) => sameEntityId(item.id, logId));
+    if (!log) return;
+    const confirmed = await this.openConfirm({
+      title: 'EXCLUIR LOG',
+      message: `Excluir o registro de "${log.workout_name || 'Treino'}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'EXCLUIR LOG',
+      cancelLabel: 'MANTER LOG',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await this.api('', {
+        method: 'DELETE',
+        body: JSON.stringify({ resource: 'workout-log', id: log.id }),
+      });
+      this.workoutLogs = this.workoutLogs.filter((item) => !sameEntityId(item.id, log.id));
+      this.renderWorkoutLogs();
+      this.showToast('Log excluído.');
+    } catch (err) {
+      this.showToast(err.message || 'Falha ao excluir log.', 'error');
     }
   }
 
@@ -772,10 +1000,10 @@ class MissoesTreinoApp {
     const mission = this.missions.find((m) => sameEntityId(m.id, missionId));
     if (!mission) return;
     const confirmed = await this.openConfirm({
-      title: 'EXCLUIR MISSÃO',
-      message: `A missão "${mission.title || 'sem título'}" será removida permanentemente do perfil. Continuar?`,
-      confirmLabel: 'EXCLUIR MISSÃO',
-      cancelLabel: 'MANTER MISSÃO',
+      title: 'EXCLUIR TREINO',
+      message: `O treino "${mission.title || 'sem título'}" será removido permanentemente do perfil. Continuar?`,
+      confirmLabel: 'EXCLUIR TREINO',
+      cancelLabel: 'MANTER TREINO',
       tone: 'danger',
     });
     if (!confirmed) return;
@@ -786,15 +1014,16 @@ class MissoesTreinoApp {
         method: 'DELETE',
         body: JSON.stringify({ mission_id: missionId }),
       });
+      localStorage.removeItem(this.workoutTimerKey(missionId));
       this.missions = this.missions.filter((m) => !sameEntityId(m.id, missionId));
-      this.setNotice('Missão removida do banco.');
+      this.setNotice('Treino removido do banco.');
       this.showToast({
         type: 'confirm-delete',
-        title: 'Missão Excluída',
-        message: 'A missão foi removida com sucesso do banco.',
+        title: 'Treino excluído',
+        message: 'O treino foi removido com sucesso.',
       });
     } catch (err) {
-      this.setNotice(err.message || 'Falha ao excluir missão.', true);
+      this.setNotice(err.message || 'Falha ao excluir treino.', true);
       mission._busy = false;
     }
     this.render();
@@ -835,7 +1064,7 @@ class MissoesTreinoApp {
         banner = document.createElement('div');
         banner.className = 'mt-mock-banner';
         banner.setAttribute('data-role', 'mock-banner');
-        banner.textContent = 'Mock local fixo: módulo treino 100% em memória. Nada vai pro Supabase.';
+        banner.textContent = 'Teste local persistido no navegador. Nada vai para o Supabase.';
         const header = this.container.querySelector('.mt-header-block');
         header?.insertAdjacentElement('afterend', banner);
       }
@@ -888,6 +1117,7 @@ class MissoesTreinoApp {
           <p class="mt-empty-text">Aguarde enquanto carregamos do banco.</p>
         </div>
       `;
+      this.renderWorkoutLogs();
       this.renderPerformance();
       return;
     }
@@ -895,10 +1125,11 @@ class MissoesTreinoApp {
     if (!displayMissions.length) {
       this.listEl.innerHTML = `
         <div class="mt-empty-card">
-          <p class="mt-empty-title">NENHUMA MISSÃO</p>
-          <p class="mt-empty-text">Clique em [+] Nova Missão para começar.</p>
+          <p class="mt-empty-title">NENHUM TREINO</p>
+          <p class="mt-empty-text">Clique em “Adicionar treino” para começar.</p>
         </div>
       `;
+      this.renderWorkoutLogs();
       this.renderPerformance();
       return;
     }
@@ -906,6 +1137,7 @@ class MissoesTreinoApp {
     this.listEl.innerHTML = displayMissions
       .map((mission, idx) => missionCardHtml(mission, idx, false))
       .join('');
+    this.renderWorkoutLogs();
     this.renderPerformance();
     this.renderToasts();
   }
@@ -927,7 +1159,7 @@ class MissoesTreinoApp {
       this.profilesHost.innerHTML = `
         <div class="mt-empty-card">
           <p class="mt-empty-title">NENHUM PERFIL</p>
-          <p class="mt-empty-text">Crie um perfil para começar. Ex.: Hipertrofia, Emagrecimento, Corrida.</p>
+          <p class="mt-empty-text">Crie um perfil para cada pessoa que utilizará o modo treino.</p>
         </div>
       `;
       return;
@@ -937,6 +1169,47 @@ class MissoesTreinoApp {
       .map((profile, idx) => profileCardHtml(profile, idx))
       .join('');
     this.renderToasts();
+  }
+
+  renderWorkoutLogs() {
+    if (!this.workoutLogsHost) return;
+    if (this.isLoading) {
+      this.workoutLogsHost.innerHTML = '<p class="mt-empty-small">Carregando histórico...</p>';
+      return;
+    }
+    if (!this.workoutLogs.length) {
+      this.workoutLogsHost.innerHTML = `
+        <div class="mt-logs-empty">
+          <p class="mt-empty-title">NENHUM CHECK-IN FINALIZADO</p>
+          <p class="mt-empty-text">Ao finalizar um treino, o registro aparecerá aqui.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const rows = this.workoutLogs.map((log) => {
+      const parsedDate = log.finished_at ? new Date(log.finished_at) : null;
+      const dateLabel = parsedDate && !Number.isNaN(parsedDate.getTime())
+        ? parsedDate.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        : 'Data indisponível';
+      return `
+        <tr>
+          <td>${escapeHtml(dateLabel)}</td>
+          <td>${escapeHtml(log.workout_name || 'Treino')}</td>
+          <td><strong>${formatWorkoutElapsed(Number(log.duration_seconds || 0) * 1000)}</strong></td>
+          <td><button class="mt-btn-icon is-danger" data-action="delete-workout-log" data-log-id="${escapeHtml(log.id)}">Excluir</button></td>
+        </tr>
+      `;
+    }).join('');
+
+    this.workoutLogsHost.innerHTML = `
+      <div class="mt-logs-table-wrap">
+        <table class="mt-logs-table">
+          <thead><tr><th>Data</th><th>Treino</th><th>Tempo</th><th>Ações</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
   }
 
   buildRadarSvg(radar) {
@@ -1192,16 +1465,45 @@ class MissoesTreinoApp {
           .mt-fab-floating:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 16px 28px rgba(0,0,0,.5),0 0 18px rgba(0,229,255,.5)}
           .mt-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:14px;opacity:0;pointer-events:none;transition:opacity .18s ease;z-index:3000}
           .mt-modal[data-role="confirm-modal"]{z-index:3100}
+          .mt-modal[data-role="workout-modal"]{z-index:3050}
           .mt-modal.is-open{opacity:1;pointer-events:auto}
           .mt-modal.is-hidden{display:none}
+          .mt-modal.is-minimized{background:transparent;pointer-events:none;align-items:flex-end;justify-content:flex-end}
           .mt-modal-card{width:min(640px,100%);background:rgba(6,12,20,.95);border:1px solid var(--mt-border);border-radius:12px;padding:16px;transform:scale(.97);transition:transform .18s ease}
           .mt-modal.is-open .mt-modal-card{transform:scale(1)}
+          .mt-workout-card{width:min(560px,100%)}
+          .mt-workout-card.is-minimized{width:min(330px,calc(100vw - 28px));pointer-events:auto;margin:0 4px 4px 0;padding:12px;box-shadow:0 14px 34px rgba(0,0,0,.55)}
+          .mt-workout-card.is-minimized .mt-workout-body{display:none}
+          .mt-workout-card.is-minimized .mt-modal-top{border-bottom:0;padding-bottom:0;margin-bottom:0}
+          .mt-workout-head-actions{display:flex;gap:6px;align-items:center}
+          .mt-workout-mini-timer{color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.72rem;min-width:70px;text-align:right}
+          .mt-workout-timer{text-align:center;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:2.25rem;letter-spacing:.08em;padding:12px;border:1px solid rgba(0,229,255,.28);border-radius:10px;background:rgba(0,229,255,.05)}
+          .mt-workout-status{text-align:center;margin:8px 0 12px;color:#9fb0c0;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase}
+          .mt-checkin-list{display:grid;gap:7px;max-height:300px;overflow:auto;margin-bottom:12px}
+          .mt-checkin-exercise{display:flex;align-items:center;gap:10px;padding:9px;border:1px solid rgba(90,106,124,.32);border-radius:9px;background:rgba(255,255,255,.03)}
+          .mt-checkin-exercise>span{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid rgba(0,229,255,.4);color:var(--mt-accent);font-size:.7rem;flex:none}
+          .mt-checkin-exercise div{display:grid;gap:2px;min-width:0}
+          .mt-checkin-exercise strong{color:#e5f4ff;font-size:.78rem}
+          .mt-checkin-exercise small{color:#8da0b3;font-size:.64rem;text-transform:uppercase}
+          .mt-checkin-exercise.is-done{border-color:rgba(0,208,132,.42);background:rgba(0,208,132,.08)}
+          .mt-logs-section{margin-top:18px;border:1px solid rgba(0,229,255,.24);border-radius:11px;background:rgba(6,12,20,.55);overflow:hidden}
+          .mt-logs-heading{margin:0;padding:12px 14px;border-bottom:1px solid rgba(0,229,255,.2);color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.76rem;letter-spacing:.07em}
+          .mt-logs-content{padding:10px}
+          .mt-logs-empty{padding:16px;text-align:center}
+          .mt-logs-table-wrap{overflow-x:auto}
+          .mt-logs-table{width:100%;border-collapse:collapse;min-width:540px}
+          .mt-logs-table th,.mt-logs-table td{padding:9px 10px;border-bottom:1px solid rgba(90,106,124,.25);text-align:left;font-size:.7rem}
+          .mt-logs-table th{color:#8da0b3;text-transform:uppercase;letter-spacing:.08em;font-size:.6rem}
+          .mt-logs-table td{color:#d8e7f2}
+          .mt-logs-table td strong{color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif}
+          .mt-logs-table th:last-child,.mt-logs-table td:last-child{text-align:right}
+          .mt-logs-table tbody tr:last-child td{border-bottom:0}
           .mt-modal-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;border-bottom:1px solid rgba(64,81,102,.45);padding-bottom:9px;margin-bottom:12px}
           .mt-modal-top h4{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;letter-spacing:.05em}
           .mt-modal-top p{margin:5px 0 0;font-size:.74rem;color:#93a1b0}
           .mt-close{border:1px solid #4b5666;background:transparent;color:#9fb0c0;cursor:pointer;padding:4px 9px}
           .mt-form{display:grid;gap:10px}
-          .mt-row{display:grid;grid-template-columns:1fr 92px 110px auto;gap:8px}
+          .mt-row{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:8px}
           .mt-field label{display:block;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:#8da0b3;margin-bottom:4px}
           .mt-field input{width:100%;background:#090f17;border:1px solid #2e3b4f;color:#e5f4ff;padding:8px 9px}
           .mt-btn-soft{border:1px solid var(--mt-accent);background:rgba(0,229,255,.14);color:var(--mt-accent);padding:8px 10px;cursor:pointer;font-weight:700}
@@ -1281,13 +1583,17 @@ class MissoesTreinoApp {
           .mt-profiles-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:20px}
           .mt-profile-card{border:1px solid rgba(0,229,255,.28);background:var(--mt-panel);border-radius:12px;overflow:hidden;animation:cardIn .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--card-i, 0) * .07s);box-shadow:inset 0 0 12px rgba(0,229,255,.04)}
           .mt-profile-open{width:100%;border:none;background:transparent;color:inherit;text-align:left;cursor:pointer;padding:14px;display:flex;gap:12px;align-items:flex-start}
-          .mt-profile-icon{width:52px;height:52px;border-radius:12px;border:1px solid color-mix(in srgb, var(--profile-color, #00e5ff) 60%, transparent);background:color-mix(in srgb, var(--profile-color, #00e5ff) 16%, transparent);display:flex;align-items:center;justify-content:center;color:var(--profile-color,#00e5ff);font-size:1.2rem;flex:none;box-shadow:0 0 14px color-mix(in srgb, var(--profile-color, #00e5ff) 35%, transparent)}
+          .mt-profile-icon{width:52px;height:52px;border-radius:12px;border:1px solid rgba(0,229,255,.45);background:rgba(0,229,255,.1);display:flex;align-items:center;justify-content:center;font-size:1.55rem;flex:none;box-shadow:0 0 14px rgba(0,229,255,.2)}
           .mt-profile-body{min-width:0}
           .mt-profile-body h3{margin:0;color:var(--mt-accent);font-family:"Orbitron","Segoe UI",sans-serif;font-size:.82rem;letter-spacing:.05em}
           .mt-profile-body p{margin:6px 0 0;color:#93a1b0;font-size:.72rem;line-height:1.35}
           .mt-profile-meta{display:inline-flex;margin-top:10px;padding:3px 8px;border-radius:999px;border:1px solid rgba(0,229,255,.24);color:#9fdcf0;font-size:.58rem;letter-spacing:.08em}
           .mt-profile-actions{display:flex;gap:6px;padding:0 10px 10px}
           .mt-profile-back{display:inline-flex;align-items:center;gap:8px;border:1px solid #3a4656;background:rgba(0,0,0,.22);color:#c1d3e2;padding:8px 12px;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border-radius:8px}
+          .mt-emoji-picker{display:grid;grid-template-columns:repeat(8,minmax(42px,1fr));gap:8px}
+          .mt-emoji-option{min-height:44px;border:1px solid #3a4656;border-radius:8px;background:rgba(255,255,255,.03);font-size:1.35rem;cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease}
+          .mt-emoji-option:hover{transform:translateY(-1px);border-color:rgba(0,229,255,.55)}
+          .mt-emoji-option.is-selected{border-color:var(--mt-accent);background:rgba(0,229,255,.15);box-shadow:0 0 0 2px rgba(0,229,255,.12)}
           .mt-mock-banner{margin:0 0 14px;padding:10px 12px;border:1px dashed rgba(255,166,0,.55);border-radius:10px;background:rgba(255,166,0,.12);color:#ffe7c4;font-size:.72rem;letter-spacing:.04em}
           .mt-confirm-card{border-color:rgba(0,229,255,.55);box-shadow:0 0 24px rgba(0,229,255,.12)}
           .mt-confirm-card.is-danger{border-color:rgba(255,0,60,.55);box-shadow:0 0 24px rgba(255,0,60,.12)}
@@ -1300,7 +1606,7 @@ class MissoesTreinoApp {
           .mt-confirm-card.is-danger .mt-confirm-icon{color:#ff7d97}
           .mt-confirm-card.is-create .mt-confirm-icon{color:#7dffc8}
           @media (max-width:1024px){.mt-profiles-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
-          @media (max-width:720px){.mt-profiles-list{grid-template-columns:1fr}}
+          @media (max-width:720px){.mt-profiles-list{grid-template-columns:1fr}.mt-emoji-picker{grid-template-columns:repeat(4,minmax(42px,1fr))}}
         </style>
 
         <div class="mt-header-block">
@@ -1308,13 +1614,13 @@ class MissoesTreinoApp {
             <div class="mt-brand">
               <div class="mt-bolt"><span>Z</span></div>
               <div>
-                <h2 class="mt-title" data-text="SISTEMA: MISSÃO DIÁRIA">SISTEMA: MISSÃO DIÁRIA</h2>
+                <h2 class="mt-title" data-text="MODO TREINO">MODO TREINO</h2>
                 <p class="mt-date" data-role="today-date"></p>
               </div>
             </div>
             <div class="mt-stat">
               <strong data-role="completed">0/0</strong>
-              <span>Missões</span>
+              <span>Treinos</span>
             </div>
           </header>
         </div>
@@ -1328,7 +1634,7 @@ class MissoesTreinoApp {
 
         <div class="mt-fab-wrap mt-is-hidden" data-role="training-toolbar">
           <button class="mt-profile-back" data-action="back-profiles">← Perfis</button>
-          <button class="mt-fab sec" data-action="refresh">Sincronizar</button>
+          <button class="mt-fab" data-action="open-modal">+ Adicionar treino</button>
         </div>
 
         <div data-role="training-view">
@@ -1339,9 +1645,12 @@ class MissoesTreinoApp {
 
         <div class="mt-progress-wrap"><div class="mt-progress" data-role="progress"></div></div>
         <section class="mt-list" data-role="list"></section>
+        <section class="mt-logs-section">
+          <h3 class="mt-logs-heading">HISTÓRICO DE CHECK-INS</h3>
+          <div class="mt-logs-content" data-role="workout-logs"></div>
+        </section>
         <section data-role="performance"></section>
         </div>
-        <button class="mt-fab-floating mt-is-hidden" data-action="open-modal" aria-label="Nova Missão" title="Nova Missão">+</button>
         <div class="mt-toast-wrap" data-role="toasts"></div>
 
         <div class="mt-modal is-hidden" data-role="profile-modal">
@@ -1356,15 +1665,14 @@ class MissoesTreinoApp {
             <div class="mt-form">
               <div class="mt-field">
                 <label>Nome do perfil</label>
-                <input type="text" data-role="profile-name" placeholder="Ex: Hipertrofia" />
+                <input type="text" data-role="profile-name" placeholder="Ex: André" />
               </div>
               <div class="mt-field">
-                <label>Descrição</label>
-                <input type="text" data-role="profile-desc" placeholder="Ex: Treino focado em ganho de massa" />
-              </div>
-              <div class="mt-field">
-                <label>Cor do perfil</label>
-                <input type="color" data-role="profile-color" value="#00e5ff" />
+                <label>Emoji do perfil</label>
+                <input type="hidden" data-role="profile-emoji" value="🏋️" />
+                <div class="mt-emoji-picker" role="group" aria-label="Escolha o emoji do perfil">
+                  ${PROFILE_EMOJIS.map((emoji, index) => `<button type="button" class="mt-emoji-option${index === 0 ? ' is-selected' : ''}" data-action="select-profile-emoji" data-emoji="${emoji}" aria-label="Selecionar emoji ${emoji}" aria-pressed="${index === 0 ? 'true' : 'false'}">${emoji}</button>`).join('')}
+                </div>
               </div>
               <div class="mt-actions">
                 <button class="mt-cancel" data-action="close-profile-modal">Cancelar</button>
@@ -1378,40 +1686,76 @@ class MissoesTreinoApp {
           <div class="mt-modal-card">
             <div class="mt-modal-top">
               <div>
-                <h4 data-role="modal-title">NOVA MISSÃO</h4>
-                <p data-role="modal-desc">Adicione os exercícios deste treino. Ele fica salvo neste perfil.</p>
+                <h4 data-role="modal-title">NOVO TREINO</h4>
+                <p data-role="modal-desc">Dê um nome ao treino e adicione seus exercícios.</p>
               </div>
               <button class="mt-close" data-action="close-modal">X</button>
             </div>
             <div class="mt-form">
               <div class="mt-field">
-                <label>Nome da Missão</label>
+                <label>Nome do treino</label>
                 <input type="text" data-role="temp-title" placeholder="Ex: Treino de Peito" />
               </div>
-              <div class="mt-row">
-                <div class="mt-field">
-                  <label>Exercício / Item</label>
-                  <input type="text" data-role="temp-name" placeholder="Ex: Flexões" />
-                </div>
-                <div class="mt-field">
-                  <label>Séries</label>
-                  <input type="number" data-role="temp-series" value="3" min="1" />
-                </div>
-                <div class="mt-field">
-                  <label>Repetições</label>
-                  <input type="number" data-role="temp-reps" value="12" min="1" />
-                </div>
-                <div style="display:flex;align-items:end;">
-                  <button class="mt-btn-soft" data-action="add-temp">ADICIONAR</button>
-                </div>
-              </div>
+              <button class="mt-btn-soft" data-action="open-exercise-modal">+ ADICIONAR EXERCÍCIO</button>
               <div class="mt-temp-list" data-role="temp-list"></div>
               <div class="mt-actions">
-                <button class="mt-cancel" data-action="clear-temp">Limpar tudo</button>
-                <button class="mt-submit" data-role="modal-submit" data-action="submit-modal">CRIAR MISSÃO</button>
+                <button class="mt-cancel" data-action="close-modal">Cancelar</button>
+                <button class="mt-submit" data-role="modal-submit" data-action="submit-modal">SALVAR TREINO</button>
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="mt-modal is-hidden" data-role="exercise-modal">
+          <div class="mt-modal-card" style="width:min(460px,100%);">
+            <div class="mt-modal-top">
+              <div>
+                <h4 data-role="exercise-modal-title">ADICIONAR EXERCÍCIO</h4>
+                <p>Informe somente o nome e a quantidade de séries.</p>
+              </div>
+              <button class="mt-close" data-action="close-exercise-modal">X</button>
+            </div>
+            <div class="mt-form">
+              <div class="mt-row">
+                <div class="mt-field">
+                  <label>Nome do exercício</label>
+                  <input type="text" data-role="temp-name" placeholder="Ex: Supino reto" />
+                </div>
+                <div class="mt-field">
+                  <label>Quantidade de séries</label>
+                  <input type="number" data-role="temp-series" value="3" min="1" step="1" />
+                </div>
+              </div>
+              <div class="mt-actions">
+                <button class="mt-cancel" data-action="close-exercise-modal">Cancelar</button>
+                <button class="mt-submit" data-role="exercise-modal-submit" data-action="submit-exercise-modal">SALVAR EXERCÍCIO</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-modal is-hidden" data-role="workout-modal">
+          <section class="mt-modal-card mt-workout-card" data-role="workout-modal-card" aria-modal="true" aria-labelledby="mt-workout-title">
+            <div class="mt-modal-top">
+              <div>
+                <h4 id="mt-workout-title" data-role="workout-title">TREINO</h4>
+                <p data-role="workout-status">Pronto para iniciar</p>
+              </div>
+              <div class="mt-workout-head-actions">
+                <span class="mt-workout-mini-timer" data-role="workout-mini-timer">00:00:00</span>
+                <button class="mt-close" data-action="minimize-workout" aria-label="Minimizar treino">—</button>
+                <button class="mt-close" data-action="close-workout" aria-label="Fechar treino">X</button>
+              </div>
+            </div>
+            <div class="mt-workout-body">
+              <div class="mt-workout-timer" data-role="workout-timer">00:00:00</div>
+              <div class="mt-checkin-list" data-role="workout-exercises"></div>
+              <div class="mt-actions">
+                <button class="mt-submit" data-role="workout-start" data-action="start-workout">INICIAR TREINO</button>
+                <button class="mt-submit mt-is-hidden" data-role="workout-finish" data-action="finish-workout">FINALIZAR TREINO</button>
+              </div>
+            </div>
+          </section>
         </div>
 
         <div class="mt-modal is-hidden" data-role="confirm-modal">

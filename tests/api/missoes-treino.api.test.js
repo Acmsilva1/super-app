@@ -14,6 +14,8 @@ vi.mock('../../lib/supabase.js', () => ({
 
 import missoesTreinoHandler from '../../api/missoes-treino.js';
 
+const WORKOUT_MISSION_ID = '7e683d74-653f-4b17-8b22-cfb1a61e0a6e';
+
 function createApp(handler) {
   const app = express();
   app.use(express.json());
@@ -281,5 +283,170 @@ describe('API missoes-treino', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/profile_id.*obrigat/i);
+  });
+
+  it('GET workout-logs lista o historico do perfil', async () => {
+    const limit = vi.fn().mockResolvedValue({
+      data: [{
+        id: 8,
+        perfil_id: 3,
+        missao_id: 10,
+        treino_nome: 'Treino A',
+        duracao_segundos: 125,
+        finalizado_em: '2026-09-23T10:00:00Z',
+      }],
+      error: null,
+    });
+    fromMock.mockReturnValue({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({ limit })),
+        })),
+      })),
+    });
+
+    const app = createApp(missoesTreinoHandler);
+    const res = await request(app).get('/api/test?resource=workout-logs&profile_id=3');
+
+    expect(res.status).toBe(200);
+    expect(res.body.logs[0]).toMatchObject({
+      id: 8,
+      workout_name: 'Treino A',
+      duration_seconds: 125,
+    });
+  });
+
+  it('POST workout-log registra uma sessao finalizada', async () => {
+    const logInsert = vi.fn(() => ({
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 9,
+            perfil_id: 3,
+            missao_id: WORKOUT_MISSION_ID,
+            treino_nome: 'Treino A',
+            duracao_segundos: 3661,
+            finalizado_em: '2026-09-23T10:00:00Z',
+          },
+          error: null,
+        }),
+      })),
+    }));
+    const flamesUpsert = vi.fn().mockResolvedValue({ error: null });
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_missoes_treino') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: { id: WORKOUT_MISSION_ID, perfil_id: 3, titulo: 'Treino A' },
+                error: null,
+              }),
+            })),
+          })),
+        };
+      }
+      if (table === 'tb_missoes_treino_logs') return { insert: logInsert };
+      if (table === 'tb_missoes_treino_chamas') return { upsert: flamesUpsert };
+      return {};
+    });
+
+    const app = createApp(missoesTreinoHandler);
+    const res = await request(app)
+      .post('/api/test')
+      .send({ resource: 'workout-log', mission_id: WORKOUT_MISSION_ID, duration_seconds: 3661 });
+
+    expect(res.status).toBe(201);
+    expect(logInsert).toHaveBeenCalledWith(expect.objectContaining({
+      perfil_id: 3,
+      missao_id: WORKOUT_MISSION_ID,
+      treino_nome: 'Treino A',
+      duracao_segundos: 3661,
+    }));
+    expect(res.body.log.duration_seconds).toBe(3661);
+    expect(flamesUpsert).toHaveBeenCalled();
+  });
+
+  it('DELETE workout-log remove um registro pelo id', async () => {
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    fromMock.mockReturnValue({ delete: vi.fn(() => ({ eq })) });
+
+    const app = createApp(missoesTreinoHandler);
+    const res = await request(app)
+      .delete('/api/test')
+      .send({ resource: 'workout-log', id: 9 });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, id: 9 });
+    expect(eq).toHaveBeenCalledWith('id', 9);
+  });
+
+  it.each(['3abc', '3.5', '0', '-1', '', '9007199254740992'])(
+    'GET rejeita profile_id numericamente malformado: %s',
+    async (profileId) => {
+      const app = createApp(missoesTreinoHandler);
+      const res = await request(app).get(`/api/test?resource=workout-logs&profile_id=${encodeURIComponent(profileId)}`);
+
+      expect(res.status).toBe(400);
+      expect(fromMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { mission_id: '10abc', duration_seconds: 60 },
+    { mission_id: 10, duration_seconds: 60 },
+    { mission_id: 10.5, duration_seconds: 60 },
+    { mission_id: 0, duration_seconds: 60 },
+    { mission_id: 10, duration_seconds: '60abc' },
+    { mission_id: 10, duration_seconds: 1.5 },
+    { mission_id: 10, duration_seconds: 0 },
+    { mission_id: 10, duration_seconds: 604801 },
+  ])('POST workout-log rejeita payload hostil sem tocar no banco: %o', async (payload) => {
+    const app = createApp(missoesTreinoHandler);
+    const res = await request(app)
+      .post('/api/test')
+      .send({ resource: 'workout-log', ...payload });
+
+    expect(res.status).toBe(400);
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  it.each(['9abc', '9.5', '0', '-9', '9007199254740992'])(
+    'DELETE workout-log rejeita id malformado sem tocar no banco: %s',
+    async (id) => {
+      const app = createApp(missoesTreinoHandler);
+      const res = await request(app)
+        .delete('/api/test')
+        .send({ resource: 'workout-log', id });
+
+      expect(res.status).toBe(400);
+      expect(fromMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('GET workout-logs isola a consulta pelo perfil solicitado e limita o volume', async () => {
+    const limit = vi.fn().mockResolvedValue({ data: [], error: null });
+    const order = vi.fn(() => ({ limit }));
+    const eq = vi.fn(() => ({ order }));
+    fromMock.mockReturnValue({ select: vi.fn(() => ({ eq })) });
+
+    const app = createApp(missoesTreinoHandler);
+    const res = await request(app).get('/api/test?resource=workout-logs&profile_id=37');
+
+    expect(res.status).toBe(200);
+    expect(eq).toHaveBeenCalledWith('perfil_id', 37);
+    expect(order).toHaveBeenCalledWith('finalizado_em', { ascending: false });
+    expect(limit).toHaveBeenCalledWith(200);
+  });
+
+  it('POST missao rejeita series malformadas em vez de truncar silenciosamente', async () => {
+    const app = createApp(missoesTreinoHandler);
+    const res = await request(app)
+      .post('/api/test')
+      .send({ profile_id: 3, title: 'Treino hostil', name: 'Agachamento', reps: '3abc' });
+
+    expect(res.status).toBe(400);
+    expect(fromMock).not.toHaveBeenCalled();
   });
 });

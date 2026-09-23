@@ -1,6 +1,6 @@
 import express from 'express';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import saudeHandler from '../../api/saude.js';
 
@@ -170,5 +170,48 @@ describe('API de saúde', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('Data da medicao invalida.');
+  });
+
+  it('cria meta de agua, marca doses e vira o dia preservando o log', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-09-23T15:00:00Z'));
+      const app = createApp();
+      const created = await request(app).post('/api/saude?resource=consumo-agua').send({
+        nome: 'Garrafa 500 ml', meta_doses: 10,
+      });
+      expect(created.status).toBe(200);
+      expect(created.body.config).toEqual({ nome: 'Garrafa 500 ml', meta_doses: 10 });
+      expect(created.body.today).toMatchObject({ data: '2026-09-23', meta_doses: 10, realizado_doses: 0 });
+
+      const checked = await request(app).patch('/api/saude?resource=consumo-agua').send({ realizado_doses: 3 });
+      expect(checked.status).toBe(200);
+      expect(checked.body.today.realizado_doses).toBe(3);
+
+      vi.setSystemTime(new Date('2026-09-24T15:00:00Z'));
+      const nextDay = await request(app).get('/api/saude?resource=consumo-agua');
+      expect(nextDay.status).toBe(200);
+      expect(nextDay.body.today).toMatchObject({ data: '2026-09-24', meta_doses: 10, realizado_doses: 0 });
+      expect(nextDay.body.history[0]).toMatchObject({ data: '2026-09-23', meta_doses: 10, realizado_doses: 3 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('valida a meta e impede consumo acima do limite diario', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-09-25T15:00:00Z'));
+      const app = createApp();
+      const invalid = await request(app).post('/api/saude?resource=consumo-agua').send({ nome: '', meta_doses: 0 });
+      expect(invalid.status).toBe(400);
+
+      const created = await request(app).post('/api/saude?resource=consumo-agua').send({ nome: 'Copo', meta_doses: 2 });
+      expect(created.status).toBe(200);
+      const overflow = await request(app).patch('/api/saude?resource=consumo-agua').send({ realizado_doses: 3 });
+      expect(overflow.status).toBe(409);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

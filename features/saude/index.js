@@ -4,6 +4,12 @@ import {
   paginarTabelaNutricional,
 } from './service/tabelaNutricionalService.js';
 import { calcularImc, classificarImc, formatarNumeroSaude } from './service/perfilSaudeService.js';
+import {
+  isLocalWaterStorageMode,
+  loadLocalWater,
+  saveLocalWaterGoal,
+  updateLocalWaterProgress,
+} from './service/consumoAguaLocalService.js';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -15,9 +21,11 @@ function escapeHtml(value) {
 }
 
 function todayIsoDate() {
-  const now = new Date();
-  const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
-  return localDate.toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${byType.year}-${byType.month}-${byType.day}`;
 }
 
 const SAUDE_STYLES = `
@@ -148,6 +156,62 @@ const SAUDE_STYLES = `
     .saude-timeline-values span { padding: .25rem .5rem; border-radius: .5rem; background: rgba(50, 119, 70, .18); color: #d9f5df; font-size: .72rem; }
     .saude-profile-form__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
     .saude-profile-form__section { grid-column: 1 / -1; margin: .25rem 0 0; color: var(--saude-lima); font-size: .78rem; font-weight: 700; text-transform: uppercase; }
+    .saude-water-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; overflow: hidden; border: 1px solid rgba(56, 189, 248, .32); border-radius: 1.1rem; background: linear-gradient(145deg, rgba(12, 42, 65, .96), rgba(12, 22, 39, .98)); box-shadow: 0 14px 30px rgba(0, 0, 0, .24); transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
+    .saude-water-card::before { content: ''; position: absolute; inset: -60% 35% -60% -20%; pointer-events: none; background: radial-gradient(circle, rgba(56, 189, 248, .13), transparent 65%); animation: saude-water-drift 6s ease-in-out infinite alternate; }
+    .saude-water-card:hover { transform: translateY(-2px); border-color: rgba(103, 232, 249, .62); box-shadow: 0 18px 38px rgba(0, 0, 0, .34), 0 0 28px rgba(14, 165, 233, .09); }
+    .saude-water-card.is-complete { border-color: rgba(103, 232, 249, .9); box-shadow: 0 16px 38px rgba(0, 0, 0, .32), 0 0 30px rgba(14, 165, 233, .2); }
+    .saude-water-card__open { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 1rem; padding: 1.15rem; border: 0; background: transparent; color: var(--saude-texto); text-align: left; cursor: pointer; }
+    .saude-water-card__icon { width: 3.4rem; height: 3.4rem; display: grid; place-items: center; border-radius: 1rem; background: linear-gradient(135deg, #0369a1, #38bdf8); color: #fff; font-size: 1.35rem; box-shadow: 0 8px 22px rgba(14, 165, 233, .2); animation: saude-water-float 2.8s ease-in-out infinite; }
+    .saude-water-card h3 { margin: 0; font-size: 1.05rem; }
+    .saude-water-card p { margin: .3rem 0 0; color: var(--saude-texto-secundario); font-size: .8rem; }
+    .saude-water-progress { height: .45rem; margin-top: .7rem; overflow: hidden; border-radius: 999px; background: rgba(148, 163, 184, .18); }
+    .saude-water-progress span { position: relative; display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0369a1, #0ea5e9, #67e8f9); transition: width .35s ease; }
+    .saude-water-progress span::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); transform: translateX(-100%); animation: saude-water-shine 2.4s ease-in-out infinite; }
+    .saude-water-card__edit { align-self: center; margin-right: 1rem; }
+    .saude-water-history { margin-top: 1.2rem; }
+    .saude-water-history h3 { margin: 0 0 .65rem; font-size: .95rem; }
+    .saude-water-log { display: grid; grid-template-columns: minmax(7rem, .7fr) 1fr 1fr; gap: .75rem; padding: .8rem .9rem; border-bottom: 1px solid rgba(148, 163, 184, .14); font-size: .82rem; }
+    .saude-water-log:last-child { border-bottom: 0; }
+    .saude-water-log span { color: var(--saude-texto-secundario); }
+    .saude-water-log strong { color: var(--saude-texto); }
+    .saude-modal-backdrop { position: fixed; inset: 0; z-index: 10020; display: grid; place-items: center; padding: 1rem; background: rgba(2, 6, 23, .78); backdrop-filter: blur(5px); animation: saude-water-fade .18s ease-out; }
+    .saude-water-modal { width: min(100%, 34rem); max-height: min(88vh, 44rem); overflow: auto; padding: 1rem; border: 1px solid rgba(56, 189, 248, .35); border-radius: 1.1rem; background: radial-gradient(circle at 15% 0%, rgba(14, 165, 233, .12), transparent 15rem), #0f172a; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); animation: saude-water-modal-in .24s cubic-bezier(.2,.8,.2,1); }
+    .saude-water-modal.is-complete { border-color: rgba(103, 232, 249, .78); box-shadow: 0 24px 70px rgba(0, 0, 0, .55), 0 0 34px rgba(14, 165, 233, .16); }
+    .saude-water-modal__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+    .saude-water-modal__header h3 { margin: 0; }
+    .saude-water-modal__header p { margin: .25rem 0 0; color: var(--saude-texto-secundario); font-size: .8rem; }
+    .saude-water-checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(3.35rem, 1fr)); gap: .65rem; }
+    .saude-water-check { position: relative; aspect-ratio: 1; display: grid; place-items: center; overflow: visible; border: 1px solid #334155; border-radius: .85rem; background: #0b1324; color: #718399; font-size: 1.15rem; cursor: pointer; transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease; }
+    .saude-water-check:hover:not(:disabled) { transform: translateY(-2px); border-color: rgba(56, 189, 248, .65); }
+    .saude-water-check[aria-pressed="true"] { border-color: #38bdf8; background: linear-gradient(135deg, #0369a1, #0ea5e9); color: #fff; box-shadow: 0 7px 18px rgba(14, 165, 233, .22); }
+    .saude-water-check.is-splash { animation: saude-water-check-pop .5s cubic-bezier(.2,.9,.3,1.25); }
+    .saude-water-check.is-splash i { animation: saude-water-check-icon .45s ease-out; }
+    .saude-water-check.is-splash::before, .saude-water-check.is-splash::after { content: ''; position: absolute; z-index: 2; width: .45rem; height: .65rem; pointer-events: none; border-radius: 55% 45% 60% 40%; background: #67e8f9; opacity: 0; animation: saude-water-droplets .65s ease-out; }
+    .saude-water-check.is-splash::before { box-shadow: -1.5rem -.2rem 0 -.08rem #38bdf8, 1.35rem -.65rem 0 -.12rem #7dd3fc; }
+    .saude-water-check.is-splash::after { box-shadow: -1rem 1rem 0 -.12rem #0ea5e9, 1.5rem .8rem 0 -.08rem #67e8f9; animation-delay: .04s; }
+    .saude-water-motion-drop { position: absolute; left: 50%; top: 50%; z-index: 3; width: .42rem; height: .58rem; pointer-events: none; border-radius: 55% 45% 60% 40%; background: linear-gradient(160deg, #d9faff, #38bdf8); opacity: 0; }
+    .saude-water-celebration-layer { position: fixed; inset: 0; z-index: 10040; overflow: hidden; pointer-events: none; }
+    .saude-water-celebration { position: absolute; top: max(1.25rem, env(safe-area-inset-top)); left: 0; right: 0; width: min(calc(100% - 2rem), 27rem); margin-inline: auto; padding: .9rem 1rem; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .8rem; border: 1px solid rgba(103, 232, 249, .7); border-radius: 1rem; background: linear-gradient(135deg, rgba(3, 105, 161, .97), rgba(15, 118, 110, .97)); color: #fff; box-shadow: 0 18px 48px rgba(0, 0, 0, .38), 0 0 30px rgba(56, 189, 248, .2); animation: saude-water-celebration-in .42s cubic-bezier(.2,.9,.25,1.15); }
+    .saude-water-celebration__icon { width: 2.75rem; height: 2.75rem; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, .18); font-size: 1.25rem; }
+    .saude-water-celebration strong { display: block; font-size: 1rem; }
+    .saude-water-celebration p { margin: .2rem 0 0; color: rgba(255, 255, 255, .88); font-size: .8rem; }
+    .saude-water-confetti { position: absolute; top: -1rem; left: 50%; width: .55rem; height: .85rem; border-radius: .16rem; opacity: 0; animation: saude-water-confetti-fall 1.8s ease-out forwards; }
+    .saude-water-check:disabled { cursor: wait; opacity: .6; }
+    @keyframes saude-water-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes saude-water-modal-in { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes saude-water-check-pop { 0% { transform: scale(.86); } 55% { transform: scale(1.13); } 100% { transform: scale(1); } }
+    @keyframes saude-water-check-icon { 0% { opacity: 0; transform: rotate(-25deg) scale(.35); } 100% { opacity: 1; transform: rotate(0) scale(1); } }
+    @keyframes saude-water-droplets { 0% { opacity: .95; transform: translateY(0) scale(.4) rotate(25deg); } 100% { opacity: 0; transform: translateY(-1.5rem) scale(1) rotate(25deg); } }
+    @keyframes saude-water-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    @keyframes saude-water-drift { from { transform: translateX(-2%) scale(.95); } to { transform: translateX(12%) scale(1.08); } }
+    @keyframes saude-water-shine { 0%, 45% { transform: translateX(-100%); } 75%, 100% { transform: translateX(100%); } }
+    @keyframes saude-water-celebration-in { from { opacity: 0; transform: translateY(-1rem) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes saude-water-confetti-fall { 0% { opacity: 0; transform: translate3d(0, -1rem, 0) rotate(0); } 12% { opacity: 1; } 100% { opacity: 0; transform: translate3d(var(--confetti-x), 72vh, 0) rotate(var(--confetti-rotate)); } }
+    @media (prefers-reduced-motion: reduce) {
+      .saude-modal-backdrop, .saude-water-modal, .saude-water-card::before, .saude-water-card__icon, .saude-water-progress span::after, .saude-water-check.is-splash, .saude-water-check.is-splash i, .saude-water-check.is-splash::before, .saude-water-check.is-splash::after, .saude-water-celebration, .saude-water-confetti { animation: none !important; }
+      .saude-water-confetti { display: none; }
+      .saude-water-card, .saude-water-progress span, .saude-water-check { transition: none !important; }
+    }
     @media (max-width: 760px) {
       .saude-root { padding: .85rem; }
       .saude-hero__image { width: 3.75rem; height: 3.75rem; }
@@ -166,6 +230,11 @@ const SAUDE_STYLES = `
       .saude-profile-form__grid { grid-template-columns: 1fr; }
       .saude-profile-summary { grid-template-columns: 1fr 1fr; }
       .saude-timeline-item { grid-template-columns: 1fr; gap: .3rem; }
+      .saude-water-card { grid-template-columns: minmax(0, 1fr) auto; }
+      .saude-water-card__open { padding: .9rem; gap: .75rem; }
+      .saude-water-card__icon { width: 2.9rem; height: 2.9rem; }
+      .saude-water-log { grid-template-columns: 1fr 1fr; }
+      .saude-water-log time { grid-column: 1 / -1; }
       .saude-diet-open span { display: none; }
       .saude-filters { grid-template-columns: 1fr; }
       .saude-table-wrap { overflow: hidden; border: 1px solid rgba(148, 163, 184, .18); border-radius: .85rem; background: var(--saude-painel); box-shadow: 0 10px 24px rgba(0, 0, 0, .2); }
@@ -244,6 +313,12 @@ function renderHome(container) {
           <span class="saude-access-card__icon"><i class="fas fa-user-group" aria-hidden="true"></i></span>
           <h2>Perfil</h2>
           <p>Acompanhe peso, medidas, IMC e a evolução de cada pessoa da família.</p>
+          <span class="saude-access-card__action">Acessar <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+        </button>
+        <button type="button" class="saude-access-card" data-saude-action="open-water">
+          <span class="saude-access-card__icon"><i class="fas fa-droplet" aria-hidden="true"></i></span>
+          <h2>Consumo de água</h2>
+          <p>Defina sua meta diária, marque cada dose e acompanhe o histórico.</p>
           <span class="saude-access-card__action">Acessar <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
         </button>
       </div>
@@ -604,6 +679,226 @@ async function loadProfiles(container, state) {
   }
 }
 
+function formatWaterDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return String(value || '');
+  return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo' }).format(new Date(`${value}T12:00:00-03:00`));
+}
+
+function renderWaterModal(state) {
+  if (state.waterModal === 'config') {
+    return `<div class="saude-modal-backdrop" data-water-modal-backdrop role="presentation">
+      <section class="saude-water-modal" role="dialog" aria-modal="true" aria-labelledby="water-config-title">
+        <div class="saude-water-modal__header"><div><h3 id="water-config-title">${state.waterConfig ? 'Editar meta' : 'Criar meta de água'}</h3><p>Dê um nome ao item e informe quantas doses pretende tomar por dia.</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-water-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>
+        <form data-water-goal-form>
+          <div class="saude-editor__grid">
+            <div class="saude-field-group"><label for="water-name">Nome da meta</label><input class="saude-field" id="water-name" name="nome" maxlength="80" required placeholder="Ex.: Garrafa 500 ml" value="${escapeHtml(state.waterDraft.nome)}"></div>
+            <div class="saude-field-group"><label for="water-goal">Doses por dia</label><input class="saude-field" id="water-goal" name="meta_doses" type="number" min="1" max="100" step="1" required value="${escapeHtml(state.waterDraft.meta_doses)}"></div>
+          </div>
+          <div class="saude-editor__actions"><button type="button" class="saude-btn" data-saude-action="close-water-modal">Cancelar</button><button type="submit" class="saude-btn saude-btn--primary"${state.busy ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar meta</button></div>
+        </form>
+      </section>
+    </div>`;
+  }
+  if (state.waterModal !== 'tracker' || !state.waterConfig || !state.waterToday) return '';
+  const checks = Array.from({ length: state.waterToday.meta_doses }, (_, index) => {
+    const dose = index + 1;
+    const checked = dose <= state.waterToday.realizado_doses;
+    return `<button type="button" class="saude-water-check" data-saude-action="toggle-water-dose" data-water-dose="${dose}" aria-pressed="${checked}" aria-label="Dose ${dose}: ${checked ? 'tomada' : 'pendente'}"${state.busy ? ' disabled' : ''}><i class="fas fa-check"></i></button>`;
+  }).join('');
+  const complete = state.waterToday.realizado_doses === state.waterToday.meta_doses;
+  return `<div class="saude-modal-backdrop" data-water-modal-backdrop role="presentation">
+    <section class="saude-water-modal${complete ? ' is-complete' : ''}" role="dialog" aria-modal="true" aria-labelledby="water-tracker-title">
+      <div class="saude-water-modal__header"><div><h3 id="water-tracker-title">${escapeHtml(state.waterConfig.nome)}</h3><p data-water-modal-status>${complete ? 'Meta do dia concluída! 💧' : `${state.waterToday.realizado_doses} de ${state.waterToday.meta_doses} doses marcadas hoje`}</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-water-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>
+      <div class="saude-water-checks">${checks}</div>
+    </section>
+  </div>`;
+}
+
+function syncWaterTrackerDom(container, state) {
+  if (!state.waterToday) return;
+  const completed = state.waterToday.realizado_doses === state.waterToday.meta_doses;
+  container.querySelectorAll('[data-saude-action="toggle-water-dose"]').forEach((button) => {
+    const dose = Number(button.dataset.waterDose);
+    const checked = dose <= state.waterToday.realizado_doses;
+    button.setAttribute('aria-pressed', String(checked));
+    button.setAttribute('aria-label', `Dose ${dose}: ${checked ? 'tomada' : 'pendente'}`);
+  });
+  const modalStatus = container.querySelector('[data-water-modal-status]');
+  if (modalStatus) modalStatus.textContent = completed
+    ? 'Meta do dia concluída! 💧'
+    : `${state.waterToday.realizado_doses} de ${state.waterToday.meta_doses} doses marcadas hoje`;
+  const cardStatus = container.querySelector('[data-water-card-status]');
+  if (cardStatus) cardStatus.textContent = `${state.waterToday.realizado_doses} de ${state.waterToday.meta_doses} doses hoje`;
+  const progress = container.querySelector('[data-water-progress-fill]');
+  if (progress) progress.style.width = `${Math.round((state.waterToday.realizado_doses / state.waterToday.meta_doses) * 100)}%`;
+  container.querySelector('.saude-water-modal')?.classList.toggle('is-complete', completed);
+  container.querySelector('.saude-water-card')?.classList.toggle('is-complete', completed);
+}
+
+function animateWaterDose(container, button, completed) {
+  if (!button || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
+  const motion = globalThis.motion || globalThis.Motion;
+  button.classList.remove('is-splash');
+  void button.offsetWidth;
+  button.classList.add('is-splash');
+  setTimeout(() => button.classList.remove('is-splash'), 700);
+  if (typeof motion?.animate !== 'function') return;
+
+  try {
+    motion.animate(button, { scale: [1, .9, 1.12, 1], y: [0, 2, -2, 0] }, { duration: .42, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    const icon = button.querySelector('i');
+    if (icon) motion.animate(icon, { rotate: [-18, 8, 0], scale: [.45, 1.2, 1] }, { duration: .38, easing: 'ease-out' });
+
+    const vectors = [[-26, -22], [25, -28], [-22, 22], [28, 18]];
+    vectors.forEach(([x, y], index) => {
+      const drop = document.createElement('span');
+      drop.className = 'saude-water-motion-drop';
+      button.appendChild(drop);
+      const animation = motion.animate(drop, {
+        opacity: [.95, .8, 0], x: [0, x], y: [0, y], scale: [.35, 1, .65], rotate: [0, index % 2 ? 22 : -22],
+      }, { duration: .55, easing: 'ease-out' });
+      Promise.resolve(animation?.finished).catch(() => {}).finally(() => drop.remove());
+    });
+
+    const waterIcon = container.querySelector('.saude-water-card__icon');
+    if (waterIcon) motion.animate(waterIcon, { y: [0, -6, 0], scale: [1, 1.08, 1] }, { duration: .45, easing: 'ease-out' });
+    if (completed) {
+      const modal = container.querySelector('.saude-water-modal');
+      if (modal) motion.animate(modal, { scale: [1, 1.015, 1] }, { duration: .5, easing: 'ease-out' });
+    }
+  } catch (_error) {
+    // O CSS mantem um feedback simples se Motion nao estiver disponivel.
+  }
+}
+
+function showWaterCelebration(container, state) {
+  container.querySelector('[data-water-celebration]')?.remove();
+  if (state.waterCelebrationTimer) clearTimeout(state.waterCelebrationTimer);
+
+  const layer = document.createElement('div');
+  layer.className = 'saude-water-celebration-layer';
+  layer.dataset.waterCelebration = '';
+  layer.setAttribute('aria-live', 'polite');
+
+  const message = document.createElement('div');
+  message.className = 'saude-water-celebration';
+  message.setAttribute('role', 'status');
+  const icon = document.createElement('span');
+  icon.className = 'saude-water-celebration__icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = '<i class="fas fa-trophy"></i>';
+  const copy = document.createElement('div');
+  const title = document.createElement('strong');
+  title.textContent = 'Meta concluída!';
+  const description = document.createElement('p');
+  description.textContent = `Você completou ${state.waterToday.meta_doses} doses de água hoje.`;
+  copy.append(title, description);
+  message.append(icon, copy);
+  layer.appendChild(message);
+  container.appendChild(layer);
+
+  const reduceMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const motion = globalThis.motion || globalThis.Motion;
+  const colors = ['#38bdf8', '#67e8f9', '#95c11f', '#4aa455', '#ffffff'];
+  if (!reduceMotion) {
+    Array.from({ length: 30 }, (_, index) => {
+      const confetti = document.createElement('span');
+      const start = 4 + ((index * 37) % 92);
+      const drift = ((index * 53) % 180) - 90;
+      const rotation = 180 + ((index * 71) % 540);
+      confetti.className = 'saude-water-confetti';
+      confetti.style.left = `${start}%`;
+      confetti.style.background = colors[index % colors.length];
+      confetti.style.setProperty('--confetti-x', `${drift}px`);
+      confetti.style.setProperty('--confetti-rotate', `${index % 2 ? rotation : -rotation}deg`);
+      confetti.style.animationDelay = `${(index % 8) * .045}s`;
+      layer.appendChild(confetti);
+
+      if (typeof motion?.animate === 'function') {
+        confetti.style.animation = 'none';
+        motion.animate(confetti, {
+          opacity: [0, 1, 1, 0],
+          x: [0, drift * .35, drift],
+          y: [-20, 90 + (index % 5) * 18, globalThis.innerHeight * .72],
+          rotate: [0, index % 2 ? rotation : -rotation],
+          scale: [.6, 1, .75],
+        }, { duration: 1.45 + (index % 6) * .08, delay: (index % 8) * .04, easing: 'ease-out' });
+      }
+    });
+  }
+
+  if (!reduceMotion && typeof motion?.animate === 'function') {
+    motion.animate(message, { opacity: [0, 1], y: [-18, 0], scale: [.94, 1] }, { duration: .38, easing: 'ease-out' });
+    motion.animate(icon, { rotate: [-12, 10, 0], scale: [.7, 1.18, 1] }, { duration: .55, easing: 'ease-out' });
+  }
+
+  state.waterCelebrationTimer = setTimeout(() => {
+    const finish = typeof motion?.animate === 'function' && !reduceMotion
+      ? motion.animate(message, { opacity: [1, 0], y: [0, -12], scale: [1, .97] }, { duration: .25, easing: 'ease-in' })
+      : null;
+    Promise.resolve(finish?.finished).catch(() => {}).finally(() => layer.remove());
+    state.waterCelebrationTimer = null;
+  }, reduceMotion ? 1800 : 2500);
+}
+
+function renderWater(container, state) {
+  const notice = state.notice ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>` : '';
+  let content = `<div class="saude-empty"><i class="fas fa-droplet"></i><p>Você ainda não criou uma meta diária de água.</p><button type="button" class="saude-btn saude-btn--primary" data-saude-action="create-water-goal">Criar meta</button></div>`;
+  if (state.waterConfig && state.waterToday) {
+    const percentage = Math.round((state.waterToday.realizado_doses / state.waterToday.meta_doses) * 100);
+    const history = state.waterHistory.length
+      ? `<div class="saude-table-wrap">${state.waterHistory.map((row) => `<div class="saude-water-log"><time datetime="${escapeHtml(row.data)}">${escapeHtml(formatWaterDate(row.data))}</time><span>Meta: <strong>${row.meta_doses}</strong></span><span>Realizado: <strong>${row.realizado_doses}</strong></span></div>`).join('')}</div>`
+      : '<div class="saude-empty"><i class="fas fa-clock-rotate-left"></i><p>O primeiro registro aparecerá aqui após a virada do dia.</p></div>';
+    const complete = state.waterToday.realizado_doses === state.waterToday.meta_doses;
+    content = `<article class="saude-water-card${complete ? ' is-complete' : ''}">
+      <button type="button" class="saude-water-card__open" data-saude-action="open-water-tracker">
+        <span class="saude-water-card__icon"><i class="fas fa-droplet"></i></span>
+        <span><h3>${escapeHtml(state.waterConfig.nome)}</h3><p data-water-card-status>${state.waterToday.realizado_doses} de ${state.waterToday.meta_doses} doses hoje</p><span class="saude-water-progress" aria-hidden="true"><span data-water-progress-fill style="width:${percentage}%"></span></span></span>
+      </button>
+      <button type="button" class="saude-icon-btn saude-water-card__edit" data-saude-action="edit-water-goal" aria-label="Editar meta"><i class="fas fa-pencil"></i></button>
+    </article><section class="saude-water-history" aria-labelledby="water-history-title"><h3 id="water-history-title">Histórico diário</h3>${history}</section>`;
+  }
+  renderShell(container, `<section class="saude-page" aria-labelledby="water-title">
+    <div class="saude-page-toolbar"><div class="saude-page-header"><button type="button" class="saude-btn" data-saude-action="home" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button><div><h2 id="water-title">Consumo de água</h2><p>Marque as doses tomadas durante o dia.</p></div></div></div>
+    ${notice}${content}${renderWaterModal(state)}
+  </section>`);
+}
+
+async function requestWater(method, payload) {
+  if (isLocalWaterStorageMode()) {
+    if (method === 'GET') return loadLocalWater();
+    if (method === 'POST') return saveLocalWaterGoal(payload);
+    if (method === 'PATCH') return updateLocalWaterProgress(payload);
+    throw new Error('Operação local de consumo de água não suportada.');
+  }
+  const response = await fetch('/api/saude?resource=consumo-agua', {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    ...(payload ? { body: JSON.stringify(payload) } : {}),
+    cache: 'no-store',
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Não foi possível atualizar o consumo de água.');
+  return data;
+}
+
+function applyWaterData(state, data) {
+  state.waterConfig = data.config || null;
+  state.waterToday = data.today || null;
+  state.waterHistory = Array.isArray(data.history) ? data.history : [];
+  state.waterDate = data.today?.data || todayIsoDate();
+}
+
+async function loadWater(container, state) {
+  renderLoading(container, 'Carregando consumo de água...');
+  try {
+    applyWaterData(state, await requestWater('GET'));
+    renderWater(container, state);
+  } catch (error) {
+    renderError(container, error instanceof Error ? error.message : 'Não foi possível carregar o consumo de água.');
+  }
+}
+
 function renderError(container, message) {
   renderShell(container, `
     <section class="saude-page saude-error" role="alert">
@@ -673,13 +968,27 @@ export async function renderSaudeContent(container) {
     measurementEditingId: null,
     measurementProfileId: null,
     measurementDraft: null,
+    waterConfig: null,
+    waterToday: null,
+    waterHistory: [],
+    waterDate: todayIsoDate(),
+    waterModal: null,
+    waterDraft: { nome: '', meta_doses: 8 },
+    waterCelebrationTimer: null,
   };
 
   const onClick = async (event) => {
+    if (event.target.matches('[data-water-modal-backdrop]') && state.waterModal) {
+      state.waterModal = null;
+      renderWater(container, state);
+      return;
+    }
     const actionElement = event.target.closest('[data-saude-action]');
     const action = actionElement?.dataset.saudeAction;
     if (action === 'home') {
       state.view = 'home';
+      state.waterModal = null;
+      state.notice = null;
       renderHome(container);
       return;
     }
@@ -700,6 +1009,57 @@ export async function renderSaudeContent(container) {
     if (action === 'open-profiles' || (action === 'retry' && state.view === 'profiles')) {
       state.view = 'profiles';
       await loadProfiles(container, state);
+      return;
+    }
+    if (action === 'open-water' || (action === 'retry' && state.view === 'water')) {
+      state.view = 'water';
+      state.waterModal = null;
+      state.notice = null;
+      await loadWater(container, state);
+      return;
+    }
+    if (action === 'create-water-goal' || action === 'edit-water-goal') {
+      state.waterModal = 'config';
+      state.waterDraft = state.waterConfig
+        ? { nome: state.waterConfig.nome, meta_doses: state.waterConfig.meta_doses }
+        : { nome: '', meta_doses: 8 };
+      state.notice = null;
+      renderWater(container, state);
+      requestAnimationFrame(() => container.querySelector('#water-name')?.focus());
+      return;
+    }
+    if (action === 'open-water-tracker') {
+      state.waterModal = 'tracker';
+      state.notice = null;
+      renderWater(container, state);
+      return;
+    }
+    if (action === 'close-water-modal') {
+      state.waterModal = null;
+      renderWater(container, state);
+      return;
+    }
+    if (action === 'toggle-water-dose' && !state.busy && state.waterToday) {
+      const dose = Number(actionElement.dataset.waterDose);
+      const isMarking = dose > state.waterToday.realizado_doses;
+      const realizado_doses = isMarking ? dose : dose - 1;
+      state.busy = true;
+      const checkButtons = [...container.querySelectorAll('[data-saude-action="toggle-water-dose"]')];
+      checkButtons.forEach((button) => { button.disabled = true; });
+      try {
+        applyWaterData(state, await requestWater('PATCH', { realizado_doses }));
+        syncWaterTrackerDom(container, state);
+        const completedNow = isMarking && realizado_doses === state.waterToday.meta_doses;
+        if (isMarking) animateWaterDose(container, actionElement, completedNow);
+        if (completedNow) showWaterCelebration(container, state);
+      } catch (error) {
+        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível marcar a dose.' };
+        state.busy = false;
+        renderWater(container, state);
+      } finally {
+        state.busy = false;
+        container.querySelectorAll('[data-saude-action="toggle-water-dose"]').forEach((button) => { button.disabled = false; });
+      }
       return;
     }
     if (action === 'add-profile') {
@@ -884,6 +1244,31 @@ export async function renderSaudeContent(container) {
   };
 
   const onSubmit = async (event) => {
+    const waterGoalForm = event.target.closest('[data-water-goal-form]');
+    if (waterGoalForm) {
+      event.preventDefault();
+      if (state.busy || !waterGoalForm.reportValidity()) return;
+      const values = new FormData(waterGoalForm);
+      state.waterDraft = {
+        nome: String(values.get('nome') || '').trim(),
+        meta_doses: Number(values.get('meta_doses')),
+      };
+      state.busy = true;
+      state.notice = null;
+      renderWater(container, state);
+      try {
+        applyWaterData(state, await requestWater('POST', state.waterDraft));
+        state.waterModal = null;
+        state.notice = { type: 'success', text: 'Meta diária salva com sucesso.' };
+      } catch (error) {
+        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível salvar a meta.' };
+      } finally {
+        state.busy = false;
+        renderWater(container, state);
+      }
+      return;
+    }
+
     const measurementForm = event.target.closest('[data-saude-measurement-form]');
     if (measurementForm) {
       event.preventDefault();
@@ -1084,7 +1469,13 @@ export async function renderSaudeContent(container) {
   container.addEventListener('submit', onSubmit);
   container.addEventListener('input', onFilter);
   container.addEventListener('change', onFilter);
+  const waterDayTimer = setInterval(() => {
+    if (state.view === 'water' && state.waterDate !== todayIsoDate() && !state.busy) loadWater(container, state);
+  }, 60000);
   container._cleanup = () => {
+    clearInterval(waterDayTimer);
+    if (state.waterCelebrationTimer) clearTimeout(state.waterCelebrationTimer);
+    container.querySelector('[data-water-celebration]')?.remove();
     container.removeEventListener('click', onClick);
     container.removeEventListener('submit', onSubmit);
     container.removeEventListener('input', onFilter);

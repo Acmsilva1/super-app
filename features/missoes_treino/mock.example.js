@@ -1,5 +1,6 @@
 // Mock padrão versionado — em localhost o módulo treino usa isto direto, sem ativar nada.
 export const LOCAL_MOCK_FIXED = true;
+export const LOCAL_MOCK_STORAGE_KEY = 'superapp:missoes-treino:mock:v1';
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -130,12 +131,51 @@ function buildMockPerformance() {
 
 
 export class MockTreinoStore {
-  constructor() {
+  constructor(storage = globalThis.localStorage) {
+    this.storage = storage || null;
     this.profiles = clone(BASE_PROFILES);
     this.missionsByProfile = clone(BASE_MISSIONS);
     this.nextProfileId = 100;
     this.nextMissionId = 1000;
     this.nextItemId = 5000;
+    this.nextLogId = 1;
+    this.workoutLogs = [];
+    this.restore();
+  }
+
+  restore() {
+    if (!this.storage) return;
+    try {
+      const saved = JSON.parse(this.storage.getItem(LOCAL_MOCK_STORAGE_KEY) || 'null');
+      if (!saved || saved.version !== 1 || !Array.isArray(saved.profiles) || !saved.missionsByProfile) return;
+      this.profiles = saved.profiles;
+      this.missionsByProfile = saved.missionsByProfile;
+      this.workoutLogs = Array.isArray(saved.workoutLogs) ? saved.workoutLogs : [];
+      this.nextProfileId = Number(saved.nextProfileId) || 100;
+      this.nextMissionId = Number(saved.nextMissionId) || 1000;
+      this.nextItemId = Number(saved.nextItemId) || 5000;
+      this.nextLogId = Number(saved.nextLogId) || 1;
+    } catch (_err) {
+      // Estado local invalido volta ao mock inicial sem impedir a abertura do modulo.
+    }
+  }
+
+  persist() {
+    if (!this.storage) return;
+    try {
+      this.storage.setItem(LOCAL_MOCK_STORAGE_KEY, JSON.stringify({
+        version: 1,
+        profiles: this.profiles,
+        missionsByProfile: this.missionsByProfile,
+        workoutLogs: this.workoutLogs,
+        nextProfileId: this.nextProfileId,
+        nextMissionId: this.nextMissionId,
+        nextItemId: this.nextItemId,
+        nextLogId: this.nextLogId,
+      }));
+    } catch (_err) {
+      // Falha de quota/privacidade mantem o mock funcional somente nesta sessao.
+    }
   }
 
   countMissions(profileId) {
@@ -180,6 +220,11 @@ export class MockTreinoStore {
       return { profiles: this.listProfiles() };
     }
 
+    if (method === 'GET' && query.get('resource') === 'workout-logs') {
+      const profileId = String(query.get('profile_id') || '');
+      return { logs: clone(this.workoutLogs.filter((item) => String(item.profile_id) === profileId)), profile_id: profileId };
+    }
+
     if (method === 'GET') {
       const profileId = String(query.get('profile_id') || '');
       if (!profileId) throw new Error('profile_id obrigatório para carregar treinos');
@@ -199,11 +244,32 @@ export class MockTreinoStore {
         nome: String(body.nome || 'Novo perfil').trim(),
         descricao: String(body.descricao || '').trim(),
         cor: String(body.cor || '#00e5ff'),
-        icone: 'fa-dumbbell',
+        icone: String(body.icone || '🏋️'),
       };
       this.profiles.push(profile);
       this.missionsByProfile[profile.id] = [];
+      this.persist();
       return { profile: { ...profile, missions_count: 0 } };
+    }
+
+    if (method === 'POST' && body.resource === 'workout-log') {
+      const profileId = this.findProfileIdByMission(body.mission_id);
+      const mission = (this.missionsByProfile[profileId] || [])
+        .find((item) => String(item.id) === String(body.mission_id));
+      if (!mission) throw new Error('Missão não encontrada');
+      const duration = Number.parseInt(String(body.duration_seconds || ''), 10);
+      if (!Number.isFinite(duration) || duration < 1) throw new Error('Duração inválida');
+      const log = {
+        id: `demo-log-${this.nextLogId += 1}`,
+        profile_id: profileId,
+        mission_id: mission.id,
+        workout_name: mission.title,
+        duration_seconds: duration,
+        finished_at: new Date().toISOString(),
+      };
+      this.workoutLogs.unshift(log);
+      this.persist();
+      return { log: clone(log) };
     }
 
     if (method === 'POST') {
@@ -227,6 +293,7 @@ export class MockTreinoStore {
       };
       if (!this.missionsByProfile[profileId]) this.missionsByProfile[profileId] = [];
       this.missionsByProfile[profileId].push(mission);
+      this.persist();
       return { mission, profile_id: profileId, date: '2026-08-12' };
     }
 
@@ -237,7 +304,20 @@ export class MockTreinoStore {
       if (body.nome != null) profile.nome = String(body.nome || '').trim() || profile.nome;
       if (body.descricao != null) profile.descricao = String(body.descricao || '').trim();
       if (body.cor != null) profile.cor = String(body.cor || profile.cor);
+      if (body.icone != null) profile.icone = String(body.icone || profile.icone);
+      this.persist();
       return { profile: { ...profile, missions_count: this.countMissions(profile.id) } };
+    }
+
+    if (method === 'PATCH' && body.mission_id && body.completed === true) {
+      const profileId = this.findProfileIdByMission(body.mission_id);
+      const mission = (this.missionsByProfile[profileId] || [])
+        .find((item) => String(item.id) === String(body.mission_id));
+      if (!mission) throw new Error('Missão não encontrada');
+      mission.items = (mission.items || []).map((item) => ({ ...item, completed: true }));
+      mission.completed = true;
+      this.persist();
+      return { ok: true };
     }
 
     if (method === 'PATCH' && body.mission_id && Array.isArray(body.replace_items)) {
@@ -255,6 +335,7 @@ export class MockTreinoStore {
         completed: Boolean(item.completed),
         ordem: idx + 1,
       }));
+      this.persist();
       return { ok: true };
     }
 
@@ -262,7 +343,15 @@ export class MockTreinoStore {
       const profileId = String(body.profile_id || '');
       this.profiles = this.profiles.filter((item) => String(item.id) !== profileId);
       delete this.missionsByProfile[profileId];
+      this.workoutLogs = this.workoutLogs.filter((item) => String(item.profile_id) !== profileId);
+      this.persist();
       return { ok: true, profile_id: profileId };
+    }
+
+    if (method === 'DELETE' && body.resource === 'workout-log') {
+      this.workoutLogs = this.workoutLogs.filter((item) => String(item.id) !== String(body.id));
+      this.persist();
+      return { ok: true, id: body.id };
     }
 
     if (method === 'DELETE' && body.mission_id) {
@@ -270,6 +359,10 @@ export class MockTreinoStore {
       if (!profileId) return { ok: true };
       this.missionsByProfile[profileId] = (this.missionsByProfile[profileId] || [])
         .filter((item) => String(item.id) !== String(body.mission_id));
+      this.workoutLogs = this.workoutLogs.map((item) => (
+        String(item.mission_id) === String(body.mission_id) ? { ...item, mission_id: null } : item
+      ));
+      this.persist();
       return { ok: true, mission_id: body.mission_id };
     }
 

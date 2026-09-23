@@ -12,10 +12,15 @@ const TABELA_PERFIS = 'tb_saude_perfis';
 const TABELA_PERFIL_MEDIDAS = 'tb_saude_perfil_medidas';
 const RESOURCE_PERFIS = 'perfis';
 const RESOURCE_PERFIL_MEDIDAS = 'perfil-medidas';
+const TABELA_AGUA_METAS = 'tb_saude_agua_metas';
+const TABELA_AGUA_LOGS = 'tb_saude_agua_logs';
+const RESOURCE_CONSUMO_AGUA = 'consumo-agua';
 let offlineNutritionRows = bundledNutritionRows();
 let offlineDiets = DIETAS_INICIAIS.map((diet) => structuredClone(diet));
 let offlineProfiles = [];
 let offlineProfileMeasurements = [];
+const offlineWaterGoals = new Map();
+let offlineWaterLogs = [];
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
@@ -66,6 +71,24 @@ function validateNutritionPayload(body) {
 function parseId(value) {
   const id = Number(value);
   return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+function validateWaterGoalPayload(body) {
+  const nome = String(body?.nome || '').trim();
+  const meta_doses = Number(body?.meta_doses);
+  if (!nome || nome.length > 80) return { error: 'Informe um nome de ate 80 caracteres para a meta.' };
+  if (!Number.isInteger(meta_doses) || meta_doses < 1 || meta_doses > 100) {
+    return { error: 'A meta diaria deve ter entre 1 e 100 doses.' };
+  }
+  return { data: { nome, meta_doses } };
+}
+
+function validateWaterProgressPayload(body) {
+  const realizado_doses = Number(body?.realizado_doses);
+  if (!Number.isInteger(realizado_doses) || realizado_doses < 0 || realizado_doses > 100) {
+    return { error: 'A quantidade realizada deve estar entre 0 e 100 doses.' };
+  }
+  return { data: { realizado_doses } };
 }
 
 function dateInSaoPaulo(value) {
@@ -195,6 +218,128 @@ function withProfileHistory(profiles, measurements) {
     imc: calcularImc(profile.peso_kg, profile.altura_cm),
     historico: measurements.filter((row) => Number(row.perfil_id) === Number(profile.id)),
   }));
+}
+
+function waterResult(config, today, history, storage) {
+  return {
+    resource: RESOURCE_CONSUMO_AGUA,
+    storage,
+    config: config ? { nome: config.nome, meta_doses: Number(config.meta_doses) } : null,
+    today: today ? {
+      id: today.id,
+      data: today.data_local,
+      meta_doses: Number(today.meta_doses),
+      realizado_doses: Number(today.realizado_doses),
+    } : null,
+    history: (history || []).map((row) => ({
+      id: row.id,
+      data: row.data_local,
+      meta_doses: Number(row.meta_doses),
+      realizado_doses: Number(row.realizado_doses),
+    })),
+  };
+}
+
+async function loadWater(userId) {
+  const today = dateInSaoPaulo(new Date());
+  if (isOfflineMode()) {
+    const config = offlineWaterGoals.get(userId) || null;
+    if (!config) return waterResult(null, null, [], 'memory');
+    let todayRow = offlineWaterLogs.find((row) => row.created_by === userId && row.data_local === today);
+    if (!todayRow) {
+      todayRow = {
+        id: Math.max(0, ...offlineWaterLogs.map((row) => Number(row.id) || 0)) + 1,
+        created_by: userId,
+        data_local: today,
+        meta_doses: config.meta_doses,
+        realizado_doses: 0,
+      };
+      offlineWaterLogs.push(todayRow);
+    }
+    const history = offlineWaterLogs
+      .filter((row) => row.created_by === userId && row.data_local < today)
+      .sort((a, b) => b.data_local.localeCompare(a.data_local))
+      .slice(0, 90);
+    return waterResult(config, todayRow, history, 'memory');
+  }
+
+  const { supabase } = await import('../lib/supabase.js');
+  const { data: config, error: configError } = await supabase.from(TABELA_AGUA_METAS)
+    .select('nome,meta_doses').eq('created_by', userId).maybeSingle();
+  if (configError) return { error: configError };
+  if (!config) return waterResult(null, null, [], 'supabase');
+
+  const { error: ensureError } = await supabase.from(TABELA_AGUA_LOGS).upsert({
+    created_by: userId,
+    data_local: today,
+    meta_doses: config.meta_doses,
+    realizado_doses: 0,
+  }, { onConflict: 'created_by,data_local', ignoreDuplicates: true });
+  if (ensureError) return { error: ensureError };
+
+  const { data: todayRow, error: todayError } = await supabase.from(TABELA_AGUA_LOGS)
+    .select('id,data_local,meta_doses,realizado_doses')
+    .eq('created_by', userId).eq('data_local', today).single();
+  if (todayError) return { error: todayError };
+
+  const { data: history, error: historyError } = await supabase.from(TABELA_AGUA_LOGS)
+    .select('id,data_local,meta_doses,realizado_doses')
+    .eq('created_by', userId).lt('data_local', today)
+    .order('data_local', { ascending: false }).limit(90);
+  return historyError ? { error: historyError } : waterResult(config, todayRow, history, 'supabase');
+}
+
+async function saveWaterGoal(payload, userId) {
+  const today = dateInSaoPaulo(new Date());
+  if (isOfflineMode()) {
+    const todayRow = offlineWaterLogs.find((row) => row.created_by === userId && row.data_local === today);
+    if (todayRow && todayRow.realizado_doses > payload.meta_doses) return { conflict: true };
+    offlineWaterGoals.set(userId, { ...payload });
+    if (todayRow) todayRow.meta_doses = payload.meta_doses;
+    return loadWater(userId);
+  }
+
+  const { supabase } = await import('../lib/supabase.js');
+  const { data: current, error: currentError } = await supabase.from(TABELA_AGUA_LOGS)
+    .select('id,realizado_doses').eq('created_by', userId).eq('data_local', today).maybeSingle();
+  if (currentError) return { error: currentError };
+  if (current && Number(current.realizado_doses) > payload.meta_doses) return { conflict: true };
+
+  const { error: goalError } = await supabase.from(TABELA_AGUA_METAS)
+    .upsert({ created_by: userId, ...payload }, { onConflict: 'created_by' });
+  if (goalError) return { error: goalError };
+
+  const dailyQuery = current
+    ? supabase.from(TABELA_AGUA_LOGS).update({ meta_doses: payload.meta_doses }).eq('id', current.id).eq('created_by', userId)
+    : supabase.from(TABELA_AGUA_LOGS).insert({ created_by: userId, data_local: today, meta_doses: payload.meta_doses, realizado_doses: 0 });
+  const { error: dailyError } = await dailyQuery;
+  if (dailyError) return { error: dailyError };
+  return loadWater(userId);
+}
+
+async function updateWaterProgress(payload, userId) {
+  const today = dateInSaoPaulo(new Date());
+  if (isOfflineMode()) {
+    const loaded = await loadWater(userId);
+    if (!loaded.config || !loaded.today) return { notFound: true };
+    if (payload.realizado_doses > loaded.today.meta_doses) return { conflict: true };
+    const row = offlineWaterLogs.find((item) => item.created_by === userId && item.data_local === today);
+    row.realizado_doses = payload.realizado_doses;
+    return loadWater(userId);
+  }
+
+  const { supabase } = await import('../lib/supabase.js');
+  const { data: current, error: currentError } = await supabase.from(TABELA_AGUA_LOGS)
+    .select('id,meta_doses').eq('created_by', userId).eq('data_local', today).maybeSingle();
+  if (currentError) return { error: currentError };
+  if (!current) return { notFound: true };
+  if (payload.realizado_doses > Number(current.meta_doses)) return { conflict: true };
+  const { data, error } = await supabase.from(TABELA_AGUA_LOGS)
+    .update({ realizado_doses: payload.realizado_doses })
+    .eq('id', current.id).eq('created_by', userId).select('id').maybeSingle();
+  if (error) return { error };
+  if (!data) return { notFound: true };
+  return loadWater(userId);
 }
 
 async function loadProfiles(userId) {
@@ -563,6 +708,11 @@ export default async function handler(req, res) {
       if (result.error) return json(res, 500, { error: result.error.message });
       return json(res, 200, { resource: RESOURCE_PERFIS, storage: result.storage, total: result.rows.length, rows: result.rows });
     }
+    if (req.query?.resource === RESOURCE_CONSUMO_AGUA) {
+      const result = await loadWater(auth.user.id);
+      if (result.error) return json(res, 500, { error: result.error.message });
+      return json(res, 200, result);
+    }
 
     return json(res, 200, {
       module: 'saude',
@@ -572,13 +722,37 @@ export default async function handler(req, res) {
         { id: 'tabela-nutricional', title: 'Tabela Nutricional' },
         { id: 'dietas', title: 'Dietas' },
         { id: 'perfis', title: 'Perfil' },
+        { id: 'consumo-agua', title: 'Consumo de agua' },
       ],
       message: 'Módulo de Saúde disponível.',
     });
   }
 
-  if (![RESOURCE_TABELA_NUTRICIONAL, RESOURCE_DIETAS, RESOURCE_PERFIS, RESOURCE_PERFIL_MEDIDAS].includes(req.query?.resource)) {
+  if (![RESOURCE_TABELA_NUTRICIONAL, RESOURCE_DIETAS, RESOURCE_PERFIS, RESOURCE_PERFIL_MEDIDAS, RESOURCE_CONSUMO_AGUA].includes(req.query?.resource)) {
     return json(res, 400, { error: 'Recurso invalido.' });
+  }
+
+  if (req.query?.resource === RESOURCE_CONSUMO_AGUA && req.method === 'POST') {
+    const body = readBody(req);
+    if (!body) return json(res, 400, { error: 'JSON invalido.' });
+    const validation = validateWaterGoalPayload(body);
+    if (validation.error) return json(res, 400, { error: validation.error });
+    const result = await saveWaterGoal(validation.data, auth.user.id);
+    if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.conflict) return json(res, 409, { error: 'A meta nao pode ser menor que a quantidade ja realizada hoje.' });
+    return json(res, 200, result);
+  }
+
+  if (req.query?.resource === RESOURCE_CONSUMO_AGUA && req.method === 'PATCH') {
+    const body = readBody(req);
+    if (!body) return json(res, 400, { error: 'JSON invalido.' });
+    const validation = validateWaterProgressPayload(body);
+    if (validation.error) return json(res, 400, { error: validation.error });
+    const result = await updateWaterProgress(validation.data, auth.user.id);
+    if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.notFound) return json(res, 404, { error: 'Crie uma meta de agua antes de registrar o consumo.' });
+    if (result.conflict) return json(res, 409, { error: 'A quantidade realizada nao pode ultrapassar a meta do dia.' });
+    return json(res, 200, result);
   }
 
   if (req.query?.resource === RESOURCE_PERFIS && (req.method === 'POST' || req.method === 'PATCH')) {

@@ -5,10 +5,21 @@ const TABLE_MISSOES = 'tb_missoes_treino';
 const TABLE_ITENS = 'tb_missoes_treino_itens';
 const TABLE_CHAMAS = 'tb_missoes_treino_chamas';
 const TABLE_PERFIS = 'tb_missoes_treino_perfis';
+const TABLE_LOGS = 'tb_missoes_treino_logs';
+
+function normalizeStrictPositiveInteger(value) {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  const text = String(value ?? '').trim();
+  if (!/^\d+$/.test(text)) return null;
+  const number = Number(text);
+  return Number.isSafeInteger(number) && number > 0 ? number : null;
+}
 
 function normalizeProfileId(value) {
-  const n = Number.parseInt(String(value ?? '').trim(), 10);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  return normalizeStrictPositiveInteger(value);
 }
 
 function isMissingProfilesTableError(message) {
@@ -164,6 +175,82 @@ async function deleteProfile(profileId) {
   const { error } = await supabase.from(TABLE_PERFIS).delete().eq('id', profileId);
   if (error) throw new Error(error.message);
   return { ok: true, profile_id: profileId };
+}
+
+function normalizePositiveId(value) {
+  return normalizeStrictPositiveInteger(value);
+}
+
+function normalizeMissionId(value) {
+  const text = String(value ?? '').trim().toLowerCase();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(text)) return null;
+  return text === '00000000-0000-0000-0000-000000000000' ? null : text;
+}
+
+function normalizeDurationSeconds(value) {
+  const seconds = normalizeStrictPositiveInteger(value);
+  return seconds != null && seconds <= 604800 ? seconds : null;
+}
+
+function mapWorkoutLog(row) {
+  return {
+    id: row.id,
+    profile_id: row.perfil_id,
+    mission_id: row.missao_id,
+    workout_name: row.treino_nome || 'Treino',
+    duration_seconds: Number(row.duracao_segundos || 0),
+    finished_at: row.finalizado_em || null,
+  };
+}
+
+async function fetchWorkoutLogs(profileId) {
+  const { data, error } = await supabase
+    .from(TABLE_LOGS)
+    .select('id,perfil_id,missao_id,treino_nome,duracao_segundos,finalizado_em')
+    .eq('perfil_id', profileId)
+    .order('finalizado_em', { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  return (data || []).map(mapWorkoutLog);
+}
+
+async function createWorkoutLog(missionId, durationSeconds) {
+  const normalizedMissionId = normalizeMissionId(missionId);
+  const normalizedDuration = normalizeDurationSeconds(durationSeconds);
+  if (!normalizedMissionId) throw new Error('mission_id inválido');
+  if (!normalizedDuration) throw new Error('duration_seconds deve estar entre 1 e 604800');
+
+  const { data: mission, error: missionError } = await supabase
+    .from(TABLE_MISSOES)
+    .select('id,perfil_id,titulo')
+    .eq('id', normalizedMissionId)
+    .single();
+  if (missionError) throw new Error(missionError.message);
+  if (!mission?.perfil_id) throw new Error('Treino sem perfil vinculado');
+
+  await markCurrentDayConcluded(mission.id);
+
+  const { data, error } = await supabase
+    .from(TABLE_LOGS)
+    .insert({
+      perfil_id: mission.perfil_id,
+      missao_id: mission.id,
+      treino_nome: normalizeNome(mission.titulo) || 'Treino',
+      duracao_segundos: normalizedDuration,
+    })
+    .select('id,perfil_id,missao_id,treino_nome,duracao_segundos,finalizado_em')
+    .single();
+  if (error) throw new Error(error.message);
+
+  return mapWorkoutLog(data);
+}
+
+async function deleteWorkoutLog(logId) {
+  const normalizedLogId = normalizePositiveId(logId);
+  if (!normalizedLogId) throw new Error('id do log inválido');
+  const { error } = await supabase.from(TABLE_LOGS).delete().eq('id', normalizedLogId);
+  if (error) throw new Error(error.message);
+  return { ok: true, id: normalizedLogId };
 }
 
 function applyProfileFilter(query, perfilId) {
@@ -391,9 +478,7 @@ function normalizeNome(value) {
 }
 
 function normalizeReps(value) {
-  const n = Number.parseInt(value, 10);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return n;
+  return normalizeStrictPositiveInteger(value);
 }
 
 function normalizeItems(items) {
@@ -1045,6 +1130,11 @@ export default async function handler(req, res) {
         return json(res, 400, { error: 'profile_id obrigatório para carregar treinos' });
       }
 
+      if (String(req.query?.resource || '') === 'workout-logs') {
+        const logs = await fetchWorkoutLogs(profileId);
+        return json(res, 200, { logs, profile_id: profileId });
+      }
+
       await fetchProfileRows();
 
       const queryDate = req.query?.date;
@@ -1060,6 +1150,16 @@ export default async function handler(req, res) {
       if (String(body?.resource || '') === 'profile') {
         const profile = await createProfile(body);
         return json(res, 201, { profile });
+      }
+      if (String(body?.resource || '') === 'workout-log') {
+        const missionId = normalizeMissionId(body.mission_id);
+        const durationSeconds = normalizeDurationSeconds(body.duration_seconds);
+        if (!missionId) return json(res, 400, { error: 'mission_id inválido' });
+        if (!durationSeconds) {
+          return json(res, 400, { error: 'duration_seconds deve estar entre 1 e 604800' });
+        }
+        const log = await createWorkoutLog(missionId, durationSeconds);
+        return json(res, 201, { log });
       }
 
       const profileId = normalizeProfileId(body.profile_id);
@@ -1186,6 +1286,12 @@ export default async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       const body = parseBody(req);
+      if (String(body?.resource || '') === 'workout-log' || String(req.query?.resource || '') === 'workout-log') {
+        const logId = normalizePositiveId(body.id ?? req.query?.id);
+        if (!logId) return json(res, 400, { error: 'id do log inválido' });
+        const result = await deleteWorkoutLog(logId);
+        return json(res, 200, result);
+      }
       if (String(body?.resource || '') === 'profile' || String(req.query?.resource || '') === 'profile') {
         const profileId = normalizeProfileId(body.profile_id ?? req.query?.profile_id);
         if (!profileId) return json(res, 400, { error: 'profile_id obrigatório' });
@@ -1228,7 +1334,7 @@ export default async function handler(req, res) {
     if (setupRequired) {
       return json(res, 500, {
         error:
-          'Banco de missões ainda não configurado. Execute no Supabase os SQL em migration/: 20260407_add_missoes_treino_tables.sql, 20260408_allow_multiple_missoes_treino_per_day.sql, 20260408_add_missoes_treino_chamas.sql, 20260408_link_chamas_to_missao.sql e 20260812_add_missoes_treino_perfis.sql.',
+          'Banco de missões ainda não configurado. Execute as migrations do módulo no Supabase, incluindo 20260812_add_missoes_treino_perfis.sql e 20260923_create_missoes_treino_logs.sql.',
         details: message,
         setup_required: true,
       });
