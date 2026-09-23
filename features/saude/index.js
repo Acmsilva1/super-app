@@ -898,7 +898,7 @@ async function requestWater(method, payload) {
   const response = await fetch(`/api/saude?${params}`, {
     method,
     headers: { 'Content-Type': 'application/json' },
-    ...(payload ? { body: JSON.stringify(payload) } : {}),
+    ...(payload && method !== 'GET' && method !== 'HEAD' ? { body: JSON.stringify(payload) } : {}),
     cache: 'no-store',
   });
   const data = await response.json().catch(() => ({}));
