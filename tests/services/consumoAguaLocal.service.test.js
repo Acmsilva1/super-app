@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   WATER_LOCAL_STORAGE_KEY,
+  createLocalWaterProfile,
   isLocalWaterStorageMode,
   loadLocalWater,
   saveLocalWaterGoal,
@@ -45,5 +46,20 @@ describe('consumo de agua no localStorage', () => {
     const now = new Date('2026-09-23T15:00:00Z');
     saveLocalWaterGoal({ nome: 'Copo', meta_doses: 2 }, storage, now);
     expect(() => updateLocalWaterProgress({ realizado_doses: 3 }, storage, now)).toThrow('entre zero e a meta');
+  });
+
+  it('separa metas, checks e historicos por perfil', () => {
+    const storage = createStorage();
+    const now = new Date('2026-09-23T15:00:00Z');
+    const andre = createLocalWaterProfile({ nome: 'André' }, storage, now);
+    saveLocalWaterGoal({ profile_id: andre.profile_id, nome: 'Garrafa', meta_doses: 4 }, storage, now);
+    updateLocalWaterProgress({ profile_id: andre.profile_id, realizado_doses: 3 }, storage, now);
+
+    const juliana = createLocalWaterProfile({ nome: 'Juliana' }, storage, now);
+    saveLocalWaterGoal({ profile_id: juliana.profile_id, nome: 'Copo', meta_doses: 6 }, storage, now);
+
+    expect(loadLocalWater(storage, now, andre.profile_id).today.realizado_doses).toBe(3);
+    expect(loadLocalWater(storage, now, juliana.profile_id).today.realizado_doses).toBe(0);
+    expect(juliana.profiles.map((profile) => profile.nome)).toEqual(['André', 'Juliana']);
   });
 });

@@ -14,6 +14,7 @@ const RESOURCE_PERFIS = 'perfis';
 const RESOURCE_PERFIL_MEDIDAS = 'perfil-medidas';
 const TABELA_AGUA_METAS = 'tb_saude_agua_metas';
 const TABELA_AGUA_LOGS = 'tb_saude_agua_logs';
+const TABELA_AGUA_PERFIS = 'tb_saude_agua_perfis';
 const RESOURCE_CONSUMO_AGUA = 'consumo-agua';
 let offlineNutritionRows = bundledNutritionRows();
 let offlineDiets = DIETAS_INICIAIS.map((diet) => structuredClone(diet));
@@ -21,6 +22,7 @@ let offlineProfiles = [];
 let offlineProfileMeasurements = [];
 const offlineWaterGoals = new Map();
 let offlineWaterLogs = [];
+let offlineWaterProfiles = [];
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
@@ -80,7 +82,7 @@ function validateWaterGoalPayload(body) {
   if (!Number.isInteger(meta_doses) || meta_doses < 1 || meta_doses > 100) {
     return { error: 'A meta diaria deve ter entre 1 e 100 doses.' };
   }
-  return { data: { nome, meta_doses } };
+  return { data: { nome, meta_doses, profile_id: parseId(body?.profile_id) } };
 }
 
 function validateWaterProgressPayload(body) {
@@ -88,7 +90,13 @@ function validateWaterProgressPayload(body) {
   if (!Number.isInteger(realizado_doses) || realizado_doses < 0 || realizado_doses > 100) {
     return { error: 'A quantidade realizada deve estar entre 0 e 100 doses.' };
   }
-  return { data: { realizado_doses } };
+  return { data: { realizado_doses, profile_id: parseId(body?.profile_id) } };
+}
+
+function validateWaterProfilePayload(body) {
+  const nome = String(body?.nome || '').trim();
+  if (!nome || nome.length > 80) return { error: 'Informe um nome de ate 80 caracteres para o perfil.' };
+  return { data: { nome } };
 }
 
 function dateInSaoPaulo(value) {
@@ -220,10 +228,12 @@ function withProfileHistory(profiles, measurements) {
   }));
 }
 
-function waterResult(config, today, history, storage) {
+function waterResult(config, today, history, storage, profiles = [], profileId = null) {
   return {
     resource: RESOURCE_CONSUMO_AGUA,
     storage,
+    profiles: profiles.map((profile) => ({ id: profile.id, nome: profile.nome })),
+    profile_id: profileId,
     config: config ? { nome: config.nome, meta_doses: Number(config.meta_doses) } : null,
     today: today ? {
       id: today.id,
@@ -240,16 +250,57 @@ function waterResult(config, today, history, storage) {
   };
 }
 
-async function loadWater(userId) {
-  const today = dateInSaoPaulo(new Date());
+async function loadWaterProfiles(userId) {
+  if (isOfflineMode()) return { rows: offlineWaterProfiles.filter((row) => row.created_by === userId), storage: 'memory' };
+  const { supabase } = await import('../lib/supabase.js');
+  const { data, error } = await supabase.from(TABELA_AGUA_PERFIS)
+    .select('id,nome').eq('created_by', userId).order('created_at', { ascending: true });
+  return error ? { error } : { rows: data || [], storage: 'supabase' };
+}
+
+async function createWaterProfile(payload, userId) {
   if (isOfflineMode()) {
-    const config = offlineWaterGoals.get(userId) || null;
-    if (!config) return waterResult(null, null, [], 'memory');
-    let todayRow = offlineWaterLogs.find((row) => row.created_by === userId && row.data_local === today);
+    const id = Math.max(0, ...offlineWaterProfiles.map((row) => Number(row.id) || 0)) + 1;
+    const row = { id, nome: payload.nome, created_by: userId, created_at: new Date().toISOString() };
+    offlineWaterProfiles.push(row);
+    return { row, storage: 'memory' };
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  const { data, error } = await supabase.from(TABELA_AGUA_PERFIS)
+    .insert({ created_by: userId, nome: payload.nome }).select('id,nome').single();
+  return error ? { error } : { row: data, storage: 'supabase' };
+}
+
+async function ensureWaterProfile(userId, requestedProfileId) {
+  const loaded = await loadWaterProfiles(userId);
+  if (loaded.error) return loaded;
+  let profile = loaded.rows.find((row) => Number(row.id) === Number(requestedProfileId)) || loaded.rows[0] || null;
+  if (!profile) {
+    const created = await createWaterProfile({ nome: 'Meu perfil' }, userId);
+    if (created.error) return created;
+    profile = created.row;
+    loaded.rows.push(profile);
+  }
+  return { profile, profiles: loaded.rows, storage: loaded.storage };
+}
+
+async function loadWater(userId, requestedProfileId = null) {
+  const today = dateInSaoPaulo(new Date());
+  const profileResult = await loadWaterProfiles(userId);
+  if (profileResult.error) return profileResult;
+  const profiles = profileResult.rows;
+  const profile = profiles.find((row) => Number(row.id) === Number(requestedProfileId)) || profiles[0] || null;
+  if (!profile) return waterResult(null, null, [], profileResult.storage, profiles, null);
+  const profileId = profile.id;
+  if (isOfflineMode()) {
+    const config = offlineWaterGoals.get(`${userId}:${profileId}`) || null;
+    if (!config) return waterResult(null, null, [], 'memory', profiles, profileId);
+    let todayRow = offlineWaterLogs.find((row) => row.created_by === userId && Number(row.perfil_id) === Number(profileId) && row.data_local === today);
     if (!todayRow) {
       todayRow = {
         id: Math.max(0, ...offlineWaterLogs.map((row) => Number(row.id) || 0)) + 1,
         created_by: userId,
+        perfil_id: profileId,
         data_local: today,
         meta_doses: config.meta_doses,
         realizado_doses: 0,
@@ -257,80 +308,87 @@ async function loadWater(userId) {
       offlineWaterLogs.push(todayRow);
     }
     const history = offlineWaterLogs
-      .filter((row) => row.created_by === userId && row.data_local < today)
+      .filter((row) => row.created_by === userId && Number(row.perfil_id) === Number(profileId) && row.data_local < today)
       .sort((a, b) => b.data_local.localeCompare(a.data_local))
       .slice(0, 90);
-    return waterResult(config, todayRow, history, 'memory');
+    return waterResult(config, todayRow, history, 'memory', profiles, profileId);
   }
 
   const { supabase } = await import('../lib/supabase.js');
   const { data: config, error: configError } = await supabase.from(TABELA_AGUA_METAS)
-    .select('nome,meta_doses').eq('created_by', userId).maybeSingle();
+    .select('nome,meta_doses').eq('created_by', userId).eq('perfil_id', profileId).maybeSingle();
   if (configError) return { error: configError };
-  if (!config) return waterResult(null, null, [], 'supabase');
+  if (!config) return waterResult(null, null, [], 'supabase', profiles, profileId);
 
   const { error: ensureError } = await supabase.from(TABELA_AGUA_LOGS).upsert({
     created_by: userId,
+    perfil_id: profileId,
     data_local: today,
     meta_doses: config.meta_doses,
     realizado_doses: 0,
-  }, { onConflict: 'created_by,data_local', ignoreDuplicates: true });
+  }, { onConflict: 'created_by,perfil_id,data_local', ignoreDuplicates: true });
   if (ensureError) return { error: ensureError };
 
   const { data: todayRow, error: todayError } = await supabase.from(TABELA_AGUA_LOGS)
     .select('id,data_local,meta_doses,realizado_doses')
-    .eq('created_by', userId).eq('data_local', today).single();
+    .eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).single();
   if (todayError) return { error: todayError };
 
   const { data: history, error: historyError } = await supabase.from(TABELA_AGUA_LOGS)
     .select('id,data_local,meta_doses,realizado_doses')
-    .eq('created_by', userId).lt('data_local', today)
+    .eq('created_by', userId).eq('perfil_id', profileId).lt('data_local', today)
     .order('data_local', { ascending: false }).limit(90);
-  return historyError ? { error: historyError } : waterResult(config, todayRow, history, 'supabase');
+  return historyError ? { error: historyError } : waterResult(config, todayRow, history, 'supabase', profiles, profileId);
 }
 
 async function saveWaterGoal(payload, userId) {
   const today = dateInSaoPaulo(new Date());
+  const profileResult = await ensureWaterProfile(userId, payload.profile_id);
+  if (profileResult.error) return profileResult;
+  const profileId = profileResult.profile.id;
   if (isOfflineMode()) {
-    const todayRow = offlineWaterLogs.find((row) => row.created_by === userId && row.data_local === today);
+    const todayRow = offlineWaterLogs.find((row) => row.created_by === userId && Number(row.perfil_id) === Number(profileId) && row.data_local === today);
     if (todayRow && todayRow.realizado_doses > payload.meta_doses) return { conflict: true };
-    offlineWaterGoals.set(userId, { ...payload });
+    offlineWaterGoals.set(`${userId}:${profileId}`, { nome: payload.nome, meta_doses: payload.meta_doses });
     if (todayRow) todayRow.meta_doses = payload.meta_doses;
-    return loadWater(userId);
+    return loadWater(userId, profileId);
   }
 
   const { supabase } = await import('../lib/supabase.js');
   const { data: current, error: currentError } = await supabase.from(TABELA_AGUA_LOGS)
-    .select('id,realizado_doses').eq('created_by', userId).eq('data_local', today).maybeSingle();
+    .select('id,realizado_doses').eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).maybeSingle();
   if (currentError) return { error: currentError };
   if (current && Number(current.realizado_doses) > payload.meta_doses) return { conflict: true };
 
   const { error: goalError } = await supabase.from(TABELA_AGUA_METAS)
-    .upsert({ created_by: userId, ...payload }, { onConflict: 'created_by' });
+    .upsert({ created_by: userId, perfil_id: profileId, nome: payload.nome, meta_doses: payload.meta_doses }, { onConflict: 'created_by,perfil_id' });
   if (goalError) return { error: goalError };
 
   const dailyQuery = current
     ? supabase.from(TABELA_AGUA_LOGS).update({ meta_doses: payload.meta_doses }).eq('id', current.id).eq('created_by', userId)
-    : supabase.from(TABELA_AGUA_LOGS).insert({ created_by: userId, data_local: today, meta_doses: payload.meta_doses, realizado_doses: 0 });
+    : supabase.from(TABELA_AGUA_LOGS).insert({ created_by: userId, perfil_id: profileId, data_local: today, meta_doses: payload.meta_doses, realizado_doses: 0 });
   const { error: dailyError } = await dailyQuery;
   if (dailyError) return { error: dailyError };
-  return loadWater(userId);
+  return loadWater(userId, profileId);
 }
 
 async function updateWaterProgress(payload, userId) {
   const today = dateInSaoPaulo(new Date());
+  const profileResult = await ensureWaterProfile(userId, payload.profile_id);
+  if (profileResult.error) return profileResult;
+  const profileId = profileResult.profile.id;
   if (isOfflineMode()) {
-    const loaded = await loadWater(userId);
+    const loaded = await loadWater(userId, profileId);
     if (!loaded.config || !loaded.today) return { notFound: true };
     if (payload.realizado_doses > loaded.today.meta_doses) return { conflict: true };
-    const row = offlineWaterLogs.find((item) => item.created_by === userId && item.data_local === today);
+    const row = offlineWaterLogs.find((item) => item.created_by === userId && Number(item.perfil_id) === profileId && item.data_local === today);
     row.realizado_doses = payload.realizado_doses;
-    return loadWater(userId);
+    return loadWater(userId, profileId);
   }
 
   const { supabase } = await import('../lib/supabase.js');
   const { data: current, error: currentError } = await supabase.from(TABELA_AGUA_LOGS)
-    .select('id,meta_doses').eq('created_by', userId).eq('data_local', today).maybeSingle();
+    .select('id,meta_doses').eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).maybeSingle();
   if (currentError) return { error: currentError };
   if (!current) return { notFound: true };
   if (payload.realizado_doses > Number(current.meta_doses)) return { conflict: true };
@@ -339,7 +397,7 @@ async function updateWaterProgress(payload, userId) {
     .eq('id', current.id).eq('created_by', userId).select('id').maybeSingle();
   if (error) return { error };
   if (!data) return { notFound: true };
-  return loadWater(userId);
+  return loadWater(userId, profileId);
 }
 
 async function loadProfiles(userId) {
@@ -709,7 +767,9 @@ export default async function handler(req, res) {
       return json(res, 200, { resource: RESOURCE_PERFIS, storage: result.storage, total: result.rows.length, rows: result.rows });
     }
     if (req.query?.resource === RESOURCE_CONSUMO_AGUA) {
-      const result = await loadWater(auth.user.id);
+      const requestedProfileId = req.query?.profile_id == null ? null : parseId(req.query.profile_id);
+      if (req.query?.profile_id != null && !requestedProfileId) return json(res, 400, { error: 'Perfil invalido.' });
+      const result = await loadWater(auth.user.id, requestedProfileId);
       if (result.error) return json(res, 500, { error: result.error.message });
       return json(res, 200, result);
     }
@@ -735,6 +795,15 @@ export default async function handler(req, res) {
   if (req.query?.resource === RESOURCE_CONSUMO_AGUA && req.method === 'POST') {
     const body = readBody(req);
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
+    if (body.action === 'create-profile') {
+      const profileValidation = validateWaterProfilePayload(body);
+      if (profileValidation.error) return json(res, 400, { error: profileValidation.error });
+      const created = await createWaterProfile(profileValidation.data, auth.user.id);
+      if (created.error) return json(res, 500, { error: created.error.message });
+      const result = await loadWater(auth.user.id, created.row.id);
+      if (result.error) return json(res, 500, { error: result.error.message });
+      return json(res, 201, result);
+    }
     const validation = validateWaterGoalPayload(body);
     if (validation.error) return json(res, 400, { error: validation.error });
     const result = await saveWaterGoal(validation.data, auth.user.id);

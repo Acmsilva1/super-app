@@ -58,6 +58,10 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('if (completedNow) showWaterCelebration(container, state)');
     expect(source).toContain('saude-water-confetti');
     expect(source).toContain("layer.setAttribute('aria-live', 'polite')");
+    expect(source).toContain('data-water-profile-form');
+    expect(source).toContain('data-saude-action="select-water-profile"');
+    expect(source).toContain("payload?.action === 'create-profile'");
+    expect(source).toContain('profile_id: state.waterProfileId');
   });
 
   it('atualiza o check de agua sem reconstruir o modal antes de persistir', () => {

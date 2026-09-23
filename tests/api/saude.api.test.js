@@ -214,4 +214,36 @@ describe('API de saúde', () => {
       vi.useRealTimers();
     }
   });
+
+  it('mantem consumo e progresso independentes para cada perfil de agua', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-09-26T15:00:00Z'));
+      const app = createApp();
+      const andre = await request(app).post('/api/saude?resource=consumo-agua')
+        .send({ action: 'create-profile', nome: 'André água' });
+      const andreId = andre.body.profile_id;
+      await request(app).post('/api/saude?resource=consumo-agua')
+        .send({ profile_id: andreId, nome: 'Garrafa', meta_doses: 4 });
+      await request(app).patch('/api/saude?resource=consumo-agua')
+        .send({ profile_id: andreId, realizado_doses: 3 });
+
+      const juliana = await request(app).post('/api/saude?resource=consumo-agua')
+        .send({ action: 'create-profile', nome: 'Juliana água' });
+      const julianaId = juliana.body.profile_id;
+      await request(app).post('/api/saude?resource=consumo-agua')
+        .send({ profile_id: julianaId, nome: 'Copo', meta_doses: 6 });
+
+      const andreLoaded = await request(app).get(`/api/saude?resource=consumo-agua&profile_id=${andreId}`);
+      const julianaLoaded = await request(app).get(`/api/saude?resource=consumo-agua&profile_id=${julianaId}`);
+      expect(andreLoaded.body.today.realizado_doses).toBe(3);
+      expect(julianaLoaded.body.today.realizado_doses).toBe(0);
+      expect(julianaLoaded.body.profiles).toEqual(expect.arrayContaining([
+        expect.objectContaining({ nome: 'André água' }),
+        expect.objectContaining({ nome: 'Juliana água' }),
+      ]));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
