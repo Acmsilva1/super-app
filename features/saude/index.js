@@ -886,7 +886,7 @@ function renderWater(container, state) {
     </article><section class="saude-water-history" aria-labelledby="water-history-title"><h3 id="water-history-title">Histórico diário</h3>${history}</section>`;
   }
   renderShell(container, `<section class="saude-page" aria-labelledby="water-title">
-    <div class="saude-page-toolbar"><div class="saude-page-header"><button type="button" class="saude-btn" data-saude-action="home" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button><div><h2 id="water-title">Consumo de água</h2><p>Marque as doses tomadas durante o dia.</p></div></div><button type="button" class="saude-btn saude-btn--insert" data-saude-action="create-water-profile"><i class="fas fa-user-plus"></i> Novo perfil</button></div>
+    <div class="saude-page-toolbar"><div class="saude-page-header"><button type="button" class="saude-btn" data-saude-action="home" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button><div><h2 id="water-title">Consumo de água</h2><p>Marque as doses tomadas durante o dia.</p></div></div><button type="button" class="saude-btn saude-btn--insert" data-saude-action="create-water-profile" aria-label="Novo perfil"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Novo perfil</span></button></div>
     ${notice}${profiles}${content}${renderWaterModal(state)}
   </section>`);
 }

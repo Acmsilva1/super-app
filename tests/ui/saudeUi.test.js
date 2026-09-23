@@ -67,6 +67,7 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('data-saude-action="delete-water-profile"');
     expect(source).toContain("action: editingId ? 'update-profile' : 'create-profile'");
     expect(source).toContain("action: 'delete-profile'");
+    expect(source).toContain('aria-label="Novo perfil"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Novo perfil</span>');
   });
 
   it('atualiza o check de agua sem reconstruir o modal antes de persistir', () => {
