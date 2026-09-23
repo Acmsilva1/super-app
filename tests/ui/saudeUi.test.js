@@ -63,6 +63,10 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain("payload?.action === 'create-profile'");
     expect(source).toContain('profile_id: state.waterProfileId');
     expect(source).toContain("payload && method !== 'GET' && method !== 'HEAD'");
+    expect(source).toContain('data-saude-action="edit-water-profile"');
+    expect(source).toContain('data-saude-action="delete-water-profile"');
+    expect(source).toContain("action: editingId ? 'update-profile' : 'create-profile'");
+    expect(source).toContain("action: 'delete-profile'");
   });
 
   it('atualiza o check de agua sem reconstruir o modal antes de persistir', () => {

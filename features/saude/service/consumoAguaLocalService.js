@@ -121,6 +121,34 @@ export function createLocalWaterProfile(payload, storage = globalThis.localStora
   return responseFromState(state, waterDateInSaoPaulo(now), profile);
 }
 
+export function updateLocalWaterProfile(payload, storage = globalThis.localStorage, now = new Date()) {
+  if (!storage) throw new Error('localStorage indisponível neste navegador.');
+  const nome = normalizeProfileName(payload?.nome);
+  const state = readState(storage);
+  const profile = state.profiles.find((row) => String(row.id) === String(payload?.profile_id || ''));
+  if (!profile) throw new Error('Perfil de água não encontrado.');
+  profile.nome = nome;
+  state.selected_profile_id = profile.id;
+  writeState(storage, state);
+  return responseFromState(state, waterDateInSaoPaulo(now), profile);
+}
+
+export function deleteLocalWaterProfile(payload, storage = globalThis.localStorage, now = new Date()) {
+  if (!storage) throw new Error('localStorage indisponível neste navegador.');
+  const state = readState(storage);
+  const profileId = String(payload?.profile_id || '');
+  const index = state.profiles.findIndex((row) => String(row.id) === profileId);
+  if (index < 0) throw new Error('Perfil de água não encontrado.');
+  state.profiles.splice(index, 1);
+  delete state.goals[profileId];
+  state.days = state.days.filter((row) => String(row.profile_id) !== profileId);
+  const nextProfile = state.profiles[Math.min(index, state.profiles.length - 1)] || null;
+  state.selected_profile_id = nextProfile?.id || null;
+  if (nextProfile) ensureToday(state, waterDateInSaoPaulo(now), nextProfile);
+  writeState(storage, state);
+  return responseFromState(state, waterDateInSaoPaulo(now), nextProfile);
+}
+
 export function saveLocalWaterGoal(payload, storage = globalThis.localStorage, now = new Date()) {
   if (!storage) throw new Error('localStorage indisponível neste navegador.');
   const nome = String(payload?.nome || '').trim();

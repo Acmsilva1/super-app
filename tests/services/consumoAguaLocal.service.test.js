@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   WATER_LOCAL_STORAGE_KEY,
   createLocalWaterProfile,
+  deleteLocalWaterProfile,
   isLocalWaterStorageMode,
   loadLocalWater,
   saveLocalWaterGoal,
   updateLocalWaterProgress,
+  updateLocalWaterProfile,
 } from '../../features/saude/service/consumoAguaLocalService.js';
 
 function createStorage() {
@@ -61,5 +63,12 @@ describe('consumo de agua no localStorage', () => {
     expect(loadLocalWater(storage, now, andre.profile_id).today.realizado_doses).toBe(3);
     expect(loadLocalWater(storage, now, juliana.profile_id).today.realizado_doses).toBe(0);
     expect(juliana.profiles.map((profile) => profile.nome)).toEqual(['André', 'Juliana']);
+
+    const renamed = updateLocalWaterProfile({ profile_id: andre.profile_id, nome: 'André Silva' }, storage, now);
+    expect(renamed.profiles.find((profile) => profile.id === andre.profile_id)?.nome).toBe('André Silva');
+
+    const afterDelete = deleteLocalWaterProfile({ profile_id: andre.profile_id }, storage, now);
+    expect(afterDelete.profiles.map((profile) => profile.nome)).toEqual(['Juliana']);
+    expect(afterDelete.profile_id).toBe(juliana.profile_id);
   });
 });

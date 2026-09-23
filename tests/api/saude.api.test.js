@@ -242,6 +242,18 @@ describe('API de saúde', () => {
         expect.objectContaining({ nome: 'André água' }),
         expect.objectContaining({ nome: 'Juliana água' }),
       ]));
+
+      const renamed = await request(app).patch('/api/saude?resource=consumo-agua')
+        .send({ action: 'update-profile', profile_id: andreId, nome: 'André renomeado' });
+      expect(renamed.status).toBe(200);
+      expect(renamed.body.profiles).toContainEqual(expect.objectContaining({ id: andreId, nome: 'André renomeado' }));
+
+      const deleted = await request(app).delete('/api/saude?resource=consumo-agua')
+        .send({ action: 'delete-profile', profile_id: andreId });
+      expect(deleted.status).toBe(200);
+      expect(deleted.body.profiles).not.toContainEqual(expect.objectContaining({ id: andreId }));
+      const deletedLookup = await request(app).get(`/api/saude?resource=consumo-agua&profile_id=${andreId}`);
+      expect(deletedLookup.body.profile_id).not.toBe(andreId);
     } finally {
       vi.useRealTimers();
     }

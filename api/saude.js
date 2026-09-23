@@ -271,6 +271,40 @@ async function createWaterProfile(payload, userId) {
   return error ? { error } : { row: data, storage: 'supabase' };
 }
 
+async function updateWaterProfile(profileId, payload, userId) {
+  if (isOfflineMode()) {
+    const profile = offlineWaterProfiles.find((row) => Number(row.id) === profileId && row.created_by === userId);
+    if (!profile) return { notFound: true };
+    profile.nome = payload.nome;
+    return loadWater(userId, profileId);
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  const { data, error } = await supabase.from(TABELA_AGUA_PERFIS)
+    .update({ nome: payload.nome }).eq('id', profileId).eq('created_by', userId)
+    .select('id').maybeSingle();
+  if (error) return { error };
+  if (!data) return { notFound: true };
+  return loadWater(userId, profileId);
+}
+
+async function deleteWaterProfile(profileId, userId) {
+  if (isOfflineMode()) {
+    const exists = offlineWaterProfiles.some((row) => Number(row.id) === profileId && row.created_by === userId);
+    if (!exists) return { notFound: true };
+    offlineWaterProfiles = offlineWaterProfiles.filter((row) => !(Number(row.id) === profileId && row.created_by === userId));
+    offlineWaterGoals.delete(`${userId}:${profileId}`);
+    offlineWaterLogs = offlineWaterLogs.filter((row) => !(Number(row.perfil_id) === profileId && row.created_by === userId));
+    return loadWater(userId);
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  const { data, error } = await supabase.from(TABELA_AGUA_PERFIS)
+    .delete().eq('id', profileId).eq('created_by', userId)
+    .select('id').maybeSingle();
+  if (error) return { error };
+  if (!data) return { notFound: true };
+  return loadWater(userId);
+}
+
 async function ensureWaterProfile(userId, requestedProfileId) {
   const loaded = await loadWaterProfiles(userId);
   if (loaded.error) return loaded;
@@ -815,12 +849,34 @@ export default async function handler(req, res) {
   if (req.query?.resource === RESOURCE_CONSUMO_AGUA && req.method === 'PATCH') {
     const body = readBody(req);
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
+    if (body.action === 'update-profile') {
+      const profileId = parseId(body.profile_id);
+      if (!profileId) return json(res, 400, { error: 'Perfil invalido.' });
+      const profileValidation = validateWaterProfilePayload(body);
+      if (profileValidation.error) return json(res, 400, { error: profileValidation.error });
+      const result = await updateWaterProfile(profileId, profileValidation.data, auth.user.id);
+      if (result.error) return json(res, 500, { error: result.error.message });
+      if (result.notFound) return json(res, 404, { error: 'Perfil nao encontrado.' });
+      return json(res, 200, result);
+    }
     const validation = validateWaterProgressPayload(body);
     if (validation.error) return json(res, 400, { error: validation.error });
     const result = await updateWaterProgress(validation.data, auth.user.id);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Crie uma meta de agua antes de registrar o consumo.' });
     if (result.conflict) return json(res, 409, { error: 'A quantidade realizada nao pode ultrapassar a meta do dia.' });
+    return json(res, 200, result);
+  }
+
+  if (req.query?.resource === RESOURCE_CONSUMO_AGUA && req.method === 'DELETE') {
+    const body = readBody(req);
+    if (!body) return json(res, 400, { error: 'JSON invalido.' });
+    if (body.action !== 'delete-profile') return json(res, 400, { error: 'Acao invalida.' });
+    const profileId = parseId(body.profile_id ?? req.query?.profile_id);
+    if (!profileId) return json(res, 400, { error: 'Perfil invalido.' });
+    const result = await deleteWaterProfile(profileId, auth.user.id);
+    if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.notFound) return json(res, 404, { error: 'Perfil nao encontrado.' });
     return json(res, 200, result);
   }
 
