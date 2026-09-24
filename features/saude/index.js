@@ -885,10 +885,13 @@ function renderWater(container, state) {
       <button type="button" class="saude-icon-btn saude-water-card__edit" data-saude-action="edit-water-goal" aria-label="Editar meta"><i class="fas fa-pencil"></i></button>
     </article><section class="saude-water-history" aria-labelledby="water-history-title"><h3 id="water-history-title">Histórico diário</h3>${history}</section>`;
   }
-  renderShell(container, `<section class="saude-page" aria-labelledby="water-title">
+  const page = `<section class="saude-page" aria-labelledby="water-title">
     <div class="saude-page-toolbar"><div class="saude-page-header"><button type="button" class="saude-btn" data-saude-action="home" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button><div><h2 id="water-title">Consumo de água</h2><p>Marque as doses tomadas durante o dia.</p></div></div><button type="button" class="saude-btn saude-btn--insert" data-saude-action="create-water-profile" aria-label="Novo perfil"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Novo perfil</span></button></div>
     ${notice}${profiles}${content}${renderWaterModal(state)}
-  </section>`);
+  </section>`;
+  const currentPage = container.querySelector('.saude-root > .saude-page');
+  if (currentPage) currentPage.outerHTML = page;
+  else renderShell(container, page);
 }
 
 async function requestWater(method, payload) {
@@ -903,6 +906,7 @@ async function requestWater(method, payload) {
   }
   const params = new URLSearchParams({ resource: 'consumo-agua' });
   if (method === 'GET' && payload?.profile_id) params.set('profile_id', payload.profile_id);
+  if (method === 'GET' && payload?.preserve_profiles) params.set('include_profiles', '0');
   const response = await fetch(`/api/saude?${params}`, {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -915,18 +919,18 @@ async function requestWater(method, payload) {
 }
 
 function applyWaterData(state, data) {
-  state.waterProfiles = Array.isArray(data.profiles) ? data.profiles : [];
-  state.waterProfileId = data.profile_id || null;
-  state.waterConfig = data.config || null;
-  state.waterToday = data.today || null;
-  state.waterHistory = Array.isArray(data.history) ? data.history : [];
-  state.waterDate = data.today?.data || todayIsoDate();
+  if (Array.isArray(data.profiles)) state.waterProfiles = data.profiles;
+  if (Object.hasOwn(data, 'profile_id')) state.waterProfileId = data.profile_id || null;
+  if (Object.hasOwn(data, 'config')) state.waterConfig = data.config || null;
+  if (Object.hasOwn(data, 'today')) state.waterToday = data.today || null;
+  if (Array.isArray(data.history)) state.waterHistory = data.history;
+  if (data.today?.data) state.waterDate = data.today.data;
 }
 
 async function loadWater(container, state, silent = false) {
   if (!silent) renderLoading(container, 'Carregando consumo de água...');
   try {
-    applyWaterData(state, await requestWater('GET', { profile_id: state.waterProfileId }));
+    applyWaterData(state, await requestWater('GET', { profile_id: state.waterProfileId, preserve_profiles: silent }));
     renderWater(container, state);
   } catch (error) {
     renderError(container, error instanceof Error ? error.message : 'Não foi possível carregar o consumo de água.');
@@ -1113,6 +1117,9 @@ export async function renderSaudeContent(container) {
       state.waterProfileId = actionElement.dataset.waterProfileId;
       state.waterModal = null;
       state.notice = null;
+      container.querySelectorAll('[data-saude-action="select-water-profile"]').forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.dataset.waterProfileId === String(state.waterProfileId)));
+      });
       await loadWater(container, state, true);
       return;
     }
@@ -1131,16 +1138,21 @@ export async function renderSaudeContent(container) {
       const dose = Number(actionElement.dataset.waterDose);
       const isMarking = dose > state.waterToday.realizado_doses;
       const realizado_doses = isMarking ? dose : dose - 1;
+      const previousRealizado = state.waterToday.realizado_doses;
       state.busy = true;
       const checkButtons = [...container.querySelectorAll('[data-saude-action="toggle-water-dose"]')];
       checkButtons.forEach((button) => { button.disabled = true; });
+      state.waterToday = { ...state.waterToday, realizado_doses };
+      syncWaterTrackerDom(container, state);
+      if (isMarking) animateWaterDose(container, actionElement, false);
       try {
         applyWaterData(state, await requestWater('PATCH', { profile_id: state.waterProfileId, realizado_doses }));
         syncWaterTrackerDom(container, state);
         const completedNow = isMarking && realizado_doses === state.waterToday.meta_doses;
-        if (isMarking) animateWaterDose(container, actionElement, completedNow);
         if (completedNow) showWaterCelebration(container, state);
       } catch (error) {
+        state.waterToday = { ...state.waterToday, realizado_doses: previousRealizado };
+        syncWaterTrackerDom(container, state);
         state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível marcar a dose.' };
         state.busy = false;
         renderWater(container, state);

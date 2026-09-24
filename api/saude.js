@@ -228,11 +228,11 @@ function withProfileHistory(profiles, measurements) {
   }));
 }
 
-function waterResult(config, today, history, storage, profiles = [], profileId = null) {
+function waterResult(config, today, history, storage, profiles = null, profileId = null) {
   return {
     resource: RESOURCE_CONSUMO_AGUA,
     storage,
-    profiles: profiles.map((profile) => ({ id: profile.id, nome: profile.nome })),
+    ...(Array.isArray(profiles) ? { profiles: profiles.map((profile) => ({ id: profile.id, nome: profile.nome })) } : {}),
     profile_id: profileId,
     config: config ? { nome: config.nome, meta_doses: Number(config.meta_doses) } : null,
     today: today ? {
@@ -318,14 +318,16 @@ async function ensureWaterProfile(userId, requestedProfileId) {
   return { profile, profiles: loaded.rows, storage: loaded.storage };
 }
 
-async function loadWater(userId, requestedProfileId = null) {
+async function loadWater(userId, requestedProfileId = null, { includeProfiles = true } = {}) {
   const today = dateInSaoPaulo(new Date());
-  const profileResult = await loadWaterProfiles(userId);
-  if (profileResult.error) return profileResult;
-  const profiles = profileResult.rows;
-  const profile = profiles.find((row) => Number(row.id) === Number(requestedProfileId)) || profiles[0] || null;
-  if (!profile) return waterResult(null, null, [], profileResult.storage, profiles, null);
-  const profileId = profile.id;
+  const profileResult = includeProfiles || isOfflineMode() ? await loadWaterProfiles(userId) : null;
+  if (profileResult?.error) return profileResult;
+  const profiles = profileResult?.rows || null;
+  const profile = profiles
+    ? profiles.find((row) => Number(row.id) === Number(requestedProfileId)) || profiles[0] || null
+    : null;
+  const profileId = profile?.id || parseId(requestedProfileId);
+  if (!profileId) return waterResult(null, null, [], profileResult?.storage || 'supabase', profiles, null);
   if (isOfflineMode()) {
     const config = offlineWaterGoals.get(`${userId}:${profileId}`) || null;
     if (!config) return waterResult(null, null, [], 'memory', profiles, profileId);
@@ -349,29 +351,38 @@ async function loadWater(userId, requestedProfileId = null) {
   }
 
   const { supabase } = await import('../lib/supabase.js');
-  const { data: config, error: configError } = await supabase.from(TABELA_AGUA_METAS)
+  const configRequest = supabase.from(TABELA_AGUA_METAS)
     .select('nome,meta_doses').eq('created_by', userId).eq('perfil_id', profileId).maybeSingle();
-  if (configError) return { error: configError };
-  if (!config) return waterResult(null, null, [], 'supabase', profiles, profileId);
-
-  const { error: ensureError } = await supabase.from(TABELA_AGUA_LOGS).upsert({
-    created_by: userId,
-    perfil_id: profileId,
-    data_local: today,
-    meta_doses: config.meta_doses,
-    realizado_doses: 0,
-  }, { onConflict: 'created_by,perfil_id,data_local', ignoreDuplicates: true });
-  if (ensureError) return { error: ensureError };
-
-  const { data: todayRow, error: todayError } = await supabase.from(TABELA_AGUA_LOGS)
+  const todayRequest = supabase.from(TABELA_AGUA_LOGS)
     .select('id,data_local,meta_doses,realizado_doses')
-    .eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).single();
-  if (todayError) return { error: todayError };
-
-  const { data: history, error: historyError } = await supabase.from(TABELA_AGUA_LOGS)
+    .eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).maybeSingle();
+  const historyRequest = supabase.from(TABELA_AGUA_LOGS)
     .select('id,data_local,meta_doses,realizado_doses')
     .eq('created_by', userId).eq('perfil_id', profileId).lt('data_local', today)
     .order('data_local', { ascending: false }).limit(90);
+  const [configResult, todayResult, historyResult] = await Promise.all([configRequest, todayRequest, historyRequest]);
+  const { data: config, error: configError } = configResult;
+  if (configError) return { error: configError };
+  if (!config) return waterResult(null, null, [], 'supabase', profiles, profileId);
+  let { data: todayRow, error: todayError } = todayResult;
+  if (todayError) return { error: todayError };
+  if (!todayRow) {
+    const { data: inserted, error: insertError } = await supabase.from(TABELA_AGUA_LOGS).insert({
+      created_by: userId, perfil_id: profileId, data_local: today,
+      meta_doses: config.meta_doses, realizado_doses: 0,
+    }).select('id,data_local,meta_doses,realizado_doses').single();
+    if (insertError?.code === '23505') {
+      const { data: concurrentRow, error: concurrentError } = await supabase.from(TABELA_AGUA_LOGS)
+        .select('id,data_local,meta_doses,realizado_doses')
+        .eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).single();
+      if (concurrentError) return { error: concurrentError };
+      todayRow = concurrentRow;
+    } else {
+      if (insertError) return { error: insertError };
+      todayRow = inserted;
+    }
+  }
+  const { data: history, error: historyError } = historyResult;
   return historyError ? { error: historyError } : waterResult(config, todayRow, history, 'supabase', profiles, profileId);
 }
 
@@ -408,10 +419,10 @@ async function saveWaterGoal(payload, userId) {
 
 async function updateWaterProgress(payload, userId) {
   const today = dateInSaoPaulo(new Date());
-  const profileResult = await ensureWaterProfile(userId, payload.profile_id);
-  if (profileResult.error) return profileResult;
-  const profileId = profileResult.profile.id;
   if (isOfflineMode()) {
+    const profileResult = await ensureWaterProfile(userId, payload.profile_id);
+    if (profileResult.error) return profileResult;
+    const profileId = profileResult.profile.id;
     const loaded = await loadWater(userId, profileId);
     if (!loaded.config || !loaded.today) return { notFound: true };
     if (payload.realizado_doses > loaded.today.meta_doses) return { conflict: true };
@@ -420,6 +431,12 @@ async function updateWaterProgress(payload, userId) {
     return loadWater(userId, profileId);
   }
 
+  let profileId = parseId(payload.profile_id);
+  if (!profileId) {
+    const profileResult = await ensureWaterProfile(userId, null);
+    if (profileResult.error) return profileResult;
+    profileId = profileResult.profile.id;
+  }
   const { supabase } = await import('../lib/supabase.js');
   const { data: current, error: currentError } = await supabase.from(TABELA_AGUA_LOGS)
     .select('id,meta_doses').eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).maybeSingle();
@@ -428,10 +445,21 @@ async function updateWaterProgress(payload, userId) {
   if (payload.realizado_doses > Number(current.meta_doses)) return { conflict: true };
   const { data, error } = await supabase.from(TABELA_AGUA_LOGS)
     .update({ realizado_doses: payload.realizado_doses })
-    .eq('id', current.id).eq('created_by', userId).select('id').maybeSingle();
+    .eq('id', current.id).eq('created_by', userId)
+    .select('id,data_local,meta_doses,realizado_doses').maybeSingle();
   if (error) return { error };
   if (!data) return { notFound: true };
-  return loadWater(userId, profileId);
+  return {
+    resource: RESOURCE_CONSUMO_AGUA,
+    storage: 'supabase',
+    profile_id: profileId,
+    today: {
+      id: data.id,
+      data: data.data_local,
+      meta_doses: Number(data.meta_doses),
+      realizado_doses: Number(data.realizado_doses),
+    },
+  };
 }
 
 async function loadProfiles(userId) {
@@ -803,7 +831,7 @@ export default async function handler(req, res) {
     if (req.query?.resource === RESOURCE_CONSUMO_AGUA) {
       const requestedProfileId = req.query?.profile_id == null ? null : parseId(req.query.profile_id);
       if (req.query?.profile_id != null && !requestedProfileId) return json(res, 400, { error: 'Perfil invalido.' });
-      const result = await loadWater(auth.user.id, requestedProfileId);
+      const result = await loadWater(auth.user.id, requestedProfileId, { includeProfiles: req.query?.include_profiles !== '0' });
       if (result.error) return json(res, 500, { error: result.error.message });
       return json(res, 200, result);
     }

@@ -77,7 +77,16 @@ describe('UI mobile do módulo Saúde', () => {
     expect(start).toBeGreaterThan(-1);
     expect(persisted).toBeGreaterThan(start);
     expect(beforePersist).not.toContain('renderWater(container, state)');
+    expect(beforePersist).toContain('state.waterToday = { ...state.waterToday, realizado_doses }');
+    expect(beforePersist).toContain('syncWaterTrackerDom(container, state)');
     expect(source.slice(persisted, source.indexOf("if (action === 'delete-measurement'", persisted))).toContain('syncWaterTrackerDom(container, state)');
+  });
+
+  it('troca o perfil preservando a lista e sem reconstruir o shell de saude', () => {
+    expect(source).toContain("params.set('include_profiles', '0')");
+    expect(source).toContain('preserve_profiles: silent');
+    expect(source).toContain("const currentPage = container.querySelector('.saude-root > .saude-page')");
+    expect(source).toContain('if (currentPage) currentPage.outerHTML = page');
   });
 
 });
