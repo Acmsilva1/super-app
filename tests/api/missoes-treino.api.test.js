@@ -285,6 +285,94 @@ describe('API missoes-treino', () => {
     expect(res.body.error).toMatch(/profile_id.*obrigat/i);
   });
 
+  it('GET preserva os treinos quando apenas o painel de desempenho falha', async () => {
+    let missionsCall = 0;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_missoes_treino_perfis') {
+        return {
+          select: vi.fn(() => ({
+            order: vi.fn().mockResolvedValue({
+              data: [{ id: 3, nome: 'Andre', created_at: '2026-09-01T00:00:00Z' }],
+              error: null,
+            }),
+          })),
+        };
+      }
+      if (table === 'tb_missoes_treino') {
+        missionsCall += 1;
+        if (missionsCall === 1) {
+          return {
+            select: vi.fn(() => ({
+              is: vi.fn(() => ({
+                limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+              })),
+            })),
+          };
+        }
+        if (missionsCall > 2) throw new Error('falha apenas na estatistica');
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn().mockResolvedValue({
+                data: [{
+                  id: WORKOUT_MISSION_ID,
+                  titulo: 'Treino A',
+                  data_referencia: '2026-09-24',
+                  created_at: '2026-09-24T10:00:00Z',
+                  perfil_id: 3,
+                }],
+                error: null,
+              }),
+            })),
+          })),
+        };
+      }
+      if (table === 'tb_missoes_treino_itens') {
+        return {
+          select: vi.fn(() => ({
+            in: vi.fn(() => ({
+              order: vi.fn(() => ({
+                order: vi.fn().mockResolvedValue({
+                  data: [{
+                    id: 8,
+                    missao_id: WORKOUT_MISSION_ID,
+                    nome: 'Supino',
+                    reps: 3,
+                    ordem: 1,
+                    concluida: false,
+                  }],
+                  error: null,
+                }),
+              })),
+            })),
+          })),
+        };
+      }
+      if (table === 'tb_missoes_treino_chamas') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            })),
+          })),
+        };
+      }
+      return {};
+    });
+
+    const app = createApp(missoesTreinoHandler);
+    const res = await request(app).get('/api/test?profile_id=3');
+
+    expect(res.status).toBe(200);
+    expect(res.body.missions).toHaveLength(1);
+    expect(res.body.missions[0].title).toBe('Treino A');
+    expect(res.body.performance).toBeNull();
+    expect(res.body.performance_warning).toBe('falha apenas na estatistica');
+    warn.mockRestore();
+  });
+
   it('GET workout-logs lista o historico do perfil', async () => {
     const limit = vi.fn().mockResolvedValue({
       data: [{

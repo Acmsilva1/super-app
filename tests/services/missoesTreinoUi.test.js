@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { formatWorkoutElapsed, sameEntityId } from '../../features/missoes_treino/index.js';
+import { formatWorkoutElapsed, sameEntityId, shouldUseLocalMock } from '../../features/missoes_treino/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const source = fs.readFileSync(path.join(root, 'features/missoes_treino/index.js'), 'utf8');
@@ -50,6 +50,17 @@ describe('interacoes da UI de missoes de treino', () => {
 
   it('informa que o teste local persiste no navegador sem usar o Supabase', () => {
     expect(source).toContain('Teste local persistido no navegador. Nada vai para o Supabase.');
+  });
+
+  it('usa a API real no localhost por padrao e deixa o mock como opt-in explicito', () => {
+    const storage = { getItem: () => null };
+    expect(shouldUseLocalMock({ hostname: 'localhost', search: '' }, storage)).toBe(false);
+    expect(shouldUseLocalMock({ hostname: 'localhost', search: '?treino_mock=1' }, storage)).toBe(true);
+    expect(shouldUseLocalMock({ hostname: 'app.exemplo.com', search: '?treino_mock=1' }, storage)).toBe(false);
+  });
+
+  it('desabilita cache HTTP nas leituras da API de treino', () => {
+    expect(source).toContain("cache: 'no-store'");
   });
 
   it('escapa dados vindos do banco antes de montar as linhas de logs', () => {

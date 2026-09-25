@@ -8441,7 +8441,7 @@
                 if (appId === 'missoes_treino') {
                     try {
                         // Query de versao: forca novo modulo no PWA; path no servidor e o mesmo (Vercel ignora query).
-                        const mod = await import('./features/missoes_treino/index.js?v=2026-08-12-mt-mock-auto');
+                        const mod = await import('./features/missoes_treino/index.js?v=2026-09-25-profile-list-fix-v1');
                         mod.renderMissoesTreinoContent(contentEl);
                         // Scroll antigo (antes das abas) deixava header/tabs fora do ecra no mobile.
                         if (this.uiState.windowScrolls && appId in this.uiState.windowScrolls) {

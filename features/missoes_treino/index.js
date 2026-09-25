@@ -1,8 +1,8 @@
 import { MockTreinoStore } from './mock.example.js';
 
-function isLocalDevHost() {
+function isLocalDevHost(locationLike = globalThis.window?.location) {
   try {
-    const host = String(window.location.hostname || '').toLowerCase();
+    const host = String(locationLike?.hostname || '').toLowerCase();
     return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
   } catch (_err) {
     return false;
@@ -18,6 +18,22 @@ function escapeHtml(value) {
 function formatProfileMissionCount(count) {
   const n = Number(count) || 0;
   return n === 1 ? '1 TREINO' : `${n} TREINOS`;
+}
+
+const LOCAL_MOCK_PREFERENCE_KEY = 'superapp:missoes-treino:use-mock';
+
+export function shouldUseLocalMock(
+  locationLike = globalThis.window?.location,
+  storage = globalThis.window?.localStorage,
+) {
+  if (!isLocalDevHost(locationLike)) return false;
+  try {
+    const params = new URLSearchParams(locationLike?.search || '');
+    return params.get('treino_mock') === '1'
+      || storage?.getItem(LOCAL_MOCK_PREFERENCE_KEY) === '1';
+  } catch (_err) {
+    return false;
+  }
 }
 
 const PROFILE_EMOJIS = ['🏋️', '💪', '🏃', '🚴', '🧘', '⚽', '🔥', '⭐'];
@@ -200,7 +216,7 @@ class MissoesTreinoApp {
     this.isProfilesLoading = false;
     this.errorMessage = '';
     this.currentView = 'profiles';
-    this.useMock = isLocalDevHost();
+    this.useMock = shouldUseLocalMock();
     this.mockStore = this.useMock ? new MockTreinoStore() : null;
     this.onClick = this.onClick.bind(this);
     this.onKeyPress = this.onKeyPress.bind(this);
@@ -294,6 +310,7 @@ class MissoesTreinoApp {
     }
 
     const response = await fetch(`/api/missoes-treino${path}`, {
+      cache: 'no-store',
       headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
       ...options,
     });

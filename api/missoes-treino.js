@@ -1141,8 +1141,23 @@ export default async function handler(req, res) {
       const dateRef = isIsoDate(queryDate) ? String(queryDate) : getTodayBrazilIsoDate();
       const missions = await fetchMissionsByProfile(profileId);
       const penalty = await getPenaltyState();
-      const performance = await fetchMonthlyPerformance(dateRef, profileId);
-      return json(res, 200, { date: dateRef, profile_id: profileId, missions, penalty, performance, rest_day: false });
+      let performance = null;
+      let performanceWarning = null;
+      try {
+        performance = await fetchMonthlyPerformance(dateRef, profileId);
+      } catch (error) {
+        performanceWarning = String(error?.message || 'Falha ao carregar desempenho');
+        console.warn('[missoes-treino] desempenho indisponivel:', performanceWarning);
+      }
+      return json(res, 200, {
+        date: dateRef,
+        profile_id: profileId,
+        missions,
+        penalty,
+        performance,
+        performance_warning: performanceWarning,
+        rest_day: false,
+      });
     }
 
     if (req.method === 'POST') {
