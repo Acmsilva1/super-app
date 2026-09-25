@@ -8,6 +8,7 @@ import {
   TIPO_REGISTRO_GASTO_VARIADO,
   TIPO_REGISTRO_META_POUPANCA,
   TIPO_REGISTRO_POUPANCA,
+  TIPO_REGISTRO_RESGATE_POUPANCA,
   TIPO_REGISTRO_RECEITA,
 } from '../model/financeiro.js';
 
@@ -402,6 +403,27 @@ export function payloadInsertFinanceiro(body = {}) {
   }
 
   return { error: 'tipo_registro invalido' };
+}
+
+export function payloadResgatePoupanca(body = {}) {
+  const valor = Math.round(Number(body.valor) * 100) / 100;
+  if (!Number.isFinite(valor) || valor <= 0 || valor > 9999999999.99) {
+    return { error: 'valor do resgate deve ser maior que zero' };
+  }
+
+  const motivo = String(body.motivo_resgate || '').trim();
+  if (!motivo) return { error: 'motivo do resgate obrigatorio' };
+  if (motivo.length > 240) return { error: 'motivo do resgate deve ter no maximo 240 caracteres' };
+
+  const dataLancamento = String(body.data_lancamento || getBrazilTodayIso()).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dataLancamento)) return { error: 'data_lancamento invalida' };
+
+  return {
+    tipo_registro: TIPO_REGISTRO_RESGATE_POUPANCA,
+    valor,
+    motivo_resgate: motivo,
+    data_lancamento: dataLancamento,
+  };
 }
 
 export function payloadUpdateFinanceiro(body = {}) {

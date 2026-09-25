@@ -9079,8 +9079,13 @@
                     const pendingActionHtml = tipoRegistro === 'despesa_fixa'
                         ? `<button type="button" class="finance-icon-action finance-icon-action--pending ${pendenteMes ? 'is-active' : ''}" data-action="financeiro-toggle-pendente-mes" data-id="${safeId}" data-pendente-mes="${pendenteMes ? 'true' : 'false'}" aria-label="${pendenteMes ? 'Remover pendencia do mes' : 'Marcar pendente no mes'}" title="${pendenteMes ? 'Remover pendencia do mes' : 'Marcar pendente no mes'}"><i class="fas fa-xmark"></i></button>`
                         : '';
+                    const isSavingsWithdrawal = tipoRegistro === 'poupanca'
+                        && (Number(row?.valor || 0) < 0 || String(row?.motivo_resgate || '').trim());
+                    const editActionHtml = isSavingsWithdrawal
+                        ? ''
+                        : `<button type="button" class="finance-icon-action finance-icon-action--edit" data-action="financeiro-edit" data-id="${safeId}" data-tipo-registro="${safeTipo}" aria-label="Editar" title="Editar"><i class="fas fa-pen"></i></button>`;
                     return `<div class="app-list-actions finance-row-actions">
-                        <button type="button" class="finance-icon-action finance-icon-action--edit" data-action="financeiro-edit" data-id="${safeId}" data-tipo-registro="${safeTipo}" aria-label="Editar" title="Editar"><i class="fas fa-pen"></i></button>
+                        ${editActionHtml}
                         ${pendingActionHtml}
                         <button type="button" class="finance-icon-action finance-icon-action--delete" data-action="financeiro-delete" data-id="${safeId}" data-tipo-registro="${safeTipo}" aria-label="Excluir" title="Excluir"><i class="fas fa-trash"></i></button>
                     </div>`;
@@ -9185,12 +9190,17 @@ ${financeRowActions(r.id, r.tipo_registro || 'receita')}
                 const rowsPoupancaHtml = poupancaLogs.length
                     ? poupancaLogs.map((r) => {
                         const hora = fmtHoraBrasilia(r.created_at);
+                        const motivoResgate = String(r.motivo_resgate || '').trim();
+                        const isResgate = Number(r.valor || 0) < 0 || Boolean(motivoResgate);
                         return `<tr>
-                            <td><strong class="finance-desc-text" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</strong></td>
-                            <td style="color:#22c55e">${this.formatMoneyBr(Number(r.valor || 0))}</td>
+                            <td>
+                                <strong class="finance-desc-text" title="${escapeHtml(isResgate ? 'Resgate' : (r.descricao || ''))}">${escapeHtml(isResgate ? 'Resgate' : (r.descricao || ''))}</strong>
+                                ${isResgate ? `<br><span style="font-size:0.75rem;color:#cbd5e1;">Motivo: ${escapeHtml(motivoResgate || '--')}</span>` : ''}
+                            </td>
+                            <td style="color:${isResgate ? '#f87171' : '#22c55e'}">${this.formatMoneyBr(Number(r.valor || 0))}</td>
                             <td>${escapeHtml(fmtDataBr(lancDate(r)))}${hora ? `<br><span style="font-size:0.72rem;color:#9ca3af;">${escapeHtml(hora)}</span>` : ''}</td>
                             <td class="col-actions">
-${financeRowActions(r.id, 'poupanca')}
+${financeRowActions(r.id, 'poupanca', r)}
                             </td>
                         </tr>`;
                     }).join('')
@@ -9390,6 +9400,9 @@ ${financeRowActions(r.id, 'compra')}
                         <div class="module-tab-panel ${activeTab === 'poupanca' ? '' : 'hidden'}" data-tab-panel="poupanca">
                             <div class="app-totais">
                                 <div class="totais-card"><div class="val" style="color:#22c55e">${this.formatMoneyBr(poupancaTotal)}</div><div class="stat-label">Total acumulado em poupança</div></div>
+                            </div>
+                            <div style="display:flex;justify-content:flex-end;margin:0.75rem 0;">
+                                <button type="button" class="app-btn app-btn-secondary" data-action="poupanca-open-resgate-modal" ${poupancaTotal > 0 ? '' : 'disabled'}>Resgate</button>
                             </div>
                             ${poupancaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca` não encontrada no Supabase. Crie a tabela para habilitar este módulo.</p>'}
                             ${poupancaMetaConfigurada ? '' : '<p class="app-form-note" style="color:#fca5a5;">Tabela `tb_poupanca_metas` não encontrada no Supabase. Crie a tabela para habilitar metas.</p>'}
@@ -10218,6 +10231,10 @@ ${financeRowActions(r.id, 'compra')}
                 if (openMetaBtn) {
                     openMetaBtn.onclick = () => this.openPoupancaMetaModal(el);
                 }
+                const openResgateBtn = el.querySelector('[data-action="poupanca-open-resgate-modal"]');
+                if (openResgateBtn) {
+                    openResgateBtn.onclick = () => this.openPoupancaResgateModal(el, poupancaTotal);
+                }
                 const editMetaBtn = el.querySelector('[data-action="poupanca-meta-edit"]');
                 if (editMetaBtn) {
                     editMetaBtn.onclick = () => this.openPoupancaMetaModal(el, {
@@ -10369,6 +10386,70 @@ ${financeRowActions(r.id, 'compra')}
                     if (ok) close();
                 };
                 document.body.appendChild(overlay);
+            }
+
+            openPoupancaResgateModal(el, saldoDisponivel = 0) {
+                const saldo = Math.max(0, Number(saldoDisponivel || 0));
+                const overlay = document.createElement('div');
+                overlay.className = 'app-modal-overlay';
+                overlay.innerHTML = `
+                    <div class="app-modal finance-entry-modal" role="dialog" aria-modal="true" aria-labelledby="poupanca-resgate-title">
+                        <h4 id="poupanca-resgate-title"><span class="finance-emoji finance-emoji--coin" aria-hidden="true">💸</span>Resgate da poupança</h4>
+                        <p class="app-form-note">Saldo disponível: <strong>${this.formatMoneyBr(saldo)}</strong></p>
+                        <div class="app-form">
+                            <div class="app-form-row fin-form-grid">
+                                <div class="field">
+                                    <label for="poupanca-resgate-valor">Valor do resgate (R$)</label>
+                                    <input type="number" min="0.01" max="${saldo.toFixed(2)}" step="0.01" id="poupanca-resgate-valor" inputmode="decimal" />
+                                </div>
+                                <div class="field">
+                                    <label for="poupanca-resgate-motivo">Motivo</label>
+                                    <textarea id="poupanca-resgate-motivo" maxlength="240" rows="3" placeholder="Ex: Emergência, viagem ou compra planejada"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="app-modal-actions">
+                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
+                            <button type="button" class="app-btn" data-action="modal-save-resgate">Confirmar resgate</button>
+                        </div>
+                    </div>
+                `;
+
+                const close = () => overlay.remove();
+                overlay.querySelector('[data-action="modal-cancel"]').onclick = close;
+                overlay.onclick = (event) => { if (event.target === overlay) close(); };
+                const saveButton = overlay.querySelector('[data-action="modal-save-resgate"]');
+                saveButton.onclick = async () => {
+                    const valor = Number(overlay.querySelector('#poupanca-resgate-valor')?.value || 0);
+                    const motivo = String(overlay.querySelector('#poupanca-resgate-motivo')?.value || '').trim();
+                    if (!(valor > 0)) { alert('Informe um valor de resgate maior que zero.'); return; }
+                    if (valor > saldo) { alert('O valor do resgate não pode superar o saldo disponível.'); return; }
+                    if (!motivo) { alert('Informe o motivo do resgate.'); return; }
+
+                    saveButton.disabled = true;
+                    saveButton.textContent = 'Resgatando...';
+                    try {
+                        const response = await fetch('/api/financeiro', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                tipo_registro: 'resgate_poupanca',
+                                valor,
+                                motivo_resgate: motivo,
+                                data_lancamento: this.getBrazilDateIsoFrom(new Date()),
+                            }),
+                        });
+                        await this.readApiJsonOrThrow(response, 'Erro ao realizar resgate');
+                        close();
+                        await this.refreshAppContent('financeiro');
+                    } catch (error) {
+                        alert(error.message || 'Erro ao realizar resgate');
+                        saveButton.disabled = false;
+                        saveButton.textContent = 'Confirmar resgate';
+                    }
+                };
+                document.body.appendChild(overlay);
+                window.setTimeout(() => overlay.querySelector('#poupanca-resgate-valor')?.focus(), 0);
             }
             openFinanceiroFixasListModal(el, { status = 'pendente', rows = [], rowsHtml = '', total = 0, itemMap = new Map() } = {}) {
                 const isPaid = String(status || '').toLowerCase() === 'pago';

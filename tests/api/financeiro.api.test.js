@@ -2,13 +2,15 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { fromMock } = vi.hoisted(() => ({
+const { fromMock, rpcMock } = vi.hoisted(() => ({
   fromMock: vi.fn(),
+  rpcMock: vi.fn(),
 }));
 
 vi.mock('../../lib/supabase.js', () => ({
   supabase: {
     from: fromMock,
+    rpc: rpcMock,
   },
 }));
 
@@ -88,6 +90,7 @@ function createDespesaFixaParceladaTableMock({ currentRow, updatedRow = null, fu
 describe('API do financeiro', () => {
   beforeEach(() => {
     fromMock.mockReset();
+    rpcMock.mockReset();
   });
 
   it('GET health retorna status sem consultar Supabase', async () => {
@@ -224,6 +227,62 @@ describe('API do financeiro', () => {
     expect(res.status).toBe(200);
     expect(financeUpdate).toHaveBeenCalled();
     expect(res.body.tipo_registro).toBe('receita');
+  });
+
+  it('realiza resgate atomico e registra o motivo', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{
+        id: 91,
+        descricao: 'Resgate',
+        valor: -250,
+        motivo_resgate: 'Emergencia',
+        data_lancamento: '2026-09-25',
+      }],
+      error: null,
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app).post('/api/test').send({
+      tipo_registro: 'resgate_poupanca',
+      valor: 250,
+      motivo_resgate: 'Emergencia',
+      data_lancamento: '2026-09-25',
+    });
+
+    expect(res.status).toBe(201);
+    expect(rpcMock).toHaveBeenCalledWith('resgatar_poupanca', expect.objectContaining({
+      p_valor: 250,
+      p_motivo: 'Emergencia',
+      p_data_lancamento: '2026-09-25',
+    }));
+    expect(res.body).toMatchObject({ valor: -250, motivo_resgate: 'Emergencia', tipo_registro: 'resgate_poupanca' });
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  it('rejeita resgate sem motivo antes de acessar o banco', async () => {
+    const app = createApp(financeiroHandler);
+    const res = await request(app).post('/api/test').send({
+      tipo_registro: 'resgate_poupanca',
+      valor: 50,
+      motivo_resgate: '',
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/motivo/i);
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it('traduz saldo insuficiente do banco para erro de validacao', async () => {
+    rpcMock.mockResolvedValue({ data: null, error: { message: 'saldo insuficiente para este resgate' } });
+    const app = createApp(financeiroHandler);
+    const res = await request(app).post('/api/test').send({
+      tipo_registro: 'resgate_poupanca',
+      valor: 999,
+      motivo_resgate: 'Compra',
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/saldo insuficiente/i);
   });
 
   it('simula mutacoes no modo offline sem acessar Supabase', async () => {

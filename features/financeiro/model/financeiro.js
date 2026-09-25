@@ -9,6 +9,7 @@ export const TIPO_REGISTRO_DESPESA_FIXA = 'despesa_fixa';
 export const TIPO_REGISTRO_GASTO_VARIADO = 'gasto_variado';
 export const TIPO_REGISTRO_RECEITA = 'receita';
 export const TIPO_REGISTRO_POUPANCA = 'poupanca';
+export const TIPO_REGISTRO_RESGATE_POUPANCA = 'resgate_poupanca';
 export const TIPO_REGISTRO_META_POUPANCA = 'meta_poupanca';
 export const TIPO_REGISTRO_COMPRA = 'compra';
 

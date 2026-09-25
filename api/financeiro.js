@@ -31,10 +31,12 @@ async function handleOfflineMutation(req) {
     return { status: 200, data: { ok: true, mes_ano: body.mes_ano } };
   }
   const id = body.id || `mock-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const isSavingsWithdrawal = body.tipo_registro === 'resgate_poupanca';
   return {
     status: req.method === 'POST' ? 201 : 200,
     data: {
       ...body,
+      ...(isSavingsWithdrawal ? { descricao: 'Resgate', valor: -Math.abs(Number(body.valor || 0)) } : {}),
       id,
       created_at: body.created_at || new Date().toISOString(),
       tipo_registro: body.tipo_registro || 'gasto_variado',

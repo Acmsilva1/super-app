@@ -5,6 +5,7 @@ export {
   TIPO_REGISTRO_GASTO_VARIADO,
   TIPO_REGISTRO_META_POUPANCA,
   TIPO_REGISTRO_POUPANCA,
+  TIPO_REGISTRO_RESGATE_POUPANCA,
   TIPO_REGISTRO_RECEITA,
   TIPO_REGISTRO_COMPRA,
   TABLE_POUPANCA,
@@ -42,6 +43,7 @@ export {
   calcularGraficosAnuais,
   montarTabelaFinanceiroRows,
   payloadInsertFinanceiro,
+  payloadResgatePoupanca,
   payloadUpdateFinanceiro,
   getBrazilTodayIso,
 } from './service/financeiroService.js';

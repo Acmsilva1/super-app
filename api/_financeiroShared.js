@@ -19,6 +19,7 @@ import {
   classificarFinancas,
   montarTabelaFinanceiroRows,
   payloadInsertFinanceiro,
+  payloadResgatePoupanca,
   payloadUpdateFinanceiro,
   inferTipoRegistro,
   normalizeFinanceiroCategoriaText,
@@ -609,7 +610,7 @@ function periodOrFilter({ dayStart, dayEnd, start, end }) {
 const FINANCEIRO_PAGE_SIZE = 50;
 const FINANCAS_LIST_COLUMNS = 'id,descricao,valor,tipo,tipo_gasto,metodo_pagamento,categoria,data_lancamento,created_at';
 const FIXAS_LIST_COLUMNS = 'id,descricao,valor,status,pendente_mes,conta_fixa,parcela_atual,parcela_total,serie_id,created_at';
-const POUPANCA_LIST_COLUMNS = 'id,descricao,valor,data_lancamento,created_at';
+const POUPANCA_LIST_COLUMNS = 'id,descricao,valor,motivo_resgate,data_lancamento,created_at';
 const COMPRAS_LIST_COLUMNS = 'id,descricao,valor,categoria,data_lancamento,created_at';
 
 function normalizeFinanceiroSection(value) {
@@ -1103,6 +1104,26 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
 
 export async function criarRegistroFinanceiro(req, context = {}) {
   const body = getBody(req);
+  if (String(body.tipo_registro || '').trim() === 'resgate_poupanca') {
+    const parsedResgate = payloadResgatePoupanca(body);
+    if (parsedResgate.error) return { status: 400, data: { error: parsedResgate.error } };
+    const userId = getContextUserId(context);
+    if (!userId) return { status: 401, data: { error: 'usuario obrigatorio para resgate' } };
+
+    const { data, error } = await supabase.rpc('resgatar_poupanca', {
+      p_user_id: userId,
+      p_valor: parsedResgate.valor,
+      p_motivo: parsedResgate.motivo_resgate,
+      p_data_lancamento: parsedResgate.data_lancamento,
+    });
+    if (error) {
+      const message = String(error.message || 'Falha ao realizar resgate');
+      const status = /saldo insuficiente|valor do resgate|motivo/i.test(message) ? 400 : 500;
+      return { status, data: { error: message } };
+    }
+    const row = rowOrFirst(data);
+    return { status: 201, data: { ...(row || {}), tipo_registro: 'resgate_poupanca' } };
+  }
   const parsed = payloadInsertFinanceiro(body);
   if (parsed.error) return { status: 400, data: { error: parsed.error } };
   const table = tableForTipoRegistro(parsed.tipo_registro);

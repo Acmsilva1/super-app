@@ -7,6 +7,7 @@ import {
   inferTipoRegistro,
   montarTabelaFinanceiroRows,
   payloadInsertFinanceiro,
+  payloadResgatePoupanca,
   payloadUpdateFinanceiro,
   sortCronologiaDesc,
 } from '../../features/financeiro/service/financeiroService.js';
@@ -145,6 +146,22 @@ describe('financeiroService', () => {
     expect(upd.error).toBeUndefined();
     expect(upd.payload.conta_fixa).toBe(false);
     expect(upd.payload.created_at).toBe('2026-05-29T08:15:00.000Z');
+  });
+
+  it('valida valor, motivo e data do resgate da poupanca', () => {
+    expect(payloadResgatePoupanca({
+      valor: 150.456,
+      motivo_resgate: 'Emergencia',
+      data_lancamento: '2026-09-25',
+    })).toMatchObject({
+      tipo_registro: 'resgate_poupanca',
+      valor: 150.46,
+      motivo_resgate: 'Emergencia',
+      data_lancamento: '2026-09-25',
+    });
+    expect(payloadResgatePoupanca({ valor: 0, motivo_resgate: 'Teste' }).error).toMatch(/valor/i);
+    expect(payloadResgatePoupanca({ valor: 10, motivo_resgate: '' }).error).toMatch(/motivo/i);
+    expect(payloadResgatePoupanca({ valor: 10, motivo_resgate: 'Teste', data_lancamento: '25/09/2026' }).error).toMatch(/data/i);
   });
 
   it('controla a flag pendente_mes em despesas fixas', () => {
