@@ -37,7 +37,7 @@ describe('UI mobile do módulo Saúde', () => {
 
   it('oferece um card de consumo de agua com checks em modal e historico diario', () => {
     expect(source).toContain('data-saude-action="open-water"');
-    expect(source).toContain('data-saude-action="open-water-tracker"');
+    expect(source).toContain('data-saude-action="open-water-profile"');
     expect(source).toContain('data-saude-action="toggle-water-dose"');
     expect(source).toContain('data-water-goal-form');
     expect(source).toContain('Histórico diário');
@@ -59,7 +59,7 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('saude-water-confetti');
     expect(source).toContain("layer.setAttribute('aria-live', 'polite')");
     expect(source).toContain('data-water-profile-form');
-    expect(source).toContain('data-saude-action="select-water-profile"');
+    expect(source).toContain('data-saude-action="open-water-profile"');
     expect(source).toContain("payload?.action === 'create-profile'");
     expect(source).toContain('profile_id: state.waterProfileId');
     expect(source).toContain("payload && method !== 'GET' && method !== 'HEAD'");
@@ -68,6 +68,23 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain("action: editingId ? 'update-profile' : 'create-profile'");
     expect(source).toContain("action: 'delete-profile'");
     expect(source).toContain('aria-label="Novo perfil"><i class="fas fa-user-plus" aria-hidden="true"></i><span>Novo perfil</span>');
+  });
+
+  it('mostra apenas cards grandes de perfis na entrada e leva checks e logs para o modal', () => {
+    const pageStart = source.indexOf('function renderWater(container, state)');
+    const pageEnd = source.indexOf('async function requestWater(', pageStart);
+    const pageSource = source.slice(pageStart, pageEnd);
+    const modalStart = source.indexOf('function renderWaterModal(state)');
+    const modalEnd = source.indexOf('function syncWaterTrackerDom(', modalStart);
+    const modalSource = source.slice(modalStart, modalEnd);
+
+    expect(pageSource).toContain('saude-water-profile-wrap');
+    expect(pageSource).toContain('saude-water-profile__open-label">Abrir');
+    expect(pageSource).not.toContain('saude-water-card__open');
+    expect(pageSource).not.toContain('Histórico diário');
+    expect(modalSource).toContain('saude-water-checks');
+    expect(modalSource).toContain('Histórico diário');
+    expect(modalSource.indexOf('saude-water-checks')).toBeLessThan(modalSource.indexOf('Histórico diário'));
   });
 
   it('atualiza o check de agua sem reconstruir o modal antes de persistir', () => {
@@ -87,6 +104,7 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('preserve_profiles: silent');
     expect(source).toContain("const currentPage = container.querySelector('.saude-root > .saude-page')");
     expect(source).toContain('if (currentPage) currentPage.outerHTML = page');
+    expect(source).toContain("state.waterModal = state.waterConfig && state.waterToday ? 'tracker' : 'config'");
   });
 
 });
