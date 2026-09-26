@@ -4,3 +4,4 @@
 begin;
 drop table if exists public.tb_missoes_treino_logs;
 commit;
+

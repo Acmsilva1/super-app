@@ -152,6 +152,7 @@ Abrir modulo -> perfis -> selecionar perfil -> treinos do perfil -> voltar para 
 | Arquivo | Papel |
 |---|---|
 | `features/saude/index.js` | UI da tabela nutricional, dietas e perfis |
+| `features/saude/homeDietQuick.js` | Atalho de Dietas da tela inicial, selecao de perfil e restauracao da ultima dieta |
 | `features/saude/service/perfilSaudeService.js` | Calculo, classificacao e formatacao do IMC |
 | `features/saude/service/tabelaNutricionalService.js` | Filtros e paginacao nutricional |
 | `api/saude.js` | Contratos e persistencia do modulo |
@@ -163,6 +164,27 @@ O IMC e calculado automaticamente por `peso_kg / (altura_m * altura_m)`. Para me
 Na criacao do perfil, o banco grava o primeiro snapshot de medidas. Atualizacoes de peso, altura ou circunferencias geram automaticamente outro registro com `registrado_em`, formando a linha do tempo. Alteracoes somente em nome, sexo ou nascimento nao duplicam o historico de medidas.
 
 O modo `OFFLINE_DEV=true` simula o CRUD e a linha do tempo em memoria. Esses dados sao descartados quando o servidor local e reiniciado.
+
+#### Atalho de Dietas na tela inicial
+
+O shell em `index.html` exibe um botao de talheres acima do atalho de Consumo de Agua. O clique carrega `features/saude/homeDietQuick.js` e abre um modal independente, sem exigir que o usuario navegue primeiro pelo modulo Saude.
+
+Fluxo:
+
+1. No primeiro uso, o modal solicita o perfil de Saude.
+2. Se o perfil possuir uma unica dieta, ela e aberta diretamente. Se possuir varias, o modal apresenta a lista para escolha.
+3. Ao abrir uma dieta, o navegador salva o perfil e a dieta selecionados.
+4. Nas proximas aberturas, o atalho valida os IDs salvos e abre diretamente a ultima dieta, sem repetir a selecao de perfil.
+5. Se o perfil ou a dieta nao existir mais, o cache invalido e ignorado e o fluxo retorna para uma selecao valida.
+
+Preferencias locais:
+
+| Chave de `localStorage` | Conteudo |
+|---|---|
+| `superapp:home-diet-quick:last-profile-id` | ID do ultimo perfil escolhido no atalho |
+| `superapp:home-diet-quick:last-diet-id` | ID da ultima dieta aberta no atalho |
+
+Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, alimentos e o conteudo do plano alimentar nao sao duplicados no `localStorage`; os dados continuam sendo carregados por `/api/saude?resource=perfis` e `/api/saude?resource=dietas&profile_id=<id>`.
 
 ## 3. Backend
 
@@ -439,6 +461,7 @@ Suites principais:
 | `tests/api/saude.api.test.js` | CRUD de Saude, perfis, IMC e linha do tempo |
 | `tests/database/saudeSql.test.js` | Migrations, triggers e RLS de Saude |
 | `tests/ui/saudeUi.test.js` | Estrutura responsiva do modulo Saude |
+| `tests/ui/homeDietQuick.test.js` | Botao inicial, cache do ultimo perfil/dieta e restauracao automatica do modal |
 | `tests/services/perfilSaude.service.test.js` | Calculo e classificacao do IMC |
 | `tests/services/missoesTreinoUi.test.js` | IDs numericos/textuais e criacao direta de missao |
 | `tests/services/*.test.js` | Services e regras de dominio |
@@ -464,6 +487,7 @@ Suites principais:
 | 2026-09-14 | Subtopico Perfil em Saude com perfis familiares, calculo automatico de IMC, snapshots de medidas, linha do tempo, RLS por usuario e QA visual desktop/mobile; workspace atual sem `.git` |
 | 2026-09-14 | CRUD de Missoes de Treino corrigido para IDs do Supabase, criacao direta com exercicio preenchido, limpeza de dependencias na exclusao e rollback de missao incompleta |
 | 2026-09-14 | Perfil automatico legado Oficial deixou de ser recriado pela API; migration aditiva remove somente o registro vazio com a assinatura legada |
+| 2026-09-26 | Atalho de Dietas na tela inicial com modal por perfil, persistencia local do ultimo perfil e da ultima dieta e reabertura automatica; 35 arquivos e 212 testes aprovados, build local aprovado e workspace sem operacao Git |
 
 ## 6. Como Rodar
 

@@ -79,3 +79,4 @@ comment on column public.tb_poupanca.motivo_resgate is
   'Motivo obrigatorio apenas para movimentos negativos de resgate.';
 
 commit;
+

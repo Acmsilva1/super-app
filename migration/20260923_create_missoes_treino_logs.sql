@@ -61,3 +61,4 @@ comment on table public.tb_missoes_treino_logs is
   'Historico de sessoes finalizadas no modo treino';
 
 commit;
+

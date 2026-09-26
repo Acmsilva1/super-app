@@ -688,6 +688,7 @@
         body.auth-locked > .apps-section,
         body.auth-locked > #windowsContainer,
         body.auth-locked > #homeFinanceFab,
+        body.auth-locked > #homeDietFab,
         body.auth-locked > #homeWaterFab {
             display: none !important;
         }
@@ -1422,6 +1423,31 @@
             justify-content: center;
             transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
             z-index: 1200;
+        }
+        .home-diet-fab {
+            position: fixed;
+            right: max(1.1rem, env(safe-area-inset-right));
+            bottom: calc(max(0.85rem, env(safe-area-inset-bottom)) + 7.5rem);
+            width: 3.2rem;
+            height: 3.2rem;
+            border-radius: 999px;
+            border: 1px solid rgba(149, 193, 31, 0.58);
+            background: radial-gradient(circle at 30% 25%, rgba(149, 193, 31, 0.9), rgba(39, 95, 58, 0.98));
+            color: #f7fee7;
+            font-size: 1.25rem;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 16px 30px rgba(39, 95, 58, 0.42);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+            z-index: 1200;
+        }
+        .home-diet-fab:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 20px 34px rgba(39, 95, 58, 0.5);
+            filter: saturate(1.08);
         }
         .home-water-fab:hover {
             transform: translateY(-2px) scale(1.03);
@@ -4922,6 +4948,12 @@
                 font-size: 1.28rem;
                 bottom: calc(max(0.85rem, env(safe-area-inset-bottom)) + 3.05rem + 0.55rem);
             }
+            .home-diet-fab {
+                width: 3.05rem;
+                height: 3.05rem;
+                font-size: 1.2rem;
+                bottom: calc(max(0.85rem, env(safe-area-inset-bottom)) + 7.2rem);
+            }
             .finance-entry-modal,
             .finance-fixas-list-modal,
             .lista-compras-entry-modal {
@@ -7382,6 +7414,7 @@
 
     <!-- APP WINDOWS CONTAINER -->
     <div id="windowsContainer"></div>
+    <button id="homeDietFab" type="button" class="home-diet-fab" aria-label="Consultar dieta por perfil" title="Dietas"><i class="fas fa-utensils" aria-hidden="true"></i></button>
     <button id="homeWaterFab" type="button" class="home-water-fab home-water-fab-pulse" aria-label="Registrar consumo de água" title="Consumo de água"><i class="fas fa-droplet" aria-hidden="true"></i></button>
     <button id="homeFinanceFab" type="button" class="finance-fab finance-fab-pulse home-finance-fab" aria-label="Lançamento rápido no financeiro" title="Lançamento rápido no financeiro">+</button>
 
@@ -8014,6 +8047,9 @@
                 document.getElementById('homeWaterFab')?.addEventListener('click', (e) => {
                     this.quickAddWater(e);
                 });
+                document.getElementById('homeDietFab')?.addEventListener('click', (e) => {
+                    this.quickOpenDiet(e);
+                });
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'hidden') this.persistOpenAppsState(this.uiState.lastActiveAppId || null);
                 });
@@ -8187,6 +8223,22 @@
                 } catch (err) {
                     console.error(err);
                     alert('Não foi possível abrir o registro rápido de água.');
+                }
+            }
+
+            async quickOpenDiet(event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                try {
+                    const mod = await import('./features/saude/homeDietQuick.js?v=2026-09-26-diet-quick-v2');
+                    await mod.openHomeDietQuickModal({
+                        launchSaude: () => this.launchApp('saude'),
+                    });
+                } catch (err) {
+                    console.error(err);
+                    alert('Não foi possível abrir o atalho de dietas.');
                 }
             }
 
@@ -12092,8 +12144,10 @@ ${financeRowActions(r.id, 'compra')}
                 const showHomeQuickActions = this.openWindows.size === 0;
                 const homeFab = document.getElementById('homeFinanceFab');
                 const homeWaterFab = document.getElementById('homeWaterFab');
+                const homeDietFab = document.getElementById('homeDietFab');
                 if (homeFab) homeFab.style.display = showHomeQuickActions ? 'inline-flex' : 'none';
                 if (homeWaterFab) homeWaterFab.style.display = showHomeQuickActions ? 'inline-flex' : 'none';
+                if (homeDietFab) homeDietFab.style.display = showHomeQuickActions ? 'inline-flex' : 'none';
             }
 
             // ============================================

@@ -9,3 +9,4 @@ alter table public.tb_poupanca
   drop column if exists motivo_resgate;
 
 commit;
+
