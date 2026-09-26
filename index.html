@@ -401,22 +401,49 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 1rem;
+            gap: 0.85rem;
             padding: 0.75rem max(1rem, env(safe-area-inset-left)) max(0.75rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-right));
-            background: var(--primary);
+            background: linear-gradient(90deg, rgba(37, 99, 235, 0.97), rgba(14, 165, 233, 0.95));
             color: #fff;
-            font-size: 0.9rem;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
+            font-size: 0.86rem;
+            line-height: 1.45;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.28);
         }
         .pwa-update-banner.hidden { display: none; }
+        .pwa-update-banner__text { flex: 1; min-width: 0; }
+        .pwa-update-banner__text strong { display: block; font-size: 0.92rem; margin-bottom: 0.15rem; }
         .pwa-update-banner button {
-            padding: 0.5rem 1rem;
+            flex-shrink: 0;
+            padding: 0.5rem 0.85rem;
             background: #fff;
-            color: var(--primary);
+            color: #1d4ed8;
             border: none;
             border-radius: var(--radius);
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 0.82rem;
             cursor: pointer;
+            white-space: nowrap;
+        }
+        .app-version-badge {
+            position: absolute;
+            left: max(0.55rem, env(safe-area-inset-left));
+            bottom: max(0.35rem, env(safe-area-inset-bottom));
+            z-index: 6;
+            pointer-events: none;
+            user-select: none;
+            font-family: 'Space Grotesk', Montserrat, Arial, sans-serif;
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: rgba(148, 163, 184, 0.42);
+        }
+        .app-version-badge--home {
+            position: fixed;
+            z-index: 35;
+        }
+        body.auth-locked .app-version-badge--home {
+            display: none;
         }
 
         h1, h2, h3, h4, h5, h6 {
@@ -660,7 +687,8 @@
         body.auth-locked > header,
         body.auth-locked > .apps-section,
         body.auth-locked > #windowsContainer,
-        body.auth-locked > #homeFinanceFab {
+        body.auth-locked > #homeFinanceFab,
+        body.auth-locked > #homeWaterFab {
             display: none !important;
         }
 
@@ -1373,7 +1401,40 @@
             transform: none;
         }
         .home-finance-fab {
-            z-index: 1150;
+            z-index: 1200;
+        }
+        .home-water-fab {
+            position: fixed;
+            right: max(1.1rem, env(safe-area-inset-right));
+            bottom: calc(max(0.85rem, env(safe-area-inset-bottom)) + 3.2rem + 0.55rem);
+            width: 3.2rem;
+            height: 3.2rem;
+            border-radius: 999px;
+            border: 1px solid rgba(103, 232, 249, 0.55);
+            background: radial-gradient(circle at 30% 25%, rgba(56, 189, 248, 0.85), rgba(3, 105, 161, 0.96));
+            color: #ecfeff;
+            font-size: 1.35rem;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 16px 30px rgba(3, 105, 161, 0.38);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+            z-index: 1200;
+        }
+        .home-water-fab:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 20px 34px rgba(3, 105, 161, 0.46);
+            filter: saturate(1.08);
+        }
+        .home-water-fab.home-water-fab-pulse {
+            animation: homeWaterFabPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes homeWaterFabPulse {
+            0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45), 0 16px 30px rgba(3, 105, 161, 0.38); }
+            70% { box-shadow: 0 0 0 14px rgba(56, 189, 248, 0), 0 16px 30px rgba(3, 105, 161, 0.38); }
+            100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0), 0 16px 30px rgba(3, 105, 161, 0.38); }
         }
         @media (max-width: 420px) {
             .apps-grid {
@@ -1635,6 +1696,10 @@
             overflow: auto;
             padding: 1rem;
             background: linear-gradient(180deg, rgba(10, 20, 38, 0.9), rgba(8, 17, 33, 0.94));
+        }
+        .window-content.is-scroll-locked {
+            overflow: hidden !important;
+            touch-action: none;
         }
 
         .window-content.maximized {
@@ -4851,6 +4916,12 @@
                 height: 3.05rem;
                 font-size: 1.8rem;
             }
+            .home-water-fab {
+                width: 3.05rem;
+                height: 3.05rem;
+                font-size: 1.28rem;
+                bottom: calc(max(0.85rem, env(safe-area-inset-bottom)) + 3.05rem + 0.55rem);
+            }
             .finance-entry-modal,
             .finance-fixas-list-modal,
             .lista-compras-entry-modal {
@@ -7311,6 +7382,7 @@
 
     <!-- APP WINDOWS CONTAINER -->
     <div id="windowsContainer"></div>
+    <button id="homeWaterFab" type="button" class="home-water-fab home-water-fab-pulse" aria-label="Registrar consumo de água" title="Consumo de água"><i class="fas fa-droplet" aria-hidden="true"></i></button>
     <button id="homeFinanceFab" type="button" class="finance-fab finance-fab-pulse home-finance-fab" aria-label="Lançamento rápido no financeiro" title="Lançamento rápido no financeiro">+</button>
 
     <script>
@@ -7643,7 +7715,8 @@
                 this.roadmap = [];
                 this.statistics = { totalApps: 0, activeApps: 0, betaApps: 0, openApps: 0 };
                 this.openWindows = new Map();
-                this.UI_STATE_KEY = 'superapp_ui_state_v1';
+                this.UI_STATE_KEY = 'superapp_ui_session_v1';
+                this._hadUiSession = this.hasPersistedUiSession();
                 this.uiState = this.loadUiState();
                 this._uiStateRestored = false;
                 this._sessionRestoreQueued = false;
@@ -7658,8 +7731,26 @@
                 this.financeiroOperationAlerts = [];
                 this.financeiroOperationTimers = new Map();
                 this.financeiroSaldoStorePromise = null;
-                this._resumeNeedsHomeReset = false;
+                this.appDisplayVersion = 'V.1.0.0';
                 this.init();
+            }
+
+            uiStateStorage() {
+                try {
+                    return sessionStorage;
+                } catch (_err) {
+                    return null;
+                }
+            }
+
+            hasPersistedUiSession() {
+                const storage = this.uiStateStorage();
+                if (!storage) return false;
+                return Boolean(storage.getItem(this.UI_STATE_KEY));
+            }
+
+            emptyUiState() {
+                return { openApps: [], windowScrolls: {}, appTabs: {}, lastActiveAppId: null, checkpoint: null, appMeta: {} };
             }
 
             async init() {
@@ -7674,12 +7765,39 @@
                 this.updateStatistics();
                 this.startNotificationCenter();
                 this.restoreFinanceiroOperations();
+                await this.loadAppVersionManifest();
+                this.ensureHomeVersionBadge();
+            }
+
+            async loadAppVersionManifest() {
+                try {
+                    const response = await fetch('/app-version.json', { cache: 'no-store' });
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    if (typeof data?.display === 'string' && data.display.trim()) {
+                        this.appDisplayVersion = data.display.trim();
+                    }
+                } catch (_err) {
+                    /* mantém fallback */
+                }
+                this.refreshVersionBadges();
+            }
+
+            refreshVersionBadges() {
+                document.querySelectorAll('.app-version-badge').forEach((badge) => {
+                    badge.textContent = this.getAppDisplayVersion();
+                });
             }
 
             loadUiState() {
                 try {
-                    const raw = localStorage.getItem(this.UI_STATE_KEY);
-                    if (!raw) return { openApps: [], windowScrolls: {}, appTabs: {}, lastActiveAppId: null, checkpoint: null, appMeta: {} };
+                    localStorage.removeItem('superapp_ui_state_v1');
+                } catch (_err) {}
+                const storage = this.uiStateStorage();
+                if (!storage) return this.emptyUiState();
+                try {
+                    const raw = storage.getItem(this.UI_STATE_KEY);
+                    if (!raw) return this.emptyUiState();
                     const parsed = JSON.parse(raw);
                     return {
                         openApps: Array.isArray(parsed?.openApps) ? parsed.openApps : [],
@@ -7690,13 +7808,15 @@
                         appMeta: parsed?.appMeta && typeof parsed.appMeta === 'object' ? parsed.appMeta : {},
                     };
                 } catch (_err) {
-                    return { openApps: [], windowScrolls: {}, appTabs: {}, lastActiveAppId: null, checkpoint: null, appMeta: {} };
+                    return this.emptyUiState();
                 }
             }
 
             saveUiState() {
+                const storage = this.uiStateStorage();
+                if (!storage) return;
                 try {
-                    localStorage.setItem(this.UI_STATE_KEY, JSON.stringify(this.uiState));
+                    storage.setItem(this.UI_STATE_KEY, JSON.stringify(this.uiState));
                 } catch (_err) {}
             }
 
@@ -7705,6 +7825,48 @@
                 if (!this.uiState.windowScrolls || typeof this.uiState.windowScrolls !== 'object') this.uiState.windowScrolls = {};
                 this.uiState.windowScrolls[appId] = Math.max(0, Number(scrollTop) || 0);
                 this.saveUiState();
+            }
+
+            resetModuleWindowScroll(appId, contentEl) {
+                if (this.uiState.windowScrolls && appId in this.uiState.windowScrolls) {
+                    delete this.uiState.windowScrolls[appId];
+                    this.saveUiState();
+                }
+                this.rememberWindowScroll(appId, 0);
+                if (contentEl) {
+                    requestAnimationFrame(() => {
+                        contentEl.scrollTop = 0;
+                    });
+                }
+            }
+
+            getAppDisplayVersion() {
+                return this.appDisplayVersion || 'V.1.0.0';
+            }
+
+            ensureHomeVersionBadge() {
+                const host = document.getElementById('apps');
+                if (!host) return;
+                let badge = host.querySelector('.app-version-badge--home');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'app-version-badge app-version-badge--home';
+                    badge.setAttribute('aria-hidden', 'true');
+                    host.appendChild(badge);
+                }
+                badge.textContent = this.getAppDisplayVersion();
+            }
+
+            ensureAppVersionBadge(windowElement) {
+                if (!windowElement) return;
+                let badge = windowElement.querySelector('.app-version-badge:not(.app-version-badge--home)');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'app-version-badge';
+                    badge.setAttribute('aria-hidden', 'true');
+                    windowElement.appendChild(badge);
+                }
+                badge.textContent = this.getAppDisplayVersion();
             }
 
             rememberAppCheckpoint(appId, patch = {}) {
@@ -7746,6 +7908,9 @@
                         lastActiveAppId: this.uiState.lastActiveAppId || null,
                         appMeta: { ...(this.uiState.appMeta || {}) },
                     };
+                } else {
+                    this.uiState.checkpoint = null;
+                    this.uiState.lastActiveAppId = null;
                 }
                 this.saveUiState();
             }
@@ -7846,6 +8011,9 @@
                 document.getElementById('homeFinanceFab')?.addEventListener('click', (e) => {
                     this.quickAddFinanceiro(e);
                 });
+                document.getElementById('homeWaterFab')?.addEventListener('click', (e) => {
+                    this.quickAddWater(e);
+                });
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'hidden') this.persistOpenAppsState(this.uiState.lastActiveAppId || null);
                 });
@@ -7871,11 +8039,16 @@
                     const data = await response.json();
                     this.apps = Array.isArray(data) ? data : (data.apps || []);
                     this.renderApps();
-                    this.restoreUiStateAfterAppsLoaded();
+                    if (this._hadUiSession) {
+                        this.restoreUiStateAfterAppsLoaded();
+                    } else {
+                        this.returnHome();
+                    }
                 } catch (error) {
                     console.error('Erro ao carregar aplica??es:', error);
                     this.apps = [];
                     this.renderApps();
+                    if (!this._hadUiSession) this.returnHome();
                 }
             }
             async loadStatistics() {
@@ -7999,6 +8172,22 @@
                 }
                 this._quickFinanceiroContextEl.setAttribute('data-mes-ano', this.getMesAnoAtual());
                 this.openFinanceiroModal(this._quickFinanceiroContextEl, { defaultTipo: 'gasto_variado' });
+            }
+
+            async quickAddWater(event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                try {
+                    const mod = await import('./features/saude/homeWaterQuick.js?v=2026-09-26-water-drop-v14');
+                    await mod.openHomeWaterQuickModal({
+                        launchSaude: () => this.launchApp('saude'),
+                    });
+                } catch (err) {
+                    console.error(err);
+                    alert('Não foi possível abrir o registro rápido de água.');
+                }
             }
 
             getAppTone(app, idx = 0) {
@@ -8387,6 +8576,7 @@
 
                 document.getElementById('windowsContainer').appendChild(windowElement);
                 this.openWindows.set(appId, windowElement);
+                this.ensureAppVersionBadge(windowElement);
                 this.persistOpenAppsState(appId);
                 this.updateStatistics();
                 const contentEl = windowElement.querySelector('.window-content');
@@ -8460,8 +8650,9 @@
                 }
                 if (appId === 'saude') {
                     try {
-                        const mod = await import('./features/saude/index.js?v=2026-09-14-pagination-fix');
+                        const mod = await import('./features/saude/index.js?v=2026-09-26-water-drop-v14');
                         await mod.renderSaudeContent(contentEl);
+                        this.resetModuleWindowScroll(appId, contentEl);
                     } catch (err) {
                         console.error(err);
                         contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Não foi possível carregar o módulo Saúde.</div>';
@@ -11882,6 +12073,7 @@ ${financeRowActions(r.id, 'compra')}
                 const windowIds = Array.from(this.openWindows.keys()).map((appId) => `window-${appId}`);
                 windowIds.forEach((windowId) => this.closeWindow(windowId));
                 document.body.classList.add('view-apps');
+                this.ensureHomeVersionBadge();
                 document.getElementById('navApps')?.classList.add('active');
                 document.querySelector('nav')?.classList.remove('nav-open');
                 requestAnimationFrame(() => {
@@ -11897,10 +12089,11 @@ ${financeRowActions(r.id, 'compra')}
 
             updateStatistics() {
                 this.statistics.openApps = this.openWindows.size;
+                const showHomeQuickActions = this.openWindows.size === 0;
                 const homeFab = document.getElementById('homeFinanceFab');
-                if (homeFab) {
-                    homeFab.style.display = this.openWindows.size === 0 ? 'inline-flex' : 'none';
-                }
+                const homeWaterFab = document.getElementById('homeWaterFab');
+                if (homeFab) homeFab.style.display = showHomeQuickActions ? 'inline-flex' : 'none';
+                if (homeWaterFab) homeWaterFab.style.display = showHomeQuickActions ? 'inline-flex' : 'none';
             }
 
             // ============================================
@@ -11938,6 +12131,7 @@ ${financeRowActions(r.id, 'compra')}
 
         // Inicializar SUPERAPP
         const superApp = new SuperApp();
+        window.superApp = superApp;
         window._superappPwaUpdatePending = false;
 
         // ============================================
@@ -12031,11 +12225,12 @@ ${financeRowActions(r.id, 'compra')}
             let pendingWorker = null;
             const banner = document.createElement('div');
             banner.className = 'pwa-update-banner hidden';
-            banner.innerHTML = '<span>Nova verso disponvel.</span><button type="button">Atualizar</button>';
+            banner.innerHTML = '<div class="pwa-update-banner__text"><strong>Nova versão disponível</strong><span>Atualize a página para usar a versão mais recente do app.</span></div><button type="button">Atualizar agora</button>';
             document.body.appendChild(banner);
             const btn = banner.querySelector('button');
             btn.addEventListener('click', () => {
                 if (pendingWorker) pendingWorker.postMessage({ type: 'SKIP_WAITING' });
+                else window.location.reload();
                 banner.classList.add('hidden');
                 window._superappPwaUpdatePending = false;
                 superApp.refreshNotificationBadge();
@@ -12050,6 +12245,9 @@ ${financeRowActions(r.id, 'compra')}
 
             navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
                 reg.update().catch(() => {});
+                if (reg.waiting && navigator.serviceWorker.controller) {
+                    showUpdateBanner(reg.waiting);
+                }
                 reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
                     newWorker.addEventListener('statechange', () => {

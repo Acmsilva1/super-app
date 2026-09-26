@@ -75,27 +75,50 @@ describe('API de saúde', () => {
     expect(res.status).toBe(400);
   });
 
-  it('lista o protocolo Detox e executa o CRUD de dietas', async () => {
+  it('inicia sem dietas antigas e executa o CRUD estruturado de dietas vinculado a um perfil', async () => {
     const app = createApp();
     const listed = await request(app).get('/api/saude?resource=dietas');
 
     expect(listed.status).toBe(200);
-    expect(listed.body.rows[0]).toMatchObject({ slug: 'detox-7-dias-perder-peso', duracao_dias: 7 });
-    expect(listed.body.rows[0].dias).toHaveLength(7);
+    expect(listed.body.rows).toEqual([]);
+
+    const profileRes = await request(app).post('/api/saude?resource=perfis').send({
+      nome: 'André Silva', sexo: 'masculino', data_nascimento: '1990-01-01', data_medicao: '2026-09-25',
+      peso_kg: 75, altura_cm: 175,
+    });
+    expect(profileRes.status).toBe(201);
+    const profileId = profileRes.body.row.id;
+
+    // Tentativa sem perfil deve falhar
+    const unattached = await request(app).post('/api/saude?resource=dietas').send({
+      titulo: 'Dieta sem perfil',
+      refeicoes: [{ tipo: 'cafe_da_manha', itens: [{ nome: 'Ovo', quantidade: '1' }] }],
+    });
+    expect(unattached.status).toBe(400);
+    expect(unattached.body.error).toContain('perfil');
 
     const payload = {
+      perfil_id: profileId,
       titulo: 'Dieta de teste',
       objetivo: 'Validar CRUD',
-      duracao_dias: 1,
       descricao: 'Teste',
-      orientacoes_gerais: 'Orientações',
-      ritual_diario: '',
       observacoes: '',
-      dias: [{ numero: 1, titulo: 'Início', jejum_horas: 8, quantidade_refeicoes: 3, carboidrato: 'Livre', conteudo: 'Plano do dia' }],
+      refeicoes: [
+        { tipo: 'cafe_da_manha', itens: [{ nome: 'Ovos', quantidade: '2 unidades', observacao: 'Mexidos' }] },
+        { tipo: 'almoco', itens: [{ nome: 'Arroz integral', quantidade: '100 g', observacao: '' }] },
+      ],
     };
     const created = await request(app).post('/api/saude?resource=dietas').send(payload);
     expect(created.status).toBe(201);
     expect(created.body.row.titulo).toBe('Dieta de teste');
+    expect(created.body.row.perfil_id).toBe(profileId);
+    expect(created.body.row.refeicoes).toHaveLength(6);
+    expect(created.body.row.refeicoes.find((meal) => meal.tipo === 'cafe_da_manha').itens[0]).toMatchObject({ nome: 'Ovos', quantidade: '2 unidades' });
+
+    const filtered = await request(app).get(`/api/saude?resource=dietas&profile_id=${profileId}`);
+    expect(filtered.status).toBe(200);
+    expect(filtered.body.rows).toHaveLength(1);
+    expect(filtered.body.rows[0].id).toBe(created.body.row.id);
 
     const updated = await request(app).patch('/api/saude?resource=dietas').send({ ...payload, id: created.body.row.id, objetivo: 'Objetivo atualizado' });
     expect(updated.status).toBe(200);
@@ -105,6 +128,14 @@ describe('API de saúde', () => {
     expect(deleted.status).toBe(200);
   });
 
+  it('exige alimento e quantidade nas refeições de uma nova dieta', async () => {
+    const res = await request(createApp()).post('/api/saude?resource=dietas').send({
+      perfil_id: 1, titulo: 'Dieta inválida', objetivo: 'Teste', refeicoes: [{ tipo: 'jantar', itens: [{ nome: 'Peixe', quantidade: '' }] }],
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Alimento e quantidade');
+  });
+
   it('bloqueia métodos não suportados', async () => {
     const res = await request(createApp()).put('/api/saude?resource=tabelas-nutricionais').send({});
 
@@ -112,7 +143,7 @@ describe('API de saúde', () => {
     expect(res.headers.allow).toBe('GET, POST, PATCH, DELETE');
   });
 
-  it('cria perfis, calcula IMC e registra nova linha ao alterar medidas', async () => {
+  it('cria perfis, calcula IMC e registra o instante real ao alterar o peso', async () => {
     const app = createApp();
     const payload = {
       nome: 'Perfil de teste', sexo: 'masculino', data_nascimento: '1990-05-10',
@@ -123,13 +154,14 @@ describe('API de saúde', () => {
     expect(created.status).toBe(201);
     expect(created.body.row.imc).toBe(24.69);
     expect(created.body.row.historico).toHaveLength(1);
-    expect(created.body.row.historico[0].registrado_em).toContain('2024-02-15');
+    expect(Number.isNaN(Date.parse(created.body.row.historico[0].registrado_em))).toBe(false);
+    expect(created.body.row.historico[0].registrado_em).not.toContain('2024-02-15');
 
     const updated = await request(app).patch('/api/saude?resource=perfis').send({ ...payload, id: created.body.row.id, peso_kg: 78, data_medicao: '2023-07-09' });
     expect(updated.status).toBe(200);
     expect(updated.body.row.imc).toBe(24.07);
     expect(updated.body.row.historico).toHaveLength(2);
-    expect(updated.body.row.historico[0].registrado_em).toContain('2023-07-09');
+    expect(Date.parse(updated.body.row.historico[0].registrado_em)).toBeGreaterThanOrEqual(Date.parse(created.body.row.historico[0].registrado_em));
 
     const renamed = await request(app).patch('/api/saude?resource=perfis').send({ ...payload, id: created.body.row.id, nome: 'Nome atualizado', peso_kg: 78, data_medicao: '2030-12-20' });
     expect(renamed.status).toBe(200);
@@ -156,6 +188,22 @@ describe('API de saúde', () => {
     expect(deleted.body.row.historico).toHaveLength(1);
   });
 
+  it('registra um novo ponto mesmo quando o peso informado nao mudou', async () => {
+    const app = createApp();
+    const created = await request(app).post('/api/saude?resource=perfis').send({
+      nome: 'Peso repetido', sexo: 'feminino', data_nascimento: '1992-06-10',
+      data_medicao: '2026-09-25', peso_kg: 65, altura_cm: 165,
+    });
+    const adjusted = await request(app).post('/api/saude?resource=perfil-medidas').send({
+      perfil_id: created.body.row.id, peso_kg: 65,
+    });
+
+    expect(adjusted.status).toBe(201);
+    expect(adjusted.body.row.historico).toHaveLength(2);
+    expect(adjusted.body.row.historico[0].peso_kg).toBe(65);
+    expect(Date.parse(adjusted.body.row.historico[0].registrado_em)).toBeGreaterThanOrEqual(Date.parse(created.body.row.historico[0].registrado_em));
+  });
+
   it('rejeita perfil com data futura ou medidas fora do limite', async () => {
     const res = await request(createApp()).post('/api/saude?resource=perfis').send({
       nome: 'Invalido', sexo: 'masculino', data_nascimento: '2999-01-01', data_medicao: '2026-09-18', peso_kg: 0, altura_cm: 180,
@@ -177,19 +225,24 @@ describe('API de saúde', () => {
     try {
       vi.setSystemTime(new Date('2026-09-23T15:00:00Z'));
       const app = createApp();
+      const profileRes = await request(app).post('/api/saude?resource=perfis').send({
+        nome: 'Agua teste', sexo: 'masculino', data_nascimento: '1990-01-01', data_medicao: '2026-09-23',
+        peso_kg: 80, altura_cm: 180,
+      });
+      const profileId = profileRes.body.row.id;
       const created = await request(app).post('/api/saude?resource=consumo-agua').send({
-        nome: 'Garrafa 500 ml', meta_doses: 10,
+        profile_id: profileId, nome: 'Garrafa 500 ml', meta_doses: 10,
       });
       expect(created.status).toBe(200);
       expect(created.body.config).toEqual({ nome: 'Garrafa 500 ml', meta_doses: 10 });
       expect(created.body.today).toMatchObject({ data: '2026-09-23', meta_doses: 10, realizado_doses: 0 });
 
-      const checked = await request(app).patch('/api/saude?resource=consumo-agua').send({ realizado_doses: 3 });
+      const checked = await request(app).patch('/api/saude?resource=consumo-agua').send({ profile_id: profileId, realizado_doses: 3 });
       expect(checked.status).toBe(200);
       expect(checked.body.today.realizado_doses).toBe(3);
 
       vi.setSystemTime(new Date('2026-09-24T15:00:00Z'));
-      const nextDay = await request(app).get('/api/saude?resource=consumo-agua');
+      const nextDay = await request(app).get(`/api/saude?resource=consumo-agua&profile_id=${profileId}`);
       expect(nextDay.status).toBe(200);
       expect(nextDay.body.today).toMatchObject({ data: '2026-09-24', meta_doses: 10, realizado_doses: 0 });
       expect(nextDay.body.history[0]).toMatchObject({ data: '2026-09-23', meta_doses: 10, realizado_doses: 3 });
@@ -206,31 +259,40 @@ describe('API de saúde', () => {
       const invalid = await request(app).post('/api/saude?resource=consumo-agua').send({ nome: '', meta_doses: 0 });
       expect(invalid.status).toBe(400);
 
-      const created = await request(app).post('/api/saude?resource=consumo-agua').send({ nome: 'Copo', meta_doses: 2 });
+      const profileRes = await request(app).post('/api/saude?resource=perfis').send({
+        nome: 'Limite agua', sexo: 'feminino', data_nascimento: '1990-01-01', data_medicao: '2026-09-25',
+        peso_kg: 60, altura_cm: 165,
+      });
+      const profileId = profileRes.body.row.id;
+      const created = await request(app).post('/api/saude?resource=consumo-agua').send({ profile_id: profileId, nome: 'Copo', meta_doses: 2 });
       expect(created.status).toBe(200);
-      const overflow = await request(app).patch('/api/saude?resource=consumo-agua').send({ realizado_doses: 3 });
+      const overflow = await request(app).patch('/api/saude?resource=consumo-agua').send({ profile_id: profileId, realizado_doses: 3 });
       expect(overflow.status).toBe(409);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('mantem consumo e progresso independentes para cada perfil de agua', async () => {
+  it('mantem consumo e progresso independentes por perfil de saude', async () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date('2026-09-26T15:00:00Z'));
       const app = createApp();
-      const andre = await request(app).post('/api/saude?resource=consumo-agua')
-        .send({ action: 'create-profile', nome: 'André água' });
-      const andreId = andre.body.profile_id;
+      const andreRes = await request(app).post('/api/saude?resource=perfis').send({
+        nome: 'André água', sexo: 'masculino', data_nascimento: '1990-01-01', data_medicao: '2026-09-26',
+        peso_kg: 80, altura_cm: 180,
+      });
+      const andreId = andreRes.body.row.id;
       await request(app).post('/api/saude?resource=consumo-agua')
         .send({ profile_id: andreId, nome: 'Garrafa', meta_doses: 4 });
       await request(app).patch('/api/saude?resource=consumo-agua')
         .send({ profile_id: andreId, realizado_doses: 3 });
 
-      const juliana = await request(app).post('/api/saude?resource=consumo-agua')
-        .send({ action: 'create-profile', nome: 'Juliana água' });
-      const julianaId = juliana.body.profile_id;
+      const julianaRes = await request(app).post('/api/saude?resource=perfis').send({
+        nome: 'Juliana água', sexo: 'feminino', data_nascimento: '1992-02-02', data_medicao: '2026-09-26',
+        peso_kg: 62, altura_cm: 168,
+      });
+      const julianaId = julianaRes.body.row.id;
       await request(app).post('/api/saude?resource=consumo-agua')
         .send({ profile_id: julianaId, nome: 'Copo', meta_doses: 6 });
 
@@ -243,17 +305,18 @@ describe('API de saúde', () => {
         expect.objectContaining({ nome: 'Juliana água' }),
       ]));
 
-      const renamed = await request(app).patch('/api/saude?resource=consumo-agua')
-        .send({ action: 'update-profile', profile_id: andreId, nome: 'André renomeado' });
+      const renamed = await request(app).patch('/api/saude?resource=perfis')
+        .send({ id: andreId, nome: 'André renomeado', sexo: 'masculino', data_nascimento: '1990-01-01', data_medicao: '2026-09-26', peso_kg: 80, altura_cm: 180 });
       expect(renamed.status).toBe(200);
-      expect(renamed.body.profiles).toContainEqual(expect.objectContaining({ id: andreId, nome: 'André renomeado' }));
+      const afterRename = await request(app).get(`/api/saude?resource=consumo-agua&profile_id=${andreId}`);
+      expect(afterRename.body.profiles).toContainEqual(expect.objectContaining({ id: andreId, nome: 'André renomeado' }));
 
-      const deleted = await request(app).delete('/api/saude?resource=consumo-agua')
-        .send({ action: 'delete-profile', profile_id: andreId });
-      expect(deleted.status).toBe(200);
-      expect(deleted.body.profiles).not.toContainEqual(expect.objectContaining({ id: andreId }));
-      const deletedLookup = await request(app).get(`/api/saude?resource=consumo-agua&profile_id=${andreId}`);
-      expect(deletedLookup.body.profile_id).not.toBe(andreId);
+      const deletedGoal = await request(app).delete('/api/saude?resource=consumo-agua')
+        .send({ action: 'delete-goal', profile_id: andreId });
+      expect(deletedGoal.status).toBe(200);
+      expect(deletedGoal.body.config).toBeNull();
+      expect(deletedGoal.body.today).toBeNull();
+      expect(deletedGoal.body.profiles).toContainEqual(expect.objectContaining({ id: andreId }));
     } finally {
       vi.useRealTimers();
     }

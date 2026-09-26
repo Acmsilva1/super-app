@@ -1,8 +1,8 @@
 import { requireUser } from '../lib/auth.js';
 import { TABELAS_NUTRICIONAIS } from '../features/saude/data/tabelasNutricionais.js';
-import { DIETAS_INICIAIS } from '../features/saude/data/dietas.js';
 import { opcoesTabelaNutricional } from '../features/saude/service/tabelaNutricionalService.js';
 import { calcularImc } from '../features/saude/service/perfilSaudeService.js';
+import { DIET_MEALS } from '../features/saude/service/dietasService.js';
 
 const TABELA_NUTRICIONAL = 'tb_saude_tabela_nutricional';
 const RESOURCE_TABELA_NUTRICIONAL = 'tabelas-nutricionais';
@@ -14,15 +14,13 @@ const RESOURCE_PERFIS = 'perfis';
 const RESOURCE_PERFIL_MEDIDAS = 'perfil-medidas';
 const TABELA_AGUA_METAS = 'tb_saude_agua_metas';
 const TABELA_AGUA_LOGS = 'tb_saude_agua_logs';
-const TABELA_AGUA_PERFIS = 'tb_saude_agua_perfis';
 const RESOURCE_CONSUMO_AGUA = 'consumo-agua';
 let offlineNutritionRows = bundledNutritionRows();
-let offlineDiets = DIETAS_INICIAIS.map((diet) => structuredClone(diet));
+let offlineDiets = [];
 let offlineProfiles = [];
 let offlineProfileMeasurements = [];
 const offlineWaterGoals = new Map();
 let offlineWaterLogs = [];
-let offlineWaterProfiles = [];
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
@@ -76,27 +74,25 @@ function parseId(value) {
 }
 
 function validateWaterGoalPayload(body) {
+  const profile_id = parseId(body?.profile_id);
+  if (!profile_id) return { error: 'Informe o perfil de saude.' };
   const nome = String(body?.nome || '').trim();
   const meta_doses = Number(body?.meta_doses);
   if (!nome || nome.length > 80) return { error: 'Informe um nome de ate 80 caracteres para a meta.' };
   if (!Number.isInteger(meta_doses) || meta_doses < 1 || meta_doses > 100) {
     return { error: 'A meta diaria deve ter entre 1 e 100 doses.' };
   }
-  return { data: { nome, meta_doses, profile_id: parseId(body?.profile_id) } };
+  return { data: { nome, meta_doses, profile_id } };
 }
 
 function validateWaterProgressPayload(body) {
+  const profile_id = parseId(body?.profile_id);
+  if (!profile_id) return { error: 'Informe o perfil de saude.' };
   const realizado_doses = Number(body?.realizado_doses);
   if (!Number.isInteger(realizado_doses) || realizado_doses < 0 || realizado_doses > 100) {
     return { error: 'A quantidade realizada deve estar entre 0 e 100 doses.' };
   }
-  return { data: { realizado_doses, profile_id: parseId(body?.profile_id) } };
-}
-
-function validateWaterProfilePayload(body) {
-  const nome = String(body?.nome || '').trim();
-  if (!nome || nome.length > 80) return { error: 'Informe um nome de ate 80 caracteres para o perfil.' };
-  return { data: { nome } };
+  return { data: { realizado_doses, profile_id } };
 }
 
 function dateInSaoPaulo(value) {
@@ -115,15 +111,70 @@ function slugify(value) {
     .slice(0, 120);
 }
 
-function validateDietPayload(body) {
+function validateDietPayload(body, isCreate = false) {
   const titulo = String(body?.titulo || '').trim();
-  const objetivo = String(body?.objetivo || '').trim();
+  const objetivo = String(body?.objetivo || 'Plano alimentar').trim();
   const descricao = String(body?.descricao || '').trim();
   const orientacoes_gerais = String(body?.orientacoes_gerais || '').trim();
   const ritual_diario = String(body?.ritual_diario || '').trim();
   const observacoes = String(body?.observacoes || '').trim();
   const duracao_dias = Number(body?.duracao_dias);
   const dias = Array.isArray(body?.dias) ? body.dias : [];
+  const refeicoes = Array.isArray(body?.refeicoes) ? body.refeicoes : null;
+  const perfil_id = parseId(body?.perfil_id);
+
+  if (isCreate && !perfil_id) {
+    return { error: 'É necessário selecionar um perfil para cadastrar a dieta.' };
+  }
+  if (body?.perfil_id !== undefined && body?.perfil_id !== null && !perfil_id) {
+    return { error: 'Perfil selecionado é inválido.' };
+  }
+
+  const profileField = perfil_id ? { perfil_id } : {};
+
+  if (refeicoes) {
+    if (!titulo || titulo.length > 160 || objetivo.length > 120 || descricao.length > 2000 || observacoes.length > 4000) {
+      return { error: 'Nome, objetivo, descricao ou observacoes ultrapassam o limite permitido.' };
+    }
+
+    const normalizedMeals = [];
+    let itemCount = 0;
+    for (const mealDefinition of DIET_MEALS) {
+      const meal = refeicoes.find((entry) => entry?.tipo === mealDefinition.tipo);
+      const items = Array.isArray(meal?.itens) ? meal.itens : [];
+      if (items.length > 50) return { error: `${mealDefinition.titulo} deve ter no maximo 50 itens.` };
+      const normalizedItems = [];
+      for (const item of items) {
+        const nome = String(item?.nome || '').trim();
+        const quantidade = String(item?.quantidade || '').trim();
+        const observacao = String(item?.observacao || '').trim();
+        if (!nome || !quantidade) return { error: `Alimento e quantidade sao obrigatorios em ${mealDefinition.titulo}.` };
+        if (nome.length > 160 || quantidade.length > 120 || observacao.length > 500) {
+          return { error: `Um item de ${mealDefinition.titulo} ultrapassa o limite permitido.` };
+        }
+        normalizedItems.push({ nome, quantidade, observacao });
+      }
+      itemCount += normalizedItems.length;
+      normalizedMeals.push({ ...mealDefinition, itens: normalizedItems });
+    }
+    if (itemCount === 0) return { error: 'Adicione pelo menos um alimento à dieta.' };
+
+    const activeMealCount = normalizedMeals.filter((meal) => meal.itens.length > 0).length;
+    return {
+      data: {
+        ...profileField,
+        titulo,
+        objetivo,
+        duracao_dias: 1,
+        descricao,
+        orientacoes_gerais: '',
+        ritual_diario: '',
+        dias: [{ numero: 1, titulo: 'Plano alimentar', jejum_horas: 0, quantidade_refeicoes: activeMealCount, carboidrato: '', conteudo: '' }],
+        refeicoes: normalizedMeals,
+        observacoes,
+      },
+    };
+  }
 
   if (!titulo || !objetivo || !Number.isInteger(duracao_dias) || duracao_dias < 1 || duracao_dias > 31) {
     return { error: 'Titulo, objetivo e duracao entre 1 e 31 dias sao obrigatorios.' };
@@ -147,10 +198,10 @@ function validateDietPayload(body) {
     normalizedDays.push({ numero: index + 1, titulo: tituloDia.slice(0, 160), jejum_horas, quantidade_refeicoes, carboidrato: carboidrato.slice(0, 1000), conteudo: conteudo.slice(0, 12000) });
   }
 
-  return { data: { titulo, objetivo, duracao_dias, descricao, orientacoes_gerais, ritual_diario, dias: normalizedDays, observacoes } };
+  return { data: { ...profileField, titulo, objetivo, duracao_dias, descricao, orientacoes_gerais, ritual_diario, dias: normalizedDays, refeicoes: [], observacoes } };
 }
 
-const PROFILE_MEASURE_FIELDS = ['peso_kg', 'altura_cm', 'cintura_cm', 'quadril_cm', 'peito_cm', 'braco_cm', 'coxa_cm'];
+const PROFILE_MEASURE_FIELDS = ['peso_kg', 'altura_cm'];
 
 function parseDecimal(value) {
   if (value === null || value === undefined || value === '') return null;
@@ -181,12 +232,6 @@ function validateProfilePayload(body) {
   for (const field of PROFILE_MEASURE_FIELDS) data[field] = parseDecimal(body?.[field]);
   if (!Number.isFinite(data.peso_kg) || data.peso_kg < 1 || data.peso_kg > 500) return { error: 'Peso deve estar entre 1 e 500 kg.' };
   if (!Number.isFinite(data.altura_cm) || data.altura_cm < 30 || data.altura_cm > 260) return { error: 'Altura deve estar entre 30 e 260 cm.' };
-  const limits = { cintura_cm: [10, 400], quadril_cm: [10, 400], peito_cm: [10, 400], braco_cm: [5, 200], coxa_cm: [5, 250] };
-  for (const [field, [min, max]] of Object.entries(limits)) {
-    if (data[field] !== null && (!Number.isFinite(data[field]) || data[field] < min || data[field] > max)) {
-      return { error: 'Uma ou mais medidas corporais sao invalidas.' };
-    }
-  }
   return { data };
 }
 
@@ -201,13 +246,15 @@ function validateProfileMeasurementPayload(body) {
   for (const field of PROFILE_MEASURE_FIELDS) data[field] = parseDecimal(body?.[field]);
   if (!Number.isFinite(data.peso_kg) || data.peso_kg < 1 || data.peso_kg > 500) return { error: 'Peso deve estar entre 1 e 500 kg.' };
   if (!Number.isFinite(data.altura_cm) || data.altura_cm < 30 || data.altura_cm > 260) return { error: 'Altura deve estar entre 30 e 260 cm.' };
-  const limits = { cintura_cm: [10, 400], quadril_cm: [10, 400], peito_cm: [10, 400], braco_cm: [5, 200], coxa_cm: [5, 250] };
-  for (const [field, [min, max]] of Object.entries(limits)) {
-    if (data[field] !== null && (!Number.isFinite(data[field]) || data[field] < min || data[field] > max)) {
-      return { error: 'Uma ou mais medidas corporais sao invalidas.' };
-    }
-  }
   return { data };
+}
+
+function validateNewWeightPayload(body) {
+  const perfil_id = parseId(body?.perfil_id);
+  const peso_kg = parseDecimal(body?.peso_kg);
+  if (!perfil_id) return { error: 'Perfil invalido.' };
+  if (!Number.isFinite(peso_kg) || peso_kg < 1 || peso_kg > 500) return { error: 'Peso deve estar entre 1 e 500 kg.' };
+  return { data: { perfil_id, peso_kg } };
 }
 
 function profileMeasurement(profile, id, timestamp = new Date().toISOString()) {
@@ -250,83 +297,71 @@ function waterResult(config, today, history, storage, profiles = null, profileId
   };
 }
 
-async function loadWaterProfiles(userId) {
-  if (isOfflineMode()) return { rows: offlineWaterProfiles.filter((row) => row.created_by === userId), storage: 'memory' };
+async function loadSaudeProfilesForWater(userId) {
+  if (isOfflineMode()) {
+    return {
+      rows: offlineProfiles
+        .filter((row) => row.created_by === userId)
+        .map((row) => ({ id: row.id, nome: row.nome })),
+      storage: 'memory',
+    };
+  }
   const { supabase } = await import('../lib/supabase.js');
-  const { data, error } = await supabase.from(TABELA_AGUA_PERFIS)
+  const { data, error } = await supabase.from(TABELA_PERFIS)
     .select('id,nome').eq('created_by', userId).order('created_at', { ascending: true });
   return error ? { error } : { rows: data || [], storage: 'supabase' };
 }
 
-async function createWaterProfile(payload, userId) {
+async function requireSaudeProfileForWater(userId, profileId) {
+  const id = parseId(profileId);
+  if (!id) return { invalid: true };
   if (isOfflineMode()) {
-    const id = Math.max(0, ...offlineWaterProfiles.map((row) => Number(row.id) || 0)) + 1;
-    const row = { id, nome: payload.nome, created_by: userId, created_at: new Date().toISOString() };
-    offlineWaterProfiles.push(row);
-    return { row, storage: 'memory' };
+    const profile = offlineProfiles.find((row) => Number(row.id) === id && row.created_by === userId);
+    if (!profile) return { notFound: true };
+    return { profile: { id: profile.id, nome: profile.nome }, storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
-  const { data, error } = await supabase.from(TABELA_AGUA_PERFIS)
-    .insert({ created_by: userId, nome: payload.nome }).select('id,nome').single();
-  return error ? { error } : { row: data, storage: 'supabase' };
+  const { data, error } = await supabase.from(TABELA_PERFIS)
+    .select('id,nome').eq('id', id).eq('created_by', userId).maybeSingle();
+  if (error) return { error };
+  if (!data) return { notFound: true };
+  return { profile: data, storage: 'supabase' };
 }
 
-async function updateWaterProfile(profileId, payload, userId) {
+async function deleteWaterGoal(profileId, userId) {
   if (isOfflineMode()) {
-    const profile = offlineWaterProfiles.find((row) => Number(row.id) === profileId && row.created_by === userId);
-    if (!profile) return { notFound: true };
-    profile.nome = payload.nome;
+    const key = `${userId}:${profileId}`;
+    if (!offlineWaterGoals.has(key)) return { notFound: true };
+    offlineWaterGoals.delete(key);
+    offlineWaterLogs = offlineWaterLogs.filter((row) => !(Number(row.perfil_id) === profileId && row.created_by === userId));
     return loadWater(userId, profileId);
   }
   const { supabase } = await import('../lib/supabase.js');
-  const { data, error } = await supabase.from(TABELA_AGUA_PERFIS)
-    .update({ nome: payload.nome }).eq('id', profileId).eq('created_by', userId)
-    .select('id').maybeSingle();
+  const { error: logsError } = await supabase.from(TABELA_AGUA_LOGS)
+    .delete().eq('perfil_id', profileId).eq('created_by', userId);
+  if (logsError) return { error: logsError };
+  const { data, error } = await supabase.from(TABELA_AGUA_METAS)
+    .delete().eq('perfil_id', profileId).eq('created_by', userId).select('perfil_id').maybeSingle();
   if (error) return { error };
   if (!data) return { notFound: true };
   return loadWater(userId, profileId);
 }
 
-async function deleteWaterProfile(profileId, userId) {
-  if (isOfflineMode()) {
-    const exists = offlineWaterProfiles.some((row) => Number(row.id) === profileId && row.created_by === userId);
-    if (!exists) return { notFound: true };
-    offlineWaterProfiles = offlineWaterProfiles.filter((row) => !(Number(row.id) === profileId && row.created_by === userId));
-    offlineWaterGoals.delete(`${userId}:${profileId}`);
-    offlineWaterLogs = offlineWaterLogs.filter((row) => !(Number(row.perfil_id) === profileId && row.created_by === userId));
-    return loadWater(userId);
-  }
-  const { supabase } = await import('../lib/supabase.js');
-  const { data, error } = await supabase.from(TABELA_AGUA_PERFIS)
-    .delete().eq('id', profileId).eq('created_by', userId)
-    .select('id').maybeSingle();
-  if (error) return { error };
-  if (!data) return { notFound: true };
-  return loadWater(userId);
-}
-
-async function ensureWaterProfile(userId, requestedProfileId) {
-  const loaded = await loadWaterProfiles(userId);
-  if (loaded.error) return loaded;
-  let profile = loaded.rows.find((row) => Number(row.id) === Number(requestedProfileId)) || loaded.rows[0] || null;
-  if (!profile) {
-    const created = await createWaterProfile({ nome: 'Meu perfil' }, userId);
-    if (created.error) return created;
-    profile = created.row;
-    loaded.rows.push(profile);
-  }
-  return { profile, profiles: loaded.rows, storage: loaded.storage };
-}
-
 async function loadWater(userId, requestedProfileId = null, { includeProfiles = true } = {}) {
   const today = dateInSaoPaulo(new Date());
-  const profileResult = includeProfiles || isOfflineMode() ? await loadWaterProfiles(userId) : null;
+  const profileResult = includeProfiles ? await loadSaudeProfilesForWater(userId) : null;
   if (profileResult?.error) return profileResult;
   const profiles = profileResult?.rows || null;
-  const profile = profiles
-    ? profiles.find((row) => Number(row.id) === Number(requestedProfileId)) || profiles[0] || null
-    : null;
-  const profileId = profile?.id || parseId(requestedProfileId);
+  let profileId = parseId(requestedProfileId);
+  if (requestedProfileId != null) {
+    const owned = await requireSaudeProfileForWater(userId, requestedProfileId);
+    if (owned.error) return owned;
+    if (owned.invalid) return { invalidProfile: true };
+    if (owned.notFound) return { notFound: true };
+    profileId = owned.profile.id;
+  } else if (profiles?.length) {
+    profileId = profiles[0]?.id || null;
+  }
   if (!profileId) return waterResult(null, null, [], profileResult?.storage || 'supabase', profiles, null);
   if (isOfflineMode()) {
     const config = offlineWaterGoals.get(`${userId}:${profileId}`) || null;
@@ -388,8 +423,9 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
 
 async function saveWaterGoal(payload, userId) {
   const today = dateInSaoPaulo(new Date());
-  const profileResult = await ensureWaterProfile(userId, payload.profile_id);
+  const profileResult = await requireSaudeProfileForWater(userId, payload.profile_id);
   if (profileResult.error) return profileResult;
+  if (profileResult.notFound) return { notFound: true };
   const profileId = profileResult.profile.id;
   if (isOfflineMode()) {
     const todayRow = offlineWaterLogs.find((row) => row.created_by === userId && Number(row.perfil_id) === Number(profileId) && row.data_local === today);
@@ -419,10 +455,11 @@ async function saveWaterGoal(payload, userId) {
 
 async function updateWaterProgress(payload, userId) {
   const today = dateInSaoPaulo(new Date());
+  const profileResult = await requireSaudeProfileForWater(userId, payload.profile_id);
+  if (profileResult.error) return profileResult;
+  if (profileResult.notFound) return { notFound: true };
+  const profileId = profileResult.profile.id;
   if (isOfflineMode()) {
-    const profileResult = await ensureWaterProfile(userId, payload.profile_id);
-    if (profileResult.error) return profileResult;
-    const profileId = profileResult.profile.id;
     const loaded = await loadWater(userId, profileId);
     if (!loaded.config || !loaded.today) return { notFound: true };
     if (payload.realizado_doses > loaded.today.meta_doses) return { conflict: true };
@@ -431,12 +468,6 @@ async function updateWaterProgress(payload, userId) {
     return loadWater(userId, profileId);
   }
 
-  let profileId = parseId(payload.profile_id);
-  if (!profileId) {
-    const profileResult = await ensureWaterProfile(userId, null);
-    if (profileResult.error) return profileResult;
-    profileId = profileResult.profile.id;
-  }
   const { supabase } = await import('../lib/supabase.js');
   const { data: current, error: currentError } = await supabase.from(TABELA_AGUA_LOGS)
     .select('id,meta_doses').eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).maybeSingle();
@@ -467,7 +498,7 @@ async function loadProfiles(userId) {
   const { supabase } = await import('../lib/supabase.js');
   const { data: profiles, error } = await supabase
     .from(TABELA_PERFIS)
-    .select('id,nome,sexo,data_nascimento,data_medicao,peso_kg,altura_cm,cintura_cm,quadril_cm,peito_cm,braco_cm,coxa_cm,created_at,updated_at')
+    .select('id,nome,sexo,data_nascimento,data_medicao,peso_kg,altura_cm,created_at,updated_at')
     .eq('created_by', userId)
     .order('created_at', { ascending: true });
   if (error) return { error };
@@ -475,7 +506,7 @@ async function loadProfiles(userId) {
   const ids = profiles.map((profile) => profile.id);
   const { data: measurements, error: historyError } = await supabase
     .from(TABELA_PERFIL_MEDIDAS)
-    .select('id,perfil_id,peso_kg,altura_cm,cintura_cm,quadril_cm,peito_cm,braco_cm,coxa_cm,imc,registrado_em')
+    .select('id,perfil_id,peso_kg,altura_cm,imc,registrado_em')
     .eq('created_by', userId)
     .in('perfil_id', ids)
     .order('registrado_em', { ascending: false });
@@ -486,14 +517,14 @@ async function createProfile(payload, userId) {
   if (isOfflineMode()) {
     const id = Math.max(0, ...offlineProfiles.map((profile) => Number(profile.id) || 0)) + 1;
     const timestamp = new Date().toISOString();
-    const row = { id, ...payload, created_at: timestamp, updated_at: timestamp };
+    const row = { id, ...payload, created_by: userId, created_at: timestamp, updated_at: timestamp };
     offlineProfiles.push(row);
-    offlineProfileMeasurements.unshift(profileMeasurement(row, offlineProfileMeasurements.length + 1, `${payload.data_medicao}T12:00:00-03:00`));
+    offlineProfileMeasurements.unshift(profileMeasurement(row, offlineProfileMeasurements.length + 1, timestamp));
     return { row: withProfileHistory([row], offlineProfileMeasurements)[0], storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
   const { data, error } = await supabase.from(TABELA_PERFIS).insert({ ...payload, created_by: userId })
-    .select('id,nome,sexo,data_nascimento,data_medicao,peso_kg,altura_cm,cintura_cm,quadril_cm,peito_cm,braco_cm,coxa_cm,created_at,updated_at').single();
+    .select('id,nome,sexo,data_nascimento,data_medicao,peso_kg,altura_cm,created_at,updated_at').single();
   if (error) return { error };
   const loaded = await loadProfiles(userId);
   if (loaded.error) return loaded;
@@ -510,7 +541,7 @@ async function updateProfile(id, payload, userId) {
     const row = { ...previous, ...payload, updated_at: new Date().toISOString() };
     offlineProfiles[index] = row;
     if (measuresChanged) {
-      offlineProfileMeasurements.unshift(profileMeasurement(row, offlineProfileMeasurements.length + 1, `${payload.data_medicao}T12:00:00-03:00`));
+      offlineProfileMeasurements.unshift(profileMeasurement(row, offlineProfileMeasurements.length + 1, new Date().toISOString()));
     } else if (measurementDateChanged) {
       const latest = offlineProfileMeasurements
         .filter((measurement) => Number(measurement.perfil_id) === id)
@@ -572,6 +603,43 @@ async function updateProfileMeasurement(id, payload, userId) {
   return { row: loaded.rows.find((profile) => Number(profile.id) === Number(current.perfil_id)), storage: 'supabase' };
 }
 
+async function createWeightMeasurement(payload, userId) {
+  const timestamp = new Date().toISOString();
+  if (isOfflineMode()) {
+    const profileIndex = offlineProfiles.findIndex((profile) => Number(profile.id) === payload.perfil_id);
+    if (profileIndex < 0) return { notFound: true };
+    const row = { ...offlineProfiles[profileIndex], peso_kg: payload.peso_kg, data_medicao: dateInSaoPaulo(timestamp), updated_at: timestamp };
+    offlineProfiles[profileIndex] = row;
+    offlineProfileMeasurements.unshift(profileMeasurement(row, Math.max(0, ...offlineProfileMeasurements.map((item) => Number(item.id) || 0)) + 1, timestamp));
+    return { row: withProfileHistory([row], offlineProfileMeasurements)[0], storage: 'memory' };
+  }
+
+  const { supabase } = await import('../lib/supabase.js');
+  const { data: profile, error: profileError } = await supabase.from(TABELA_PERFIS)
+    .select('id,peso_kg,altura_cm').eq('id', payload.perfil_id).eq('created_by', userId).maybeSingle();
+  if (profileError) return { error: profileError };
+  if (!profile) return { notFound: true };
+
+  if (Number(profile.peso_kg) === payload.peso_kg) {
+    const { error } = await supabase.from(TABELA_PERFIL_MEDIDAS).insert({
+      perfil_id: profile.id,
+      created_by: userId,
+      peso_kg: payload.peso_kg,
+      altura_cm: profile.altura_cm,
+      registrado_em: timestamp,
+    });
+    if (error) return { error };
+  } else {
+    const { error } = await supabase.from(TABELA_PERFIS).update({ peso_kg: payload.peso_kg, data_medicao: dateInSaoPaulo(timestamp) })
+      .eq('id', profile.id).eq('created_by', userId);
+    if (error) return { error };
+  }
+
+  const loaded = await loadProfiles(userId);
+  if (loaded.error) return loaded;
+  return { row: loaded.rows.find((item) => Number(item.id) === Number(profile.id)), storage: 'supabase' };
+}
+
 async function deleteProfileMeasurement(id, userId) {
   if (isOfflineMode()) {
     const current = offlineProfileMeasurements.find((measurement) => Number(measurement.id) === id);
@@ -630,14 +698,24 @@ async function deleteProfileMeasurement(id, userId) {
   return { row: loaded.rows.find((profile) => Number(profile.id) === Number(current.perfil_id)), storage: 'supabase' };
 }
 
-async function loadDiets() {
-  if (isOfflineMode()) return { rows: offlineDiets.map((diet) => structuredClone(diet)), storage: 'bundled-fallback' };
+async function loadDiets(userId, profileId = null) {
+  if (isOfflineMode()) {
+    let rows = offlineDiets.map((diet) => structuredClone(diet));
+    if (profileId) {
+      rows = rows.filter((diet) => Number(diet.perfil_id) === Number(profileId));
+    }
+    return { rows, storage: 'memory' };
+  }
   const { supabase } = await import('../lib/supabase.js');
-  const { data, error } = await supabase
+  let query = supabase
     .from(TABELA_DIETAS)
-    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,observacoes,source_file,created_at,updated_at')
+    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,perfil_id,source_file,created_at,updated_at')
     .order('created_at', { ascending: false });
-  if (error && isMissingTableError(error)) return { rows: DIETAS_INICIAIS.map((diet) => structuredClone(diet)), storage: 'bundled-fallback' };
+  if (profileId) {
+    query = query.eq('perfil_id', profileId);
+  }
+  const { data, error } = await query;
+  if (error && isMissingTableError(error)) return { rows: [], storage: 'empty-fallback' };
   return error ? { error } : { rows: data || [], storage: 'supabase' };
 }
 
@@ -653,7 +731,7 @@ async function createDiet(payload, userId) {
   const { data, error } = await supabase
     .from(TABELA_DIETAS)
     .insert({ slug, ...payload, source_file: 'Cadastro manual', created_by: userId })
-    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,observacoes,source_file,created_at,updated_at')
+    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,perfil_id,source_file,created_at,updated_at')
     .single();
   return error ? { error } : { row: data, storage: 'supabase' };
 }
@@ -670,7 +748,7 @@ async function updateDiet(id, payload) {
     .from(TABELA_DIETAS)
     .update({ slug: slugify(payload.titulo), ...payload })
     .eq('id', id)
-    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,observacoes,source_file,created_at,updated_at')
+    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,perfil_id,source_file,created_at,updated_at')
     .maybeSingle();
   if (error) return { error };
   return data ? { row: data, storage: 'supabase' } : { notFound: true };
@@ -813,7 +891,9 @@ export default async function handler(req, res) {
       });
     }
     if (req.query?.resource === RESOURCE_DIETAS) {
-      const result = await loadDiets();
+      const profileId = req.query?.profile_id ? parseId(req.query.profile_id) : null;
+      if (req.query?.profile_id && !profileId) return json(res, 400, { error: 'Perfil invalido.' });
+      const result = await loadDiets(auth.user.id, profileId);
       if (result.error) return json(res, 500, { error: result.error.message });
       const id = req.query?.id ? parseId(req.query.id) : null;
       if (req.query?.id && !id) return json(res, 400, { error: 'ID invalido.' });
@@ -833,6 +913,8 @@ export default async function handler(req, res) {
       if (req.query?.profile_id != null && !requestedProfileId) return json(res, 400, { error: 'Perfil invalido.' });
       const result = await loadWater(auth.user.id, requestedProfileId, { includeProfiles: req.query?.include_profiles !== '0' });
       if (result.error) return json(res, 500, { error: result.error.message });
+      if (result.notFound) return json(res, 404, { error: 'Perfil de saude nao encontrado.' });
+      if (result.invalidProfile) return json(res, 400, { error: 'Perfil invalido.' });
       return json(res, 200, result);
     }
 
@@ -857,19 +939,11 @@ export default async function handler(req, res) {
   if (req.query?.resource === RESOURCE_CONSUMO_AGUA && req.method === 'POST') {
     const body = readBody(req);
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
-    if (body.action === 'create-profile') {
-      const profileValidation = validateWaterProfilePayload(body);
-      if (profileValidation.error) return json(res, 400, { error: profileValidation.error });
-      const created = await createWaterProfile(profileValidation.data, auth.user.id);
-      if (created.error) return json(res, 500, { error: created.error.message });
-      const result = await loadWater(auth.user.id, created.row.id);
-      if (result.error) return json(res, 500, { error: result.error.message });
-      return json(res, 201, result);
-    }
     const validation = validateWaterGoalPayload(body);
     if (validation.error) return json(res, 400, { error: validation.error });
     const result = await saveWaterGoal(validation.data, auth.user.id);
     if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.notFound) return json(res, 404, { error: 'Perfil de saude nao encontrado.' });
     if (result.conflict) return json(res, 409, { error: 'A meta nao pode ser menor que a quantidade ja realizada hoje.' });
     return json(res, 200, result);
   }
@@ -877,16 +951,6 @@ export default async function handler(req, res) {
   if (req.query?.resource === RESOURCE_CONSUMO_AGUA && req.method === 'PATCH') {
     const body = readBody(req);
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
-    if (body.action === 'update-profile') {
-      const profileId = parseId(body.profile_id);
-      if (!profileId) return json(res, 400, { error: 'Perfil invalido.' });
-      const profileValidation = validateWaterProfilePayload(body);
-      if (profileValidation.error) return json(res, 400, { error: profileValidation.error });
-      const result = await updateWaterProfile(profileId, profileValidation.data, auth.user.id);
-      if (result.error) return json(res, 500, { error: result.error.message });
-      if (result.notFound) return json(res, 404, { error: 'Perfil nao encontrado.' });
-      return json(res, 200, result);
-    }
     const validation = validateWaterProgressPayload(body);
     if (validation.error) return json(res, 400, { error: validation.error });
     const result = await updateWaterProgress(validation.data, auth.user.id);
@@ -899,12 +963,12 @@ export default async function handler(req, res) {
   if (req.query?.resource === RESOURCE_CONSUMO_AGUA && req.method === 'DELETE') {
     const body = readBody(req);
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
-    if (body.action !== 'delete-profile') return json(res, 400, { error: 'Acao invalida.' });
+    if (body.action !== 'delete-goal') return json(res, 400, { error: 'Acao invalida.' });
     const profileId = parseId(body.profile_id ?? req.query?.profile_id);
     if (!profileId) return json(res, 400, { error: 'Perfil invalido.' });
-    const result = await deleteWaterProfile(profileId, auth.user.id);
+    const result = await deleteWaterGoal(profileId, auth.user.id);
     if (result.error) return json(res, 500, { error: result.error.message });
-    if (result.notFound) return json(res, 404, { error: 'Perfil nao encontrado.' });
+    if (result.notFound) return json(res, 404, { error: 'Meta de agua nao encontrada.' });
     return json(res, 200, result);
   }
 
@@ -924,6 +988,17 @@ export default async function handler(req, res) {
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Perfil nao encontrado.' });
     return json(res, 200, result);
+  }
+
+  if (req.query?.resource === RESOURCE_PERFIL_MEDIDAS && req.method === 'POST') {
+    const body = readBody(req);
+    if (!body) return json(res, 400, { error: 'JSON invalido.' });
+    const validation = validateNewWeightPayload(body);
+    if (validation.error) return json(res, 400, { error: validation.error });
+    const result = await createWeightMeasurement(validation.data, auth.user.id);
+    if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.notFound) return json(res, 404, { error: 'Perfil nao encontrado.' });
+    return json(res, 201, result);
   }
 
   if (req.query?.resource === RESOURCE_PERFIL_MEDIDAS && req.method === 'PATCH') {
@@ -953,7 +1028,8 @@ export default async function handler(req, res) {
   if (req.query?.resource === RESOURCE_DIETAS && (req.method === 'POST' || req.method === 'PATCH')) {
     const body = readBody(req);
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
-    const validation = validateDietPayload(body);
+    const isCreate = req.method === 'POST';
+    const validation = validateDietPayload(body, isCreate);
     if (validation.error) return json(res, 400, { error: validation.error });
     if (req.method === 'POST') {
       const result = await createDiet(validation.data, auth.user.id);

@@ -6,12 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { TABELAS_NUTRICIONAIS } from '../../features/saude/data/tabelasNutricionais.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const migration = fs.readFileSync(path.join(root, 'migration/20260913_create_saude_module.sql'), 'utf8');
+const resetMigration = fs.readFileSync(path.join(root, 'migration/20260926_reset_modulo_saude.sql'), 'utf8');
+const resetRollback = fs.readFileSync(path.join(root, 'migration/rollback/20260926_rollback_reset_modulo_saude.sql'), 'utf8');
 const seed = fs.readFileSync(path.join(root, 'scripts/seed-saude-tabela-nutricional.sql'), 'utf8');
-const dietsMigration = fs.readFileSync(path.join(root, 'migration/20260914_create_saude_dietas.sql'), 'utf8');
 const dietsSeed = fs.readFileSync(path.join(root, 'scripts/seed-saude-dietas.sql'), 'utf8');
-const profilesMigration = fs.readFileSync(path.join(root, 'migration/20260914_create_saude_perfis.sql'), 'utf8');
-const profilesDateMigration = fs.readFileSync(path.join(root, 'migration/20260918_add_data_medicao_saude_perfis.sql'), 'utf8');
 
 function parseSqlText(value) {
   return value.replaceAll("''", "'");
@@ -29,18 +27,30 @@ function parseSeedRows(sql) {
 }
 
 describe('SQL do módulo Saúde', () => {
-  it('cria o módulo, a tabela e policies RLS granulares', () => {
-    expect(migration).toContain("values ('saude', 'Saude', false)");
-    expect(migration).toContain('create table if not exists public.tb_saude_tabela_nutricional');
-    expect(migration).toContain('alter table public.tb_saude_tabela_nutricional enable row level security');
-    expect(migration).toContain('alter table public.tb_saude_tabela_nutricional force row level security');
-    expect(migration).toContain('alter column protocolo drop not null');
-    expect(migration).toContain("check (protocolo is null or protocolo in ('Perder Peso', 'Manutenção'))");
-    expect(migration.match(/create policy tb_saude_tabela_nutricional_admin_/g)).toHaveLength(4);
-    expect(migration.trim().endsWith('-- commit;')).toBe(true);
+  it('reset unificado dropa legado, recria tabelas, RLS e agua ligada ao perfil de saude', () => {
+    expect(resetMigration).toContain("values ('saude', 'Saude', false)");
+    expect(resetMigration).toContain('drop table if exists public.tb_saude_agua_perfis cascade');
+    expect(resetMigration).toContain('drop table if exists public.tb_saude_tabela_nutricional cascade');
+    expect(resetMigration).not.toContain('create table public.tb_saude_tabela_nutricional');
+    expect(resetMigration).toContain('create table public.tb_saude_perfis');
+    expect(resetMigration).toContain('create table public.tb_saude_perfil_medidas');
+    expect(resetMigration).toContain('create table public.tb_saude_dietas');
+    expect(resetMigration).toContain('create table public.tb_saude_agua_metas');
+    expect(resetMigration).toContain('create table public.tb_saude_agua_logs');
+    expect(resetMigration).toContain('generated always as');
+    expect(resetMigration).toContain('registrar_saude_perfil_medidas');
+    expect(resetMigration).toContain('after insert or update on public.tb_saude_perfis');
+    expect(resetMigration).toContain('references public.tb_saude_perfis (id, created_by)');
+    expect(resetMigration).toContain('force row level security');
+    expect(resetMigration).toContain('created_by = auth.uid()');
+    expect(resetMigration).not.toContain('create table public.tb_saude_agua_perfis');
+    expect(resetMigration.trim().endsWith('commit;')).toBe(true);
+
+    expect(resetRollback).toContain('drop table if exists public.tb_saude_agua_logs');
+    expect(resetRollback).toContain('drop function if exists public.registrar_saude_perfil_medidas()');
   });
 
-  it('mantém o seed idempotente e fiel aos 115 itens do Excel', () => {
+  it('mantém o seed legado da tabela nutricional (script opcional; tabela nao existe apos o reset)', () => {
     const rows = parseSeedRows(seed);
 
     expect(seed).toContain('on conflict (source_order) do update');
@@ -48,30 +58,9 @@ describe('SQL do módulo Saúde', () => {
     expect(rows).toEqual(TABELAS_NUTRICIONAIS);
   });
 
-  it('cria dietas com plano diário em JSON, RLS e seed Detox idempotente', () => {
-    expect(dietsMigration).toContain('create table if not exists public.tb_saude_dietas');
-    expect(dietsMigration).toContain("jsonb_typeof(dias) = 'array'");
-    expect(dietsMigration).toContain('jsonb_array_length(dias) = duracao_dias');
-    expect(dietsMigration).toContain('alter table public.tb_saude_dietas force row level security');
-    expect(dietsMigration.match(/create policy tb_saude_dietas_admin_/g)).toHaveLength(4);
+  it('mantém seed de dietas idempotente após o reset', () => {
     expect(dietsSeed).toContain("'detox-7-dias-perder-peso'");
     expect(dietsSeed).toContain('on conflict (slug) do update');
     expect(dietsSeed).toContain('$dias$::jsonb');
-  });
-  it('cria perfis familiares com historico automatico de medidas e RLS por usuario', () => {
-    expect(profilesMigration).toContain('create table if not exists public.tb_saude_perfis');
-    expect(profilesMigration).toContain('create table if not exists public.tb_saude_perfil_medidas');
-    expect(profilesMigration).toContain('generated always as');
-    expect(profilesMigration).toContain('after insert or update on public.tb_saude_perfis');
-    expect(profilesMigration).toContain('is distinct from');
-    expect(profilesMigration).toContain('created_by = auth.uid()');
-    expect(profilesMigration).toContain('alter table public.tb_saude_perfil_medidas force row level security');
-    expect(profilesMigration.trim().endsWith('-- commit;')).toBe(true);
-    expect(profilesDateMigration).toContain('add column if not exists data_medicao date');
-    expect(profilesDateMigration).toContain('new.data_medicao is distinct from old.data_medicao');
-    expect(profilesDateMigration).toContain('update public.tb_saude_perfil_medidas');
-    expect(profilesDateMigration).toContain('grant update, delete on public.tb_saude_perfil_medidas to authenticated');
-    expect(profilesDateMigration).toContain('create policy tb_saude_perfil_medidas_own_delete');
-    expect(profilesDateMigration.trim().endsWith('-- commit;')).toBe(true);
   });
 });

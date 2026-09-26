@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   WATER_LOCAL_STORAGE_KEY,
   createLocalWaterProfile,
+  deleteLocalWaterGoal,
   deleteLocalWaterProfile,
+  ensureLocalWaterProfileLinkedToHealth,
   isLocalWaterStorageMode,
   loadLocalWater,
+  migrateLocalWaterDataToHealthProfiles,
   saveLocalWaterGoal,
   updateLocalWaterProgress,
   updateLocalWaterProfile,
@@ -48,6 +51,40 @@ describe('consumo de agua no localStorage', () => {
     const now = new Date('2026-09-23T15:00:00Z');
     saveLocalWaterGoal({ nome: 'Copo', meta_doses: 2 }, storage, now);
     expect(() => updateLocalWaterProgress({ realizado_doses: 3 }, storage, now)).toThrow('entre zero e a meta');
+  });
+
+  it('migra dados do modulo antigo de agua para o id do perfil de saude', () => {
+    const storage = createStorage();
+    const now = new Date('2026-09-23T15:00:00Z');
+    saveLocalWaterGoal({ nome: 'Garrafa', meta_doses: 8 }, storage, now);
+    updateLocalWaterProgress({ realizado_doses: 5 }, storage, now);
+
+    const healthProfiles = [{ id: 42, nome: 'TESTE' }];
+    const result = migrateLocalWaterDataToHealthProfiles(healthProfiles, storage);
+    expect(result.migrated).toBe(true);
+    expect(result.mappings[0]).toMatchObject({ from: 'local-water-profile-1', to: '42' });
+
+    const reloaded = loadLocalWater(storage, now, '42', { strict: true });
+    expect(reloaded.config).toMatchObject({ meta_doses: 8 });
+    expect(reloaded.today.realizado_doses).toBe(5);
+  });
+
+  it('vincula consumo ao id do perfil de saude sem misturar outros perfis', () => {
+    const storage = createStorage();
+    const now = new Date('2026-09-23T15:00:00Z');
+    createLocalWaterProfile({ nome: 'Legado' }, storage, now);
+
+    ensureLocalWaterProfileLinkedToHealth({ id: 7, nome: 'Perfil A' }, storage);
+    saveLocalWaterGoal({ profile_id: 7, health_profile_nome: 'Perfil A', nome: 'Garrafa', meta_doses: 5 }, storage, now);
+    updateLocalWaterProgress({ profile_id: 7, realizado_doses: 2 }, storage, now);
+
+    const loaded = loadLocalWater(storage, now, 7, { strict: true });
+    expect(loaded.profile_id).toBe('7');
+    expect(loaded.today.realizado_doses).toBe(2);
+    expect(loaded.profiles.some((profile) => profile.id === '7')).toBe(true);
+
+    deleteLocalWaterGoal({ profile_id: 7 }, storage, now);
+    expect(loadLocalWater(storage, now, 7, { strict: true }).config).toBeNull();
   });
 
   it('separa metas, checks e historicos por perfil', () => {

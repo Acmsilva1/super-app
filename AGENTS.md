@@ -53,7 +53,7 @@ Carregue somente os módulos necessários:
 | Situação | Módulo |
 |---|---|
 | Segurança, LGPD, autenticação, autorização, RLS, secrets, vulnerabilidades | `.agents/SECURITY.md` |
-| Docker, CI/CD, GitHub Actions, deploy, infraestrutura, ambientes, rollback | `.agents/DEVOPS.md` |
+| Docker, CI/CD, GitHub Actions, deploy, infraestrutura, ambientes, rollback, versão PWA/release | `.agents/DEVOPS.md` |
 | SQL, PostgreSQL, Supabase, Oracle, migrations, views, snapshots, modelagem | `.agents/DATABASE.md` |
 | React, HTML, CSS, JavaScript, componentes, responsividade | `.agents/FRONTEND.md` |
 | Identidade visual, dashboards, gráficos, paleta, tipografia, redação visual | `.agents/DESIGNER.md` |
