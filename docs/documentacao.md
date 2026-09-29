@@ -59,6 +59,8 @@ Login Supabase -> Bearer token -> /api/* -> requireUser()
 
 O frontend principal fica em `index.html`, com HTML, CSS e JavaScript vanilla no mesmo arquivo. Ele controla login, catalogo de apps, janelas dos micro-apps e chamadas autenticadas para `/api/*`.
 
+Na abertura, uma splash screen cobre a inicializacao com a arte `logo home.png`, nome do app e barra de progresso. Ela permanece por no minimo 900 ms, aguarda os dados iniciais do shell e desaparece suavemente quando a tela seguinte esta pronta. A arte tem preload prioritario e faz parte do cache essencial da PWA para aparecer mais cedo nas proximas aberturas. As bibliotecas de graficos continuam sendo carregadas sob demanda, sem bloquear essa primeira exibicao.
+
 | Arquivo | Papel |
 |---|---|
 | `index.html` | Shell PWA, UI principal e modulos inline |

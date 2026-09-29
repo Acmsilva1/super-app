@@ -11,6 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="SUPERAPP">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="preload" as="image" href="/logo%20home.png" fetchpriority="high">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,9 +19,9 @@
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <!-- Motion (animacoes modernas) -->
-    <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.min.js"></script>
     <script type="module" src="./lib/financeiroAnualCache.js"></script>
     <style>
         * {
@@ -104,6 +105,125 @@
             --shadow-md: 0 18px 40px rgba(5, 13, 28, 0.35);
             --shadow-lg: 0 26px 54px rgba(3, 10, 22, 0.52);
             --radius: 1rem;
+        }
+
+        .app-launch-splash {
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            display: grid;
+            place-items: end center;
+            min-height: 100dvh;
+            padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem max(3rem, calc(env(safe-area-inset-bottom) + 2rem));
+            overflow: hidden;
+            color: #f8fbff;
+            background:
+                linear-gradient(180deg, rgba(2, 6, 23, 0.2) 0%, rgba(2, 6, 23, 0.34) 48%, rgba(2, 6, 23, 0.9) 100%),
+                url('/logo%20home.png') center / cover no-repeat;
+            box-shadow: inset 0 0 9rem rgba(2, 6, 23, 0.36);
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 320ms ease, visibility 320ms ease;
+        }
+        .app-launch-splash::before,
+        .app-launch-splash::after {
+            content: '';
+            position: absolute;
+            border-radius: 999px;
+            pointer-events: none;
+            filter: blur(2px);
+        }
+        .app-launch-splash::before {
+            width: min(72vw, 34rem);
+            aspect-ratio: 1;
+            top: -24%;
+            left: -20%;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.18), transparent 66%);
+        }
+        .app-launch-splash::after {
+            width: min(66vw, 30rem);
+            aspect-ratio: 1;
+            right: -18%;
+            bottom: -24%;
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.24), transparent 68%);
+        }
+        .app-launch-splash.is-ready {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .app-launch-splash__content {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 24rem);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            filter: drop-shadow(0 12px 26px rgba(2, 6, 23, 0.8));
+        }
+        .app-launch-splash__title {
+            font-family: 'Orbitron', 'Space Grotesk', sans-serif;
+            font-size: clamp(1.7rem, 7vw, 2.35rem);
+            line-height: 1.1;
+            letter-spacing: 0.12em;
+            text-shadow: 0 8px 28px rgba(2, 8, 23, 0.74);
+        }
+        .app-launch-splash__subtitle {
+            margin-top: 0.45rem;
+            color: #b8c9e8;
+            font-size: 0.9rem;
+            letter-spacing: 0.04em;
+        }
+        .app-launch-splash__progress {
+            width: min(78vw, 18rem);
+            height: 0.38rem;
+            margin-top: 2rem;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.2);
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+        }
+        .app-launch-splash__progress-bar {
+            display: block;
+            width: 44%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #0ea5e9, #22d3ee, #7dd3fc);
+            box-shadow: 0 0 18px rgba(34, 211, 238, 0.72);
+            transform: translateX(-110%);
+            animation: appLaunchProgress 1.15s ease-in-out infinite;
+        }
+        .app-launch-splash.is-complete .app-launch-splash__progress-bar {
+            width: 100%;
+            transform: translateX(0);
+            animation: none;
+            transition: width 180ms ease, transform 180ms ease;
+        }
+        .app-launch-splash__status {
+            min-height: 1.25rem;
+            margin-top: 0.7rem;
+            color: #94a9cd;
+            font-size: 0.75rem;
+        }
+        @keyframes appLaunchProgress {
+            0% { transform: translateX(-110%); }
+            55% { transform: translateX(85%); }
+            100% { transform: translateX(245%); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .app-launch-splash,
+            .app-launch-splash__progress-bar {
+                transition: none !important;
+            }
+            .app-launch-splash__progress-bar {
+                width: 58%;
+                transform: none;
+                animation: none;
+            }
+            .app-launch-splash.is-complete .app-launch-splash__progress-bar {
+                width: 100%;
+            }
         }
 
         [data-theme="dark"] {
@@ -7194,6 +7314,15 @@
     </style>
 </head>
 <body class="view-apps">
+    <div id="appLaunchSplash" class="app-launch-splash" role="status" aria-live="polite" aria-label="Carregando Super App">
+        <div class="app-launch-splash__content">
+            <div class="app-launch-splash__title">SUPERAPP</div>
+            <div class="app-launch-splash__subtitle">Tudo em um só lugar</div>
+            <div class="app-launch-splash__progress" aria-hidden="true"><span class="app-launch-splash__progress-bar"></span></div>
+            <div class="app-launch-splash__status">Preparando seu espaço...</div>
+        </div>
+    </div>
+    <script>window.__superAppLaunchStartedAt = performance.now();</script>
     <main id="authShell" class="auth-shell" aria-live="polite">
         <section class="auth-card" aria-labelledby="authTitle">
             <div class="auth-brand">
@@ -7759,19 +7888,39 @@
             }
 
             async init() {
-                if ('scrollRestoration' in history) {
-                    history.scrollRestoration = 'manual';
+                try {
+                    if ('scrollRestoration' in history) {
+                        history.scrollRestoration = 'manual';
+                    }
+                    const canOpenApp = await SuperAppAuth.init();
+                    if (!canOpenApp) return;
+                    this.setupEventListeners();
+                    await this.loadData();
+                    this.updateStatistics();
+                    this.startNotificationCenter();
+                    this.restoreFinanceiroOperations();
+                    this.loadAppVersionManifest().finally(() => this.ensureHomeVersionBadge());
+                } finally {
+                    this.dismissLaunchSplash();
                 }
-                const canOpenApp = await SuperAppAuth.init();
-                if (!canOpenApp) return;
-                this.setupEventListeners();
-                await this.ensureVisualizationLibraries();
-                await this.loadData();
-                this.updateStatistics();
-                this.startNotificationCenter();
-                this.restoreFinanceiroOperations();
-                await this.loadAppVersionManifest();
-                this.ensureHomeVersionBadge();
+            }
+
+            dismissLaunchSplash() {
+                const splash = document.getElementById('appLaunchSplash');
+                if (!splash || splash.dataset.dismissed === 'true') return;
+                splash.dataset.dismissed = 'true';
+                const startedAt = Number(window.__superAppLaunchStartedAt || performance.now());
+                const minimumVisibleMs = 900;
+                const remainingMs = Math.max(0, minimumVisibleMs - (performance.now() - startedAt));
+                window.setTimeout(() => {
+                    const status = splash.querySelector('.app-launch-splash__status');
+                    if (status) status.textContent = 'Tudo pronto';
+                    splash.classList.add('is-complete');
+                    window.setTimeout(() => {
+                        splash.classList.add('is-ready');
+                        window.setTimeout(() => splash.remove(), 360);
+                    }, 180);
+                }, remainingMs);
             }
 
             async loadAppVersionManifest() {
@@ -8035,10 +8184,12 @@
             // ============================================
             // CARREGAR DADOS DO BACKEND
             // ============================================
-            loadData() {
-                this.loadApps();
-                this.loadStatistics();
-                this.loadRoadmap();
+            async loadData() {
+                await Promise.all([
+                    this.loadApps(),
+                    this.loadStatistics(),
+                    this.loadRoadmap(),
+                ]);
             }
             async loadApps() {
                 try {

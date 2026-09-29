@@ -8,7 +8,8 @@ const CACHE_NAME = 'superapp-' + CACHE_VERSION;
 const ESSENTIAL_ASSETS = [
   '/manifest.json',
   '/icon-192.png',
-  '/icon-512.png'
+  '/icon-512.png',
+  '/logo%20home.png'
 ];
 
 self.addEventListener('install', (event) => {
