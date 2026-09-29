@@ -1,3 +1,15 @@
+=== CHECKPOINT — REMOÇÃO DO MODO COMPRAS DO FINANCEIRO ===
+Data: 2026-09-29
+
+- Aba Compras e ícone de carrinho removidos do Financeiro.
+- Tipo financeiro `compra`, consultas, mutações, mocks e dicas associados removidos.
+- Categoria `Compras` de gastos variados e app independente Lista de Compras preservados.
+- Migration remove primeiro `vw_financeiro_compras_mensal` e depois `tb_compras` dentro de transação.
+- Rollback recria a estrutura, mas os dados excluídos dependem de backup.
+- SQL não aplicado no Supabase.
+- Validação: 36 arquivos e 213 testes aprovados.
+- Checkpoint Git: indisponível; workspace não é um repositório Git válido.
+
 === CHECKPOINT — OTIMIZAÇÃO DO MÓDULO FINANCEIRO ===
 Data: 2026-09-11
 

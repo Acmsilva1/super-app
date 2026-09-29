@@ -260,32 +260,21 @@ describe('financeiroService', () => {
     expect(out.error).toBe('tipo_registro invalido');
   });
 
-  it('grava compra sem metodo_pagamento', () => {
+  it('rejeita o tipo compra removido do financeiro', () => {
     const ins = payloadInsertFinanceiro({
       tipo_registro: 'compra',
       descricao: 'Notebook',
       valor: 3200.5,
       data_lancamento: '2026-07-10',
     });
-    expect(ins.error).toBeUndefined();
-    expect(ins.tipo_registro).toBe('compra');
-    expect(ins.payload).toMatchObject({
-      descricao: 'Notebook',
-      valor: 3200.5,
-      data_lancamento: '2026-07-10',
-    });
-    expect(ins.payload.tipo).toBeUndefined();
-    expect(ins.payload.categoria).toBeUndefined();
-    expect(ins.payload.metodo_pagamento).toBeUndefined();
+    expect(ins.error).toBe('tipo_registro invalido');
 
     const upd = payloadUpdateFinanceiro({
       id: 7,
       tipo_registro: 'compra',
       valor: 100,
     });
-    expect(upd.error).toBeUndefined();
-    expect(upd.payload.metodo_pagamento).toBeUndefined();
-    expect(upd.payload.valor).toBe(100);
+    expect(upd.error).toBe('tipo_registro invalido');
   });
   it('rejeita saldo de conta corrente como tipo invalido', () => {
     const insert = payloadInsertFinanceiro({

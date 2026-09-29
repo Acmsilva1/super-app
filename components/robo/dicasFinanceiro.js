@@ -119,11 +119,6 @@ export function buildDicasFinanceiroFromData(data = {}, options = {}) {
     tips.push(`Meta "${nome}": ${pct}% (${fmt(poupancaTotal)} de ${fmt(meta.valor_meta)}).`);
   }
 
-  const comprasTotal = Number(data.compras?.total) || 0;
-  if (comprasTotal > 0) {
-    tips.push(`Compras${mesSuffix}: ${fmt(comprasTotal)}.`);
-  }
-
   const unique = Array.from(new Set(tips.map((t) => String(t).trim()).filter(Boolean)));
   if (unique.length < 2) {
     return Array.from(new Set([...unique, ...DICAS_FINANCEIRO_FALLBACK]));

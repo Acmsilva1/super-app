@@ -243,12 +243,12 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 
 ### Regras do Financeiro
 
-- `GET /api/financeiro` sem `secao` preserva o contrato legado completo.
-- `GET /api/financeiro?secao=data|summary|poupanca|compras` carrega somente a aba solicitada. O frontend usa esse contrato segmentado e guarda em memoria as secoes ja visitadas.
+- `GET /api/financeiro` sem `secao` retorna o contrato consolidado atual, sem o modo Compras removido.
+- `GET /api/financeiro?secao=data|summary|poupanca` carrega somente a aba solicitada. O frontend usa esse contrato segmentado e guarda em memoria as secoes ja visitadas.
 - A aba `data` executa duas consultas mensais, com colunas explicitas. `summary` consulta as views agregadas apenas quando o dashboard e aberto.
-- Poupanca e compras usam paginacao de 50 registros e retornam `pagination.page`, `pagination.limit` e `pagination.has_more`.
+- Poupanca usa paginacao de 50 registros e retorna `pagination.page`, `pagination.limit` e `pagination.has_more`.
 - A materializacao de despesas fixas nao ocorre mais durante GET. Ela e acionada explicitamente por `POST` com `acao=materializar_despesas_fixas`.
-- `POST/PATCH/DELETE` usam `tipo_registro` para escolher a tabela correta.
+- `POST/PATCH/DELETE` aceitam `despesa_fixa`, `gasto_variado`, `receita`, `poupanca`, `meta_poupanca` e `resgate_poupanca`, conforme a operacao. O tipo removido `compra` e rejeitado como invalido.
 - Despesa fixa parcelada e conta fixa nao podem coexistir.
 - Conta fixa e parcelas podem gerar registros futuros por serie.
 - `pendente_mes=true` em despesa fixa sempre forca `status='pendente'`; alterar status para `pago` limpa a flag.
@@ -266,7 +266,7 @@ Benchmark local em `OFFLINE_DEV=true`, 30 requisicoes sequenciais por rota, em 2
 | Abertura inicial em `data` | 21,02 ms | 29,66 ms | 3.321 bytes |
 | `summary` sob demanda | 20,47 ms | 28,77 ms | 1.743 bytes |
 | `poupanca` sob demanda | 16,82 ms | 31,83 ms | 551 bytes |
-| `compras` sob demanda | 19,28 ms | 33,32 ms | 957 bytes |
+| `compras` sob demanda (modo removido em 2026-09-29) | 19,28 ms | 33,32 ms | 957 bytes |
 
 A abertura inicial reduziu o payload em 59,8%, a media local em 40,9% e a quantidade de consultas simuladas de ate 10 para 2. Os tempos sao de mock local e nao representam a latencia do Supabase real; medicao integrada depende de autorizacao explicita.
 
@@ -319,7 +319,6 @@ Funcoes relevantes:
 | `tb_despesas_fixas` | Contas fixas, parcelas e flag mensal `pendente_mes` |
 | `tb_poupanca` | Depositos e resgates |
 | `tb_poupanca_metas` | Metas de poupanca |
-| `tb_compras` | Compras isoladas |
 | `tb_financeiro_analises` | Analises persistidas |
 | `tb_financeiro_features_mensais` | Features mensais para ML |
 | `tb_financeiro_analise_runs` | Execucoes de analise |
@@ -336,7 +335,6 @@ Arquivo principal: `migration/20260830_financeiro_views_agregadas.sql`.
 | `vw_financeiro_categoria_anual` | Ranking anual por categoria para o analista |
 | `vw_financeiro_historico_anual` | Historico anual por mes |
 | `vw_financeiro_poupanca_resumo` | Total acumulado, meta ativa, progresso e status |
-| `vw_financeiro_compras_mensal` | Total, quantidade e ticket medio de compras por mes |
 
 As views usam `security_invoker = true` para respeitar RLS das tabelas base.
 
@@ -372,6 +370,9 @@ As views usam `security_invoker = true` para respeitar RLS das tabelas base.
 | `tb_notes` | Removida |
 | `tb_calendario` | Legado citado em RLS |
 | `tb_saldo_conta_corrente` | Removida |
+| `tb_compras` | Removida em 2026-09-29 com o modo Compras do Financeiro; nao confundir com `tb_lista_compras` |
+
+A view `vw_financeiro_compras_mensal`, dependente de `tb_compras`, tambem foi removida. A categoria textual `Compras` em gastos variados e o app independente Lista de Compras permanecem ativos.
 
 ## 5. Versionamento
 
@@ -406,6 +407,9 @@ As views usam `security_invoker = true` para respeitar RLS das tabelas base.
 | `20260913_create_saude_module.sql` | Modulo Saude, tabela nutricional, permissoes e RLS |
 | `20260914_create_saude_dietas.sql` | Dietas estruturadas e RLS |
 | `20260914_create_saude_perfis.sql` | Perfis familiares, IMC, historico automatico e RLS por usuario |
+| `20260929_drop_financeiro_compras.sql` | Remove a view e a tabela do modo Compras do Financeiro |
+
+Rollback estrutural: `migration/rollback/20260929_restore_financeiro_compras.sql`. Ele recria tabela, indices, RLS e view, mas dados removidos pelo `DROP TABLE` dependem de backup.
 
 ### Scripts
 
@@ -460,6 +464,7 @@ Suites principais:
 | `tests/api/disponibilidade.api.test.js` | Health checks |
 | `tests/api/saude.api.test.js` | CRUD de Saude, perfis, IMC e linha do tempo |
 | `tests/database/saudeSql.test.js` | Migrations, triggers e RLS de Saude |
+| `tests/database/financeiroComprasDropSql.test.js` | Ordem do drop, transacao e rollback estrutural do antigo modo Compras |
 | `tests/ui/saudeUi.test.js` | Estrutura responsiva do modulo Saude |
 | `tests/ui/homeDietQuick.test.js` | Botao inicial, cache do ultimo perfil/dieta e restauracao automatica do modal |
 | `tests/services/perfilSaude.service.test.js` | Calculo e classificacao do IMC |
@@ -488,6 +493,7 @@ Suites principais:
 | 2026-09-14 | CRUD de Missoes de Treino corrigido para IDs do Supabase, criacao direta com exercicio preenchido, limpeza de dependencias na exclusao e rollback de missao incompleta |
 | 2026-09-14 | Perfil automatico legado Oficial deixou de ser recriado pela API; migration aditiva remove somente o registro vazio com a assinatura legada |
 | 2026-09-26 | Atalho de Dietas na tela inicial com modal por perfil, persistencia local do ultimo perfil e da ultima dieta e reabertura automatica; 35 arquivos e 212 testes aprovados, build local aprovado e workspace sem operacao Git |
+| 2026-09-29 | Modo Compras removido do Financeiro no frontend, API, mocks e dicas; migration remove `vw_financeiro_compras_mensal` e `tb_compras`, preservando a categoria Compras e o app Lista de Compras; 36 arquivos e 213 testes aprovados; SQL nao aplicado no Supabase |
 
 ## 6. Como Rodar
 
@@ -506,6 +512,7 @@ Para rodar com Supabase real, configure as variaveis de ambiente localmente ou n
 - Aplicar `migration/20260830_tb_despesas_fixas_pendente_mes.sql` no Supabase real antes de usar a flag mensal de pendencias.
 - Aplicar `migration/20260914_create_saude_perfis.sql` no Supabase real antes de usar os perfis de Saude fora do modo offline. A migration `20260913_create_saude_module.sql` e pre-requisito.
 - Aplicar `migration/20260914_remove_legacy_missoes_treino_profile.sql` no Supabase real para remover o perfil automatico legado Oficial quando estiver sem missoes.
+- Gerar backup de `public.tb_compras` e aplicar `migration/20260929_drop_financeiro_compras.sql` no Supabase real para concluir a remocao no banco. O rollback e apenas estrutural e nao recupera registros apagados.
 - Corrigir encoding mojibake herdado em arquivos antigos e alguns textos existentes.
 - Avaliar avisos do `npm run test:ux`: atualmente sao warnings, sem bloqueio critico.
 - Rodar SAST/secret scanning antes de qualquer deploy relevante: Gitleaks e, quando aplicavel, Opengrep.

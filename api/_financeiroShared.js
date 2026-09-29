@@ -1,11 +1,9 @@
 import { supabase } from '../lib/supabase.js';
 import {
-  TABLE_COMPRAS,
   TABLE_DESPESAS_FIXAS,
   TABLE_FINANCAS,
   TABLE_POUPANCA_METAS,
   TABLE_POUPANCA,
-  TIPO_REGISTRO_COMPRA,
   TIPO_REGISTRO_DESPESA_FIXA,
   TIPO_REGISTRO_GASTO_VARIADO,
   TIPO_REGISTRO_META_POUPANCA,
@@ -208,51 +206,11 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
       user_id: context.userId,
     },
   ];
-  const comprasMes = [
-    {
-      id: 'mock-compra-1',
-      descricao: 'Teclado mecânico',
-      tipo: 'compra',
-      categoria: 'Compras',
-      valor: 599.9,
-      created_at: `${baseDate}10T19:15:00.000Z`,
-      user_id: context.userId,
-    },
-    {
-      id: 'mock-compra-2',
-      descricao: 'Livros',
-      tipo: 'compra',
-      categoria: 'Lazer',
-      valor: 184.7,
-      created_at: `${baseDate}15T17:20:00.000Z`,
-      user_id: context.userId,
-    },
-    {
-      id: 'mock-compra-3',
-      descricao: 'Monitor',
-      tipo: 'compra',
-      categoria: 'Tecnologia',
-      valor: 1199.9,
-      created_at: `${baseDate}19T15:40:00.000Z`,
-      user_id: context.userId,
-    },
-    {
-      id: 'mock-compra-4',
-      descricao: 'Cadeira escritorio',
-      tipo: 'compra',
-      categoria: 'Casa',
-      valor: 849.5,
-      created_at: `${baseDate}24T13:15:00.000Z`,
-      user_id: context.userId,
-    },
-  ];
-
   const receitasTabela = montarTabelaFinanceiroRows(receitasRaw, TIPO_REGISTRO_RECEITA);
   const gastosVariadosTabela = montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO)
     .map((r) => ({ ...r, tipo_registro: resolveTipoRegistroFinanceiro(r, TIPO_REGISTRO_GASTO_VARIADO) }));
   const despesasFixasTabela = montarTabelaFinanceiroRows(despesasFixasRowsRaw, TIPO_REGISTRO_DESPESA_FIXA);
   const poupancaTabela = montarTabelaFinanceiroRows(poupancaRowsRaw, TIPO_REGISTRO_POUPANCA);
-  const comprasTabela = montarTabelaFinanceiroRows(comprasMes, TIPO_REGISTRO_COMPRA);
 
   const receitasTotal = Number(receitasRaw.reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2));
   const despesasVariadasTotal = Number(gastosVariados.reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2));
@@ -317,7 +275,6 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
         gastos_variados: gastosVariadosTabela,
         receitas: receitasTabela,
         poupanca: poupancaTabela,
-        compras: comprasTabela,
       },
       poupanca: {
         configurada: true,
@@ -332,11 +289,6 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
           progresso: 0.34,
           status_meta: 'em_execucao',
         },
-      },
-      compras: {
-        configurada: true,
-        total: Number(comprasMes.reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2)),
-        logs: comprasTabela,
       },
       analise_risco: analiseRisco,
       padroes: {
@@ -353,7 +305,6 @@ function tableForTipoRegistro(tipoRegistro) {
   if (tipoRegistro === TIPO_REGISTRO_DESPESA_FIXA) return TABLE_DESPESAS_FIXAS;
   if (tipoRegistro === TIPO_REGISTRO_POUPANCA) return TABLE_POUPANCA;
   if (tipoRegistro === TIPO_REGISTRO_META_POUPANCA) return TABLE_POUPANCA_METAS;
-  if (tipoRegistro === TIPO_REGISTRO_COMPRA) return TABLE_COMPRAS;
   return TABLE_FINANCAS;
 }
 
@@ -611,11 +562,10 @@ const FINANCEIRO_PAGE_SIZE = 50;
 const FINANCAS_LIST_COLUMNS = 'id,descricao,valor,tipo,tipo_gasto,metodo_pagamento,categoria,data_lancamento,created_at';
 const FIXAS_LIST_COLUMNS = 'id,descricao,valor,status,pendente_mes,conta_fixa,parcela_atual,parcela_total,serie_id,created_at';
 const POUPANCA_LIST_COLUMNS = 'id,descricao,valor,motivo_resgate,data_lancamento,created_at';
-const COMPRAS_LIST_COLUMNS = 'id,descricao,valor,categoria,data_lancamento,created_at';
 
 function normalizeFinanceiroSection(value) {
   const section = String(value || '').trim().toLowerCase();
-  return ['data', 'summary', 'poupanca', 'compras'].includes(section) ? section : '';
+  return ['data', 'summary', 'poupanca'].includes(section) ? section : '';
 }
 
 function parseFinanceiroPage(query = {}) {
@@ -651,8 +601,7 @@ function filterMockFinanceiroSection(data, query = {}) {
   if (section === 'summary') {
     return { ...base, dashboard: data.dashboard, graficos: data.graficos, graficos_anuais: data.graficos_anuais };
   }
-  if (section === 'poupanca') return { ...base, poupanca: data.poupanca };
-  return { ...base, compras: data.compras };
+  return { ...base, poupanca: data.poupanca };
 }
 
 export async function materializeDespesasFixasMes(mesAno, context = {}) {
@@ -848,31 +797,7 @@ async function obterFinanceiroSecao(query = {}, context = {}) {
     };
   }
 
-  const [resumoResult, logsResult] = await Promise.all([
-    scopeQueryByUser(
-      supabase.from('vw_financeiro_compras_mensal').select('valor_total,quantidade_compras,ticket_medio').eq('mes_ano', mes_ano),
-      context
-    ),
-    scopeQueryByUser(
-      supabase.from(TABLE_COMPRAS).select(COMPRAS_LIST_COLUMNS).or(monthPeriodFilter).order('created_at', { ascending: false }).range(from, to),
-      context
-    ),
-  ]);
-  if (resumoResult.error && !isMissingTableError(resumoResult.error)) return { error: resumoResult.error.message, status: 500 };
-  if (logsResult.error && !isMissingTableError(logsResult.error)) return { error: logsResult.error.message, status: 500 };
-  const pageData = paginatedRows(logsResult.data, page, limit);
-  return {
-    status: 200,
-    data: {
-      ...base,
-      compras: {
-        configurada: !logsResult.error,
-        total: Number(resumoResult.data?.[0]?.valor_total || 0),
-        logs: montarTabelaFinanceiroRows(pageData.rows, TIPO_REGISTRO_COMPRA),
-        pagination: pageData.pagination,
-      },
-    },
-  };
+  return { status: 400, data: { error: 'secao invalida' } };
 }
 
 export async function obterFinanceiroMes(query = {}, context = {}) {
@@ -895,11 +820,9 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
     categoriasMensalResult,
     historicoAnualResult,
     poupancaResumoResult,
-    comprasMensalResult,
     financasMesResult,
     despesasFixasMesResult,
     poupancaLogsResult,
-    comprasLogsResult,
   ] = await Promise.all([
     // ── Views: o banco agrega e entrega pronto ─────────────────────────────
     scopeQueryByUser(
@@ -928,12 +851,6 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
         .select('total_acumulado,meta_id,nome_meta,valor_meta,data_inicio,progresso,status_meta'),
       context
     ),
-    scopeQueryByUser(
-      supabase.from('vw_financeiro_compras_mensal')
-        .select('valor_total,quantidade_compras,ticket_medio')
-        .eq('mes_ano', mes_ano),
-      context
-    ),
     // ── Raw: apenas linhas do mês para tabelas de exibição e análise textual ─
     scopeQueryByUser(
       supabase.from(TABLE_FINANCAS)
@@ -956,13 +873,6 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
         .order('created_at', { ascending: false }),
       context
     ),
-    scopeQueryByUser(
-      supabase.from(TABLE_COMPRAS)
-        .select('*')
-        .or(monthPeriodFilter)
-        .order('created_at', { ascending: false }),
-      context
-    ),
   ]);
 
   if (financasMesResult.error) return { error: financasMesResult.error.message, status: 500 };
@@ -977,12 +887,6 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
   let poupancaMetaConfigured = true;
   if (poupancaResumoResult.error && !isMissingTableError(poupancaResumoResult.error)) {
     poupancaMetaConfigured = false;
-  }
-
-  let comprasConfigured = true;
-  if (comprasLogsResult.error) {
-    if (isMissingTableError(comprasLogsResult.error)) comprasConfigured = false;
-    else return { error: comprasLogsResult.error.message, status: 500 };
   }
 
   // ── Dashboard (banco agregou, Node só lê) ─────────────────────────────────
@@ -1034,14 +938,9 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
       }
     : null;
 
-  // ── Compras (banco agregou o total do mês) ────────────────────────────────
-  const comprasMensalRow = comprasMensalResult.data?.[0] || {};
-  const comprasTotal = Number(comprasMensalRow.valor_total || 0);
-
   // ── Tabelas de exibição (rows individuais para o frontend) ────────────────
   const financasMes = filtrarFinancasPorMes(financasMesResult.data || [], ano, mes);
   const { receitas: receitasRaw, gastosVariados } = classificarFinancas(financasMes);
-  const comprasMes = filtrarFinancasPorMes(comprasLogsResult.data || [], ano, mes);
   const despesasFixasRowsRaw = despesasFixasMesResult.data || [];
   const poupancaRowsRaw = poupancaLogsResult.data || [];
 
@@ -1050,7 +949,6 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
     .map((r) => ({ ...r, tipo_registro: resolveTipoRegistroFinanceiro(r, TIPO_REGISTRO_GASTO_VARIADO) }));
   const despesasFixasTabela = montarTabelaFinanceiroRows(despesasFixasRowsRaw, TIPO_REGISTRO_DESPESA_FIXA);
   const poupancaTabela = montarTabelaFinanceiroRows(poupancaRowsRaw, TIPO_REGISTRO_POUPANCA);
-  const comprasTabela = montarTabelaFinanceiroRows(comprasMes, TIPO_REGISTRO_COMPRA);
 
   // ── Análise de Risco e Padrões (precisam dos rows brutos — inevitável) ────
   const brazilNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
@@ -1079,7 +977,6 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
         gastos_variados: gastosVariadosTabela,
         receitas: receitasTabela,
         poupanca: poupancaTabela,
-        compras: comprasTabela,
       },
       poupanca: {
         configurada: poupancaConfigured,
@@ -1087,11 +984,6 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
         total: poupancaTotal,
         logs: poupancaTabela,
         meta_ativa: poupancaMetaAtiva,
-      },
-      compras: {
-        configurada: comprasConfigured,
-        total: comprasTotal,
-        logs: comprasTabela,
       },
       analise_risco: analiseRisco,
       padroes: {
@@ -1269,11 +1161,6 @@ export async function removerRegistroFinanceiro(req, context = {}) {
       if (errMeta && !isMissingTableError(errMeta)) return { status: 500, data: { error: errMeta.message } };
       if (Array.isArray(inMeta) && inMeta.length > 0) tipoRegistro = TIPO_REGISTRO_META_POUPANCA;
     }
-    if (!tipoRegistro) {
-      const { data: inCompra, error: errCompra } = await scopeQueryByUser(supabase.from(TABLE_COMPRAS).select('id').eq('id', id), context).limit(1);
-      if (errCompra && !isMissingTableError(errCompra)) return { status: 500, data: { error: errCompra.message } };
-      if (Array.isArray(inCompra) && inCompra.length > 0) tipoRegistro = TIPO_REGISTRO_COMPRA;
-    }
     if (!tipoRegistro) return { status: 404, data: { error: 'registro nao encontrado para exclusao' } };
   }
 
@@ -1283,7 +1170,6 @@ export async function removerRegistroFinanceiro(req, context = {}) {
     TIPO_REGISTRO_RECEITA,
     TIPO_REGISTRO_POUPANCA,
     TIPO_REGISTRO_META_POUPANCA,
-    TIPO_REGISTRO_COMPRA,
   ].includes(tipoRegistro)) {
     return { status: 400, data: { error: 'tipo_registro invalido' } };
   }

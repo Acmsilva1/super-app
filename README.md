@@ -32,7 +32,7 @@ super-app-1/
 
 | Modulo | Tabela principal | Responsabilidade |
 |---|---|---|
-| `financeiro` | `tb_financas` + `tb_despesas_fixas` | Dashboard financeiro unificado com receitas, gastos variados e despesas fixas |
+| `financeiro` | `tb_financas` + `tb_despesas_fixas` + `tb_poupanca` + `tb_poupanca_metas` | Dashboard financeiro com receitas, gastos variados, despesas fixas e poupanca |
 | `lista_compras` | `tb_lista_compras` | Itens, categorias e marcacao de compra |
 | `calendario` | `tb_calendario` | Agenda, visualizacao mensal e status de confirmacao |
 | `fluxograma` | `tb_fluxograma_projetos` | Projetos de fluxograma com rascunho local e nuvem |
@@ -98,11 +98,13 @@ flowchart TD
 
 | Endpoint | Metodos | Tabela(s) | Observacoes |
 |---|---|---|---|
-| `/api/financeiro` | `GET, POST, PATCH, DELETE` | `tb_financas`, `tb_despesas_fixas` | endpoint financeiro unico com dashboard, graficos e tabelas por tipo |
+| `/api/financeiro` | `GET, POST, PATCH, DELETE` | `tb_financas`, `tb_despesas_fixas`, `tb_poupanca`, `tb_poupanca_metas` | contrato segmentado por `data`, `summary` e `poupanca` |
 | `/api/lista-compras` | `GET, POST, PATCH, DELETE` | `tb_lista_compras` | suporta toggle e reset global |
 | `/api/calendario` | `GET, POST, PATCH, DELETE` | `tb_calendario` | GET aceita `action=config`, `action=view` e `action=sync_status` |
 | `/api/fluxograma` | `GET, POST, PATCH, DELETE` | `tb_fluxograma_projetos` | persistencia de projetos |
 | `/api/notificar` | `POST` | `tb_calendario` | envia lembretes Telegram |
+
+O antigo modo Compras do Financeiro e a tabela `tb_compras` foram removidos. Isso nao altera a categoria `Compras` dos gastos variados nem o app separado `lista_compras`, persistido em `tb_lista_compras`.
 
 ### Excecoes recorrentes
 
@@ -171,7 +173,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - `GET /api/apps`
 - `GET /api/statistics`
 - `GET /api/roadmap`
-- `GET /api/financeiro?bi=1&mes_ano=YYYY-MM`
+- `GET /api/financeiro?mes_ano=YYYY-MM&secao=data`
 - `GET /api/lista-compras`
 - `GET /api/calendario?action=config`
 - `GET /api/fluxograma`
