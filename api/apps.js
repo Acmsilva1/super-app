@@ -1,5 +1,12 @@
 import { requireUser } from '../lib/auth.js';
 
+const ROADMAP = [
+  { step: '1', title: 'Shell único publicado na Vercel', description: 'Frontend estático/PWA em index.html com catálogo central de apps e consumo de APIs serverless.' },
+  { step: '2', title: 'Domínios integrados ao Supabase', description: 'Despesas Fixas, Finanças, Lista de Compras, Saúde e Fluxograma persistem dados no Supabase.' },
+  { step: '3', title: 'Automação operacional', description: 'GitHub Actions acorda a Vercel para análise operacional agendada.' },
+  { step: '4', title: 'Evolução contínua', description: 'Base está pronta para evolução incremental de módulos e melhorias de confiabilidade.' },
+];
+
 /**
  * Lista de aplicacoes do Super App (usada pelo index.html no Vercel).
  * Cada app costuma ter uma API, exceto fluxograma (so front + localStorage).
@@ -49,6 +56,44 @@ function json(res, status, data) {
 }
 
 export default async function handler(req, res) {
+  const route = String(req.query?.route || '');
+  if (route === 'auth-config') {
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', 'GET');
+      return json(res, 405, { error: 'Method Not Allowed' });
+    }
+    if (process.env.OFFLINE_DEV === 'true') {
+      return json(res, 200, {
+        offlineMode: true,
+        fakeToken: 'offline-dev-token',
+        user: { id: 'f88a6351-317d-425b-afcd-9430c8a34f53', email: 'andre@local.dev' },
+      });
+    }
+    const url = process.env.SUPABASE_URL;
+    const anonKey = process.env.SUPABASE_ANON_KEY;
+    if (!url || !anonKey) return json(res, 500, { error: 'Supabase Auth nao configurado' });
+    return json(res, 200, { url, anonKey });
+  }
+  if (route === 'statistics') {
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', 'GET');
+      return json(res, 405, { error: 'Method Not Allowed' });
+    }
+    return json(res, 200, {
+      totalApps: APPS.length,
+      activeApps: APPS.filter((app) => app.status === 'active').length,
+      betaApps: APPS.filter((app) => app.status === 'beta').length,
+      openApps: APPS.filter((app) => app.status === 'open').length,
+    });
+  }
+  if (route === 'roadmap') {
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', 'GET');
+      return json(res, 405, { error: 'Method Not Allowed' });
+    }
+    return json(res, 200, ROADMAP);
+  }
+
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return json(res, 405, { error: 'Method Not Allowed' });

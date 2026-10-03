@@ -207,10 +207,10 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 |---|---|---|---|
 | `/api/apps` | GET | Sim | Lista apps disponiveis |
 | `/api/admin/usuarios` | GET, PATCH | Administrador | Lista contas, altera permissoes concediveis e bloqueia/reativa contas |
-| `/api/apps` | GET | Usuario autenticado | Admin ve todos; demais veem somente os modulos liberados em `app_user_permissions` |
-| `/api/statistics` | GET | Nao sensivel | Totais do catalogo |
-| `/api/roadmap` | GET | Nao sensivel | Roadmap estatico |
-| `/api/auth-config` | GET | Publico | Config publica Supabase |
+| `/api/apps` | GET | Usuario autenticado | Admin ve todos; demais veem somente os modulos liberados em `app_user_permissions`; tambem atende as rotas consolidadas abaixo |
+| `/api/statistics` | GET | Nao sensivel | Totais do catalogo via rewrite para `/api/apps` |
+| `/api/roadmap` | GET | Nao sensivel | Roadmap estatico via rewrite para `/api/apps` |
+| `/api/auth-config` | GET | Publico | Config publica Supabase via rewrite para `/api/apps` |
 | `/api/financeiro` | GET, POST, PATCH, DELETE | `financeiro` | Dashboard, CRUD financeiro e flag `pendente_mes` |
 | `/api/financeiro-analista` | GET | `financeiro` | Analise historica e categorias |
 | `/api/cron-treinar-modelo` | POST | `CRON_SECRET` | Job de treino financeiro |

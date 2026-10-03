@@ -3,6 +3,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".",
   "framework": null,
+  "rewrites": [
+    { "source": "/api/auth-config", "destination": "/api/apps?route=auth-config" },
+    { "source": "/api/statistics", "destination": "/api/apps?route=statistics" },
+    { "source": "/api/roadmap", "destination": "/api/apps?route=roadmap" }
+  ],
   "headers": [
     {
       "source": "/",

@@ -3,8 +3,6 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
 import appsHandler, { APPS } from '../../api/apps.js';
-import statisticsHandler from '../../api/statistics.js';
-import roadmapHandler from '../../api/roadmap.js';
 
 function createApp(handler) {
   const app = express();
@@ -38,7 +36,10 @@ describe('APIs de catalogo', () => {
   });
 
   it('GET /statistics retorna totais consistentes com APPS', async () => {
-    const app = createApp(statisticsHandler);
+    const app = createApp((req, res) => {
+      req.query.route = 'statistics';
+      return appsHandler(req, res);
+    });
     const res = await request(app).get('/api/test');
     expect(res.status).toBe(200);
     expect(res.body.totalApps).toBe(APPS.length);
@@ -46,7 +47,10 @@ describe('APIs de catalogo', () => {
   });
 
   it('GET /roadmap retorna lista de etapas', async () => {
-    const app = createApp(roadmapHandler);
+    const app = createApp((req, res) => {
+      req.query.route = 'roadmap';
+      return appsHandler(req, res);
+    });
     const res = await request(app).get('/api/test');
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);

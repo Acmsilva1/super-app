@@ -52,7 +52,11 @@ app.use('/rest/v1', async (req, res) => {
 // Roteamento dinamico de rotas Serverless (/api/*)
 app.all('/api/*', async (req, res) => {
   const requestedEndpoint = String(req.path || '').replace(/^\/api\//, '');
-  const endpoint = requestedEndpoint;
+  const consolidatedRoutes = new Set(['auth-config', 'statistics', 'roadmap']);
+  const endpoint = consolidatedRoutes.has(requestedEndpoint) ? 'apps' : requestedEndpoint;
+  if (consolidatedRoutes.has(requestedEndpoint)) {
+    req.query = { ...req.query, route: requestedEndpoint };
+  }
   if (!/^[a-z0-9/_-]+$/i.test(endpoint)) {
     return res.status(404).json({ error: 'Rota de API nao encontrada.' });
   }
