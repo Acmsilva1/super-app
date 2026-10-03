@@ -16,7 +16,6 @@ import financeiroHandler from '../../api/financeiro.js';
 import listaComprasHandler from '../../api/lista-compras.js';
 import fluxogramaHandler from '../../api/fluxograma.js';
 import fluxogramaExportHandler from '../../api/fluxograma-export.js';
-import missoesTreinoHandler from '../../api/missoes-treino.js';
 import saudeHandler from '../../api/saude.js';
 
 function createApp(handler) {
@@ -31,7 +30,6 @@ const HEALTH_HANDLERS = [
   { id: 'lista_compras', handler: listaComprasHandler },
   { id: 'fluxograma', handler: fluxogramaHandler },
   { id: 'fluxograma_export', handler: fluxogramaExportHandler },
-  { id: 'missoes_treino', handler: missoesTreinoHandler },
   { id: 'saude', handler: saudeHandler },
 ];
 

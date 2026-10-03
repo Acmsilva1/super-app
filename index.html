@@ -8274,7 +8274,7 @@
                     if (button) this.saveAdminUserStatus(button);
                 });
                 try {
-                    const response = await fetch('/api/admin/usuarios?access=1');
+                    const response = await fetch('/api/admin/usuarios', { method: 'HEAD' });
                     if (response.ok) adminTab.hidden = false;
                 } catch (_error) {}
             }
@@ -8441,7 +8441,6 @@
                     financeiro: '/api/financeiro?health=1',
                     lista_compras: '/api/lista-compras?health=1',
                     fluxograma: '/api/fluxograma?health=1',
-                    missoes_treino: '/api/missoes-treino?health=1',
                     saude: '/api/saude?health=1',
                 };
                 return map[String(app?.id || '')] || '';
@@ -8527,7 +8526,7 @@
             getAppTone(app, idx = 0) {
                 const id = String(app?.id || '').toLowerCase();
                 if (id.includes('fin') || id.includes('despesa')) return 'warm';
-                if (id.includes('saude') || id.includes('treino')) return 'growth';
+                if (id.includes('saude')) return 'growth';
                 if (id.includes('flux')) return 'energy';
                 return ['cool', 'growth', 'warm', 'energy'][idx % 4];
             }
@@ -8538,7 +8537,6 @@
                 if (id.includes('flux')) return '/icone%20fluxograma.png';
                 if (id.includes('lista') || id.includes('compra')) return '/icone%20lista%20de%20compras.png';
                 if (id.includes('saude')) return '/icone%20saude.png';
-                if (id.includes('treino')) return '/icone%20treino.png';
                 return '/icon-192.png';
             }
 
@@ -8960,26 +8958,6 @@
                     const scrollToRestore = Number.isFinite(savedScroll) ? savedScroll : previousScrollTop;
                     this.rememberWindowScroll(appId, scrollToRestore);
                     this.restoreWindowScroll(appId, contentEl);
-                    return;
-                }
-                if (appId === 'missoes_treino') {
-                    try {
-                        // Query de versao: forca novo modulo no PWA; path no servidor e o mesmo (Vercel ignora query).
-                        const mod = await import('./features/missoes_treino/index.js?v=2026-09-25-profile-list-fix-v1');
-                        mod.renderMissoesTreinoContent(contentEl);
-                        // Scroll antigo (antes das abas) deixava header/tabs fora do ecra no mobile.
-                        if (this.uiState.windowScrolls && appId in this.uiState.windowScrolls) {
-                            delete this.uiState.windowScrolls[appId];
-                            this.saveUiState();
-                        }
-                        this.rememberWindowScroll(appId, 0);
-                        requestAnimationFrame(() => {
-                            contentEl.scrollTop = 0;
-                        });
-                    } catch (err) {
-                        console.error(err);
-                        contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> Nao foi possivel carregar Missoes de Treino.</div>';
-                    }
                     return;
                 }
                 if (appId === 'saude') {

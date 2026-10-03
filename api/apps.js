@@ -33,15 +33,6 @@ export const APPS = [
     health_path: '/api/fluxograma?health=1',
   },
   {
-    id: 'missoes_treino',
-    icon: 'fa-dumbbell',
-    status: 'active',
-    title: 'Missões de Treino',
-    description: 'Controle diário de missões com API de acompanhamento, progresso e histórico.',
-    category: 'Sa\u00fade',
-    health_path: '/api/missoes-treino?health=1',
-  },
-  {
     id: 'saude',
     icon: 'fa-heart-pulse',
     status: 'active',

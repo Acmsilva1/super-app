@@ -43,10 +43,11 @@ super-app/
 | `financeiro` | Dashboard, despesas, poupanca, analista | `/api/financeiro`, `/api/financeiro-analista` |
 | `lista_compras` | Lista com prioridade e check | `/api/lista-compras` |
 | `fluxograma` | Diagramas locais e em nuvem | `/api/fluxograma`, `/api/fluxograma-export` |
-| `missoes_treino` | Perfis e treinos | `/api/missoes-treino` |
 | `saude` | Tabela nutricional, dietas e perfis familiares | `/api/saude` |
 
 ### Fluxo Geral
+
+Nota: o modulo Missões de Treino e sua API foram removidos do app para reduzir funcoes serverless. Tabelas e migrations de treino existentes permanecem preservadas no Supabase; nenhuma operacao de banco foi executada.
 
 ```text
 Login Supabase -> Bearer token -> /api/* -> requireUser()
@@ -85,7 +86,6 @@ Config publica consumida pelo frontend: `GET /api/auth-config`.
 | `financeiro` | Inline | `index.html` |
 | `lista_compras` | Inline | `index.html` |
 | `fluxograma` | Dynamic import | `features/fluxograma/index.js` |
-| `missoes_treino` | Dynamic import | `features/missoes_treino/index.js` |
 | `saude` | Dynamic import | `features/saude/index.js` |
 
 Padrao de cleanup ao fechar janela:
@@ -127,27 +127,6 @@ Modelo: `features/lista_compras/model/itemLista.js`.
 - Rascunho local em `localStorage`.
 - Projetos salvos na nuvem via `/api/fluxograma`.
 - Exportacao PNG via `/api/fluxograma-export`.
-
-### Missoes de Treino
-
-| Arquivo | Papel |
-|---|---|
-| `features/missoes_treino/index.js` | UI completa do modulo |
-| `features/missoes_treino/mock.example.js` | Mock padrao versionado |
-| `features/missoes_treino/mock.js` | Override local ignorado pelo Git |
-
-```text
-Abrir modulo -> perfis -> selecionar perfil -> treinos do perfil -> voltar para perfis
-```
-
-- Treinos sao fixos por perfil.
-- Sem filtro obrigatorio por dia da semana.
-- Sem carry-over automatico.
-- Mock local ativo em `localhost`, `127.0.0.1` e `[::1]`.
-- IDs vindos do Supabase sao normalizados na UI antes de editar ou excluir, evitando divergencia entre IDs numericos da API e atributos textuais do HTML.
-- Ao criar uma missao, o exercicio ainda preenchido no formulario e adicionado automaticamente; se os campos estiverem invalidos, a UI mostra feedback em vez de ignorar o clique.
-- A exclusao de perfil remove primeiro itens, chamas e missoes vinculadas, sem depender exclusivamente de cascata implicita no banco.
-- Se a insercao dos itens falhar depois da criacao da missao, a API remove a missao incompleta para nao deixar registro orfao.
 
 ### Saude
 
@@ -216,7 +195,7 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 - A conta administrativa do Super App e identificada pelo UUID `f88a6351-317d-425b-afcd-9430c8a34f53`, email confirmado e papel `owner` ou `admin`.
 - Usuarios comuns dependem de `app_user_permissions`.
 - A gestao de usuarios e permissoes fica em `/api/admin/usuarios` e exige `SUPABASE_SERVICE_ROLE_KEY` apenas no servidor.
-- Financeiro e Saude aceitam acesso por permissao individual; Lista de Compras, Fluxograma e Missoes de Treino continuam restritos ao admin enquanto os dados dessas tabelas nao forem isolados por conta.
+- Financeiro e Saude aceitam acesso por permissao individual; Lista de Compras e Fluxograma continuam restritos ao admin enquanto os dados dessas tabelas nao forem isolados por conta.
 - O bloqueio de conta usa Supabase Auth e `requireUser()` revalida o status da conta antes de aceitar as chamadas autenticadas.
 - A migration `20261003_restrict_admin_to_andre.sql` restringe tambem a funcao `is_app_admin()` usada pelas politicas RLS; ela precisa ser aplicada no banco de destino.
 - Health checks com `?health=1` podem ser publicos nos endpoints que oferecem esse recurso.
@@ -238,7 +217,6 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 | `/api/lista-compras` | GET, POST, PATCH, DELETE | `lista_compras` | CRUD da lista |
 | `/api/fluxograma` | GET, POST, PATCH, DELETE | Admin | Projetos de fluxograma |
 | `/api/fluxograma-export` | GET | Admin | Exportacao PNG |
-| `/api/missoes-treino` | GET, POST, PATCH, DELETE | Admin | Perfis, missoes e itens |
 | `/api/saude` | GET, POST, PATCH, DELETE | Permissao `saude` ou admin | Dados de perfil e dietas sao filtrados por conta; tabela nutricional compartilhada segue somente leitura para usuarios comuns |
 
 ### Regras dos Perfis de Saude
@@ -352,10 +330,10 @@ As views usam `security_invoker = true` para respeitar RLS das tabelas base.
 |---|---|
 | `tb_lista_compras` | Lista de compras |
 | `tb_fluxograma_projetos` | Fluxograma |
-| `tb_missoes_treino_perfis` | Perfis de treino |
-| `tb_missoes_treino` | Missoes de treino |
-| `tb_missoes_treino_itens` | Itens das missoes |
-| `tb_missoes_treino_chamas` | Historico/estado mensal de conclusao |
+| `tb_missoes_treino_perfis` | Legado do modulo removido (preservado) |
+| `tb_missoes_treino` | Legado do modulo removido (preservado) |
+| `tb_missoes_treino_itens` | Legado do modulo removido (preservado) |
+| `tb_missoes_treino_chamas` | Legado do modulo removido (preservado) |
 | `tb_saude_tabela_nutricional` | Itens e porcoes equivalentes |
 | `tb_saude_dietas` | Planos alimentares estruturados por dia |
 | `tb_saude_perfis` | Dados atuais dos perfis familiares |
@@ -365,7 +343,7 @@ As views usam `security_invoker = true` para respeitar RLS das tabelas base.
 
 - Tabelas financeiras: acesso por `user_id = auth.uid()` ou admin.
 - Lista de compras: acesso por usuario.
-- Fluxograma e missoes de treino: acesso admin-only no desenho atual.
+- Fluxograma: acesso admin-only no desenho atual.
 - Perfis de saude: acesso restrito a `created_by = auth.uid()` nas tabelas de perfis e medidas; a API repete o filtro por usuario. O modulo pode ser liberado em `app_user_permissions`.
 - `anon` nao deve ter acesso direto as tabelas de dados.
 - `.env`, tokens, service role e credenciais nao devem ser versionados.
@@ -452,7 +430,6 @@ O `.gitignore` cobre:
 - logs e arquivos de sistema
 - scripts locais da mensageria Telegram
 - `.mensageria/`
-- `features/missoes_treino/mock.js`
 - `scratch/`
 
 ### Testes e Qualidade
@@ -468,7 +445,6 @@ Suites principais:
 | `tests/api/lista-compras.api.test.js` | Lista de compras |
 | `tests/api/fluxograma.api.test.js` | Fluxograma |
 | `tests/api/fluxograma-export.api.test.js` | Export PNG |
-| `tests/api/missoes-treino.api.test.js` | Perfis e treinos |
 | `tests/api/disponibilidade.api.test.js` | Health checks |
 | `tests/api/saude.api.test.js` | CRUD de Saude, perfis, IMC e linha do tempo |
 | `tests/database/saudeSql.test.js` | Migrations, triggers e RLS de Saude |
@@ -476,7 +452,6 @@ Suites principais:
 | `tests/ui/saudeUi.test.js` | Estrutura responsiva do modulo Saude |
 | `tests/ui/homeDietQuick.test.js` | Botao inicial, cache do ultimo perfil/dieta e restauracao automatica do modal |
 | `tests/services/perfilSaude.service.test.js` | Calculo e classificacao do IMC |
-| `tests/services/missoesTreinoUi.test.js` | IDs numericos/textuais e criacao direta de missao |
 | `tests/services/*.test.js` | Services e regras de dominio |
 
 ### Checkpoints
@@ -519,7 +494,6 @@ Para rodar com Supabase real, configure as variaveis de ambiente localmente ou n
 - Aplicar `migration/20260830_financeiro_views_agregadas.sql` no Supabase real antes de depender da nova view anual em producao.
 - Aplicar `migration/20260830_tb_despesas_fixas_pendente_mes.sql` no Supabase real antes de usar a flag mensal de pendencias.
 - Aplicar `migration/20260914_create_saude_perfis.sql` no Supabase real antes de usar os perfis de Saude fora do modo offline. A migration `20260913_create_saude_module.sql` e pre-requisito.
-- Aplicar `migration/20260914_remove_legacy_missoes_treino_profile.sql` no Supabase real para remover o perfil automatico legado Oficial quando estiver sem missoes.
 - Gerar backup de `public.tb_compras` e aplicar `migration/20260929_drop_financeiro_compras.sql` no Supabase real para concluir a remocao no banco. O rollback e apenas estrutural e nao recupera registros apagados.
 - Corrigir encoding mojibake herdado em arquivos antigos e alguns textos existentes.
 - Avaliar avisos do `npm run test:ux`: atualmente sao warnings, sem bloqueio critico.

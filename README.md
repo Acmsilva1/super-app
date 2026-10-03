@@ -36,7 +36,6 @@ super-app-1/
 | `lista_compras` | `tb_lista_compras` | Itens, categorias e marcacao de compra |
 | `calendario` | `tb_calendario` | Agenda, visualizacao mensal e status de confirmacao |
 | `fluxograma` | `tb_fluxograma_projetos` | Projetos de fluxograma com rascunho local e nuvem |
-| `missoes_treino` | `tb_missoes_treino` | Agenda de treinos com penalidades e progressao termica (chamas) |
 
 ### Aderencia ao padrao de arquitetura
 
@@ -219,7 +218,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - O menu do Fluxograma passou a exibir preview da cor atual do item selecionado e da ultima cor usada.
 - Novas conexoes no Fluxograma agora usam a cor ativa da paleta, e o estado `activeColor` passou a ser persistido no payload do grafo para manter contexto entre sessoes.
 - Suporte a promises nos popups nativos foi implementado, e substituiu todos os `confirm()` antigos por uma modal estetica global via `SuperApp.showConfirm()`.
-- "Missões de Treino" atualizado para aplicar continuidade automatica de missoes na virada de data, preservar historico em nuvem e diminuir punicao de atraso de 20 para 10 burpees.
+- O modulo Missões de Treino foi removido do app; tabelas e migrations existentes foram preservadas no Supabase.
 
 ## Artefatos de Documentacao
 
