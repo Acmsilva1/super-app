@@ -19,21 +19,23 @@ export default async function handler(req, res) {
     return json(res, 200, { ok: true, service: 'fluxograma' });
   }
 
-  const auth = await requireUser(req, { appId: 'fluxograma', adminOnly: true });
+  const auth = await requireUser(req, { appId: 'fluxograma' });
   if (!auth.ok) return json(res, auth.status, auth.data);
+
+  const ownerScope = (query) => (auth.isAdmin ? query : query.eq('user_id', auth.user.id));
 
   if (req.method === 'GET') {
     const id = req.query?.id;
     if (id) {
-      const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).maybeSingle();
+      const { data, error } = await ownerScope(supabase.from(TABLE).select('*').eq('id', id)).maybeSingle();
       if (error) return json(res, 500, { error: error.message });
       if (!data) return json(res, 404, { error: 'Projeto não encontrado' });
       return json(res, 200, { project: data });
     }
-    const { data, error } = await supabase
+    const { data, error } = await ownerScope(supabase
       .from(TABLE)
       .select('id, nome, created_at, updated_at')
-      .order('updated_at', { ascending: false });
+      .order('updated_at', { ascending: false }));
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, { projects: data || [] });
   }
@@ -45,7 +47,7 @@ export default async function handler(req, res) {
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from(TABLE)
-      .insert({ nome, dados, updated_at: now })
+      .insert({ nome, dados, updated_at: now, user_id: auth.user.id })
       .select()
       .single();
     if (error) return json(res, 500, { error: error.message });
@@ -60,7 +62,7 @@ export default async function handler(req, res) {
     if (typeof body.nome === 'string' && body.nome.trim()) payload.nome = body.nome.trim();
     if (body.dados !== undefined) payload.dados = normalizeDados(body.dados);
     if (Object.keys(payload).length <= 1) return json(res, 400, { error: 'nome ou dados obrigatorio' });
-    const { data, error } = await supabase.from(TABLE).update(payload).eq('id', id).select().single();
+    const { data, error } = await ownerScope(supabase.from(TABLE).update(payload).eq('id', id)).select().maybeSingle();
     if (error) return json(res, 500, { error: error.message });
     if (!data) return json(res, 404, { error: 'Projeto não encontrado' });
     return json(res, 200, data);
@@ -69,7 +71,7 @@ export default async function handler(req, res) {
   if (req.method === 'DELETE') {
     const id = req.query?.id;
     if (!id) return json(res, 400, { error: 'id obrigatorio (query)' });
-    const { error } = await supabase.from(TABLE).delete().eq('id', id);
+    const { error } = await ownerScope(supabase.from(TABLE).delete().eq('id', id));
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, { ok: true });
   }

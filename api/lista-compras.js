@@ -21,11 +21,13 @@ export default async function handler(req, res) {
     return json(res, 200, { ok: true, service: 'lista_compras' });
   }
 
-  const auth = await requireUser(req, { appId: 'lista_compras', adminOnly: true });
+  const auth = await requireUser(req, { appId: 'lista_compras' });
   if (!auth.ok) return json(res, auth.status, auth.data);
 
+  const ownerScope = (query) => (auth.isAdmin ? query : query.eq('user_id', auth.user.id));
+
   if (req.method === 'GET') {
-    const { data, error } = await supabase.from(TABLE_NAME).select('*').order('categoria').order('created_at', { ascending: false });
+    const { data, error } = await ownerScope(supabase.from(TABLE_NAME).select('*')).order('categoria').order('created_at', { ascending: false });
     if (error) return json(res, 500, { error: error.message });
     const ordenados = ordenarPorCategoria(data);
     return json(res, 200, { rows: ordenados, itens: parseRowsSupabase(ordenados) });
@@ -35,7 +37,7 @@ export default async function handler(req, res) {
     const { item, quantidade, unidade_medida, comprado, categoria } = body;
     if (!item) return json(res, 400, { error: 'item obrigatorio' });
     const payload = payloadInsert(item, quantidade, unidade_medida, comprado, categoria);
-    const { data, error } = await supabase.from(TABLE_NAME).insert(payload).select().single();
+    const { data, error } = await supabase.from(TABLE_NAME).insert({ ...payload, user_id: auth.user.id }).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 201, data);
   }
@@ -49,13 +51,13 @@ export default async function handler(req, res) {
         return json(res, 400, { error: 'categoria invalida' });
       }
       const payload = resetChecksPayload();
-      const query = supabase.from(TABLE_NAME).update(payload);
+      const query = ownerScope(supabase.from(TABLE_NAME).update(payload));
       if (categoriaRaw) {
         const { data, error } = await query.eq('categoria', categoriaRaw).select();
         if (error) return json(res, 500, { error: error.message });
         return json(res, 200, { updated: data?.length ?? 0 });
       }
-      const { data: rows } = await supabase.from(TABLE_NAME).select('id');
+      const { data: rows } = await ownerScope(supabase.from(TABLE_NAME).select('id'));
       const ids = (rows || []).map((r) => r.id).filter(Boolean);
       if (ids.length === 0) return json(res, 200, { updated: 0 });
       const { data, error } = await query.in('id', ids).select();
@@ -63,16 +65,16 @@ export default async function handler(req, res) {
       return json(res, 200, { updated: data?.length ?? 0 });
     }
     if (toggle && id) {
-      const { data: rows } = await supabase.from(TABLE_NAME).select('*');
+      const { data: rows } = await ownerScope(supabase.from(TABLE_NAME).select('*'));
       const payload = toggleComprado(rows ?? [], id);
       if (!payload) return json(res, 404, { error: 'item não encontrado' });
-      const { data, error } = await supabase.from(TABLE_NAME).update(payload).eq('id', id).select().single();
+      const { data, error } = await ownerScope(supabase.from(TABLE_NAME).update(payload)).eq('id', id).select().single();
       if (error) return json(res, 500, { error: error.message });
       return json(res, 200, data);
     }
     const payload = payloadUpdate(item, quantidade, unidade_medida, comprado, categoria);
     if (Object.keys(payload).length === 0) return json(res, 400, { error: 'nada para atualizar' });
-    const { data, error } = await supabase.from(TABLE_NAME).update(payload).eq('id', id).select().single();
+    const { data, error } = await ownerScope(supabase.from(TABLE_NAME).update(payload)).eq('id', id).select().single();
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, data);
   }
@@ -81,15 +83,15 @@ export default async function handler(req, res) {
     const id = body.id ?? req.query?.id;
     const deleteAll = body.delete_all === true || body.delete_all === 'true' || req.query?.delete_all === 'true';
     if (deleteAll) {
-      const { data: rows } = await supabase.from(TABLE_NAME).select('id');
+      const { data: rows } = await ownerScope(supabase.from(TABLE_NAME).select('id'));
       const ids = (rows || []).map((r) => r.id).filter(Boolean);
       if (ids.length === 0) return json(res, 200, { deleted: 0 });
-      const { error } = await supabase.from(TABLE_NAME).delete().in('id', ids);
+      const { error } = await ownerScope(supabase.from(TABLE_NAME).delete()).in('id', ids);
       if (error) return json(res, 500, { error: error.message });
       return json(res, 200, { deleted: ids.length });
     }
     if (!id) return json(res, 400, { error: 'id ou delete_all obrigatorio' });
-    const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
+    const { error } = await ownerScope(supabase.from(TABLE_NAME).delete()).eq('id', id);
     if (error) return json(res, 500, { error: error.message });
     return json(res, 200, { ok: true });
   }

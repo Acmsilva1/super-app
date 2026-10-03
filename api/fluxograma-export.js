@@ -1,4 +1,5 @@
 import { PNG } from 'pngjs';
+import { requireUser } from '../lib/auth.js';
 import {
   buildExportFileName,
   getExportPageRects,
@@ -57,6 +58,9 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, POST');
     return json(res, 405, { error: 'Method Not Allowed' });
   }
+
+  const auth = await requireUser(req, { appId: 'fluxograma' });
+  if (!auth.ok) return json(res, auth.status, auth.data);
 
   try {
     const body = parseBody(req);
