@@ -120,7 +120,7 @@ Service: `features/lista_compras/service/listaComprasService.js`
 #### `/api/fluxograma`
 Métodos: `GET`, `POST`, `PATCH`, `DELETE`
 
-- Auth: `requireUser({ appId: 'fluxograma', adminOnly: true })`
+- Auth: `requireUser({ appId: 'fluxograma' })`; cada consulta da API também filtra por `user_id`, exceto para o owner admin.
 - Tabela: `tb_fluxograma_projetos`
 
 Recursos:

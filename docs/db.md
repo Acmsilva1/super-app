@@ -17,7 +17,7 @@ Documentação das tabelas, views, migrations, RLS e ordem de execução no Supa
 | `app_user_roles` | Role por usuário (`owner`, `admin`, etc.) |
 | `app_user_permissions` | Permissão por `(user_id, app_id, can_access)` |
 
-Função auxiliar: `is_app_admin()` — usada em policies admin-only.
+Funções auxiliares: `is_app_admin()` e `can_access_app(app_id)` — usadas pelas policies de autorização por módulo.
 
 ---
 
@@ -144,7 +144,8 @@ Migration principal: `migration/20260718_enable_rls_user_permissions.sql`
 
 Comportamento:
 - Tabelas financeiras: RLS por `user_id = auth.uid()`
-- Módulos admin-only (fluxograma, treino): policy `is_app_admin()`
+- Lista de Compras e Fluxograma: policies exigem `can_access_app(app_id)` e `user_id = auth.uid()`; `is_app_admin()` mantém acesso do owner.
+- Módulo de treino legado: policy permanece admin-only enquanto as tabelas históricas forem mantidas.
 - Lista de compras: RLS por usuário
 - Rollback: `sql/20260718_rollback_rls_user_permissions.sql`
 
