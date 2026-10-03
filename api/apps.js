@@ -67,5 +67,12 @@ export default async function handler(req, res) {
   if (!auth.ok) return json(res, auth.status, auth.data);
 
   if (auth.isAdmin) return json(res, 200, APPS);
-  return json(res, 200, APPS.filter((app) => app.id === 'financeiro'));
+  const { data: permissions, error } = await (await import('../lib/supabase.js')).supabase
+    .from('app_user_permissions')
+    .select('app_id')
+    .eq('user_id', auth.user.id)
+    .eq('can_access', true);
+  if (error) return json(res, 500, { error: 'Nao foi possivel carregar os modulos autorizados.' });
+  const allowed = new Set((permissions || []).map((permission) => String(permission.app_id)));
+  return json(res, 200, APPS.filter((app) => allowed.has(app.id)));
 }

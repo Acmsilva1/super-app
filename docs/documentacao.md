@@ -213,8 +213,12 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 ### Autorizacao
 
 - Header obrigatorio: `Authorization: Bearer <access_token>`.
-- Roles administrativas: `owner` e `admin`.
+- A conta administrativa do Super App e identificada pelo UUID `f88a6351-317d-425b-afcd-9430c8a34f53`, email confirmado e papel `owner` ou `admin`.
 - Usuarios comuns dependem de `app_user_permissions`.
+- A gestao de usuarios e permissoes fica em `/api/admin/usuarios` e exige `SUPABASE_SERVICE_ROLE_KEY` apenas no servidor.
+- Financeiro e Saude aceitam acesso por permissao individual; Lista de Compras, Fluxograma e Missoes de Treino continuam restritos ao admin enquanto os dados dessas tabelas nao forem isolados por conta.
+- O bloqueio de conta usa Supabase Auth e `requireUser()` revalida o status da conta antes de aceitar as chamadas autenticadas.
+- A migration `20261003_restrict_admin_to_andre.sql` restringe tambem a funcao `is_app_admin()` usada pelas politicas RLS; ela precisa ser aplicada no banco de destino.
 - Health checks com `?health=1` podem ser publicos nos endpoints que oferecem esse recurso.
 - Em testes e dev offline, `NODE_ENV=test` ou `OFFLINE_DEV=true` ativam bypass controlado.
 
@@ -223,6 +227,8 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 | Endpoint | Metodos | Auth | Papel |
 |---|---|---|---|
 | `/api/apps` | GET | Sim | Lista apps disponiveis |
+| `/api/admin/usuarios` | GET, PATCH | Administrador | Lista contas, altera permissoes concediveis e bloqueia/reativa contas |
+| `/api/apps` | GET | Usuario autenticado | Admin ve todos; demais veem somente os modulos liberados em `app_user_permissions` |
 | `/api/statistics` | GET | Nao sensivel | Totais do catalogo |
 | `/api/roadmap` | GET | Nao sensivel | Roadmap estatico |
 | `/api/auth-config` | GET | Publico | Config publica Supabase |
@@ -233,7 +239,7 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 | `/api/fluxograma` | GET, POST, PATCH, DELETE | Admin | Projetos de fluxograma |
 | `/api/fluxograma-export` | GET | Admin | Exportacao PNG |
 | `/api/missoes-treino` | GET, POST, PATCH, DELETE | Admin | Perfis, missoes e itens |
-| `/api/saude` | GET, POST, PATCH, DELETE | Admin | Tabela nutricional e dietas; `resource=perfis` aceita GET, POST e PATCH |
+| `/api/saude` | GET, POST, PATCH, DELETE | Permissao `saude` ou admin | Dados de perfil e dietas sao filtrados por conta; tabela nutricional compartilhada segue somente leitura para usuarios comuns |
 
 ### Regras dos Perfis de Saude
 
@@ -360,7 +366,7 @@ As views usam `security_invoker = true` para respeitar RLS das tabelas base.
 - Tabelas financeiras: acesso por `user_id = auth.uid()` ou admin.
 - Lista de compras: acesso por usuario.
 - Fluxograma e missoes de treino: acesso admin-only no desenho atual.
-- Perfis de saude: acesso restrito a `created_by = auth.uid()` nas tabelas de perfis e medidas; a API repete o filtro por usuario.
+- Perfis de saude: acesso restrito a `created_by = auth.uid()` nas tabelas de perfis e medidas; a API repete o filtro por usuario. O modulo pode ser liberado em `app_user_permissions`.
 - `anon` nao deve ter acesso direto as tabelas de dados.
 - `.env`, tokens, service role e credenciais nao devem ser versionados.
 - `SUPABASE_SERVICE_ROLE_KEY` nunca deve ir para frontend, bundle ou arquivo publico.

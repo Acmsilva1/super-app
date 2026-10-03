@@ -7479,6 +7479,9 @@
                     <button class="header-btn" id="darkModeToggle" title="Modo escuro (alternar)" aria-label="Alternar modo escuro">
                         <i class="fas fa-moon" id="darkModeIcon"></i>
                     </button>
+                    <button class="header-btn" id="profileOpenBtn" title="Meu perfil" aria-label="Abrir meu perfil" style="display:none">
+                        <i class="fas fa-user-circle"></i><span class="header-btn-label">Meu perfil</span>
+                    </button>
                     <button class="auth-logout" id="authLogoutBtn" title="Sair" aria-label="Sair">
                         <i class="fas fa-right-from-bracket"></i>
                         <span class="header-btn-label">Sair</span>
@@ -7896,6 +7899,7 @@
                     if (!canOpenApp) return;
                     this.setupEventListeners();
                     await this.loadData();
+                    await this.setupAdminUsers();
                     this.updateStatistics();
                     this.startNotificationCenter();
                     this.restoreFinanceiroOperations();
@@ -8190,6 +8194,161 @@
                     this.loadStatistics(),
                     this.loadRoadmap(),
                 ]);
+            }
+            async setupAdminUsers() {
+                const modal = document.createElement('div');
+                modal.id = 'profileAdminModal';
+                modal.className = 'auth-legal-modal profile-admin-modal';
+                modal.hidden = true;
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+                modal.setAttribute('aria-labelledby', 'profileAdminTitle');
+                modal.innerHTML = `
+                    <section class="auth-legal-card profile-admin-card">
+                        <header class="profile-admin-header"><div><h3 id="profileAdminTitle">Meu perfil</h3><p id="profileAdminEmail"></p></div><button type="button" id="profileAdminClose" class="auth-legal-close" aria-label="Fechar">Fechar</button></header>
+                        <div class="profile-admin-tabs" role="tablist" aria-label="Opções do perfil">
+                            <button type="button" role="tab" aria-selected="true" data-profile-tab="overview" class="is-active">Meu perfil</button>
+                            <button type="button" role="tab" aria-selected="false" data-profile-tab="admin" id="adminUsersToggle" hidden>Administração</button>
+                        </div>
+                        <div id="profileAdminOverview" role="tabpanel"><p>Conta conectada ao SUPERAPP.</p><p>Use a opção Administração para acompanhar cadastros e controlar os acessos aos módulos.</p></div>
+                        <div id="profileAdminPane" role="tabpanel" hidden>
+                            <div class="profile-admin-toolbar"><div><h4>Usuários cadastrados</h4><p>Conceda ou revogue acesso por módulo e bloqueie ou reative contas.</p><p>Módulos ainda restritos ao administrador ficam identificados como bloqueados até terem isolamento de dados por usuário.</p></div><button type="button" class="auth-secondary" id="adminUsersRefresh">Atualizar lista</button></div>
+                            <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
+                            <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
+                        </div>
+                    </section>`;
+                document.body.appendChild(modal);
+                const modalStyle = document.createElement('style');
+                modalStyle.textContent = `
+                    .profile-admin-card{width:min(1100px,100%);max-height:min(90vh,900px);padding:1.25rem}
+                    .profile-admin-header,.profile-admin-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+                    .profile-admin-header p,.profile-admin-toolbar p{margin:.25rem 0 0;color:var(--text-light)}
+                    .profile-admin-header .auth-legal-close{flex:none}
+                    .profile-admin-tabs{display:flex;gap:.5rem;margin:1rem 0;border-bottom:1px solid var(--border-color)}
+                    .profile-admin-tabs button{border:0;border-bottom:2px solid transparent;padding:.65rem .8rem;background:transparent;color:var(--text-light);font:inherit;cursor:pointer}
+                    .profile-admin-tabs button.is-active{border-color:var(--primary);color:var(--text-dark)}
+                    .profile-admin-toolbar h4{margin:0;color:var(--text-dark)}
+                    .profile-admin-message{min-height:1.5rem;margin:.8rem 0;color:var(--text-light)}
+                    .profile-admin-table-wrap{overflow:auto}
+                    .profile-admin-table{width:100%;min-width:860px;border-collapse:collapse;background:var(--bg-white);border:1px solid var(--border-color);border-radius:var(--radius)}
+                    .profile-admin-table th,.profile-admin-table td{padding:.75rem;text-align:center;border-bottom:1px solid var(--border-color)}
+                    .profile-admin-table th:first-child,.profile-admin-table td:first-child{text-align:left}
+                    .profile-admin-table input[type=checkbox]{width:1.15rem;height:1.15rem;accent-color:var(--primary)}
+                    .profile-admin-status{border:1px solid var(--border-color);border-radius:.6rem;padding:.4rem .6rem;background:transparent;color:var(--text-dark);cursor:pointer}
+                    .profile-admin-status[data-blocked=true]{color:#fca5a5}
+                    @media(max-width:640px){.profile-admin-card{padding:.85rem}.profile-admin-header{align-items:flex-start}}
+                `;
+                document.head.appendChild(modalStyle);
+                const profileButton = document.getElementById('profileOpenBtn');
+                profileButton.style.display = 'inline-flex';
+                profileButton.addEventListener('click', async () => {
+                    const { data } = await SuperAppAuth.client.auth.getSession();
+                    const user = data?.session?.user;
+                    document.getElementById('profileAdminEmail').textContent = user?.email || 'Conta local';
+                    modal.hidden = false;
+                    document.querySelector('[data-profile-tab="overview"]')?.click();
+                });
+                document.getElementById('profileAdminClose').addEventListener('click', () => { modal.hidden = true; });
+                modal.addEventListener('click', (event) => { if (event.target === modal) modal.hidden = true; });
+                document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) modal.hidden = true; });
+
+                const adminTab = document.getElementById('adminUsersToggle');
+                modal.querySelectorAll('[data-profile-tab]').forEach((tab) => tab.addEventListener('click', async () => {
+                    const isAdminTab = tab.dataset.profileTab === 'admin';
+                    modal.querySelectorAll('[data-profile-tab]').forEach((item) => {
+                        item.classList.toggle('is-active', item === tab);
+                        item.setAttribute('aria-selected', item === tab ? 'true' : 'false');
+                    });
+                    document.getElementById('profileAdminOverview').hidden = isAdminTab;
+                    document.getElementById('profileAdminPane').hidden = !isAdminTab;
+                    document.getElementById('profileAdminTitle').textContent = isAdminTab ? 'Administração do SUPERAPP' : 'Meu perfil';
+                    if (isAdminTab) await this.loadAdminUsers();
+                }));
+                document.getElementById('adminUsersRefresh')?.addEventListener('click', () => this.loadAdminUsers());
+                document.getElementById('adminUsersContent')?.addEventListener('change', (event) => {
+                    const input = event.target.closest('[data-admin-user-permission]');
+                    if (input) this.saveAdminUserPermission(input);
+                });
+                document.getElementById('adminUsersContent')?.addEventListener('click', (event) => {
+                    const button = event.target.closest('[data-admin-user-status]');
+                    if (button) this.saveAdminUserStatus(button);
+                });
+                try {
+                    const response = await fetch('/api/admin/usuarios?access=1');
+                    if (response.ok) adminTab.hidden = false;
+                } catch (_error) {}
+            }
+            async loadAdminUsers() {
+                const message = document.getElementById('adminUsersMessage');
+                const content = document.getElementById('adminUsersContent');
+                if (!message || !content) return;
+                message.textContent = 'Carregando usuários e permissões...';
+                content.innerHTML = '';
+                try {
+                    const response = await fetch('/api/admin/usuarios');
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Falha ao carregar usuários.');
+                    message.textContent = `${payload.users.length} usuário(s) cadastrado(s).`;
+                    if (!payload.users.length) {
+                        content.innerHTML = '<p>Nenhum usuário cadastrado.</p>';
+                        return;
+                    }
+                    content.innerHTML = `<table class="profile-admin-table">
+                        <thead><tr><th>Usuário</th><th>Status</th>${payload.apps.map((app) => `<th>${escapeHtml(app.title)}</th>`).join('')}${(payload.restricted_apps || []).map((app) => `<th title="Acesso multiusuário indisponível até o isolamento dos dados">${escapeHtml(app.title)} 🔒</th>`).join('')}</tr></thead>
+                        <tbody>${payload.users.map((user) => `<tr style="border-top:1px solid var(--border-color)">
+                            <td><strong>${escapeHtml(user.name || user.email || 'Usuário')}</strong>${user.name ? `<div>${escapeHtml(user.email)}</div>` : ''}${user.is_admin ? '<div style="color:var(--accent);font-size:.8rem">Administrador</div>' : ''}<small style="display:block;color:var(--text-light)">Cadastro: ${escapeHtml(user.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : '—')}</small></td>
+                            <td><button type="button" class="profile-admin-status" data-admin-user-status data-user-id="${escapeHtml(user.id)}" data-blocked="${user.is_banned ? 'true' : 'false'}" ${user.is_admin ? 'disabled' : ''}>${user.is_admin ? 'Admin' : (user.is_banned ? 'Reativar' : 'Bloquear')}</button><small style="display:block;color:var(--text-light)">${user.is_banned ? 'Bloqueado' : 'Ativo'}</small></td>
+                            ${payload.apps.map((app) => `<td><input type="checkbox" aria-label="${escapeHtml(app.title)} para ${escapeHtml(user.email)}" data-admin-user-permission data-user-id="${escapeHtml(user.id)}" data-app-id="${escapeHtml(app.id)}" ${user.permissions.includes(app.id) ? 'checked' : ''} ${user.is_admin ? 'disabled' : ''}></td>`).join('')}
+                            ${(payload.restricted_apps || []).map(() => '<td><span aria-label="Restrito ao administrador" title="Acesso multiusuário indisponível até o isolamento dos dados">Admin</span></td>').join('')}
+                        </tr>`).join('')}</tbody>
+                    </table>`;
+                } catch (error) {
+                    message.textContent = error.message || 'Falha ao carregar usuários.';
+                }
+            }
+            async saveAdminUserPermission(input) {
+                const priorValue = !input.checked;
+                input.disabled = true;
+                const message = document.getElementById('adminUsersMessage');
+                try {
+                    const response = await fetch('/api/admin/usuarios', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: input.dataset.userId, app_id: input.dataset.appId, can_access: input.checked }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Falha ao salvar permissao.');
+                    message.textContent = 'Permissão atualizada.';
+                } catch (error) {
+                    input.checked = priorValue;
+                    message.textContent = error.message || 'Falha ao salvar permissao.';
+                } finally {
+                    input.disabled = false;
+                }
+            }
+            async saveAdminUserStatus(button) {
+                const wasBlocked = button.dataset.blocked === 'true';
+                const nextBlocked = !wasBlocked;
+                const message = document.getElementById('adminUsersMessage');
+                button.disabled = true;
+                try {
+                    const response = await fetch('/api/admin/usuarios', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'status', user_id: button.dataset.userId, blocked: nextBlocked }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Falha ao atualizar status da conta.');
+                    button.dataset.blocked = String(nextBlocked);
+                    button.textContent = nextBlocked ? 'Reativar' : 'Bloquear';
+                    button.nextElementSibling.textContent = nextBlocked ? 'Bloqueado' : 'Ativo';
+                    button.setAttribute('aria-label', nextBlocked ? 'Reativar usuário' : 'Bloquear usuário');
+                    message.textContent = nextBlocked ? 'Conta bloqueada.' : 'Conta reativada.';
+                } catch (error) {
+                    message.textContent = error.message || 'Falha ao atualizar status da conta.';
+                } finally {
+                    button.disabled = false;
+                }
             }
             async loadApps() {
                 try {

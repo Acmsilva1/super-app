@@ -698,7 +698,7 @@ async function deleteProfileMeasurement(id, userId) {
   return { row: loaded.rows.find((profile) => Number(profile.id) === Number(current.perfil_id)), storage: 'supabase' };
 }
 
-async function loadDiets(userId, profileId = null) {
+async function loadDiets(userId, profileId = null, isAdmin = false) {
   if (isOfflineMode()) {
     let rows = offlineDiets.map((diet) => structuredClone(diet));
     if (profileId) {
@@ -714,12 +714,20 @@ async function loadDiets(userId, profileId = null) {
   if (profileId) {
     query = query.eq('perfil_id', profileId);
   }
+  if (!isAdmin) {
+    query = query.or(`created_by.is.null,created_by.eq.${userId}`);
+  }
   const { data, error } = await query;
   if (error && isMissingTableError(error)) return { rows: [], storage: 'empty-fallback' };
   return error ? { error } : { rows: data || [], storage: 'supabase' };
 }
 
 async function createDiet(payload, userId) {
+  if (payload.perfil_id) {
+    const ownedProfile = await requireSaudeProfileForWater(userId, payload.perfil_id);
+    if (ownedProfile.error) return { error: ownedProfile.error };
+    if (ownedProfile.notFound || ownedProfile.invalid) return { notFound: true };
+  }
   const slug = slugify(payload.titulo);
   if (isOfflineMode()) {
     const id = Math.max(0, ...offlineDiets.map((diet) => Number(diet.id) || 0)) + 1;
@@ -736,32 +744,41 @@ async function createDiet(payload, userId) {
   return error ? { error } : { row: data, storage: 'supabase' };
 }
 
-async function updateDiet(id, payload) {
+async function updateDiet(id, payload, userId, isAdmin = false) {
+  if (payload.perfil_id && !isAdmin) {
+    const ownedProfile = await requireSaudeProfileForWater(userId, payload.perfil_id);
+    if (ownedProfile.error) return { error: ownedProfile.error };
+    if (ownedProfile.notFound || ownedProfile.invalid) return { notFound: true };
+  }
   if (isOfflineMode()) {
-    const index = offlineDiets.findIndex((diet) => Number(diet.id) === id);
+    const index = offlineDiets.findIndex((diet) => Number(diet.id) === id && (isAdmin || diet.created_by === userId));
     if (index < 0) return { notFound: true };
     offlineDiets[index] = { ...offlineDiets[index], ...payload, slug: slugify(payload.titulo) };
     return { row: structuredClone(offlineDiets[index]), storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
-  const { data, error } = await supabase
+  let query = supabase
     .from(TABELA_DIETAS)
     .update({ slug: slugify(payload.titulo), ...payload })
-    .eq('id', id)
+    .eq('id', id);
+  if (!isAdmin) query = query.eq('created_by', userId);
+  const { data, error } = await query
     .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,perfil_id,source_file,created_at,updated_at')
     .maybeSingle();
   if (error) return { error };
   return data ? { row: data, storage: 'supabase' } : { notFound: true };
 }
 
-async function deleteDiet(id) {
+async function deleteDiet(id, userId, isAdmin = false) {
   if (isOfflineMode()) {
     const previousLength = offlineDiets.length;
-    offlineDiets = offlineDiets.filter((diet) => Number(diet.id) !== id);
+    offlineDiets = offlineDiets.filter((diet) => Number(diet.id) !== id || (!isAdmin && diet.created_by !== userId));
     return previousLength === offlineDiets.length ? { notFound: true } : { storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
-  const { data, error } = await supabase.from(TABELA_DIETAS).delete().eq('id', id).select('id').maybeSingle();
+  let query = supabase.from(TABELA_DIETAS).delete().eq('id', id);
+  if (!isAdmin) query = query.eq('created_by', userId);
+  const { data, error } = await query.select('id').maybeSingle();
   if (error) return { error };
   return data ? { storage: 'supabase' } : { notFound: true };
 }
@@ -873,8 +890,12 @@ export default async function handler(req, res) {
     return json(res, 200, { ok: true, service: 'saude' });
   }
 
-  const auth = await requireUser(req, { appId: 'saude', adminOnly: true });
+  const auth = await requireUser(req, { appId: 'saude' });
   if (!auth.ok) return json(res, auth.status, auth.data);
+
+  if (!auth.isAdmin && req.query?.resource === RESOURCE_TABELA_NUTRICIONAL && req.method !== 'GET') {
+    return json(res, 403, { error: 'Somente o administrador pode alterar a tabela nutricional compartilhada.' });
+  }
 
   if (req.method === 'GET') {
     if (req.query?.resource === RESOURCE_TABELA_NUTRICIONAL) {
@@ -893,7 +914,12 @@ export default async function handler(req, res) {
     if (req.query?.resource === RESOURCE_DIETAS) {
       const profileId = req.query?.profile_id ? parseId(req.query.profile_id) : null;
       if (req.query?.profile_id && !profileId) return json(res, 400, { error: 'Perfil invalido.' });
-      const result = await loadDiets(auth.user.id, profileId);
+      if (profileId && !auth.isAdmin) {
+        const ownedProfile = await requireSaudeProfileForWater(auth.user.id, profileId);
+        if (ownedProfile.error) return json(res, 500, { error: ownedProfile.error.message });
+        if (ownedProfile.notFound || ownedProfile.invalid) return json(res, 404, { error: 'Perfil de saude nao encontrado.' });
+      }
+      const result = await loadDiets(auth.user.id, profileId, auth.isAdmin);
       if (result.error) return json(res, 500, { error: result.error.message });
       const id = req.query?.id ? parseId(req.query.id) : null;
       if (req.query?.id && !id) return json(res, 400, { error: 'ID invalido.' });
@@ -1038,7 +1064,7 @@ export default async function handler(req, res) {
     }
     const id = parseId(body.id ?? req.query?.id);
     if (!id) return json(res, 400, { error: 'ID invalido.' });
-    const result = await updateDiet(id, validation.data);
+    const result = await updateDiet(id, validation.data, auth.user.id, auth.isAdmin);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Dieta nao encontrada.' });
     return json(res, 200, result);
@@ -1049,7 +1075,7 @@ export default async function handler(req, res) {
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
     const id = parseId(body.id ?? req.query?.id);
     if (!id) return json(res, 400, { error: 'ID invalido.' });
-    const result = await deleteDiet(id);
+    const result = await deleteDiet(id, auth.user.id, auth.isAdmin);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Dieta nao encontrada.' });
     return json(res, 200, { ok: true, ...result });
