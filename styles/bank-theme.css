@@ -344,7 +344,8 @@ html[data-theme] .app-window .window-btn {
     box-shadow: none;
 }
 html[data-theme] #window-financeiro,
-html[data-theme] #window-saude {
+html[data-theme] #window-saude,
+html[data-theme] #window-lista_compras {
     --bk-module-veil: linear-gradient(rgba(8, 12, 22, 0.3), rgba(8, 12, 22, 0.3));
 }
 #window-financeiro { --bk-module-bg: url('/backgrounds/financeiro.jpg'); }
@@ -359,14 +360,16 @@ html[data-theme] #window-saude {
 }
 
 html[data-theme] #window-financeiro,
-html[data-theme] #window-saude {
+html[data-theme] #window-saude,
+html[data-theme] #window-lista_compras {
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
     animation: none;
 }
 html[data-theme] #window-financeiro .window-header,
-html[data-theme] #window-saude .window-header {
+html[data-theme] #window-saude,
+html[data-theme] #window-lista_compras .window-header {
     background: var(--bk-primary);
     color: var(--bk-primary-ink);
     border-bottom: 0;
@@ -374,21 +377,24 @@ html[data-theme] #window-saude .window-header {
     padding-bottom: 0.6rem;
 }
 html[data-theme] #window-financeiro .window-title,
-html[data-theme] #window-saude .window-title {
+html[data-theme] #window-saude,
+html[data-theme] #window-lista_compras .window-title {
     color: var(--bk-primary-ink);
     font-family: var(--bk-font);
     font-size: 0.95rem;
     letter-spacing: 0.02em;
 }
 html[data-theme] #window-financeiro .window-btn,
-html[data-theme] #window-saude .window-btn {
+html[data-theme] #window-saude,
+html[data-theme] #window-lista_compras .window-btn {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.45);
     color: var(--bk-primary-ink);
     transform: none;
 }
 html[data-theme] #window-financeiro .window-content,
-html[data-theme] #window-saude .window-content {
+html[data-theme] #window-saude,
+html[data-theme] #window-lista_compras .window-content {
     background: transparent;
     color: var(--bk-ink);
     padding: 0;
@@ -1047,6 +1053,97 @@ html[data-theme] #window-saude .saude-success-toast__close { color: var(--bk-mut
 @media (max-width: 760px) {
     html[data-theme] #window-saude .saude-water-modal { border-radius: 0.75rem; }
     html[data-theme] #window-saude :is(.saude-diet-modal, .saude-editor) .saude-editor__actions { background: var(--bk-surface); }
+}
+
+/* ---------- Lista de compras: lista livre estilo bloco de notas ---------- */
+.lc-shell .lc-top-btn { color: var(--bk-muted); border-color: transparent; }
+.lc-shell .lc-top-btn:disabled { opacity: 0.35; cursor: default; }
+.lc-list > li { min-height: 3rem; }
+.lc-add__form {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1rem;
+    min-height: 3.1rem;
+}
+.lc-add__icon { width: 1.25rem; text-align: center; color: var(--bk-primary); font-size: 0.95rem; }
+.lc-add__input,
+.lc-item__text {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--bk-ink);
+    font: inherit;
+    font-size: 0.98rem;
+    padding: 0.55rem 0;
+    outline: none;
+}
+.lc-add__input::placeholder { color: var(--bk-muted); }
+.lc-add:focus-within { box-shadow: inset 0 -2px 0 var(--bk-primary); }
+.lc-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 0.5rem 0 1rem;
+}
+.lc-item__text { text-overflow: ellipsis; border-radius: 0.35rem; }
+.lc-item__text:focus { background: var(--bk-bg); padding-left: 0.4rem; padding-right: 0.4rem; }
+.lc-item__meta { flex: 0 0 auto; color: var(--bk-muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lc-item__del {
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--bk-muted);
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.lc-item__del:hover { background: var(--bk-neg-soft); color: var(--bk-neg); }
+.lc-check { position: relative; flex: 0 0 auto; display: inline-flex; cursor: pointer; }
+.lc-check__input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.lc-check__box {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid var(--bk-muted);
+    border-radius: 0.3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 0.7rem;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.lc-check__input:checked + .lc-check__box { background: var(--bk-primary); border-color: var(--bk-primary); color: var(--bk-primary-ink); }
+.lc-check__input:focus-visible + .lc-check__box { outline: 2px solid var(--bk-focus); outline-offset: 2px; }
+.lc-item.is-done .lc-item__text { color: var(--bk-muted); text-decoration: line-through; }
+.lc-done-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    margin: 1rem 0 0.4rem;
+    padding: 0.35rem 0.25rem;
+    border: 0;
+    background: transparent;
+    color: var(--bk-primary-ink);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+}
+.lc-done-toggle i { width: 1rem; font-size: 0.75rem; }
+.lc-empty {
+    margin: 0.75rem 0.25rem 0;
+    color: var(--bk-primary-ink);
+    font-size: 0.88rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 /* ---------- Escala tipográfica mobile (todos os módulos) ---------- */

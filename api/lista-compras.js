@@ -16,6 +16,64 @@ function json(res, status, data) {
   res.status(status).end(JSON.stringify(data));
 }
 
+function isOfflineDev() {
+  return process.env.OFFLINE_DEV === 'true';
+}
+
+const offlineStore = { nextId: 1, rows: [] };
+['Arroz', 'Feijao', 'Leite', 'Pasta de dente', 'Detergente'].forEach((item, index) => {
+  offlineStore.rows.push({
+    id: offlineStore.nextId++,
+    created_at: new Date(Date.now() - (index + 1) * 60000).toISOString(),
+    ...payloadInsert(item, 1, null, index === 4),
+  });
+});
+
+function handleOffline(req, res) {
+  const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+  const findIndex = (id) => offlineStore.rows.findIndex((r) => String(r.id) === String(id));
+  if (req.method === 'GET') {
+    const ordenados = ordenarPorCategoria(offlineStore.rows);
+    return json(res, 200, { rows: ordenados, itens: parseRowsSupabase(ordenados) });
+  }
+  if (req.method === 'POST') {
+    if (!body.item) return json(res, 400, { error: 'item obrigatorio' });
+    const row = {
+      id: offlineStore.nextId++,
+      created_at: new Date().toISOString(),
+      ...payloadInsert(body.item, body.quantidade, body.unidade_medida, body.comprado, body.categoria),
+    };
+    offlineStore.rows.push(row);
+    return json(res, 201, row);
+  }
+  if (req.method === 'PATCH') {
+    if (body.reset_checks) {
+      offlineStore.rows.forEach((r) => Object.assign(r, resetChecksPayload()));
+      return json(res, 200, { updated: offlineStore.rows.length });
+    }
+    const index = findIndex(body.id);
+    if (index < 0) return json(res, 404, { error: 'item não encontrado' });
+    const payload = body.toggle
+      ? toggleComprado(offlineStore.rows, body.id)
+      : payloadUpdate(body.item, body.quantidade, body.unidade_medida, body.comprado, body.categoria);
+    Object.assign(offlineStore.rows[index], payload);
+    return json(res, 200, offlineStore.rows[index]);
+  }
+  if (req.method === 'DELETE') {
+    if (body.delete_all === true || req.query?.delete_all === 'true') {
+      const deleted = offlineStore.rows.length;
+      offlineStore.rows = [];
+      return json(res, 200, { deleted });
+    }
+    const index = findIndex(body.id ?? req.query?.id);
+    if (index < 0) return json(res, 400, { error: 'id ou delete_all obrigatorio' });
+    offlineStore.rows.splice(index, 1);
+    return json(res, 200, { ok: true });
+  }
+  res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
+  return json(res, 405, { error: 'Method Not Allowed' });
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET' && req.query?.health === '1') {
     return json(res, 200, { ok: true, service: 'lista_compras' });
@@ -23,6 +81,7 @@ export default async function handler(req, res) {
 
   const auth = await requireUser(req, { appId: 'lista_compras' });
   if (!auth.ok) return json(res, auth.status, auth.data);
+  if (isOfflineDev()) return handleOffline(req, res);
 
   const ownerScope = (query) => (auth.isAdmin ? query : query.eq('user_id', auth.user.id));
 

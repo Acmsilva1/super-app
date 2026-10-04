@@ -34,4 +34,27 @@ describe('API da lista de compras', () => {
     expect(res.body).toEqual({ ok: true, service: 'lista_compras' });
     expect(fromMock).not.toHaveBeenCalled();
   });
+
+  it('modo offline responde em memória sem consultar Supabase', async () => {
+    vi.stubEnv('OFFLINE_DEV', 'true');
+    try {
+      const app = createApp(listaComprasHandler);
+      const created = await request(app).post('/api/test').send({ item: 'Cafe' });
+      expect(created.status).toBe(201);
+      expect(created.body.item).toBe('Cafe');
+
+      const marked = await request(app).patch('/api/test').send({ id: created.body.id, comprado: true });
+      expect(marked.body.comprado).toBe(true);
+
+      const list = await request(app).get('/api/test');
+      expect(list.status).toBe(200);
+      expect(list.body.rows.some((r) => r.item === 'Cafe' && r.comprado === true)).toBe(true);
+
+      const removed = await request(app).delete('/api/test').send({ id: created.body.id });
+      expect(removed.body).toEqual({ ok: true });
+      expect(fromMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 });

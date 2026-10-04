@@ -6930,7 +6930,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-03-bank-v15">
+    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-03-bank-v16">
 </head>
 <body class="view-apps">
     <div id="appLaunchSplash" class="app-launch-splash" role="status" aria-live="polite" aria-label="Carregando Super App">
@@ -10182,13 +10182,6 @@
                 el.innerHTML = '<div class="app-error"><i class="fas fa-ban"></i> Modulo Agenda removido definitivamente.</div>';
             }
 
-            getListaComprasCategorias() {
-                return ['Mantimentos', 'Higiene / limpeza', 'Feira', 'Carnes'];
-            }
-            getListaComprasCategoriaVal(categoria) {
-                const categorias = this.getListaComprasCategorias();
-                return categorias.includes(categoria) ? categoria : categorias[0];
-            }
             isListaComprasComprado(val) {
                 if (val === true || val === 1 || val === '1') return true;
                 if (val === false || val === 0 || val === '0' || val == null || val === '') return false;
@@ -10199,401 +10192,205 @@
                 }
                 return Boolean(val);
             }
-            getListaComprasStorageKey() {
-                return 'lista_compras_categoria_ativa';
+            sortListaComprasRows(rows) {
+                return [...(rows || [])].sort((a, b) => {
+                    const byDate = String(b?.created_at || '').localeCompare(String(a?.created_at || ''));
+                    return byDate || (Number(b?.id) || 0) - (Number(a?.id) || 0);
+                });
             }
-            loadListaComprasActiveCategoria() {
-                const fallback = this.getListaComprasCategorias()[0];
-                try {
-                    const raw = localStorage.getItem(this.getListaComprasStorageKey());
-                    const value = String(raw || '').trim();
-                    return this.getListaComprasCategoriaVal(value || fallback);
-                } catch (_err) {
-                    return fallback;
-                }
-            }
-            saveListaComprasActiveCategoria(categoria) {
-                try {
-                    localStorage.setItem(this.getListaComprasStorageKey(), this.getListaComprasCategoriaVal(categoria));
-                } catch (_err) {}
-            }
-            getListaComprasStats(rows, categoria) {
-                const target = this.getListaComprasCategoriaVal(categoria);
-                const itens = (rows || []).filter((r) => this.getListaComprasCategoriaVal(r?.categoria) === target);
-                const comprados = itens.filter((r) => this.isListaComprasComprado(r?.comprado)).length;
-                return {
-                    categoria: target,
-                    total: itens.length,
-                    comprados,
-                    pendentes: itens.length - comprados,
-                };
+            getListaComprasItemMeta(r) {
+                const qtd = Math.max(1, Number(r?.quantidade || 1));
+                const unidade = String(r?.unidade_medida || '').trim();
+                if (qtd > 1 && unidade) return `${qtd} ${unidade}`;
+                if (qtd > 1) return `x${qtd}`;
+                return unidade;
             }
             renderListaComprasItemRow(r) {
                 const comprado = this.isListaComprasComprado(r?.comprado);
-                const id = String(r?.id ?? '');
-                const cat = this.getListaComprasCategoriaVal(r?.categoria);
-                const qtd = Math.max(1, Number(r?.quantidade || 1));
-                const unidade = r?.unidade_medida ? escapeHtml(String(r.unidade_medida)) : '';
-                return `
-                    <li class="lista-compras-item${comprado ? ' comprado' : ''}" data-id="${escapeHtml(id)}" data-categoria="${escapeHtml(cat)}" data-comprado="${comprado ? '1' : '0'}">
-                        <div class="lista-compras-item-main">
-                            <input type="checkbox" class="app-checkbox lista-compras-chk" data-id="${escapeHtml(id)}" ${comprado ? 'checked' : ''} title="Comprado" />
-                            <div class="lista-compras-item-copy">
-                                <span class="item-text">${escapeHtml(r?.item || '')}</span>
-                                <span class="lista-compras-item-meta">${qtd > 1 ? `x ${escapeHtml(String(qtd))}` : ''}${qtd > 1 && unidade ? ' ' : ''}${unidade}</span>
-                                ${comprado ? '<span class="lista-compras-status-badge">Comprado</span>' : ''}
-                            </div>
-                        </div>
-                        <div class="app-list-actions lista-compras-item-actions">
-                            <button type="button" data-action="lista-edit" data-id="${escapeHtml(id)}">Editar</button>
-                            <button type="button" class="lista-btn-del" data-action="lista-delete-item" data-id="${escapeHtml(id)}">Excluir</button>
-                        </div>
-                    </li>`;
+                const id = escapeHtml(String(r?.id ?? ''));
+                const nome = escapeHtml(r?.item || '');
+                const meta = this.getListaComprasItemMeta(r);
+                return `<li class="lc-item${comprado ? ' is-done' : ''}" data-id="${id}">
+                    <label class="lc-check">
+                        <input type="checkbox" class="lc-check__input" data-lista-check data-id="${id}" ${comprado ? 'checked' : ''} aria-label="${comprado ? 'Desmarcar' : 'Marcar'} ${nome}" />
+                        <span class="lc-check__box" aria-hidden="true"><i class="fas fa-check"></i></span>
+                    </label>
+                    <input type="text" class="lc-item__text" data-lista-text data-id="${id}" value="${nome}" maxlength="120" autocomplete="off" enterkeyhint="done" aria-label="Editar ${nome}" />
+                    ${meta ? `<span class="lc-item__meta">${escapeHtml(meta)}</span>` : ''}
+                    <button type="button" class="lc-item__del" data-lista-delete data-id="${id}" aria-label="Excluir ${nome}" title="Excluir"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+                </li>`;
             }
-            renderListaComprasContent(el, data) {
-                const rows = Array.isArray(data.rows) ? data.rows : (Array.isArray(data.itens) ? data.itens : []);
-                const categorias = this.getListaComprasCategorias();
-                const resumoGeral = rows.reduce((acc, row) => {
-                    const cat = this.getListaComprasCategoriaVal(row?.categoria);
-                    acc.total += 1;
-                    acc.byCat[cat] = (acc.byCat[cat] || 0) + 1;
-                    if (this.isListaComprasComprado(row?.comprado)) acc.comprados += 1;
-                    return acc;
-                }, { total: 0, comprados: 0, byCat: {} });
-                const pendentes = Math.max(0, resumoGeral.total - resumoGeral.comprados);
+            renderListaComprasContent(el, data, { focusAdd = false } = {}) {
+                const rows = Array.isArray(data?.rows) ? data.rows : (Array.isArray(data?.itens) ? data.itens : []);
                 el._listaComprasRows = rows;
-                const badgesHtml = categorias.map((cat) => {
-                    const stats = this.getListaComprasStats(rows, cat);
-                    return `
-                        <button type="button" class="lista-compras-badge" data-action="lista-open-categoria" data-cat="${escapeHtml(cat)}">
-                            <span>${escapeHtml(cat)}</span>
-                            <strong>${stats.total}</strong>
-                        </button>`;
-                }).join('');
+                const sorted = this.sortListaComprasRows(rows);
+                const pendentes = sorted.filter((r) => !this.isListaComprasComprado(r?.comprado));
+                const marcados = sorted.filter((r) => this.isListaComprasComprado(r?.comprado));
+                const doneOpen = el._listaComprasDoneOpen !== false;
+                const doneLabel = `${marcados.length} ${marcados.length === 1 ? 'item marcado' : 'itens marcados'}`;
                 el.innerHTML = `
-                    <div class="lista-compras-module-shell">
-                        <section class="lista-compras-hero-card">
-                            <!-- Badge-first layout keeps the list compact without changing behavior. -->
-                            <h3 class="lista-compras-hero-title">Lista de compras</h3>
-                            <div class="lista-compras-hero-actions">
-                                <button type="button" class="app-btn app-btn-secondary lista-reset-all" data-action="lista-reset-all">Desmarcar tudo</button>
-                                <button type="button" class="app-btn app-btn-secondary lista-toolbar-clear" data-action="lista-delete-all">Apagar todos</button>
+                    <div class="fin-bank lc-shell">
+                        <div class="fin-topbar">
+                            <div class="fin-topbar__inner">
+                                <h2 class="fin-topbar__title">Lista de compras</h2>
+                                <button type="button" class="fin-icon-btn lc-top-btn" data-lista-action="reset" aria-label="Desmarcar tudo" title="Desmarcar tudo"${marcados.length ? '' : ' disabled'}><i class="fas fa-rotate-left" aria-hidden="true"></i></button>
+                                <button type="button" class="fin-icon-btn lc-top-btn" data-lista-action="delete-all" aria-label="Apagar todos" title="Apagar todos"${rows.length ? '' : ' disabled'}><i class="fas fa-trash" aria-hidden="true"></i></button>
                             </div>
-                        </section>
-                        <section class="lista-compras-summary-grid">
-                            <article class="lista-compras-summary-card">
-                                <span>Total de itens</span>
-                                <strong data-lista-summary-total>${resumoGeral.total}</strong>
-                            </article>
-                            <article class="lista-compras-summary-card">
-                                <span>Comprados</span>
-                                <strong data-lista-summary-comprados>${resumoGeral.comprados}</strong>
-                            </article>
-                            <article class="lista-compras-summary-card">
-                                <span>Pendentes</span>
-                                <strong data-lista-summary-pendentes>${pendentes}</strong>
-                            </article>
-                        </section>
-                        <section class="lista-compras-badges-wrap" role="tablist" aria-label="Categorias da lista de compras">
-                            ${badgesHtml}
-                        </section>
+                        </div>
+                        <div class="fin-body"><div class="fin-body__inner">
+                            <ul class="fin-list lc-list" aria-label="Itens pendentes">
+                                <li class="lc-add">
+                                    <form class="lc-add__form" data-lista-add-form autocomplete="off">
+                                        <i class="fas fa-plus lc-add__icon" aria-hidden="true"></i>
+                                        <input type="text" class="lc-add__input" name="item" placeholder="Item da lista" maxlength="120" enterkeyhint="enter" aria-label="Novo item da lista" />
+                                    </form>
+                                </li>
+                                ${pendentes.map((r) => this.renderListaComprasItemRow(r)).join('')}
+                            </ul>
+                            ${rows.length ? '' : '<p class="lc-empty">Lista vazia. Digite um item acima e pressione Enter.</p>'}
+                            ${marcados.length ? `
+                                <button type="button" class="lc-done-toggle" data-lista-action="toggle-done" aria-expanded="${doneOpen}">
+                                    <i class="fas fa-chevron-${doneOpen ? 'down' : 'right'}" aria-hidden="true"></i>
+                                    <span>${doneLabel}</span>
+                                </button>
+                                ${doneOpen ? `<ul class="fin-list lc-list lc-list--done" aria-label="Itens marcados">${marcados.map((r) => this.renderListaComprasItemRow(r)).join('')}</ul>` : ''}` : ''}
+                        </div></div>
+                        <div class="fin-footer"><div class="fin-footer__inner"><div class="fin-footer__row">
+                            <div class="fin-footer__item"><span class="fin-footer__label">Pendentes</span><span class="fin-footer__value">${pendentes.length}</span></div>
+                            <div class="fin-footer__item"><span class="fin-footer__label">Marcados</span><span class="fin-footer__value is-pos">${marcados.length}</span></div>
+                        </div></div></div>
                     </div>
                 `;
-                el.querySelector('[data-action="lista-reset-all"]').onclick = () => this.submitListaResetChecks(el);
-                el.querySelector('[data-action="lista-delete-all"]').onclick = () => this.submitListaDeleteAll(el);
-                el.querySelectorAll('[data-action="lista-open-categoria"]').forEach((btn) => {
-                    btn.onclick = () => this.openListaComprasCategoriaModal(el, btn.dataset.cat || null);
-                });
-            }
-            getListaComprasModalFilterLabel(filter) {
-                if (filter === 'comprados') return 'Comprados';
-                if (filter === 'pendentes') return 'Pendentes';
-                return 'Todos';
-            }
-            applyListaComprasModalFilter(overlay) {
-                if (!overlay) return;
-                const filter = ['all', 'pendentes', 'comprados'].includes(overlay._listaComprasModalFilter) ? overlay._listaComprasModalFilter : 'pendentes';
-                const items = Array.from(overlay.querySelectorAll('.lista-compras-item'));
-                let visible = 0;
-                items.forEach((item) => {
-                    const comprado = item.getAttribute('data-comprado') === '1';
-                    const show = filter === 'all' ? true : filter === 'comprados' ? comprado : !comprado;
-                    item.classList.toggle('is-filter-hidden', !show);
-                    item.hidden = !show;
-                    if (show) visible += 1;
-                });
-                const empty = overlay.querySelector('.lista-compras-modal-empty');
-                if (empty) empty.hidden = visible !== 0;
-                overlay.querySelectorAll('.lista-compras-filter-btn').forEach((btn) => {
-                    btn.classList.toggle('is-active', btn.dataset.filter === filter);
-                });
-                const stats = overlay.querySelector('[data-lista-filter-meta]');
-                const total = items.length;
-                const comprados = items.filter((item) => item.getAttribute('data-comprado') === '1').length;
-                const pendentes = total - comprados;
-                if (stats) {
-                    stats.textContent = `${visible} visiveis neste filtro | ${pendentes} pendentes no total | ${comprados} comprados no total`;
-                }
-            }
-            openListaComprasCategoriaModal(el, categoria = null, modalFilter = null) {
-                const categorias = this.getListaComprasCategorias();
-                const rows = Array.isArray(el?._listaComprasRows) ? el._listaComprasRows : [];
-                if (el?._listaComprasCategoryOverlay) {
-                    el._listaComprasCategoryOverlay.remove();
-                    el._listaComprasCategoryOverlay = null;
-                }
-                const activeCategoria = this.getListaComprasCategoriaVal(categoria || this.getListaComprasCategorias()[0]);
-                const stats = this.getListaComprasStats(rows, activeCategoria);
-                const items = rows.filter((r) => this.getListaComprasCategoriaVal(r?.categoria) === activeCategoria);
-                const overlay = document.createElement('div');
-                overlay.className = 'app-modal-overlay lista-compras-category-overlay';
-                overlay._listaComprasCurrentCategory = activeCategoria;
-                overlay._listaComprasModalFilter = ['all', 'pendentes', 'comprados'].includes(modalFilter) ? modalFilter : 'pendentes';
-                overlay.innerHTML = `
-                    <div class="app-modal lista-compras-category-modal" role="dialog" aria-modal="true" aria-labelledby="lista-categoria-modal-title">
-                        <header class="lista-compras-category-modal__head">
-                            <div>
-                                <span class="lista-compras-category-kicker">${escapeHtml(activeCategoria)}</span>
-                                <h4 id="lista-categoria-modal-title">Produtos da categoria</h4>
-                                <p data-lista-filter-meta>${stats.total} itens, ${stats.comprados} comprados e ${stats.pendentes} pendentes.</p>
-                            </div>
-                            <button type="button" class="app-btn app-btn-secondary" data-action="lista-close-category-modal">Fechar</button>
-                        </header>
-                        <div class="lista-compras-modal-filterbar" role="tablist" aria-label="Filtro da categoria">
-                            <button type="button" class="lista-compras-filter-btn" data-filter="pendentes">Pendentes</button>
-                            <button type="button" class="lista-compras-filter-btn" data-filter="all">Todos</button>
-                            <button type="button" class="lista-compras-filter-btn" data-filter="comprados">Comprados</button>
-                        </div>
-                        <div class="lista-compras-category-modal__actions">
-                            <button type="button" class="app-btn app-btn-secondary" data-action="lista-reset-category">Desmarcar categoria</button>
-                            <button type="button" class="app-btn lista-btn-main" data-action="lista-add-item">Adicionar item</button>
-                        </div>
-                        <ul class="app-list lista-compras-category-list">
-                            ${items.length ? items.map((r) => this.renderListaComprasItemRow(r)).join('') : '<li class="lista-compras-empty">Nenhum item nesta categoria.</li>'}
-                        </ul>
-                        <div class="lista-compras-modal-empty" hidden>Sem itens para este filtro.</div>
-                    </div>
-                `;
-                const close = () => {
-                    overlay.remove();
-                    if (el && el._listaComprasCategoryOverlay === overlay) el._listaComprasCategoryOverlay = null;
-                };
-                overlay.querySelector('[data-action="lista-close-category-modal"]').onclick = close;
-                overlay.querySelector('[data-action="lista-reset-category"]').onclick = () => this.submitListaResetChecks(el, activeCategoria);
-                overlay.querySelector('[data-action="lista-add-item"]').onclick = () => this.openListaComprasModal(el, { categoria: activeCategoria });
-                overlay.querySelectorAll('.lista-compras-filter-btn').forEach((btn) => {
-                    btn.onclick = () => {
-                        overlay._listaComprasModalFilter = btn.dataset.filter || 'pendentes';
-                        this.applyListaComprasModalFilter(overlay);
-                    };
-                });
-                overlay.querySelectorAll('.lista-compras-chk').forEach((chk) => {
-                    chk.addEventListener('change', (e) => {
-                        e.stopPropagation();
-                        this.submitListaSetComprado(chk.dataset.id, chk.checked, el);
-                    });
-                });
-                overlay.querySelectorAll('[data-action="lista-edit"]').forEach((btn) => {
-                    btn.onclick = (e) => {
-                        e.stopPropagation();
-                        const id = btn.dataset.id;
-                        const r = rows.find((x) => String(x.id) === String(id));
-                        if (!r) return;
-                        this.openListaComprasModal(el, { item: r, categoria: activeCategoria });
-                    };
-                });
-                overlay.querySelectorAll('[data-action="lista-delete-item"]').forEach((btn) => {
-                    btn.onclick = (e) => {
-                        e.stopPropagation();
-                        this.submitListaItemDelete(btn.dataset.id, el);
-                    };
-                });
-                overlay.onclick = (evt) => {
-                    if (evt.target === overlay) close();
-                };
-                document.body.appendChild(overlay);
-                if (el) el._listaComprasCategoryOverlay = overlay;
-                this.applyListaComprasModalFilter(overlay);
-            }
-            async refreshListaComprasContent(el, { openCategoryModal = false, categoria = null, modalFilter = null } = {}) {
-                const activeCategoria = this.getListaComprasCategoriaVal(categoria || this.getListaComprasCategorias()[0]);
-                const previousScrollTop = el ? el.scrollTop || 0 : 0;
-                try {
-                    if (el?._listaComprasCategoryOverlay) {
-                        el._listaComprasCategoryOverlay.remove();
-                        el._listaComprasCategoryOverlay = null;
+                const shell = el.querySelector('.lc-shell');
+                const footer = el.querySelector('.fin-footer');
+                if (el._listaFooterObserver) el._listaFooterObserver.disconnect();
+                el._listaFooterObserver = null;
+                if (shell && footer) {
+                    shell.style.setProperty('--fin-footer-h', `${footer.offsetHeight}px`);
+                    if (typeof ResizeObserver === 'function') {
+                        el._listaFooterObserver = new ResizeObserver(() => shell.style.setProperty('--fin-footer-h', `${footer.offsetHeight}px`));
+                        el._listaFooterObserver.observe(footer);
                     }
+                }
+                this.bindListaComprasEvents(el);
+                if (focusAdd) el.querySelector('.lc-add__input')?.focus();
+            }
+            rerenderListaCompras(el, options = {}) {
+                const previousScrollTop = el.scrollTop || 0;
+                this.renderListaComprasContent(el, { rows: el._listaComprasRows || [] }, options);
+                el.scrollTop = previousScrollTop;
+            }
+            bindListaComprasEvents(el) {
+                if (el._listaEventsBound) return;
+                el._listaEventsBound = true;
+                el.addEventListener('submit', (event) => {
+                    const form = event.target.closest('[data-lista-add-form]');
+                    if (!form) return;
+                    event.preventDefault();
+                    const input = form.querySelector('.lc-add__input');
+                    const item = String(input?.value || '').trim();
+                    if (!item) return;
+                    input.value = '';
+                    this.submitListaAddItem(item, el);
+                });
+                el.addEventListener('change', (event) => {
+                    const chk = event.target.closest('[data-lista-check]');
+                    if (chk) {
+                        this.submitListaSetComprado(chk.dataset.id, chk.checked, el);
+                        return;
+                    }
+                    const text = event.target.closest('[data-lista-text]');
+                    if (text) this.submitListaRenameItem(text, el);
+                });
+                el.addEventListener('keydown', (event) => {
+                    const text = event.target.closest('[data-lista-text]');
+                    if (text && event.key === 'Enter') {
+                        event.preventDefault();
+                        text.blur();
+                    }
+                });
+                el.addEventListener('click', (event) => {
+                    const del = event.target.closest('[data-lista-delete]');
+                    if (del) {
+                        this.submitListaItemDelete(del.dataset.id, el);
+                        return;
+                    }
+                    const action = event.target.closest('[data-lista-action]')?.dataset.listaAction;
+                    if (action === 'reset') this.submitListaResetChecks(el);
+                    else if (action === 'delete-all') this.submitListaDeleteAll(el);
+                    else if (action === 'toggle-done') {
+                        el._listaComprasDoneOpen = el._listaComprasDoneOpen === false;
+                        this.rerenderListaCompras(el);
+                    }
+                });
+            }
+            async refreshListaComprasContent(el, options = {}) {
+                if (!el) return this.refreshAppContent('lista_compras');
+                const previousScrollTop = el.scrollTop || 0;
+                try {
                     const res = await fetch('/api/lista-compras', { cache: 'no-store' });
                     const data = await this.readApiJsonOrThrow(res, 'Falha ao carregar lista de compras');
-                    this.renderListaComprasContent(el, data);
-                    if (Number.isFinite(previousScrollTop) && el) {
-                        requestAnimationFrame(() => {
-                            el.scrollTop = previousScrollTop;
-                        });
-                    }
-                    if (openCategoryModal) this.openListaComprasCategoriaModal(el, activeCategoria, modalFilter || 'pendentes');
+                    this.renderListaComprasContent(el, data, options);
+                    requestAnimationFrame(() => { el.scrollTop = previousScrollTop; });
                 } catch (err) {
                     console.error(err);
                     alert(err.message || 'Erro ao carregar lista de compras');
                 }
             }
-            openListaComprasModal(el, { item = null, categoria = null } = {}) {
-                const categorias = this.getListaComprasCategorias();
-                const editId = item?.id != null ? String(item.id) : '';
-                const chipsHtml = categorias.map((c) => {
-                    const esc = escapeHtml(c);
-                    return `<button type="button" class="lista-cat-chip" data-cat="${esc}" title="${esc}">${esc}</button>`;
-                }).join('');
-                const catOptionsHtml = categorias.map((c) => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
-                const initialItem = item ? escapeHtml(item.item || '') : '';
-                const initialQtd = item ? Number(item.quantidade || 1) : 1;
-                const initialCat = item && categorias.includes(item.categoria) ? item.categoria : this.getListaComprasCategoriaVal(categoria || categorias[0]);
-                const uRaw = item ? String(item.unidade_medida || '').trim() : '';
-                const unidadeOpts = ['Kg', 'L', 'g', 'UN'];
-                let unidadeValue = '';
-                if (uRaw) {
-                    const hit = unidadeOpts.find((o) => o.toLowerCase() === uRaw.toLowerCase());
-                    unidadeValue = hit || (unidadeOpts.includes(uRaw) ? uRaw : '');
+            async submitListaAddItem(item, el) {
+                try {
+                    const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item }) });
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao adicionar item'));
+                    const created = await res.json().catch(() => null);
+                    if (created?.id != null && Array.isArray(el?._listaComprasRows)) {
+                        el._listaComprasRows = [...el._listaComprasRows, created];
+                        this.rerenderListaCompras(el, { focusAdd: true });
+                    } else {
+                        await this.refreshListaComprasContent(el, { focusAdd: true });
+                    }
+                } catch (e) {
+                    alert(e.message);
+                    const input = el?.querySelector('.lc-add__input');
+                    if (input && !input.value) input.value = item;
                 }
-                const overlay = document.createElement('div');
-                overlay.className = 'app-modal-overlay';
-                overlay.innerHTML = `
-                    <div class="app-modal lista-compras-entry-modal" role="dialog" aria-modal="true" aria-labelledby="lista-modal-heading">
-                        <div class="lista-entry-card app-form">
-                            <input type="hidden" id="lista-modal-edit-id" value="${escapeHtml(editId)}" />
-                            <header class="lista-entry-hero">
-                                <span class="lista-entry-hero-badge">Mercado</span>
-                                <div>
-                                    <h3 class="lista-entry-title" id="lista-modal-heading">${item ? 'Editar item' : 'Adicionar a lista'}</h3>
-                                    <p class="lista-entry-sub">${item ? 'Ajuste nome, quantidade ou corredor.' : 'Abra o formulario pelo + e monte o item antes de ir ao mercado.'}</p>
-                                </div>
-                            </header>
-                            <div class="lista-entry-grid">
-                                <div class="field lista-field-span-2"><label for="lista-modal-item">Produto</label><input type="text" id="lista-modal-item" value="${initialItem}" placeholder="Ex.: Leite integral, papel toalha..." autocomplete="off" /></div>
-                                <div class="field"><label for="lista-modal-qtd">Quantidade</label><input type="number" min="1" id="lista-modal-qtd" value="${initialQtd}" /></div>
-                                <div class="field"><label for="lista-modal-unidade">Unidade</label><select id="lista-modal-unidade"><option value="">-</option><option value="Kg">Kg</option><option value="L">L</option><option value="g">g</option><option value="UN">UN</option></select></div>
-                            </div>
-                            <div class="lista-cat-block">
-                                <span class="lista-cat-heading">Corredor</span>
-                                <div class="lista-cat-chips" role="group" aria-label="Corredor do mercado">${chipsHtml}</div>
-                                <select id="lista-modal-categoria" class="lista-categoria-native" tabindex="-1" aria-hidden="true" aria-label="Categoria">${catOptionsHtml}</select>
-                            </div>
-                        </div>
-                        <div class="app-modal-actions">
-                            <button type="button" class="app-btn app-btn-secondary" data-action="modal-cancel">Cancelar</button>
-                            <button type="button" class="app-btn lista-btn-main" data-action="modal-save">${item ? 'Salvar' : 'Adicionar'}</button>
-                        </div>
-                    </div>
-                `;
-                const unidadeSel = overlay.querySelector('#lista-modal-unidade');
-                if (unidadeSel && unidadeValue) unidadeSel.value = unidadeValue;
-                const selListaCat = overlay.querySelector('#lista-modal-categoria');
-                if (selListaCat) selListaCat.value = initialCat;
-                const syncListaCatChips = () => {
-                    const v = selListaCat ? selListaCat.value : '';
-                    overlay.querySelectorAll('.lista-cat-chip').forEach((b) => {
-                        b.classList.toggle('is-active', b.dataset.cat === v);
-                    });
-                };
-                overlay.querySelectorAll('.lista-cat-chip').forEach((b) => {
-                    b.onclick = () => {
-                        if (selListaCat) selListaCat.value = b.dataset.cat || '';
-                        syncListaCatChips();
-                    };
-                });
-                if (selListaCat) {
-                    selListaCat.addEventListener('change', syncListaCatChips);
-                    syncListaCatChips();
+            }
+            async submitListaRenameItem(input, el) {
+                const id = input.dataset.id;
+                const row = (el?._listaComprasRows || []).find((r) => String(r.id) === String(id));
+                const original = String(row?.item || '');
+                const item = String(input.value || '').trim();
+                if (!item || item === original) {
+                    input.value = original;
+                    return;
                 }
-                const close = () => overlay.remove();
-                overlay.querySelector('[data-action="modal-cancel"]').onclick = close;
-                overlay.onclick = (e) => { if (e.target === overlay) close(); };
-                overlay.querySelector('[data-action="modal-save"]').onclick = async () => {
-                    const payload = {
-                        editId: (overlay.querySelector('#lista-modal-edit-id').value || '').trim(),
-                        item: overlay.querySelector('#lista-modal-item').value.trim(),
-                        quantidade: parseInt(overlay.querySelector('#lista-modal-qtd').value, 10) || 1,
-                        categoria: selListaCat ? selListaCat.value : categorias[0],
-                        unidade: (overlay.querySelector('#lista-modal-unidade').value || '').trim(),
-                    };
-                    const ok = await this.submitListaComprasPayload(payload, el);
-                    if (ok) close();
-                };
-                document.body.appendChild(overlay);
-                const focusEl = overlay.querySelector('#lista-modal-item');
-                if (focusEl) focusEl.focus();
+                try {
+                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, item }) });
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao renomear item'));
+                    if (row) row.item = item;
+                    input.value = item;
+                } catch (e) {
+                    alert(e.message);
+                    input.value = original;
+                }
             }
             async submitListaSetComprado(id, comprado, el) {
+                const row = (el?._listaComprasRows || []).find((r) => String(r.id) === String(id));
+                const previous = row ? row.comprado : null;
+                if (row) {
+                    row.comprado = Boolean(comprado);
+                    this.rerenderListaCompras(el);
+                }
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, comprado }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
-                    if (el && Array.isArray(el._listaComprasRows)) {
-                        const row = el._listaComprasRows.find((r) => String(r.id) === String(id));
-                        if (row) row.comprado = Boolean(comprado);
-                        const itemEl = document.querySelector(`.lista-compras-category-overlay .lista-compras-item[data-id="${CSS.escape(String(id))}"]`);
-                        if (itemEl) {
-                            const isComprado = Boolean(comprado);
-                            itemEl.classList.toggle('comprado', isComprado);
-                            itemEl.setAttribute('data-comprado', isComprado ? '1' : '0');
-                            const chk = itemEl.querySelector('.lista-compras-chk');
-                            if (chk) chk.checked = isComprado;
-                        }
-                        this.syncListaComprasUI(el);
-                    }
                 } catch (e) {
                     alert(e.message);
-                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(el?._listaComprasCategoryOverlay), categoria: el?._listaComprasCategoryOverlay?._listaComprasCurrentCategory || null, modalFilter: el?._listaComprasCategoryOverlay?._listaComprasModalFilter || null });
-                }
-            }
-            syncListaComprasUI(el) {
-                if (!el) return;
-                const rows = Array.isArray(el._listaComprasRows) ? el._listaComprasRows : [];
-                const activeCategoria = this.getListaComprasCategoriaVal(el?._listaComprasCategoryOverlay?._listaComprasCurrentCategory || this.getListaComprasCategorias()[0]);
-                const statsAll = rows.reduce((acc, row) => {
-                    acc.total += 1;
-                    if (this.isListaComprasComprado(row?.comprado)) acc.comprados += 1;
-                    return acc;
-                }, { total: 0, comprados: 0 });
-                const statsCategoria = this.getListaComprasStats(rows, activeCategoria);
-                const totalEl = el.querySelector('[data-lista-summary-total]');
-                const compradosEl = el.querySelector('[data-lista-summary-comprados]');
-                const pendentesEl = el.querySelector('[data-lista-summary-pendentes]');
-                if (totalEl) totalEl.textContent = String(statsAll.total);
-                if (compradosEl) compradosEl.textContent = String(statsAll.comprados);
-                if (pendentesEl) pendentesEl.textContent = String(Math.max(0, statsAll.total - statsAll.comprados));
-                const categoryModal = document.querySelector('.lista-compras-category-overlay');
-                if (categoryModal) {
-                    const subtitle = categoryModal.querySelector('[data-lista-filter-meta]');
-                    if (subtitle) subtitle.textContent = `${statsCategoria.total} itens, ${statsCategoria.comprados} comprados e ${statsCategoria.pendentes} pendentes.`;
-                    this.applyListaComprasModalFilter(categoryModal);
-                }
-            }
-            async submitListaComprasPayload(payload, el) {
-                const editId = String(payload?.editId || '').trim();
-                const item = String(payload?.item || '').trim();
-                const quantidade = parseInt(payload?.quantidade, 10) || 1;
-                const categoria = payload?.categoria || 'Mantimentos';
-                const unidade = String(payload?.unidade || '').trim();
-                if (!item) { alert('Item é obrigatório'); return false; }
-                try {
-                    if (editId) {
-                        const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editId, item, quantidade, categoria, unidade_medida: unidade }) });
-                        if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
+                    if (row) {
+                        row.comprado = previous;
+                        this.rerenderListaCompras(el);
                     } else {
-                        const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade, categoria, unidade_medida: unidade || undefined }) });
-                        if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
+                        await this.refreshListaComprasContent(el);
                     }
-                    if (el) {
-                        const keepCategory = el._listaComprasCategoryOverlay ? (el._listaComprasCategoryOverlay._listaComprasCurrentCategory || categoria) : null;
-                        const keepFilter = el._listaComprasCategoryOverlay?._listaComprasModalFilter || null;
-                        await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(keepCategory), categoria: keepCategory || categoria, modalFilter: keepFilter });
-                    } else {
-                        await this.refreshAppContent('lista_compras');
-                    }
-                    return true;
-                } catch (e) {
-                    alert(e.message);
-                    return false;
                 }
             }
             async submitListaItemDelete(id, el) {
@@ -10601,21 +10398,20 @@
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
-                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(el?._listaComprasCategoryOverlay), categoria: el?._listaComprasCategoryOverlay?._listaComprasCurrentCategory || null, modalFilter: el?._listaComprasCategoryOverlay?._listaComprasModalFilter || null });
+                    if (Array.isArray(el?._listaComprasRows)) {
+                        el._listaComprasRows = el._listaComprasRows.filter((r) => String(r.id) !== String(id));
+                        this.rerenderListaCompras(el);
+                    } else {
+                        await this.refreshListaComprasContent(el);
+                    }
                 } catch (e) { alert(e.message); }
             }
-            async submitListaResetChecks(el, categoria = null) {
-                const targetCategoria = categoria ? this.getListaComprasCategoriaVal(categoria) : null;
-                const confirmMsg = targetCategoria
-                    ? `Desmarcar todos os itens da categoria ${targetCategoria}?`
-                    : 'Desmarcar todos os itens da lista?';
-                if (!confirm(confirmMsg)) return;
+            async submitListaResetChecks(el) {
+                if (!confirm('Desmarcar todos os itens da lista?')) return;
                 try {
-                    const body = { reset_checks: true };
-                    if (targetCategoria) body.categoria = targetCategoria;
-                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset_checks: true }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
-                    await this.refreshListaComprasContent(el, { openCategoryModal: Boolean(targetCategoria || el?._listaComprasCategoryOverlay), categoria: targetCategoria || el?._listaComprasCategoryOverlay?._listaComprasCurrentCategory || null, modalFilter: el?._listaComprasCategoryOverlay?._listaComprasModalFilter || null });
+                    await this.refreshListaComprasContent(el);
                 } catch (e) { alert(e.message); }
             }
             async submitListaDeleteAll(el) {
@@ -10623,7 +10419,7 @@
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete_all: true }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
-                    await this.refreshListaComprasContent(el, { openCategoryModal: false });
+                    await this.refreshListaComprasContent(el);
                 } catch (e) { alert(e.message); }
             }
 
