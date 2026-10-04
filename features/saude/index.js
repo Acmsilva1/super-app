@@ -3,7 +3,7 @@ import {
   opcoesTabelaNutricional,
   paginarTabelaNutricional,
 } from './service/tabelaNutricionalService.js';
-import { calcularImc, calcularLarguraGraficoPeso, classificarImc, criarTendenciaPeso, formatarNumeroSaude } from './service/perfilSaudeService.js';
+import { calcularImc, calcularLarguraGraficoPeso, classificarImc, criarCurvaSuave, criarTendenciaPeso, formatarNumeroSaude } from './service/perfilSaudeService.js';
 import { countDietItems, createEmptyDietMeals, DIET_MEALS, normalizeDietMeals } from './service/dietasService.js';
 import {
   deleteLocalWaterGoal,
@@ -276,18 +276,9 @@ const SAUDE_STYLES = `
     .saude-profile-detail .saude-profile-timeline { padding-inline: 0; }
     .saude-profile-form__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
     .saude-profile-form__section { grid-column: 1 / -1; margin: .25rem 0 0; color: var(--saude-lima); font-size: .78rem; font-weight: 700; text-transform: uppercase; }
-    .saude-water-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; overflow: hidden; border: 1px solid rgba(56, 189, 248, .32); border-radius: 1.1rem; background: linear-gradient(145deg, rgba(12, 42, 65, .96), rgba(12, 22, 39, .98)); box-shadow: 0 14px 30px rgba(0, 0, 0, .24); transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
-    .saude-water-card::before { content: ''; position: absolute; inset: -60% 35% -60% -20%; pointer-events: none; background: radial-gradient(circle, rgba(56, 189, 248, .13), transparent 65%); animation: saude-water-drift 6s ease-in-out infinite alternate; }
-    .saude-water-card:hover { transform: translateY(-2px); border-color: rgba(103, 232, 249, .62); box-shadow: 0 18px 38px rgba(0, 0, 0, .34), 0 0 28px rgba(14, 165, 233, .09); }
-    .saude-water-card.is-complete { border-color: rgba(103, 232, 249, .9); box-shadow: 0 16px 38px rgba(0, 0, 0, .32), 0 0 30px rgba(14, 165, 233, .2); }
-    .saude-water-card__open { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 1rem; padding: 1.15rem; border: 0; background: transparent; color: var(--saude-texto); text-align: left; cursor: pointer; }
-    .saude-water-card__icon { width: 3.4rem; height: 3.4rem; display: grid; place-items: center; border-radius: 1rem; background: linear-gradient(135deg, #0369a1, #38bdf8); color: #fff; font-size: 1.35rem; box-shadow: 0 8px 22px rgba(14, 165, 233, .2); animation: saude-water-float 2.8s ease-in-out infinite; }
-    .saude-water-card h3 { margin: 0; font-size: 1.05rem; }
-    .saude-water-card p { margin: .3rem 0 0; color: var(--saude-texto-secundario); font-size: .8rem; }
     .saude-water-progress { height: .45rem; margin-top: .7rem; overflow: hidden; border-radius: 999px; background: rgba(148, 163, 184, .18); }
     .saude-water-progress span { position: relative; display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0369a1, #0ea5e9, #67e8f9); transition: width .35s ease; }
     .saude-water-progress span::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); transform: translateX(-100%); animation: saude-water-shine 2.4s ease-in-out infinite; }
-    .saude-water-card__actions { align-self: center; display: flex; gap: .4rem; margin-right: 1rem; }
     .saude-water-profiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
     .saude-water-profile-wrap { position: relative; min-height: 10.5rem; overflow: hidden; border: 1px solid rgba(56, 189, 248, .3); border-radius: 1.15rem; background: radial-gradient(circle at 12% 10%, rgba(56, 189, 248, .17), transparent 9rem), linear-gradient(145deg, rgba(12, 42, 65, .96), rgba(12, 22, 39, .98)); box-shadow: 0 16px 34px rgba(0, 0, 0, .26); transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease; }
     .saude-water-profile-wrap:hover { transform: translateY(-3px); border-color: rgba(103, 232, 249, .65); box-shadow: 0 20px 42px rgba(0, 0, 0, .34), 0 0 28px rgba(14, 165, 233, .1); }
@@ -349,8 +340,8 @@ const SAUDE_STYLES = `
     @keyframes saude-water-celebration-in { from { opacity: 0; transform: translateY(-1rem) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
     @keyframes saude-success-toast-in { from { opacity: 0; transform: translateY(-.8rem) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
     @media (prefers-reduced-motion: reduce) {
-      .saude-modal-backdrop, .saude-confirm-backdrop, .saude-confirm-dialog, .saude-success-toast, .saude-water-modal, .saude-water-card::before, .saude-water-card__icon, .saude-water-progress span::after, .saude-water-check.is-splash, .saude-water-check.is-splash i, .saude-water-check.is-splash::before, .saude-water-check.is-splash::after,       .saude-water-celebration, .saude-water-drop__success-flag { animation: none !important; }
-      .saude-water-card, .saude-water-progress span, .saude-water-check, .saude-water-drop__pool { transition: none !important; }
+      .saude-modal-backdrop, .saude-confirm-backdrop, .saude-confirm-dialog, .saude-success-toast, .saude-water-modal, .saude-water-progress span::after, .saude-water-check.is-splash, .saude-water-check.is-splash i, .saude-water-check.is-splash::before, .saude-water-check.is-splash::after,       .saude-water-celebration, .saude-water-drop__success-flag { animation: none !important; }
+      .saude-water-progress span, .saude-water-check, .saude-water-drop__pool { transition: none !important; }
       .saude-water-drop.is-victory .saude-water-drop__liquid, .saude-water-drop.is-victory .saude-water-drop__shell { animation: none !important; }
     }
     @media (max-width: 760px) {
@@ -399,11 +390,6 @@ const SAUDE_STYLES = `
       .saude-diet-modal .saude-editor__actions { position: sticky; bottom: 0; margin: .85rem -1.1rem -1.1rem; padding: .75rem 1.1rem max(.75rem, env(safe-area-inset-bottom)); background: rgba(15, 23, 42, .96); border-top: 1px solid rgba(148, 163, 184, .16); z-index: 2; }
       .saude-diet-modal .saude-editor__actions .saude-btn { flex: 1; }
       .saude-timeline-item { grid-template-columns: 1fr; gap: .3rem; }
-      .saude-water-card { grid-template-columns: 1fr; }
-      .saude-water-card__open { padding: .9rem .9rem .75rem; gap: .75rem; }
-      .saude-water-card__icon { width: 2.9rem; height: 2.9rem; font-size: 1.15rem; }
-      .saude-water-card h3 { font-size: .95rem; }
-      .saude-water-card__actions { margin: 0; padding: 0 .85rem .85rem; justify-content: flex-end; }
       .saude-section-title { font-size: .92rem; margin-top: 1.15rem; }
       .saude-profile-timeline { padding-inline: .85rem; }
       .saude-profile-timeline > summary { font-size: .78rem; line-height: 1.35; }
@@ -451,20 +437,57 @@ const SAUDE_STYLES = `
   </style>
 `;
 
-function renderShell(container, content, { loading = false, compactHero = false } = {}) {
+function renderBackButton(action, label = 'Voltar', extraAttrs = '') {
+  return `<button type="button" class="fin-back" data-saude-action="${action}"${extraAttrs} aria-label="${escapeHtml(label)}"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>`;
+}
+
+function renderFooterItem(label, value, valueClass = '') {
+  return `<div class="fin-footer__item"><span class="fin-footer__label">${escapeHtml(label)}</span><span class="fin-footer__value${valueClass ? ` ${valueClass}` : ''}">${value}</span></div>`;
+}
+
+function renderNotice(state) {
+  if (!state.notice) return '';
+  return `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>`;
+}
+
+function syncSaudeFooterHeight(container) {
+  const shell = container.querySelector('.saude-root');
+  const footer = container.querySelector('.saude-root > .fin-footer');
+  container._saudeFooterObserver?.disconnect();
+  container._saudeFooterObserver = null;
+  if (!shell) return;
+  shell.style.setProperty('--fin-footer-h', footer ? `${footer.offsetHeight}px` : '0px');
+  if (footer && typeof ResizeObserver === 'function') {
+    container._saudeFooterObserver = new ResizeObserver(() => {
+      shell.style.setProperty('--fin-footer-h', `${footer.offsetHeight}px`);
+    });
+    container._saudeFooterObserver.observe(footer);
+  }
+}
+
+function renderShell(container, content, {
+  loading = false,
+  title = 'Saúde',
+  titleId = '',
+  back = '',
+  footer = '',
+  fab = '',
+} = {}) {
   container.innerHTML = `
     ${SAUDE_STYLES}
-    <main class="saude-root${loading ? ' saude-root--loading' : ''}${compactHero ? ' saude-root--compact-hero' : ''}">
-      <header class="saude-hero">
-        <img class="saude-hero__image" src="/icone%20saude.png" alt="" aria-hidden="true">
-        <div>
-          <h1>Saúde</h1>
-          <p>Consulte suas informações de saúde e nutrição.</p>
+    <main class="saude-root fin-bank${loading ? ' saude-root--loading' : ''}">
+      <div class="fin-topbar">
+        <div class="fin-topbar__inner">
+          ${back}
+          <h2 class="fin-topbar__title"${titleId ? ` id="${titleId}"` : ''}>${escapeHtml(title)}</h2>
         </div>
-      </header>
-      ${content}
+      </div>
+      <div class="fin-body${fab ? ' fin-body--with-fab' : ''}"><div class="fin-body__inner">${content}</div></div>
+      ${footer ? `<div class="fin-footer"><div class="fin-footer__inner">${footer}</div></div>` : ''}
+      ${fab}
     </main>
   `;
+  syncSaudeFooterHeight(container);
   requestAnimationFrame(() => syncSaudeModalScrollLock(container));
 }
 
@@ -602,24 +625,16 @@ function dietsForProfile(state, profileId) {
 
 function renderProfileDietSection(profile, state) {
   const rows = dietsForProfile(state, profile.id);
-  const list = rows.length
-    ? `<div class="saude-diet-grid">${rows.map((diet) => `
-      <button type="button" class="saude-diet-card" data-saude-action="view-diet" data-saude-id="${escapeHtml(diet.id)}" aria-label="Abrir ${escapeHtml(diet.titulo)}">
-        <div>
-          <h3>${escapeHtml(diet.titulo)}</h3>
-          <div class="saude-diet-meta"><span>${countDietItems(diet.refeicoes)} itens</span></div>
-        </div>
-        <span class="saude-diet-card__arrow"><i class="fas fa-chevron-right"></i></span>
-      </button>`).join('')}</div>`
-    : '<p class="saude-meal-empty" style="margin:0">Nenhuma dieta cadastrada para este perfil.</p>';
-  return `
-    <article class="saude-profile-module saude-profile-module--diets" aria-labelledby="profile-diets-title">
-      <div class="saude-profile-module__header">
-        <h4 id="profile-diets-title"><i class="fas fa-utensils"></i> Dietas</h4>
-        <button type="button" class="saude-btn saude-btn--primary saude-meal-card__add" data-saude-action="add-diet"><i class="fas fa-plus"></i> Nova dieta</button>
-      </div>
-      ${list}
-    </article>`;
+  const items = rows.length
+    ? rows.map((diet) => `<li><button type="button" class="fin-nav-row saude-diet-row" data-saude-action="view-diet" data-saude-id="${escapeHtml(diet.id)}" aria-label="Abrir ${escapeHtml(diet.titulo)}">
+        <i class="fas fa-utensils fin-nav-row__icon" aria-hidden="true"></i>
+        <span class="fin-entry__main"><span class="fin-entry__title">${escapeHtml(diet.titulo)}</span><span class="fin-entry__meta">${countDietItems(diet.refeicoes)} itens</span></span>
+        <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
+      </button></li>`).join('')
+    : '<li class="fin-empty">Nenhuma dieta cadastrada para este perfil.</li>';
+  return `${renderNotice(state)}
+    <p class="fin-section-label">Planos de ${escapeHtml(profile.nome)} · ${rows.length}</p>
+    <ul class="fin-list" aria-label="Dietas do perfil">${items}</ul>`;
 }
 
 function paginationNumbers(currentPage, totalPages) {
@@ -1033,45 +1048,113 @@ function renderWeightForm(state) {
     </div>`;
 }
 
-function renderWeightTrend(profile) {
+function estimateLabelWidth(text, fontSize) {
+  return Math.ceil(String(text).length * fontSize * 0.62);
+}
+
+function clampLabelX(x, width, chartWidth) {
+  return Math.min(Math.max(x, (width / 2) + 4), chartWidth - (width / 2) - 4);
+}
+
+function renderWeightTrend(profile, { availableWidth = 0, animate = false } = {}) {
   const historyLength = Array.isArray(profile.historico) ? profile.historico.length : 0;
   const mobileChart = isSaudeMobileViewport();
-  const chartWidth = calcularLarguraGraficoPeso(historyLength, { mobile: mobileChart });
-  const chartPadding = mobileChart ? 22 : 28;
-  const trend = criarTendenciaPeso(profile.historico, chartWidth, 180, chartPadding);
+  const chartWidth = Math.max(Math.floor(availableWidth), calcularLarguraGraficoPeso(historyLength, { mobile: mobileChart }));
+  const chartHeight = mobileChart ? 200 : 230;
+  const pad = { top: 46, right: mobileChart ? 34 : 44, bottom: 34, left: mobileChart ? 30 : 40 };
+  const trend = criarTendenciaPeso(profile.historico, chartWidth, chartHeight, pad);
   if (!trend.pontos.length) return '';
+  const baseY = chartHeight - pad.bottom;
+  const midY = pad.top + ((baseY - pad.top) / 2);
   const first = trend.pontos[0];
   const last = trend.pontos.at(-1);
-  const variationLabel = trend.variacao === 0 ? 'Peso estável' : `${trend.variacao > 0 ? '+' : ''}${formatarNumeroSaude(trend.variacao)} kg no período`;
-  const areaPoints = `${first.x.toFixed(1)},152 ${trend.polyline} ${last.x.toFixed(1)},152`;
-  const showAllDateLabels = !mobileChart || trend.pontos.length <= 4;
-  const showAllWeightLabels = !mobileChart || trend.pontos.length <= 5;
-  const chartPointsMarkup = trend.pontos.map((point, index) => {
-    const isEdge = index === 0 || index === trend.pontos.length - 1;
-    const weightLabel = showAllWeightLabels || isEdge ? `${formatarNumeroSaude(point.peso_kg)} kg` : '';
-    const dateLabel = showAllDateLabels || isEdge ? formatChartAxisDate(point.registrado_em) : '';
-    return `<g><circle class="saude-weight-trend__point" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5"><title>${formatarNumeroSaude(point.peso_kg)} kg em ${escapeHtml(formatDateTime(point.registrado_em))}</title></circle>${weightLabel ? `<text class="saude-weight-trend__label" x="${point.x.toFixed(1)}" y="${Math.max(14, point.y - 12).toFixed(1)}">${weightLabel}</text>` : ''}${dateLabel ? `<text class="saude-weight-trend__date" x="${point.x.toFixed(1)}" y="174">${escapeHtml(dateLabel)}</text>` : ''}</g>`;
+  const curve = criarCurvaSuave(trend.pontos);
+  const area = trend.pontos.length > 1
+    ? `${curve} L ${last.x.toFixed(1)} ${baseY} L ${first.x.toFixed(1)} ${baseY} Z`
+    : '';
+  const variationLabel = trend.variacao === 0
+    ? 'Estável'
+    : `${trend.variacao > 0 ? '+' : ''}${formatarNumeroSaude(trend.variacao)} kg`;
+  const variationClass = trend.variacao < 0 ? ' is-down' : (trend.variacao > 0 ? ' is-up' : '');
+
+  const pointsMarkup = trend.pontos.map((point, index) => {
+    const isLast = index === trend.pontos.length - 1;
+    const x = point.x.toFixed(1);
+    const y = point.y.toFixed(1);
+    const value = formatarNumeroSaude(point.peso_kg);
+    const date = formatChartAxisDate(point.registrado_em);
+    const delay = animate ? ` style="animation-delay:${(0.35 + (index * 0.06)).toFixed(2)}s"` : '';
+    const dateX = clampLabelX(point.x, estimateLabelWidth(date, 11), chartWidth).toFixed(1);
+    const dateLabel = `<text class="saude-weight-trend__date" x="${dateX}" y="${chartHeight - 10}">${escapeHtml(date)}</text>`;
+    const title = `<title>${value} kg em ${escapeHtml(formatDateTime(point.registrado_em))}</title>`;
+    if (isLast) {
+      const pillText = `${value} kg`;
+      const pillWidth = estimateLabelWidth(pillText, 12) + 18;
+      const pillX = clampLabelX(point.x, pillWidth, chartWidth);
+      const pillY = Math.max(4, point.y - 38);
+      return `<g class="saude-weight-trend__node saude-weight-trend__node--last"${delay}>
+        <line class="saude-weight-trend__guide" x1="${x}" y1="${y}" x2="${x}" y2="${baseY}"/>
+        <rect class="saude-weight-trend__pill" x="${(pillX - (pillWidth / 2)).toFixed(1)}" y="${pillY.toFixed(1)}" width="${pillWidth}" height="24" rx="12"/>
+        <text class="saude-weight-trend__pill-text" x="${pillX.toFixed(1)}" y="${(pillY + 16).toFixed(1)}">${pillText}</text>
+        <circle class="saude-weight-trend__halo" cx="${x}" cy="${y}" r="11"/>
+        <circle class="saude-weight-trend__point saude-weight-trend__point--last" cx="${x}" cy="${y}" r="6">${title}</circle>
+      </g>${dateLabel}`;
+    }
+    const labelX = clampLabelX(point.x, estimateLabelWidth(value, 11.5), chartWidth).toFixed(1);
+    return `<g class="saude-weight-trend__node"${delay}>
+      <circle class="saude-weight-trend__point" cx="${x}" cy="${y}" r="4.5">${title}</circle>
+      <text class="saude-weight-trend__label" x="${labelX}" y="${(point.y - 12).toFixed(1)}">${value}</text>
+    </g>${dateLabel}`;
   }).join('');
+
   const scrollHint = mobileChart
     ? 'Deslize horizontalmente para ver todas as medições'
     : 'Use a rolagem horizontal para consultar todas as medições';
-  return `<details class="saude-weight-trend saude-weight-trend--panel">
-    <summary aria-controls="weight-trend-chart"><div class="saude-weight-trend__header"><div><h3 id="weight-trend-title">Tendência de peso</h3><p>${trend.pontos.length} ${trend.pontos.length === 1 ? 'medição registrada' : 'medições registradas'} · toque para visualizar</p></div><span class="saude-weight-trend__change">${escapeHtml(variationLabel)}</span><i class="fas fa-chevron-down saude-weight-trend__toggle" aria-hidden="true"></i></div></summary>
+  return `<section class="saude-weight-trend${animate ? ' is-animated' : ''}" aria-labelledby="weight-trend-title">
+    <div class="saude-weight-trend__header">
+      <div><h3 id="weight-trend-title">Tendência de peso</h3><p>${trend.pontos.length} ${trend.pontos.length === 1 ? 'medição registrada' : 'medições registradas'} · kg</p></div>
+      <span class="saude-weight-trend__change${variationClass}">${escapeHtml(variationLabel)}</span>
+    </div>
     <div class="saude-weight-trend__viewport" id="weight-trend-chart" tabindex="0" aria-label="${escapeHtml(scrollHint)}">
-    <svg class="saude-weight-trend__chart${mobileChart ? ' saude-weight-trend__chart--mobile' : ''}" style="min-width:${chartWidth}px" viewBox="0 0 ${chartWidth} 180" role="img" aria-labelledby="weight-trend-title">
-      <defs><linearGradient id="saude-weight-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#95c11f" stop-opacity=".28"/><stop offset="1" stop-color="#95c11f" stop-opacity="0"/></linearGradient></defs>
-      <line class="saude-weight-trend__grid" x1="${chartPadding}" y1="28" x2="${chartWidth - chartPadding}" y2="28"/><line class="saude-weight-trend__grid" x1="${chartPadding}" y1="90" x2="${chartWidth - chartPadding}" y2="90"/><line class="saude-weight-trend__grid" x1="${chartPadding}" y1="152" x2="${chartWidth - chartPadding}" y2="152"/>
-      ${trend.pontos.length > 1 ? `<polygon class="saude-weight-trend__area" points="${areaPoints}"/><polyline class="saude-weight-trend__line" points="${trend.polyline}"/>` : ''}
-      ${chartPointsMarkup}
-    </svg></div>
-  </details>`;
+      <svg class="saude-weight-trend__chart${mobileChart ? ' saude-weight-trend__chart--mobile' : ''}" width="${chartWidth}" height="${chartHeight}" style="min-width:${chartWidth}px" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-labelledby="weight-trend-title">
+        <defs><linearGradient id="saude-weight-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-opacity=".22"/><stop offset="1" stop-opacity="0"/></linearGradient></defs>
+        <line class="saude-weight-trend__grid" x1="${pad.left}" y1="${pad.top}" x2="${chartWidth - pad.right}" y2="${pad.top}"/>
+        <line class="saude-weight-trend__grid" x1="${pad.left}" y1="${midY.toFixed(1)}" x2="${chartWidth - pad.right}" y2="${midY.toFixed(1)}"/>
+        <line class="saude-weight-trend__grid saude-weight-trend__grid--base" x1="${pad.left}" y1="${baseY}" x2="${chartWidth - pad.right}" y2="${baseY}"/>
+        ${area ? `<path class="saude-weight-trend__area" d="${area}"/><path class="saude-weight-trend__line" d="${curve}" pathLength="1"/>` : ''}
+        ${pointsMarkup}
+      </svg>
+    </div>
+  </section>`;
+}
+
+function sortedProfileHistory(profile) {
+  const history = Array.isArray(profile.historico) ? [...profile.historico] : [];
+  return history.sort((a, b) => new Date(b.registrado_em).getTime() - new Date(a.registrado_em).getTime());
 }
 
 function renderProfileTimeline(profile, state) {
-  const history = Array.isArray(profile.historico) ? profile.historico : [];
-  if (!history.length) return '';
+  const history = sortedProfileHistory(profile);
   const countLabel = `${history.length} ${history.length === 1 ? 'registro' : 'registros'}`;
-  return `<details class="saude-profile-timeline"><summary>Linha do tempo · Peso e IMC · ${countLabel}</summary><div class="saude-timeline-list">${history.map((entry) => `<div class="saude-timeline-item"><time class="saude-timeline-date" datetime="${escapeHtml(entry.registrado_em)}">${escapeHtml(formatDateTime(entry.registrado_em))}</time><div class="saude-timeline-values"><span>${formatarNumeroSaude(entry.peso_kg)} kg</span><span>${formatarNumeroSaude(entry.altura_cm)} cm</span><span>IMC ${formatarNumeroSaude(entry.imc, 2)}</span></div><div><button type="button" class="saude-icon-btn" data-saude-action="edit-measurement" data-saude-profile-id="${escapeHtml(profile.id)}" data-saude-measurement-id="${escapeHtml(entry.id)}" aria-label="Editar medição de ${escapeHtml(formatDateTime(entry.registrado_em))}" title="Editar medição"${state.busy ? ' disabled' : ''}><i class="fas fa-pencil"></i></button><button type="button" class="saude-icon-btn saude-icon-btn--danger" data-saude-action="delete-measurement" data-saude-profile-id="${escapeHtml(profile.id)}" data-saude-measurement-id="${escapeHtml(entry.id)}" aria-label="Excluir medição de ${escapeHtml(formatDateTime(entry.registrado_em))}" title="Excluir medição"${state.busy ? ' disabled' : ''}><i class="fas fa-trash"></i></button></div></div>`).join('')}</div></details>`;
+  const rows = history.length
+    ? history.map((entry) => {
+      const when = escapeHtml(formatDateTime(entry.registrado_em));
+      return `<li class="fin-entry">
+        <div class="fin-entry__main">
+          <time class="fin-entry__title" datetime="${escapeHtml(entry.registrado_em)}">${when}</time>
+          <span class="fin-entry__meta">${formatarNumeroSaude(entry.peso_kg)} kg · ${formatarNumeroSaude(entry.altura_cm)} cm</span>
+        </div>
+        <div class="fin-entry__side">
+          <span class="fin-entry__value">IMC ${formatarNumeroSaude(entry.imc, 2)}</span>
+          <div class="fin-entry__actions">
+            <button type="button" class="fin-icon-btn" data-saude-action="edit-measurement" data-saude-profile-id="${escapeHtml(profile.id)}" data-saude-measurement-id="${escapeHtml(entry.id)}" aria-label="Editar medição de ${when}" title="Editar medição"${state.busy ? ' disabled' : ''}><i class="fas fa-pencil"></i></button>
+            <button type="button" class="fin-icon-btn" data-saude-action="delete-measurement" data-saude-profile-id="${escapeHtml(profile.id)}" data-saude-measurement-id="${escapeHtml(entry.id)}" aria-label="Excluir medição de ${when}" title="Excluir medição"${state.busy ? ' disabled' : ''}><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      </li>`;
+    }).join('')
+    : '<li class="fin-empty">Nenhuma medição registrada.</li>';
+  return `<p class="fin-section-label">Linha do tempo · Peso e IMC · ${countLabel}</p><ul class="fin-list">${rows}</ul>`;
 }
 
 /** Linha do tempo de água: só dias já fechados (history da API), sem o log do dia corrente. */
@@ -1121,65 +1204,131 @@ async function hydrateWaterHistoriesForProfiles(state) {
   });
 }
 
-function getWaterTimelineRows(profile, state) {
-  const profileKey = String(profile.id);
-  const onDetail = state.view === 'profile-detail' && Number(state.selectedProfileId) === Number(profile.id);
-  if (onDetail) return waterTimelineSavedRows(state.waterHistory);
-  return state.waterHistoryByProfile?.[profileKey]?.rows || [];
+const PROFILE_SCREENS = ['hub', 'peso', 'dietas'];
+
+function normalizeProfileScreen(screen) {
+  return PROFILE_SCREENS.includes(screen) ? screen : 'hub';
 }
 
-function renderWaterTimeline(profile, state) {
-  const rows = getWaterTimelineRows(profile, state);
-  if (!rows.length) return '';
-  const countLabel = `${rows.length} ${rows.length === 1 ? 'registro' : 'registros'}`;
-  return `<details class="saude-profile-timeline saude-profile-timeline--water"><summary>Linha do tempo · Água · ${countLabel}</summary><div class="saude-timeline-list">${rows.map((row) => {
-    const complete = Number(row.realizado_doses) >= Number(row.meta_doses);
-    return `<div class="saude-timeline-item saude-timeline-item--water"><time class="saude-timeline-date" datetime="${escapeHtml(row.data)}">${escapeHtml(formatWaterDate(row.data))}</time><div class="saude-timeline-values"><span>Meta ${row.meta_doses} doses</span><span>Realizado ${row.realizado_doses} doses</span>${complete ? '<span>Meta OK</span>' : ''}</div></div>`;
-  }).join('')}</div></details>`;
+function profileIdentityLine(profile) {
+  const age = profileAge(profile.data_nascimento);
+  return `${profileSexLabel(profile.sexo)}${age === null ? '' : ` · ${age} ${age === 1 ? 'ano' : 'anos'}`}`;
+}
+
+function profileImcInfo(profile) {
+  const age = profileAge(profile.data_nascimento);
+  const imc = profile.imc ?? calcularImc(profile.peso_kg, profile.altura_cm);
+  const classification = age !== null && age < 20 ? 'Referência varia por idade' : classificarImc(imc);
+  return { imc, classification };
 }
 
 function renderProfiles(container, state) {
-  const content = state.profiles.length ? `<div class="saude-profile-list">${state.profiles.map((profile) => {
-    const age = profileAge(profile.data_nascimento);
-    const imc = profile.imc ?? calcularImc(profile.peso_kg, profile.altura_cm);
-    const classification = age !== null && age < 20 ? 'Referência varia por idade' : classificarImc(imc);
-    return `<article class="saude-profile-card">
-      <div class="saude-profile-card__header">
-        <button type="button" class="saude-profile-card__identity-btn" data-saude-action="open-profile-detail" data-saude-id="${escapeHtml(profile.id)}" aria-label="Abrir painel de ${escapeHtml(profile.nome)}">
-          <span class="saude-profile-avatar"><i class="fas fa-user"></i></span>
-          <div class="saude-profile-card__identity-copy">
-            <h3>${escapeHtml(profile.nome)}</h3>
-            <p class="saude-profile-card__subtitle">${escapeHtml(profileSexLabel(profile.sexo))}${age === null ? '' : ` · ${age} ${age === 1 ? 'ano' : 'anos'}`}</p>
-          </div>
-        </button>
-        <div class="saude-profile-card__actions">
-          <button type="button" class="saude-btn" data-saude-action="edit-profile" data-saude-id="${escapeHtml(profile.id)}"><i class="fas fa-pencil"></i> Editar</button>
-          <button type="button" class="saude-btn saude-btn--primary" data-saude-action="open-profile-detail" data-saude-id="${escapeHtml(profile.id)}"><span>Abrir</span> <i class="fas fa-arrow-right"></i></button>
-        </div>
-      </div>
-      <div class="saude-profile-summary">
-        <div class="saude-profile-stat"><span>Peso</span><strong>${formatarNumeroSaude(profile.peso_kg)} kg</strong></div>
-        <div class="saude-profile-stat"><span>Altura</span><strong>${formatarNumeroSaude(profile.altura_cm)} cm</strong></div>
-        <div class="saude-profile-stat"><span>IMC</span><strong>${formatarNumeroSaude(imc, 2)}</strong></div>
-        <div class="saude-profile-stat"><span>Referência</span><strong>${escapeHtml(classification)}</strong></div>
-      </div>
-      ${renderProfileTimeline(profile, state)}
-      ${renderWaterTimeline(profile, state)}
-    </article>`;
-  }).join('')}</div>` : '<div class="saude-empty"><i class="fas fa-user-group"></i><p>Nenhum perfil cadastrado.</p><button type="button" class="saude-btn saude-btn--primary" data-saude-action="add-profile"><i class="fas fa-plus"></i> Criar primeiro perfil</button></div>';
+  const profiles = state.profiles;
+  const rows = profiles.length
+    ? profiles.map((profile) => {
+      const { imc, classification } = profileImcInfo(profile);
+      return `<li><button type="button" class="fin-nav-row saude-profile-row" data-saude-action="open-profile-detail" data-saude-id="${escapeHtml(profile.id)}" aria-label="Abrir painel de ${escapeHtml(profile.nome)}">
+        <span class="saude-profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
+        <span class="fin-entry__main"><span class="fin-entry__title">${escapeHtml(profile.nome)}</span><span class="fin-entry__meta">${escapeHtml(profileIdentityLine(profile))}</span></span>
+        <span class="fin-entry__side"><span class="fin-entry__value">IMC ${formatarNumeroSaude(imc, 2)}</span>${classification ? `<span class="fin-tag">${escapeHtml(classification)}</span>` : ''}</span>
+        <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
+      </button></li>`;
+    }).join('')
+    : '<li class="fin-empty">Nenhum perfil cadastrado.</li>';
+  const activeWaterGoals = profiles.filter((profile) => state.waterHistoryByProfile?.[String(profile.id)]?.config).length;
 
   renderShell(container, `<section class="saude-page" aria-labelledby="profiles-title">
-    <div class="saude-page-toolbar">
-      <div class="saude-page-header">
-        <div><h2 id="profiles-title">Minha Saúde</h2><p>Selecione um perfil para acessar hábitos e dados de saúde.</p></div>
-      </div>
-      <button type="button" class="saude-btn saude-btn--primary saude-btn--insert" data-saude-action="add-profile"><i class="fas fa-plus"></i><span>Novo perfil</span></button>
-    </div>
-    ${state.notice ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>` : ''}
+    ${renderNotice(state)}
+    <p class="fin-section-label">Perfis · ${profiles.length}</p>
+    <ul class="fin-list" aria-label="Perfis de saúde">${rows}</ul>
+    ${profiles.length ? '' : '<button type="button" class="fin-btn fin-btn--block" data-saude-action="add-profile"><i class="fas fa-plus" aria-hidden="true"></i> Criar primeiro perfil</button>'}
     ${renderProfileForm(state)}
     ${renderMeasurementForm(state)}
-    ${content}
-  </section>`);
+  </section>`, {
+    title: 'Minha Saúde',
+    titleId: 'profiles-title',
+    footer: `<div class="fin-footer__row">${renderFooterItem('Perfis cadastrados', String(profiles.length))}${renderFooterItem('Metas de água ativas', String(activeWaterGoals))}</div>`,
+    fab: '<button type="button" class="fin-fab" data-saude-action="add-profile" aria-label="Novo perfil">+</button>',
+  });
+}
+
+function waterSummary(state) {
+  const waterToday = state.waterToday;
+  const waterConfig = state.waterConfig;
+  const done = waterToday?.realizado_doses ?? 0;
+  const meta = waterToday?.meta_doses ?? waterConfig?.meta_doses ?? 8;
+  return {
+    waterToday,
+    waterConfig,
+    done,
+    meta,
+    percent: Math.min(100, Math.round((done / Math.max(1, meta)) * 100)),
+    complete: Boolean(waterToday) && done >= meta,
+  };
+}
+
+function renderProfileModals(state) {
+  return `${renderProfileForm(state)}${renderMeasurementForm(state)}${renderWeightForm(state)}${renderWaterModal(state)}${renderDietForm(state)}${renderDietOverlay(state)}`;
+}
+
+function renderProfileHub(profile, state) {
+  const id = escapeHtml(profile.id);
+  const { imc, classification } = profileImcInfo(profile);
+  const water = waterSummary(state);
+  const diets = dietsForProfile(state, profile.id);
+  const historyCount = Array.isArray(profile.historico) ? profile.historico.length : 0;
+  const waterStatus = water.waterToday
+    ? `${water.done} de ${water.meta} doses hoje`
+    : (water.waterConfig ? `Meta: ${water.meta} doses diárias` : 'Definir meta de doses diárias');
+  const waterActions = water.waterConfig
+    ? `<button type="button" class="fin-icon-btn" data-saude-action="edit-water-goal" data-water-profile-id="${id}" aria-label="Editar meta de água" title="Editar meta"><i class="fas fa-pencil"></i></button><button type="button" class="fin-icon-btn" data-saude-action="delete-water-goal" data-water-profile-id="${id}" aria-label="Excluir acompanhamento de água" title="Excluir"><i class="fas fa-trash"></i></button>`
+    : `<button type="button" class="fin-icon-btn" data-saude-action="create-water-goal" data-water-profile-id="${id}" aria-label="Criar meta de água" title="Criar meta"><i class="fas fa-plus"></i></button>`;
+  const navRow = (screen, icon, label, meta) => `<li><button type="button" class="fin-nav-row" data-saude-action="profile-screen" data-screen="${screen}">
+    <i class="fas ${icon} fin-nav-row__icon" aria-hidden="true"></i>
+    <span class="fin-nav-row__label">${label}</span>
+    <span class="saude-nav-meta">${meta}</span>
+    <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
+  </button></li>`;
+  const kv = (label, value) => `<li class="fin-kv"><span class="fin-kv__label">${label}</span><span class="fin-kv__value">${value}</span></li>`;
+
+  return `
+    <div class="fin-hero">
+      <div class="fin-hero__label">Peso atual</div>
+      <div class="fin-hero__value">${formatarNumeroSaude(profile.peso_kg)} kg</div>
+      <p class="saude-hero-sub">IMC ${formatarNumeroSaude(imc, 2)}${classification ? ` · ${escapeHtml(classification)}` : ''}</p>
+      <div class="fin-hero__actions"><button type="button" class="fin-btn fin-btn--ghost" data-saude-action="adjust-weight" data-saude-id="${id}"><i class="fas fa-weight-scale" aria-hidden="true"></i> Ajustar peso</button></div>
+    </div>
+    ${renderNotice(state)}
+    <p class="fin-section-label">Dados do perfil</p>
+    <ul class="fin-list">
+      ${kv('Perfil', escapeHtml(profileIdentityLine(profile)))}
+      ${kv('Peso', `${formatarNumeroSaude(profile.peso_kg)} kg`)}
+      ${kv('Altura', `${formatarNumeroSaude(profile.altura_cm)} cm`)}
+      ${kv('IMC', formatarNumeroSaude(imc, 2))}
+      ${kv('Referência', escapeHtml(classification || '—'))}
+      ${profile.data_medicao ? kv('Última medição', escapeHtml(formatDateTime(profile.data_medicao))) : ''}
+    </ul>
+    <p class="fin-section-label">Hábitos & Cuidados</p>
+    <ul class="fin-list">
+      <li class="saude-bank-water${water.complete ? ' is-complete' : ''}">
+        <button type="button" class="saude-bank-water__open" data-saude-action="open-water-tracker" data-water-profile-id="${id}" aria-label="Abrir consumo de água de ${escapeHtml(profile.nome)}">
+          <i class="fas fa-droplet fin-nav-row__icon" aria-hidden="true"></i>
+          <span class="fin-entry__main">
+            <span class="fin-entry__title">Consumo de água</span>
+            <span class="fin-entry__meta" data-water-card-status>${waterStatus}</span>
+            <span class="saude-water-progress"><span data-water-progress-fill style="width: ${water.percent}%"></span></span>
+          </span>
+        </button>
+        <span class="fin-entry__actions">${waterActions}</span>
+      </li>
+      ${navRow('peso', 'fa-weight-scale', 'Peso e IMC', `${historyCount} ${historyCount === 1 ? 'registro' : 'registros'}`)}
+      ${navRow('dietas', 'fa-utensils', 'Dietas', String(diets.length))}
+      <li><button type="button" class="fin-nav-row" data-saude-action="edit-profile" data-saude-id="${id}">
+        <i class="fas fa-pencil fin-nav-row__icon" aria-hidden="true"></i>
+        <span class="fin-nav-row__label">Editar perfil</span>
+        <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
+      </button></li>
+    </ul>`;
 }
 
 function renderProfileDetail(container, state) {
@@ -1189,71 +1338,59 @@ function renderProfileDetail(container, state) {
     renderProfiles(container, state);
     return;
   }
-  const age = profileAge(profile.data_nascimento);
-  const imc = profile.imc ?? calcularImc(profile.peso_kg, profile.altura_cm);
-  const classification = age !== null && age < 20 ? 'Referência varia por idade' : classificarImc(imc);
+  const screen = normalizeProfileScreen(state.profileScreen);
+  state.profileScreen = screen;
+  const id = escapeHtml(profile.id);
+  const backToHub = renderBackButton('profile-screen', 'Voltar ao perfil', ' data-screen="hub"');
+  let title = profile.nome;
+  let back = renderBackButton('open-profiles', 'Voltar aos perfis');
+  let body = '';
+  let footer = '';
+  let fab = '';
 
-  const waterToday = state.waterToday;
-  const waterConfig = state.waterConfig;
-  const waterDone = waterToday?.realizado_doses ?? 0;
-  const waterMeta = waterToday?.meta_doses ?? waterConfig?.meta_doses ?? 8;
-  const waterPercent = Math.min(100, Math.round((waterDone / Math.max(1, waterMeta)) * 100));
-  const waterComplete = waterToday && waterDone >= waterMeta;
+  if (screen === 'peso') {
+    const variacao = criarTendenciaPeso(profile.historico).variacao;
+    const variacaoLabel = variacao === null ? '—' : `${variacao > 0 ? '+' : ''}${formatarNumeroSaude(variacao)} kg`;
+    const chartKey = `${profile.id}:${Array.isArray(profile.historico) ? profile.historico.length : 0}:${profile.peso_kg}`;
+    const animateChart = state.weightChartKey !== chartKey;
+    state.weightChartKey = chartKey;
+    title = 'Peso e IMC';
+    back = backToHub;
+    body = `${renderNotice(state)}${renderWeightTrend(profile, { availableWidth: weightChartAvailableWidth(container), animate: animateChart })}${renderProfileTimeline(profile, state)}`;
+    footer = `<div class="fin-footer__row">${renderFooterItem('Peso atual', `${formatarNumeroSaude(profile.peso_kg)} kg`)}${renderFooterItem('Variação no período', variacaoLabel)}</div>`;
+    fab = `<button type="button" class="fin-fab" data-saude-action="adjust-weight" data-saude-id="${id}" aria-label="Registrar peso">+</button>`;
+  } else if (screen === 'dietas') {
+    const diets = dietsForProfile(state, profile.id);
+    const totalItems = diets.reduce((total, diet) => total + countDietItems(diet.refeicoes), 0);
+    title = 'Dietas';
+    back = backToHub;
+    body = renderProfileDietSection(profile, state);
+    footer = `<div class="fin-footer__row">${renderFooterItem('Dietas', String(diets.length))}${renderFooterItem('Itens cadastrados', String(totalItems))}</div>`;
+    fab = '<button type="button" class="fin-fab" data-saude-action="add-diet" aria-label="Nova dieta">+</button>';
+  } else {
+    const { imc } = profileImcInfo(profile);
+    const water = waterSummary(state);
+    body = renderProfileHub(profile, state);
+    state.weightChartKey = null;
+    footer = `<div class="fin-footer__row saude-footer-row--3">${renderFooterItem('Peso', `${formatarNumeroSaude(profile.peso_kg)} kg`)}${renderFooterItem('IMC', formatarNumeroSaude(imc, 2))}<div class="fin-footer__item"><span class="fin-footer__label">Água hoje</span><span class="fin-footer__value" data-water-footer-value>${water.waterToday ? `${water.done}/${water.meta}` : '—'}</span></div></div>`;
+  }
 
-  const waterCard = `
-    <article class="saude-water-card${waterComplete ? ' is-complete' : ''}">
-      <button type="button" class="saude-water-card__open" data-saude-action="open-water-tracker" data-water-profile-id="${escapeHtml(profile.id)}" aria-label="Abrir consumo de água de ${escapeHtml(profile.nome)}">
-        <span class="saude-water-card__icon"><i class="fas fa-droplet"></i></span>
-        <div>
-          <h3>Consumo de água</h3>
-          <p data-water-card-status>${waterToday ? `${waterDone} de ${waterMeta} doses hoje` : (waterConfig ? `Meta: ${waterMeta} doses diárias` : 'Definir meta de doses diárias')}</p>
-          <div class="saude-water-progress"><span data-water-progress-fill style="width: ${waterPercent}%"></span></div>
-        </div>
-      </button>
-      <div class="saude-water-card__actions">${waterConfig ? `<button type="button" class="saude-icon-btn" data-saude-action="edit-water-goal" data-water-profile-id="${escapeHtml(profile.id)}" aria-label="Editar meta de água" title="Editar meta"><i class="fas fa-pencil"></i></button><button type="button" class="saude-icon-btn saude-icon-btn--danger" data-saude-action="delete-water-goal" data-water-profile-id="${escapeHtml(profile.id)}" aria-label="Excluir acompanhamento de água" title="Excluir"><i class="fas fa-trash"></i></button>` : `<button type="button" class="saude-icon-btn" data-saude-action="create-water-goal" data-water-profile-id="${escapeHtml(profile.id)}" aria-label="Criar meta de água" title="Criar meta"><i class="fas fa-plus"></i></button>`}</div>
-    </article>
-  `;
+  renderShell(container, `<section class="saude-page saude-profile-detail" data-profile-screen="${screen}" aria-labelledby="profile-detail-title">
+    ${body}
+    ${renderProfileModals(state)}
+  </section>`, { title, titleId: 'profile-detail-title', back, footer, fab });
+  requestAnimationFrame(() => {
+    paintWaterTrackerUi(container, state);
+    const viewport = container.querySelector('.saude-weight-trend__viewport');
+    if (viewport) viewport.scrollLeft = viewport.scrollWidth;
+  });
+}
 
-  renderShell(container, `<section class="saude-page saude-profile-detail" aria-labelledby="profile-detail-title">
-    <div class="saude-page-toolbar saude-page-toolbar--stack">
-      <div class="saude-page-header saude-page-header--profile">
-        <button type="button" class="saude-btn" data-saude-action="open-profiles" aria-label="Voltar aos perfis"><i class="fas fa-arrow-left"></i> <span class="saude-btn__label">Perfis</span></button>
-        <div class="saude-page-header__copy">
-          <h2 id="profile-detail-title">${escapeHtml(profile.nome)}</h2>
-          <p class="saude-profile-detail-subtitle">${escapeHtml(profileSexLabel(profile.sexo))}${age === null ? '' : ` · ${age} ${age === 1 ? 'ano' : 'anos'}`}${profile.data_medicao ? ` · Medição: ${escapeHtml(formatDateTime(profile.data_medicao))}` : ''}</p>
-        </div>
-      </div>
-      <div class="saude-profile-detail-actions">
-        <button type="button" class="saude-btn saude-btn--primary" data-saude-action="adjust-weight" data-saude-id="${escapeHtml(profile.id)}"><i class="fas fa-weight-scale"></i> <span>Ajustar peso</span></button>
-        <button type="button" class="saude-btn" data-saude-action="edit-profile" data-saude-id="${escapeHtml(profile.id)}"><i class="fas fa-pencil"></i> <span>Editar perfil</span></button>
-      </div>
-    </div>
-    ${renderWeightTrend(profile)}
-    ${state.notice ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>` : ''}
-    ${renderProfileForm(state)}
-    ${renderMeasurementForm(state)}
-    ${renderWeightForm(state)}
-
-    <div class="saude-profile-summary saude-profile-summary--detail">
-      <div class="saude-profile-stat"><span>Peso</span><strong>${formatarNumeroSaude(profile.peso_kg)} kg</strong></div>
-      <div class="saude-profile-stat"><span>Altura</span><strong>${formatarNumeroSaude(profile.altura_cm)} cm</strong></div>
-      <div class="saude-profile-stat"><span>IMC</span><strong>${formatarNumeroSaude(imc, 2)}</strong></div>
-      <div class="saude-profile-stat"><span>Referência</span><strong>${escapeHtml(classification)}</strong></div>
-    </div>
-    ${renderProfileTimeline(profile, state)}
-    ${renderWaterTimeline(profile, state)}
-
-    <h3 class="saude-section-title"><i class="fas fa-heart-pulse"></i> Hábitos & Cuidados</h3>
-    <div class="saude-profile-modules">
-      ${waterCard}
-      ${renderProfileDietSection(profile, state)}
-    </div>
-
-    ${renderWaterModal(state)}
-    ${renderDietForm(state)}
-    ${renderDietOverlay(state)}
-  </section>`, { compactHero: true });
-  requestAnimationFrame(() => paintWaterTrackerUi(container, state));
+function weightChartAvailableWidth(container) {
+  const inner = container.querySelector('.fin-body__inner');
+  const measured = inner ? inner.clientWidth - 32 : 0;
+  const fallback = Math.min(globalThis.innerWidth || 640, 720) - 32;
+  return Math.max(0, (measured > 0 ? measured : fallback) - 2);
 }
 
 async function requestProfiles(method, payload) {
@@ -1375,7 +1512,9 @@ function syncWaterTrackerDom(container, state, { skipWaterDrop = false } = {}) {
   const progress = container.querySelector('[data-water-progress-fill]');
   if (progress) progress.style.width = `${Math.round((state.waterToday.realizado_doses / state.waterToday.meta_doses) * 100)}%`;
   container.querySelector('.saude-water-modal')?.classList.toggle('is-complete', completed);
-  container.querySelector('.saude-water-card')?.classList.toggle('is-complete', completed);
+  container.querySelector('.saude-bank-water')?.classList.toggle('is-complete', completed);
+  const footerValue = container.querySelector('[data-water-footer-value]');
+  if (footerValue) footerValue.textContent = `${state.waterToday.realizado_doses}/${state.waterToday.meta_doses}`;
   if (!skipWaterDrop) {
     refreshWaterVictoryPresentation(container, container, state.waterToday, state.waterProfileId);
   }
@@ -1416,7 +1555,7 @@ function animateWaterDose(container, button, completed) {
       Promise.resolve(animation?.finished).catch(() => {}).finally(() => drop.remove());
     });
 
-    const waterIcon = container.querySelector('.saude-water-card__icon');
+    const waterIcon = container.querySelector('.saude-bank-water .fin-nav-row__icon');
     if (waterIcon) motion.animate(waterIcon, { y: [0, -6, 0], scale: [1, 1.08, 1] }, { duration: .45, easing: 'ease-out' });
     const dropVisual = container.querySelector('.saude-water-drop__visual');
     if (dropVisual) motion.animate(dropVisual, { scale: [1, 1.06, 1], y: [0, -3, 0] }, { duration: .48, easing: 'ease-out' });
@@ -1546,6 +1685,8 @@ export async function renderSaudeContent(container) {
     dietItemEditingIndex: null,
     dietItemDraft: { nome: '', quantidade: '', observacao: '' },
     profiles: [],
+    profileScreen: 'hub',
+    weightChartKey: null,
     profileEditorOpen: false,
     profileEditingId: null,
     profileDraft: blankProfileDraft(),
@@ -1620,7 +1761,7 @@ export async function renderSaudeContent(container) {
     if (action === 'open-profiles' || (action === 'retry' && state.view === 'profiles')) {
       removeWaterCelebration(container);
       state.view = 'profiles';
-      rememberSaudeCheckpoint({ view: 'profiles', selectedProfileId: null });
+      rememberSaudeCheckpoint({ view: 'profiles', selectedProfileId: null, profileScreen: null });
       await loadProfiles(container, state);
       return;
     }
@@ -1685,6 +1826,7 @@ export async function renderSaudeContent(container) {
       removeWaterCelebration(container);
       state.selectedProfileId = profileId;
       state.view = 'profile-detail';
+      state.profileScreen = 'hub';
       state.profileEditorOpen = false;
       state.measurementEditorOpen = false;
       state.waterModal = null;
@@ -1695,11 +1837,19 @@ export async function renderSaudeContent(container) {
           syncWaterWithHealthProfile(state, healthProfile),
           syncDietsForHealthProfile(state, healthProfile),
         ]);
-        rememberSaudeCheckpoint({ view: 'profile-detail', selectedProfileId: profileId });
+        rememberSaudeCheckpoint({ view: 'profile-detail', selectedProfileId: profileId, profileScreen: 'hub' });
         renderProfileDetail(container, state);
       } catch (error) {
         renderError(container, error instanceof Error ? error.message : 'Não foi possível abrir o perfil.');
       }
+      return;
+    }
+    if (action === 'profile-screen' && state.view === 'profile-detail') {
+      state.profileScreen = normalizeProfileScreen(actionElement.dataset.screen);
+      state.notice = null;
+      rememberSaudeCheckpoint({ view: 'profile-detail', selectedProfileId: state.selectedProfileId, profileScreen: state.profileScreen });
+      renderProfileDetail(container, state);
+      container.closest('.window-content')?.scrollTo?.({ top: 0 });
       return;
     }
     if (action === 'open-water-tracker') {
@@ -1847,7 +1997,7 @@ export async function renderSaudeContent(container) {
       if (!confirmed) return;
       state.busy = true;
       state.notice = null;
-      renderProfiles(container, state);
+      renderActiveSaudeView(container, state);
       let deleted = false;
       try {
         const result = await deleteProfileMeasurement(measurementId);
@@ -1864,7 +2014,7 @@ export async function renderSaudeContent(container) {
         state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível excluir a medição.' };
       } finally {
         state.busy = false;
-        renderProfiles(container, state);
+        renderActiveSaudeView(container, state);
       }
       if (deleted) showSaudeSuccess(container, 'Medição excluída com sucesso.');
       return;
@@ -2368,6 +2518,8 @@ export async function renderSaudeContent(container) {
     }
   }, 60000);
   container._cleanup = () => {
+    container._saudeFooterObserver?.disconnect();
+    container._saudeFooterObserver = null;
     clearInterval(waterDayTimer);
     clearTimeout(viewportResizeTimer);
     window.removeEventListener('resize', onViewportChange);
@@ -2403,6 +2555,7 @@ export async function renderSaudeContent(container) {
       const healthProfile = state.profiles.find((profile) => Number(profile.id) === checkpointProfileId);
       state.selectedProfileId = checkpointProfileId;
       state.view = 'profile-detail';
+      state.profileScreen = normalizeProfileScreen(checkpoint?.profileScreen);
       try {
         await Promise.all([
           syncWaterWithHealthProfile(state, healthProfile),

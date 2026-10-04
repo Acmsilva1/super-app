@@ -256,9 +256,11 @@ export async function openHomeDietQuickModal(options = {}) {
       return;
     }
     if (action === 'open-saude') {
-      const profileId = state.profileId;
+      const intent = state.profileId != null
+        ? { profileId: state.profileId, screen: 'hub' }
+        : null;
       close();
-      options.launchSaude?.(profileId);
+      options.launchSaude?.(intent);
       return;
     }
     const dietButton = event.target.closest('[data-diet-id]');

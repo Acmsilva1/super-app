@@ -9,7 +9,6 @@ import {
   TIPO_REGISTRO_META_POUPANCA,
   TIPO_REGISTRO_POUPANCA,
   TIPO_REGISTRO_RECEITA,
-  STATUS_PAGO,
   STATUS_PENDENTE,
   parseMesAno,
   rangeMes,
@@ -20,16 +19,12 @@ import {
   payloadResgatePoupanca,
   payloadUpdateFinanceiro,
   inferTipoRegistro,
-  normalizeFinanceiroCategoriaText,
-  canonicalFinanceiroCategoriaLabel,
   buildReplicationSlotsFromStart,
   seriesDefinitionsFromYearRows,
   slotsNeededForMonth,
   rowMatchesReplicationSlot,
   buildInsertPayloadFromSlot,
   createdAtForMesAno,
-  calcularAnaliseRiscoConsumo,
-  detectarPadroesEInconsistencias,
 } from '../features/financeiro/index.js';
 import crypto from 'node:crypto';
 
@@ -226,50 +221,11 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
     liquido: saldo,
   };
 
-  const categoriaMap = new Map();
-  for (const row of gastosVariados) {
-    const categoriaRaw = String(row?.categoria || 'Outros').trim();
-    const key = normalizeFinanceiroCategoriaText(categoriaRaw);
-    const current = categoriaMap.get(key) || { categoria: canonicalFinanceiroCategoriaLabel(categoriaRaw), valor: 0 };
-    categoriaMap.set(key, {
-      categoria: current.categoria,
-      valor: Number((current.valor + Number(row?.valor || 0)).toFixed(2)),
-    });
-  }
-
-  const graficos = {
-    categorias_gastos: [...categoriaMap.values()].sort((a, b) => b.valor - a.valor),
-    pagos_pendentes: {
-      pago: Number(despesasFixasRowsRaw.filter((row) => String(row?.status || '').toLowerCase() === STATUS_PAGO).reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2)),
-      pendente: Number(despesasFixasRowsRaw.filter((row) => row?.pendente_mes === true || String(row?.status || '').toLowerCase() !== STATUS_PAGO).reduce((sum, row) => sum + (Number(row?.valor) || 0), 0).toFixed(2)),
-    },
-  };
-
-  const graficosAnuais = Array.from({ length: 12 }, (_, index) => ({
-    mes_ano: `${ano}-${String(index + 1).padStart(2, '0')}`,
-    receitas: index === mes - 1 ? receitasTotal : 0,
-    despesas_fixas: index === mes - 1 ? despesasFixasTotal : 0,
-    despesas_variadas: index === mes - 1 ? despesasVariadasTotal : 0,
-    despesas_totais: index === mes - 1 ? despesasTotais : 0,
-    saldo: index === mes - 1 ? saldo : 0,
-  }));
-
-  const analiseRisco = calcularAnaliseRiscoConsumo({
-    receitas: dashboard.receitas,
-    despesasFixas: dashboard.despesas_fixas,
-    gastosVariados,
-    diaAtual: new Date().getDate(),
-    totalDias: new Date(ano, mes, 0).getDate(),
-  });
-  const { grupos: padroeGrupos, inconsistencias } = detectarPadroesEInconsistencias(gastosVariados);
-
   const response = {
     status: 200,
     data: {
       mes_ano,
       dashboard,
-      graficos,
-      graficos_anuais: graficosAnuais,
       tabelas: {
         despesas_fixas: despesasFixasTabela,
         gastos_variados: gastosVariadosTabela,
@@ -289,11 +245,6 @@ function buildFinanceiroMockResponse(query = {}, context = {}) {
           progresso: 0.34,
           status_meta: 'em_execucao',
         },
-      },
-      analise_risco: analiseRisco,
-      padroes: {
-        grupos: padroeGrupos,
-        inconsistencias,
       },
     },
   };
@@ -516,34 +467,6 @@ async function cleanupFutureContaFixa(row, context = {}) {
 }
 
 const DESPESA_FIXA_SERIES_COLUMNS = 'descricao, valor, status, conta_fixa, parcela_atual, parcela_total, serie_id, created_at';
-function buildGraficosAnuaisFromView(ano, viewRows) {
-  const year = Number(ano);
-  const meses = Array.from({ length: 12 }, (_, i) => ({
-    mes: i + 1,
-    mes_ano: `${year}-${String(i + 1).padStart(2, '0')}`,
-    receitas: 0,
-    despesas_fixas: 0,
-    despesas_variadas: 0,
-    despesas: 0,
-    saldo: 0,
-  }));
-  for (const row of viewRows || []) {
-    const idx = meses.findIndex((m) => m.mes_ano === row.mes_ano);
-    if (idx === -1) continue;
-    meses[idx].receitas = Number(row.receitas || 0);
-    meses[idx].despesas_fixas = Number(row.despesas_fixas || 0);
-    meses[idx].despesas_variadas = Number(row.despesas_variadas || 0);
-    meses[idx].despesas = Number(row.despesas_totais || 0);
-    meses[idx].saldo = Number(row.saldo || 0);
-  }
-  return meses;
-}
-
-function wantsGraficosAnuais(query = {}) {
-  const bi = String(query?.bi ?? '').toLowerCase();
-  const flag = String(query?.incluir_anuais ?? '').toLowerCase();
-  return bi === '1' || bi === 'true' || flag === '1' || flag === 'true';
-}
 
 function rangeDiasMes(ano, mes) {
   const lastDay = new Date(ano, mes, 0).getDate();
@@ -565,7 +488,7 @@ const POUPANCA_LIST_COLUMNS = 'id,descricao,valor,motivo_resgate,data_lancamento
 
 function normalizeFinanceiroSection(value) {
   const section = String(value || '').trim().toLowerCase();
-  return ['data', 'summary', 'poupanca'].includes(section) ? section : '';
+  return ['data', 'poupanca'].includes(section) ? section : '';
 }
 
 function parseFinanceiroPage(query = {}) {
@@ -590,16 +513,12 @@ function filterMockFinanceiroSection(data, query = {}) {
     return {
       ...base,
       dashboard: data.dashboard,
-      graficos: { pagos_pendentes: data.graficos?.pagos_pendentes || {} },
       tabelas: {
         despesas_fixas: data.tabelas?.despesas_fixas || [],
         gastos_variados: data.tabelas?.gastos_variados || [],
         receitas: data.tabelas?.receitas || [],
       },
     };
-  }
-  if (section === 'summary') {
-    return { ...base, dashboard: data.dashboard, graficos: data.graficos, graficos_anuais: data.graficos_anuais };
   }
   return { ...base, poupanca: data.poupanca };
 }
@@ -680,9 +599,6 @@ async function obterFinanceiroSecao(query = {}, context = {}) {
     const receitasTotal = receitas.reduce((sum, row) => sum + Number(row.valor || 0), 0);
     const variadasTotal = gastosVariados.reduce((sum, row) => sum + Number(row.valor || 0), 0);
     const fixasTotal = fixas.reduce((sum, row) => sum + Number(row.valor || 0), 0);
-    const pago = fixas.filter((row) => String(row.status || '').toLowerCase() === STATUS_PAGO)
-      .reduce((sum, row) => sum + Number(row.valor || 0), 0);
-    const pendente = fixasTotal - pago;
     const despesasTotais = fixasTotal + variadasTotal;
 
     return {
@@ -697,63 +613,12 @@ async function obterFinanceiroSecao(query = {}, context = {}) {
           saldo: receitasTotal - despesasTotais,
           liquido: receitasTotal - despesasTotais,
         },
-        graficos: { pagos_pendentes: { pago, pendente } },
         tabelas: {
           despesas_fixas: montarTabelaFinanceiroRows(fixas, TIPO_REGISTRO_DESPESA_FIXA),
           gastos_variados: montarTabelaFinanceiroRows(gastosVariados, TIPO_REGISTRO_GASTO_VARIADO)
             .map((row) => ({ ...row, tipo_registro: resolveTipoRegistroFinanceiro(row, TIPO_REGISTRO_GASTO_VARIADO) })),
           receitas: montarTabelaFinanceiroRows(receitas, TIPO_REGISTRO_RECEITA),
         },
-      },
-    };
-  }
-
-  if (section === 'summary') {
-    const includeAnuais = wantsGraficosAnuais(query);
-    const [resumoResult, categoriasResult, historicoResult] = await Promise.all([
-      scopeQueryByUser(
-        supabase.from('vw_financeiro_resumo_mensal').select('receitas,despesas_variadas,despesas_fixas,saldo,fixas_pagas,fixas_pendentes').eq('mes_ano', mes_ano),
-        context
-      ),
-      scopeQueryByUser(
-        supabase.from('vw_financeiro_categoria_mensal').select('categoria,valor_total,quantidade_lancamentos,media_lancamento,ranking_maior,ranking_menor').eq('mes_ano', mes_ano).order('ranking_maior', { ascending: true }),
-        context
-      ),
-      includeAnuais
-        ? scopeQueryByUser(
-            supabase.from('vw_financeiro_historico_anual').select('mes_ano,receitas,despesas_fixas,despesas_variadas,despesas_totais,saldo').eq('ano', ano),
-            context
-          )
-        : Promise.resolve({ data: [], error: null }),
-    ]);
-    const error = resumoResult.error || categoriasResult.error || historicoResult.error;
-    if (error) return { error: error.message, status: 500 };
-    const row = resumoResult.data?.[0] || {};
-    const despesasFixas = Number(row.despesas_fixas || 0);
-    const despesasVariadas = Number(row.despesas_variadas || 0);
-    const saldo = Number(row.saldo || 0);
-    return {
-      status: 200,
-      data: {
-        ...base,
-        dashboard: {
-          receitas: Number(row.receitas || 0),
-          despesas_fixas: despesasFixas,
-          despesas_variadas: despesasVariadas,
-          despesas_totais: despesasFixas + despesasVariadas,
-          saldo,
-          liquido: saldo,
-        },
-        graficos: {
-          categorias_gastos: (categoriasResult.data || []).map((item) => ({
-            categoria: item.categoria,
-            valor: Number(item.valor_total || 0),
-            quantidade: item.quantidade_lancamentos,
-            media: Number(item.media_lancamento || 0),
-          })),
-          pagos_pendentes: { pago: Number(row.fixas_pagas || 0), pendente: Number(row.fixas_pendentes || 0) },
-        },
-        graficos_anuais: buildGraficosAnuaisFromView(ano, historicoResult.data || []),
       },
     };
   }
@@ -812,13 +677,10 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
   const { ano, mes } = parseMesAno(query.mes_ano);
   const { start, end, mes_ano } = rangeMes(ano, mes);
   const { dayStart, dayEnd } = rangeDiasMes(ano, mes);
-  const includeAnuais = wantsGraficosAnuais(query);
   const monthPeriodFilter = periodOrFilter({ dayStart, dayEnd, start, end });
 
   const [
     resumoMensalResult,
-    categoriasMensalResult,
-    historicoAnualResult,
     poupancaResumoResult,
     financasMesResult,
     despesasFixasMesResult,
@@ -831,21 +693,6 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
         .eq('mes_ano', mes_ano),
       context
     ),
-    scopeQueryByUser(
-      supabase.from('vw_financeiro_categoria_mensal')
-        .select('categoria,valor_total,quantidade_lancamentos,media_lancamento,ranking_maior,ranking_menor')
-        .eq('mes_ano', mes_ano)
-        .order('ranking_maior', { ascending: true }),
-      context
-    ),
-    includeAnuais
-      ? scopeQueryByUser(
-          supabase.from('vw_financeiro_historico_anual')
-            .select('mes_ano,receitas,despesas_fixas,despesas_variadas,despesas_totais,saldo')
-            .eq('ano', ano),
-          context
-        )
-      : Promise.resolve({ data: [], error: null }),
     scopeQueryByUser(
       supabase.from('vw_financeiro_poupanca_resumo')
         .select('total_acumulado,meta_id,nome_meta,valor_meta,data_inicio,progresso,status_meta'),
@@ -904,23 +751,6 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
     liquido: saldo_val,
   };
 
-  // ── Gráficos (banco agregou por categoria) ────────────────────────────────
-  const graficos = {
-    categorias_gastos: (categoriasMensalResult.data || []).map((c) => ({
-      categoria: c.categoria,
-      valor: Number(c.valor_total || 0),
-      quantidade: c.quantidade_lancamentos,
-      media: Number(c.media_lancamento || 0),
-    })),
-    pagos_pendentes: {
-      pago: Number(resumoRow.fixas_pagas || 0),
-      pendente: Number(resumoRow.fixas_pendentes || 0),
-    },
-  };
-
-  // ── Histórico anual (banco fez o join e os rankings) ─────────────────────
-  const graficosAnuais = buildGraficosAnuaisFromView(ano, historicoAnualResult.data || []);
-
   // ── Poupança (banco calculou total, progresso e status) ───────────────────
   const poupancaResumoRow = poupancaResumoResult.data?.[0] || {};
   const poupancaTotal = Number(poupancaResumoRow.total_acumulado || 0);
@@ -950,28 +780,11 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
   const despesasFixasTabela = montarTabelaFinanceiroRows(despesasFixasRowsRaw, TIPO_REGISTRO_DESPESA_FIXA);
   const poupancaTabela = montarTabelaFinanceiroRows(poupancaRowsRaw, TIPO_REGISTRO_POUPANCA);
 
-  // ── Análise de Risco e Padrões (precisam dos rows brutos — inevitável) ────
-  const brazilNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-  const diaAtual = brazilNow.getDate();
-  const totalDias = new Date(ano, mes, 0).getDate();
-
-  const analiseRisco = calcularAnaliseRiscoConsumo({
-    receitas: dashboard.receitas,
-    despesasFixas: dashboard.despesas_fixas,
-    gastosVariados,
-    diaAtual,
-    totalDias,
-  });
-
-  const { grupos: padroeGrupos, inconsistencias } = detectarPadroesEInconsistencias(gastosVariados);
-
   return {
     status: 200,
     data: {
       mes_ano,
       dashboard,
-      graficos,
-      graficos_anuais: graficosAnuais,
       tabelas: {
         despesas_fixas: despesasFixasTabela,
         gastos_variados: gastosVariadosTabela,
@@ -984,11 +797,6 @@ export async function obterFinanceiroMes(query = {}, context = {}) {
         total: poupancaTotal,
         logs: poupancaTabela,
         meta_ativa: poupancaMetaAtiva,
-      },
-      analise_risco: analiseRisco,
-      padroes: {
-        grupos: padroeGrupos,
-        inconsistencias,
       },
     },
   };

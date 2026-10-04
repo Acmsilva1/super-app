@@ -521,12 +521,15 @@ describe('API do financeiro', () => {
     });
 
     const app = createApp(financeiroHandler);
-    const res = await request(app).get('/api/test?mes_ano=2026-07&bi=1');
+    const res = await request(app).get('/api/test?mes_ano=2026-07');
 
     expect(res.status).toBe(200);
     expect(res.body.mes_ano).toBe('2026-07');
-    expect(Array.isArray(res.body.graficos_anuais)).toBe(true);
-    expect(res.body.graficos_anuais).toHaveLength(12);
+    expect(res.body.dashboard).toBeDefined();
+    expect(res.body.graficos).toBeUndefined();
+    expect(res.body.graficos_anuais).toBeUndefined();
+    expect(track.tables).not.toContain('vw_financeiro_categoria_mensal');
+    expect(track.tables).not.toContain('vw_financeiro_historico_anual');
 
     const despesasCalls = track.tables.filter((t) => t === 'tb_despesas_fixas').length;
     expect(despesasCalls).toBe(1);
@@ -535,22 +538,15 @@ describe('API do financeiro', () => {
     expect(track.selects.some((cols) => String(cols).includes('*') || String(cols).includes('receitas'))).toBe(true);
   });
 
-  it('GET sem bi nao busca dataset anual leve', async () => {
-    const track = { tables: [], selects: [], filters: [], ors: [] };
-
-    fromMock.mockImplementation((table) => {
-      track.tables.push(table);
-      return createThenableQuery({ data: [], track });
-    });
+  it('GET com secao summary removida cai na consulta completa sem graficos', async () => {
+    fromMock.mockImplementation(() => createThenableQuery({ data: [] }));
 
     const app = createApp(financeiroHandler);
-    const res = await request(app).get('/api/test?mes_ano=2026-07');
+    const res = await request(app).get('/api/test?mes_ano=2026-07&secao=summary');
 
     expect(res.status).toBe(200);
-    expect(res.body.graficos_anuais).toHaveLength(12);
-    const lightAnnualSelects = track.selects.filter((cols) => cols === 'tipo, valor, data_lancamento, created_at'
-      || cols === 'valor, created_at');
-    expect(lightAnnualSelects).toHaveLength(0);
+    expect(res.body.graficos).toBeUndefined();
+    expect(res.body.graficos_anuais).toBeUndefined();
   });
 
   it('GET segmentado da aba Dados faz somente duas consultas e nao materializa no carregamento', async () => {

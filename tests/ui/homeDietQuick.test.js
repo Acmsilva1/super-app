@@ -30,7 +30,17 @@ describe('atalho de Dietas na tela inicial', () => {
     expect(indexSource.indexOf('id="homeDietFab"')).toBeLessThan(indexSource.indexOf('id="homeWaterFab"'));
     expect(indexSource).toContain('.home-diet-fab');
     expect(indexSource).toContain("this.quickOpenDiet(e)");
-    expect(indexSource).toContain("import('./features/saude/homeDietQuick.js?v=2026-09-26-diet-quick-v2')");
+    expect(indexSource).toContain("import('./features/saude/homeDietQuick.js?v=2026-10-03-diet-intent-v2')");
+  });
+
+  it('direciona os detalhes de Dieta e Água para a tela do perfil selecionado', () => {
+    const dietSource = fs.readFileSync(path.join(root, 'features/saude/homeDietQuick.js'), 'utf8');
+    const waterSource = fs.readFileSync(path.join(root, 'features/saude/homeWaterQuick.js'), 'utf8');
+    expect(dietSource).toContain("{ profileId: state.profileId, screen: 'hub' }");
+    expect(waterSource).toContain("{ profileId: state.profileId, screen: 'hub' }");
+    expect(indexSource).toContain('launchSaude: (intent) => this.openSaudeAt(intent)');
+    expect(indexSource).toContain("view: 'profile-detail',");
+    expect(indexSource).toContain("profileScreen: intent.screen || 'hub'");
   });
 
   it('persiste e reutiliza somente um perfil ainda válido', () => {

@@ -17,7 +17,7 @@ export const APPS = [
     icon: 'fa-wallet',
     status: 'active',
     title: 'Financeiro',
-    description: 'Dashboard financeiro completo com despesas fixas, gastos variaveis e receitas.',
+    description: 'Despesas fixas, extrato diario, receitas e poupanca.',
     category: 'Financeiro',
     health_path: '/api/financeiro?health=1',
   },

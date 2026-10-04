@@ -75,13 +75,27 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('data-saude-action="delete-measurement"');
     expect(source).toContain('Esta ação não poderá ser desfeita.');
     expect(source).toContain('Linha do tempo · Peso e IMC ·');
-    expect(source).toContain('Linha do tempo · Água ·');
-    expect(source).toContain('saude-profile-timeline--water');
+    expect(source).not.toContain('Linha do tempo · Água ·');
     expect(source).toContain('calcularImc(profile.peso_kg, profile.altura_cm)');
-    expect(source).toContain('.saude-profile-summary { grid-template-columns: 1fr 1fr;');
     expect(source).toContain('saude-profile-detail');
-    expect(source).toContain('saude-page-toolbar--stack');
     expect(source).toContain('.saude-profile-form__grid { grid-template-columns: 1fr; }');
+  });
+
+  it('segue o padrão bancário do Financeiro com subtelas, voltar, rodapé fixo e FAB', () => {
+    expect(source).toContain("const PROFILE_SCREENS = ['hub', 'peso', 'dietas']");
+    expect(source).toContain('<main class="saude-root fin-bank');
+    expect(source).toContain('class="fin-topbar"');
+    expect(source).toContain('class="fin-back" data-saude-action="${action}"');
+    expect(source).toContain('<div class="fin-footer"><div class="fin-footer__inner">');
+    expect(source).toContain('--fin-footer-h');
+    expect(source).toContain('data-saude-action="profile-screen" data-screen="${screen}"');
+    expect(source).toContain("renderBackButton('profile-screen', 'Voltar ao perfil', ' data-screen=\"hub\"')");
+    expect(source).toContain('class="fin-fab" data-saude-action="add-profile"');
+    expect(source).toContain('class="fin-fab" data-saude-action="adjust-weight"');
+    expect(source).toContain('class="fin-fab" data-saude-action="add-diet"');
+    expect(source).toContain('profileScreen: state.profileScreen');
+    expect(source).toContain('state.profileScreen = normalizeProfileScreen(checkpoint?.profileScreen)');
+    expect(source).not.toContain('class="saude-hero"');
   });
 
   it('oferece um card de consumo de agua com checks em modal e historico diario', () => {
@@ -130,7 +144,7 @@ describe('UI mobile do módulo Saúde', () => {
     expect(modalSource).toContain('saude-water-checks');
     expect(modalSource).toContain('Histórico diário');
     expect(modalSource.indexOf('saude-water-checks')).toBeLessThan(modalSource.indexOf('Histórico diário'));
-    expect(source).toContain('saude-water-card__open');
+    expect(source).toContain('class="saude-bank-water__open" data-saude-action="open-water-tracker"');
     expect(source).not.toContain('function renderWater(container, state)');
   });
 
@@ -155,10 +169,11 @@ describe('UI mobile do módulo Saúde', () => {
   });
 
   it('renderiza Minha Saúde na tela inicial e embute o card de Consumo de Água no painel do perfil', () => {
-    expect(source).toContain('<h2 id="profiles-title">Minha Saúde</h2>');
+    expect(source).toContain("title: 'Minha Saúde',");
+    expect(source).toContain("titleId: 'profiles-title'");
     expect(source).toContain('data-saude-action="open-profile-detail"');
     expect(source).toContain('function renderProfileDetail(container, state)');
-    expect(source).toContain('<h3 class="saude-section-title"><i class="fas fa-heart-pulse"></i> Hábitos & Cuidados</h3>');
+    expect(source).toContain('<p class="fin-section-label">Hábitos & Cuidados</p>');
     expect(source).toContain('data-saude-action="open-water-tracker"');
     expect(source).toContain('saude-profile-modules');
     expect(source).toContain('function renderProfileDietSection(profile, state)');
@@ -186,12 +201,17 @@ describe('UI mobile do módulo Saúde', () => {
   it('ajusta o peso no cabecalho e exibe o grafico sem pedir a data', () => {
     expect(source).toContain('data-saude-action="adjust-weight"');
     expect(source).toContain('data-saude-weight-form');
-    expect(source).toContain('function renderWeightTrend(profile)');
+    expect(source).toContain('function renderWeightTrend(profile, { availableWidth = 0, animate = false } = {})');
     expect(source).toContain('saude-weight-trend__chart');
     expect(source).toContain('saude-weight-trend__chart--mobile');
-    expect(source).toContain('<details class="saude-weight-trend saude-weight-trend--panel">');
+    expect(source).toContain('<section class="saude-weight-trend${animate ? \' is-animated\' : \'\'}"');
     expect(source).toContain('class="saude-weight-trend__viewport"');
     expect(source).toContain('calcularLarguraGraficoPeso(historyLength, { mobile: mobileChart })');
+    expect(source).toContain('const curve = criarCurvaSuave(trend.pontos)');
+    expect(source).toContain('saude-weight-trend__pill');
+    expect(source).toContain('availableWidth: weightChartAvailableWidth(container)');
+    expect(source).toContain('viewport.scrollLeft = viewport.scrollWidth');
+    expect(source).not.toContain('showAllWeightLabels');
     expect(source).toContain('.saude-weight-trend__chart { width: 100%; height: auto;');
     expect(source).toContain('style="min-width:${chartWidth}px"');
     expect(source).not.toContain('id="profile-data-medicao"');

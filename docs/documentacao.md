@@ -40,7 +40,7 @@ super-app/
 
 | App ID | Modulo | API |
 |---|---|---|
-| `financeiro` | Dashboard, despesas, poupanca, analista | `/api/financeiro`, `/api/financeiro-analista` |
+| `financeiro` | Despesas fixas, extrato, receitas, poupanca | `/api/financeiro` |
 | `lista_compras` | Lista com prioridade e check | `/api/lista-compras` |
 | `fluxograma` | Diagramas locais e em nuvem | `/api/fluxograma`, `/api/fluxograma-export` |
 | `saude` | Tabela nutricional, dietas e perfis familiares | `/api/saude` |
@@ -60,14 +60,16 @@ Login Supabase -> Bearer token -> /api/* -> requireUser()
 
 O frontend principal fica em `index.html`, com HTML, CSS e JavaScript vanilla no mesmo arquivo. Ele controla login, catalogo de apps, janelas dos micro-apps e chamadas autenticadas para `/api/*`.
 
-Na abertura, uma splash screen cobre a inicializacao com a arte `logo home.png`, nome do app e barra de progresso. Ela permanece por no minimo 900 ms, aguarda os dados iniciais do shell e desaparece suavemente quando a tela seguinte esta pronta. A arte tem preload prioritario e faz parte do cache essencial da PWA para aparecer mais cedo nas proximas aberturas. As bibliotecas de graficos continuam sendo carregadas sob demanda, sem bloquear essa primeira exibicao.
+Na abertura, uma splash screen cobre a inicializacao com a arte `logo home.png`, nome do app e barra de progresso. Ela permanece por no minimo 900 ms, aguarda os dados iniciais do shell e desaparece suavemente quando a tela seguinte esta pronta. A arte tem preload prioritario e faz parte do cache essencial da PWA para aparecer mais cedo nas proximas aberturas.
+
+Identidade visual banking (claro por padrao, modo escuro opcional) em `styles/bank-theme.css`, carregado apos o CSS inline. A home e uma lista com os 4 modulos e barra fixa de atalhos (Dieta, Agua, Formulario).
 
 | Arquivo | Papel |
 |---|---|
 | `index.html` | Shell PWA, UI principal e modulos inline |
 | `manifest.json` | Manifesto PWA |
 | `sw.js` | Service worker para cache estatico |
-| `lib/financeiroAnualCache.js` | Cache client-side dos graficos anuais |
+| `styles/bank-theme.css` | Tokens e layout banking (home, financeiro, saude, modais) |
 
 ### Autenticacao na UI
 
@@ -96,15 +98,14 @@ if (container._cleanup) container._cleanup();
 
 ### Financeiro
 
-- Dashboard mensal com receitas, despesas fixas, despesas variadas e saldo.
-- Graficos ECharts de categorias, status pago/pendente e historico anual.
-- CRUD de lancamentos por `tipo_registro`.
-- Despesas fixas possuem flag mensal `pendente_mes`: botao com X vermelho marca a conta como pendente do mes sem remover da lista, mantendo o valor nos totais de pendencias e exibindo selo vermelho `Pendente`.
-- Headers de despesas fixas possuem padding responsivo para evitar titulo colado na borda em desktop e mobile.
-- Aba Dados do Financeiro usa Motion para transicao leve entre filtros, entrada escalonada das linhas e micro feedback nos botoes de acao.
-- Poupanca e metas.
-- Analista financeiro via `/api/financeiro-analista`.
-- Cache anual no navegador para reduzir chamadas repetidas.
+- Navegacao por telas via `data-finance-screen` (`hub`, `fixas`, `extrato`, `receita`, `poupanca`), com seta de voltar para o hub. Sem graficos.
+- Hub: seletor Mes/Ano, acessos as subtelas e resumo (receita, despesas fixas, gastos PIX/debito, poupanca acumulada, saldo).
+- Despesas fixas: lista Pendentes/Pagas; botao de status alterna Pendente/Pago; rodape fixo com receita, total de fixas e tags Pago/Pendente calculadas por `status`.
+- Despesas fixas possuem flag mensal `pendente_mes`: botao X marca a conta como pendente do mes sem remover da lista.
+- Extrato diario (debito/PIX): lista estilo extrato com rodape fixo receita x total de gastos.
+- Receitas: total do mes em destaque e log de entradas.
+- Poupanca: total acumulado, meta, resgate e historico paginado (sem filtro mensal).
+- CRUD de lancamentos por `tipo_registro` no modal central. Categoria oculta na UI: novos registros recebem `Outros` (gasto) ou `Outro` (receita); edicoes preservam a categoria existente. A coluna continua no banco.
 
 ### Lista de Compras
 
@@ -137,6 +138,8 @@ Modelo: `features/lista_compras/model/itemLista.js`.
 | `features/saude/service/perfilSaudeService.js` | Calculo, classificacao e formatacao do IMC |
 | `features/saude/service/tabelaNutricionalService.js` | Filtros e paginacao nutricional |
 | `api/saude.js` | Contratos e persistencia do modulo |
+
+A interface segue o mesmo padrao banking do Financeiro (classes `fin-*` de `styles/bank-theme.css`): barra superior com voltar, listas, rodape fixo e botao `+`. A navegacao e empilhada: lista de perfis (Minha Saude) > perfil (resumo, dados, habitos) > subtelas `Peso e IMC` e `Dietas`, controladas por `state.profileScreen` (`hub|peso|dietas`) e salvas no checkpoint da janela. Consumo de agua, cadastros e confirmacoes continuam em modais centralizados.
 
 O subtopico `Perfil` permite cadastrar varias pessoas da familia. Cada perfil possui nome, sexo, data de nascimento, peso e altura obrigatorios, alem de cintura, quadril, peito, braco e coxa opcionais.
 
@@ -186,7 +189,6 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 |---|---|
 | `lib/supabase.js` | Cria cliente Supabase |
 | `lib/auth.js` | Valida token, role e permissao por app |
-| `lib/financeiroAnualCache.js` | Cache client-side exportado para o navegador |
 | `api/_financeiroShared.js` | Logica compartilhada do financeiro |
 
 ### Autorizacao
@@ -212,8 +214,6 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 | `/api/roadmap` | GET | Nao sensivel | Roadmap estatico via rewrite para `/api/apps` |
 | `/api/auth-config` | GET | Publico | Config publica Supabase via rewrite para `/api/apps` |
 | `/api/financeiro` | GET, POST, PATCH, DELETE | `financeiro` | Dashboard, CRUD financeiro e flag `pendente_mes` |
-| `/api/financeiro-analista` | GET | `financeiro` | Analise historica e categorias |
-| `/api/cron-treinar-modelo` | POST | `CRON_SECRET` | Job de treino financeiro |
 | `/api/lista-compras` | GET, POST, PATCH, DELETE | `lista_compras` | CRUD da lista |
 | `/api/fluxograma` | GET, POST, PATCH, DELETE | Admin | Projetos de fluxograma |
 | `/api/fluxograma-export` | GET | Admin | Exportacao PNG |
@@ -230,8 +230,8 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 ### Regras do Financeiro
 
 - `GET /api/financeiro` sem `secao` retorna o contrato consolidado atual, sem o modo Compras removido.
-- `GET /api/financeiro?secao=data|summary|poupanca` carrega somente a aba solicitada. O frontend usa esse contrato segmentado e guarda em memoria as secoes ja visitadas.
-- A aba `data` executa duas consultas mensais, com colunas explicitas. `summary` consulta as views agregadas apenas quando o dashboard e aberto.
+- `GET /api/financeiro?secao=data|poupanca` carrega somente a secao solicitada (o hub busca as duas em paralelo). O frontend guarda em memoria as secoes ja visitadas. `secao` desconhecida (ex.: o antigo `summary`) cai na consulta completa.
+- A secao `data` executa duas consultas mensais, com colunas explicitas.
 - Poupanca usa paginacao de 50 registros e retorna `pagination.page`, `pagination.limit` e `pagination.has_more`.
 - A materializacao de despesas fixas nao ocorre mais durante GET. Ela e acionada explicitamente por `POST` com `acao=materializar_despesas_fixas`.
 - `POST/PATCH/DELETE` aceitam `despesa_fixa`, `gasto_variado`, `receita`, `poupanca`, `meta_poupanca` e `resgate_poupanca`, conforme a operacao. O tipo removido `compra` e rejeitado como invalido.
@@ -264,9 +264,9 @@ Operacoes ainda pendentes ou com falha sao registradas no `localStorage` por usu
 
 Durante uma mutacao, a UI exibe `Sincronizando com o banco...` sem bloquear a tela. A confirmacao troca o aviso para sucesso; falha ou timeout exibe erro e mantem o fluxo de recuperacao. Isso permite verificar visualmente que a mudanca local ocorreu antes da resposta do backend.
 
-### Analista Financeiro
+### Dashboards removidos (2026-10-03)
 
-`GET /api/financeiro-analista` reutiliza `obterFinanceiroMes()` com `bi=1` e consulta `vw_financeiro_categoria_anual` para ranking anual de categorias. Se a view ainda nao existir, o endpoint mantem resposta com fallback vazio para nao quebrar ambiente antigo.
+O modulo de dashboards/graficos foi eliminado: `/api/financeiro-analista`, `/api/cron-treinar-modelo`, `lib/financeiroAnualCache.js`, `financeiroAnaliseService.js`, ECharts e `secao=summary`. As views `vw_financeiro_categoria_mensal`, `vw_financeiro_categoria_anual` e `vw_financeiro_historico_anual` ficaram sem consumidor no app. A exclusao esta em `migration/20261003_drop_views_dashboards_financeiro.sql` (salva as definicoes em `public.bkp_views_dashboards_20261003` antes do DROP) com rollback em `migration/rollback/20261003_restore_views_dashboards_financeiro.sql`.
 
 ## 4. Banco De Dados
 
@@ -440,7 +440,6 @@ Suites principais:
 |---|---|
 | `tests/api/catalogo.api.test.js` | Catalogo, statistics e roadmap |
 | `tests/api/financeiro.api.test.js` | CRUD financeiro |
-| `tests/api/financeiro-analista.api.test.js` | Analista financeiro e categoria anual |
 | `tests/api/financeiro.carga.test.js` | Carga do financeiro |
 | `tests/api/lista-compras.api.test.js` | Lista de compras |
 | `tests/api/fluxograma.api.test.js` | Fluxograma |

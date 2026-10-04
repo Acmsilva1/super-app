@@ -363,8 +363,11 @@ export async function openHomeWaterQuickModal(options = {}) {
       return;
     }
     if (action === 'open-saude') {
+      const intent = state.profileId != null && state.step === 'active'
+        ? { profileId: state.profileId, screen: 'hub' }
+        : null;
       close();
-      options.launchSaude?.();
+      options.launchSaude?.(intent);
       return;
     }
     if (action === 'confirm-profile') {
