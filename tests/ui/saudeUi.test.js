@@ -90,9 +90,11 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('--fin-footer-h');
     expect(source).toContain('data-saude-action="profile-screen" data-screen="${screen}"');
     expect(source).toContain("renderBackButton('profile-screen', 'Voltar ao perfil', ' data-screen=\"hub\"')");
-    expect(source).toContain('class="fin-fab" data-saude-action="add-profile"');
-    expect(source).toContain('class="fin-fab" data-saude-action="adjust-weight"');
-    expect(source).toContain('class="fin-fab" data-saude-action="add-diet"');
+    expect(source).toContain('class="fin-topbar__add" data-saude-action="${action}"');
+    expect(source).toContain("addButton: renderAddButton('add-profile', 'Novo perfil')");
+    expect(source).toContain("renderAddButton('adjust-weight', 'Registrar peso'");
+    expect(source).toContain("renderAddButton('add-diet', 'Nova dieta')");
+    expect(source).not.toContain('class="fin-fab"');
     expect(source).toContain('profileScreen: state.profileScreen');
     expect(source).toContain('state.profileScreen = normalizeProfileScreen(checkpoint?.profileScreen)');
     expect(source).not.toContain('class="saude-hero"');

@@ -465,13 +465,17 @@ function syncSaudeFooterHeight(container) {
   }
 }
 
+function renderAddButton(action, label, extraAttrs = '') {
+  return `<button type="button" class="fin-topbar__add" data-saude-action="${action}"${extraAttrs} aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"><i class="fas fa-plus" aria-hidden="true"></i></button>`;
+}
+
 function renderShell(container, content, {
   loading = false,
   title = 'Saúde',
   titleId = '',
   back = '',
   footer = '',
-  fab = '',
+  addButton = '',
 } = {}) {
   container.innerHTML = `
     ${SAUDE_STYLES}
@@ -480,11 +484,11 @@ function renderShell(container, content, {
         <div class="fin-topbar__inner">
           ${back}
           <h2 class="fin-topbar__title"${titleId ? ` id="${titleId}"` : ''}>${escapeHtml(title)}</h2>
+          ${addButton}
         </div>
       </div>
-      <div class="fin-body${fab ? ' fin-body--with-fab' : ''}"><div class="fin-body__inner">${content}</div></div>
+      <div class="fin-body"><div class="fin-body__inner">${content}</div></div>
       ${footer ? `<div class="fin-footer"><div class="fin-footer__inner">${footer}</div></div>` : ''}
-      ${fab}
     </main>
   `;
   syncSaudeFooterHeight(container);
@@ -1248,7 +1252,7 @@ function renderProfiles(container, state) {
     title: 'Minha Saúde',
     titleId: 'profiles-title',
     footer: `<div class="fin-footer__row">${renderFooterItem('Perfis cadastrados', String(profiles.length))}${renderFooterItem('Metas de água ativas', String(activeWaterGoals))}</div>`,
-    fab: '<button type="button" class="fin-fab" data-saude-action="add-profile" aria-label="Novo perfil">+</button>',
+    addButton: renderAddButton('add-profile', 'Novo perfil'),
   });
 }
 
@@ -1346,7 +1350,7 @@ function renderProfileDetail(container, state) {
   let back = renderBackButton('open-profiles', 'Voltar aos perfis');
   let body = '';
   let footer = '';
-  let fab = '';
+  let addButton = '';
 
   if (screen === 'peso') {
     const variacao = criarTendenciaPeso(profile.historico).variacao;
@@ -1358,7 +1362,7 @@ function renderProfileDetail(container, state) {
     back = backToHub;
     body = `${renderNotice(state)}${renderWeightTrend(profile, { availableWidth: weightChartAvailableWidth(container), animate: animateChart })}${renderProfileTimeline(profile, state)}`;
     footer = `<div class="fin-footer__row">${renderFooterItem('Peso atual', `${formatarNumeroSaude(profile.peso_kg)} kg`)}${renderFooterItem('Variação no período', variacaoLabel)}</div>`;
-    fab = `<button type="button" class="fin-fab" data-saude-action="adjust-weight" data-saude-id="${id}" aria-label="Registrar peso">+</button>`;
+    addButton = renderAddButton('adjust-weight', 'Registrar peso', ` data-saude-id="${id}"`);
   } else if (screen === 'dietas') {
     const diets = dietsForProfile(state, profile.id);
     const totalItems = diets.reduce((total, diet) => total + countDietItems(diet.refeicoes), 0);
@@ -1366,7 +1370,7 @@ function renderProfileDetail(container, state) {
     back = backToHub;
     body = renderProfileDietSection(profile, state);
     footer = `<div class="fin-footer__row">${renderFooterItem('Dietas', String(diets.length))}${renderFooterItem('Itens cadastrados', String(totalItems))}</div>`;
-    fab = '<button type="button" class="fin-fab" data-saude-action="add-diet" aria-label="Nova dieta">+</button>';
+    addButton = renderAddButton('add-diet', 'Nova dieta');
   } else {
     const { imc } = profileImcInfo(profile);
     const water = waterSummary(state);
@@ -1378,7 +1382,7 @@ function renderProfileDetail(container, state) {
   renderShell(container, `<section class="saude-page saude-profile-detail" data-profile-screen="${screen}" aria-labelledby="profile-detail-title">
     ${body}
     ${renderProfileModals(state)}
-  </section>`, { title, titleId: 'profile-detail-title', back, footer, fab });
+  </section>`, { title, titleId: 'profile-detail-title', back, footer, addButton });
   requestAnimationFrame(() => {
     paintWaterTrackerUi(container, state);
     const viewport = container.querySelector('.saude-weight-trend__viewport');

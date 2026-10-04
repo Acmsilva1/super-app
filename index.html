@@ -6930,7 +6930,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-03-bank-v14">
+    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-03-bank-v15">
 </head>
 <body class="view-apps">
     <div id="appLaunchSplash" class="app-launch-splash" role="status" aria-live="polite" aria-label="Carregando Super App">
@@ -8535,7 +8535,7 @@
                 }
                 if (appId === 'saude') {
                     try {
-                        const mod = await import('./features/saude/index.js?v=2026-10-03-saude-bank-v5');
+                        const mod = await import('./features/saude/index.js?v=2026-10-03-saude-bank-v6');
                         await mod.renderSaudeContent(contentEl);
                         this.resetModuleWindowScroll(appId, contentEl);
                     } catch (err) {
