@@ -18,6 +18,8 @@ coverage/
 .env.local
 .env.*
 !.env.example
+!.env.vps.example
+backups/
 local_db.env
 api/.env.local
 *.pem

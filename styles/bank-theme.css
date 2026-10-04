@@ -368,7 +368,7 @@ html[data-theme] #window-lista_compras {
     animation: none;
 }
 html[data-theme] #window-financeiro .window-header,
-html[data-theme] #window-saude,
+html[data-theme] #window-saude .window-header,
 html[data-theme] #window-lista_compras .window-header {
     background: var(--bk-primary);
     color: var(--bk-primary-ink);
@@ -377,7 +377,7 @@ html[data-theme] #window-lista_compras .window-header {
     padding-bottom: 0.6rem;
 }
 html[data-theme] #window-financeiro .window-title,
-html[data-theme] #window-saude,
+html[data-theme] #window-saude .window-title,
 html[data-theme] #window-lista_compras .window-title {
     color: var(--bk-primary-ink);
     font-family: var(--bk-font);
@@ -385,7 +385,7 @@ html[data-theme] #window-lista_compras .window-title {
     letter-spacing: 0.02em;
 }
 html[data-theme] #window-financeiro .window-btn,
-html[data-theme] #window-saude,
+html[data-theme] #window-saude .window-btn,
 html[data-theme] #window-lista_compras .window-btn {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.45);
@@ -393,11 +393,42 @@ html[data-theme] #window-lista_compras .window-btn {
     transform: none;
 }
 html[data-theme] #window-financeiro .window-content,
-html[data-theme] #window-saude,
+html[data-theme] #window-saude .window-content,
 html[data-theme] #window-lista_compras .window-content {
     background: transparent;
     color: var(--bk-ink);
     padding: 0;
+}
+
+/* Módulo aberto: ocupa a viewport inteira (sem home/header por baixo) */
+body.app-module-open {
+    overflow: hidden;
+}
+body.app-module-open > header,
+body.app-module-open > #apps {
+    display: none !important;
+}
+html[data-theme] body.app-module-open #windowsContainer .app-window.maximized {
+    z-index: 1100;
+}
+html[data-theme] #window-saude .window-content.saude-window-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: auto;
+}
+html[data-theme] #window-saude .window-content.saude-window-content > .saude-root.fin-bank {
+    flex: 1;
+    min-height: 100%;
+}
+html[data-theme] #window-saude .saude-modal-backdrop,
+html[data-theme] #window-saude .saude-confirm-backdrop,
+html[data-theme] #window-saude .saude-water-celebration-layer {
+    position: absolute;
+}
+html[data-theme] #window-saude .saude-success-toast {
+    position: absolute;
 }
 
 /* ---------- Telas do Financeiro ---------- */

@@ -1,4 +1,5 @@
 import { requireUser } from '../lib/auth.js';
+import { getFixedUser, isFixedAuthMode } from '../lib/authMode.js';
 
 const ROADMAP = [
   { step: '1', title: 'Shell único publicado na Vercel', description: 'Frontend estático/PWA em index.html com catálogo central de apps e consumo de APIs serverless.' },
@@ -68,6 +69,9 @@ export default async function handler(req, res) {
         fakeToken: 'offline-dev-token',
         user: { id: 'f88a6351-317d-425b-afcd-9430c8a34f53', email: 'andre@local.dev' },
       });
+    }
+    if (isFixedAuthMode()) {
+      return json(res, 200, { authMode: 'fixed', user: getFixedUser() });
     }
     const url = process.env.SUPABASE_URL;
     const anonKey = process.env.SUPABASE_ANON_KEY;

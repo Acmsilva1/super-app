@@ -1875,6 +1875,12 @@
             flex-direction: column;
             min-height: 0;
         }
+        .window-content.saude-window-content {
+            padding: 0 !important;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
         .fluxograma-root {
             flex: 1;
             min-height: 0;
@@ -6930,7 +6936,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-03-bank-v19">
+    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-04-saude-screen-v1">
 </head>
 <body class="view-apps">
     <div id="appLaunchSplash" class="app-launch-splash" role="status" aria-live="polite" aria-label="Carregando Super App">
@@ -7182,6 +7188,14 @@
                 const response = await this.originalFetch('/api/auth-config', { cache: 'no-store' });
                 if (!response.ok) throw new Error('Supabase Auth nao esta configurado na Vercel');
                 const config = await response.json();
+                if (config.authMode === 'fixed') {
+                    this.fixedMode = true;
+                    const session = { access_token: '', user: config.user };
+                    this.client = { auth: { getSession: async () => ({ data: { session }, error: null }), signOut: async () => {} } };
+                    const logoutBtn = document.getElementById('authLogoutBtn');
+                    if (logoutBtn) logoutBtn.style.display = 'none';
+                    return this.client;
+                }
                 if (config.offlineMode) {
                     this.offlineMode = true;
                     this.offlineToken = config.fakeToken;
@@ -7292,6 +7306,10 @@
             },
 
             async consumeRecoveryUrl() {
+                if (this.fixedMode) {
+                    this.recoveryMode = false;
+                    return;
+                }
                 const url = new URL(window.location.href);
                 const params = url.searchParams;
                 const hashParams = new URLSearchParams((url.hash || '').replace(/^#/, ''));
@@ -8557,7 +8575,7 @@
                     window.removeEventListener('resize', prevRoot._fluxOnResize);
                 }
                 const previousScrollTop = contentEl.scrollTop || 0;
-                contentEl.classList.remove('fluxograma-window-content');
+                contentEl.classList.remove('fluxograma-window-content', 'saude-window-content');
                 contentEl.innerHTML = '<div class="app-loading"><i class="fas fa-spinner spinner"></i> Carregando...</div>';
                 if (appId === 'fluxograma') {
                     contentEl.classList.add('fluxograma-window-content');
@@ -8569,6 +8587,7 @@
                     return;
                 }
                 if (appId === 'saude') {
+                    contentEl.classList.add('saude-window-content');
                     try {
                         const mod = await import('./features/saude/index.js?v=2026-10-03-saude-bank-v6');
                         await mod.renderSaudeContent(contentEl);
@@ -10781,11 +10800,18 @@
                 this.returnHome();
             }
 
+            syncShellForOpenModules() {
+                const moduleOpen = this.openWindows.size > 0;
+                document.body.classList.toggle('app-module-open', moduleOpen);
+                document.body.classList.toggle('view-apps', !moduleOpen);
+            }
+
             updateStatistics() {
                 this.statistics.openApps = this.openWindows.size;
                 const showHomeQuickActions = this.openWindows.size === 0;
                 const quickbar = document.getElementById('homeQuickbar');
                 if (quickbar) quickbar.style.display = showHomeQuickActions ? '' : 'none';
+                this.syncShellForOpenModules();
             }
 
             // ============================================
