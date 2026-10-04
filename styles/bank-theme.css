@@ -825,6 +825,45 @@ html[data-theme] .app-confirm-btn { border-radius: 0.5rem; box-shadow: none; tra
 html[data-theme] .app-confirm-btn.cancel { background: transparent; color: var(--bk-ink); border-color: var(--bk-line); }
 html[data-theme] .app-confirm-btn.cancel:hover { background: var(--bk-bg); color: var(--bk-ink); }
 html[data-theme] .app-confirm-btn.confirm { background: var(--bk-primary); color: var(--bk-primary-ink); }
+html[data-theme] .app-confirm-btn.confirm:hover { background: var(--bk-primary-press); }
+html[data-theme] .app-confirm-btn:focus-visible { outline: 2px solid var(--bk-focus); outline-offset: 2px; }
+
+/* ---------- Aviso com desfazer ---------- */
+.app-undo-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(5rem + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 9000;
+    width: min(calc(100% - 2rem), 26rem);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.6rem 0.7rem 1rem;
+    border-radius: 0.6rem;
+    background: #1f2328;
+    color: #ffffff;
+    font-family: var(--bk-font);
+    font-size: 0.9rem;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+    animation: app-undo-in 0.18s ease-out;
+}
+.app-undo-toast__msg { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-undo-toast__btn {
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    background: transparent;
+    color: #ff8a8a;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+.app-undo-toast__btn:hover { background: rgba(255, 255, 255, 0.08); }
+.app-undo-toast__btn:focus-visible { outline: 2px solid #ff8a8a; outline-offset: 1px; }
+@keyframes app-undo-in { from { opacity: 0; transform: translate(-50%, 0.5rem); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .app-undo-toast { animation: none; } }
 
 /* ---------- Saúde no padrão bancário ---------- */
 html[data-theme] #window-saude .saude-root {
@@ -1059,15 +1098,6 @@ html[data-theme] #window-saude .saude-success-toast__close { color: var(--bk-mut
 .lc-shell .lc-top-btn { color: var(--bk-muted); border-color: transparent; }
 .lc-shell .lc-top-btn:disabled { opacity: 0.35; cursor: default; }
 .lc-list > li { min-height: 3rem; }
-.lc-add__form {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0 1rem;
-    min-height: 3.1rem;
-}
-.lc-add__icon { width: 1.25rem; text-align: center; color: var(--bk-primary); font-size: 0.95rem; }
-.lc-add__input,
 .lc-item__text {
     flex: 1;
     min-width: 0;
@@ -1079,8 +1109,38 @@ html[data-theme] #window-saude .saude-success-toast__close { color: var(--bk-mut
     padding: 0.55rem 0;
     outline: none;
 }
-.lc-add__input::placeholder { color: var(--bk-muted); }
-.lc-add:focus-within { box-shadow: inset 0 -2px 0 var(--bk-primary); }
+.lc-add-modal { text-align: left; width: min(92vw, 380px); }
+.lc-add-modal h4 { margin: 0 0 1rem; }
+.lc-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
+.lc-field label { font-size: 0.82rem; font-weight: 600; color: var(--bk-muted); }
+.lc-field input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--bk-line);
+    border-radius: 10px;
+    background: var(--bk-surface);
+    color: var(--bk-ink);
+    font: inherit;
+    padding: 0.7rem 0.8rem;
+    outline: none;
+}
+.lc-field input:focus { border-color: var(--bk-primary); box-shadow: 0 0 0 3px rgba(236, 0, 0, 0.12); }
+.lc-qty { display: flex; align-items: center; gap: 0.6rem; }
+.lc-qty input { flex: 1; text-align: center; -moz-appearance: textfield; }
+.lc-qty input::-webkit-outer-spin-button,
+.lc-qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.lc-qty__btn {
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    border: 1px solid var(--bk-line);
+    background: var(--bk-surface);
+    color: var(--bk-primary);
+    cursor: pointer;
+}
+.lc-qty__btn:hover { background: var(--bk-neg-soft); }
+.lc-field__error { margin: -0.4rem 0 0.8rem; font-size: 0.82rem; color: var(--bk-neg); }
 .lc-item {
     display: flex;
     align-items: center;

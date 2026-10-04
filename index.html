@@ -6930,7 +6930,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-03-bank-v16">
+    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-03-bank-v19">
 </head>
 <body class="view-apps">
     <div id="appLaunchSplash" class="app-launch-splash" role="status" aria-live="polite" aria-label="Carregando Super App">
@@ -8208,22 +8208,24 @@
             // ============================================
             // DIÁLOGOS DE CONFIRMAÇÃO PERSONALIZADOS
             // ============================================
-            async showConfirm(title, message) {
+            async showConfirm(title, message, { confirmLabel = 'Confirmar', cancelLabel = 'Cancelar' } = {}) {
                 return new Promise((resolve) => {
                     const overlay = document.createElement('div');
                     overlay.className = 'app-confirm-overlay';
                     overlay.innerHTML = `
-                        <div class="app-confirm-modal">
-                            <h4><i class="fas fa-exclamation-triangle" style="color:#ef4444"></i> ${escapeHtml(title)}</h4>
-                            <p>${escapeHtml(message)}</p>
+                        <div class="app-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="app-confirm-title" aria-describedby="app-confirm-message">
+                            <h4 id="app-confirm-title"><i class="fas fa-exclamation-triangle" style="color:#ef4444" aria-hidden="true"></i> ${escapeHtml(title)}</h4>
+                            <p id="app-confirm-message">${escapeHtml(message)}</p>
                             <div class="app-confirm-actions">
-                                <button type="button" class="app-confirm-btn cancel">Cancelar</button>
-                                <button type="button" class="app-confirm-btn confirm">Confirmar</button>
+                                <button type="button" class="app-confirm-btn cancel">${escapeHtml(cancelLabel)}</button>
+                                <button type="button" class="app-confirm-btn confirm">${escapeHtml(confirmLabel)}</button>
                             </div>
                         </div>
                     `;
 
+                    const onKey = (e) => { if (e.key === 'Escape') cleanup(false); };
                     const cleanup = (result) => {
+                        document.removeEventListener('keydown', onKey);
                         overlay.remove();
                         resolve(result);
                     };
@@ -8231,9 +8233,42 @@
                     overlay.querySelector('.cancel').onclick = () => cleanup(false);
                     overlay.querySelector('.confirm').onclick = () => cleanup(true);
                     overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
+                    document.addEventListener('keydown', onKey);
 
                     document.body.appendChild(overlay);
+                    overlay.querySelector('.cancel').focus();
                 });
+            }
+
+            showUndoToast(message, { onUndo = null, onExpire = null, duration = 5000 } = {}) {
+                this.flushUndoToast();
+                if (!this._undoPagehideBound) {
+                    this._undoPagehideBound = true;
+                    window.addEventListener('pagehide', () => { this.flushUndoToast(); });
+                }
+                const toast = document.createElement('div');
+                toast.className = 'app-undo-toast';
+                toast.setAttribute('role', 'status');
+                toast.setAttribute('aria-live', 'polite');
+                toast.innerHTML = `<span class="app-undo-toast__msg">${escapeHtml(message)}</span><button type="button" class="app-undo-toast__btn">Desfazer</button>`;
+                let settled = null;
+                const finish = (undone) => {
+                    if (settled) return settled;
+                    clearTimeout(timer);
+                    toast.remove();
+                    if (this._undoToast === toast) this._undoToast = null;
+                    settled = Promise.resolve().then(() => (undone ? onUndo?.() : onExpire?.()));
+                    return settled;
+                };
+                toast._finish = finish;
+                toast.querySelector('.app-undo-toast__btn').onclick = () => finish(true);
+                const timer = setTimeout(() => finish(false), duration);
+                this._undoToast = toast;
+                document.body.appendChild(toast);
+            }
+
+            flushUndoToast() {
+                return this._undoToast?._finish ? this._undoToast._finish(false) : Promise.resolve();
             }
 
             formatMesAnoLabel(mesAno) {
@@ -10220,7 +10255,7 @@
                     <button type="button" class="lc-item__del" data-lista-delete data-id="${id}" aria-label="Excluir ${nome}" title="Excluir"><i class="fas fa-xmark" aria-hidden="true"></i></button>
                 </li>`;
             }
-            renderListaComprasContent(el, data, { focusAdd = false } = {}) {
+            renderListaComprasContent(el, data) {
                 const rows = Array.isArray(data?.rows) ? data.rows : (Array.isArray(data?.itens) ? data.itens : []);
                 el._listaComprasRows = rows;
                 const sorted = this.sortListaComprasRows(rows);
@@ -10233,21 +10268,15 @@
                         <div class="fin-topbar">
                             <div class="fin-topbar__inner">
                                 <h2 class="fin-topbar__title">Lista de compras</h2>
+                                <button type="button" class="fin-topbar__add" data-lista-action="add" aria-label="Adicionar item" title="Adicionar item"><i class="fas fa-plus" aria-hidden="true"></i></button>
                                 <button type="button" class="fin-icon-btn lc-top-btn" data-lista-action="reset" aria-label="Desmarcar tudo" title="Desmarcar tudo"${marcados.length ? '' : ' disabled'}><i class="fas fa-rotate-left" aria-hidden="true"></i></button>
                                 <button type="button" class="fin-icon-btn lc-top-btn" data-lista-action="delete-all" aria-label="Apagar todos" title="Apagar todos"${rows.length ? '' : ' disabled'}><i class="fas fa-trash" aria-hidden="true"></i></button>
                             </div>
                         </div>
                         <div class="fin-body"><div class="fin-body__inner">
-                            <ul class="fin-list lc-list" aria-label="Itens pendentes">
-                                <li class="lc-add">
-                                    <form class="lc-add__form" data-lista-add-form autocomplete="off">
-                                        <i class="fas fa-plus lc-add__icon" aria-hidden="true"></i>
-                                        <input type="text" class="lc-add__input" name="item" placeholder="Item da lista" maxlength="120" enterkeyhint="enter" aria-label="Novo item da lista" />
-                                    </form>
-                                </li>
-                                ${pendentes.map((r) => this.renderListaComprasItemRow(r)).join('')}
-                            </ul>
-                            ${rows.length ? '' : '<p class="lc-empty">Lista vazia. Digite um item acima e pressione Enter.</p>'}
+                            ${pendentes.length ? `<ul class="fin-list lc-list" aria-label="Itens pendentes">${pendentes.map((r) => this.renderListaComprasItemRow(r)).join('')}</ul>` : ''}
+                            ${rows.length ? '' : '<p class="lc-empty">Lista vazia. Toque em + no cabeçalho para adicionar um item.</p>'}
+                            ${rows.length && !pendentes.length ? '<p class="lc-empty">Tudo marcado. Toque em + para adicionar mais itens.</p>' : ''}
                             ${marcados.length ? `
                                 <button type="button" class="lc-done-toggle" data-lista-action="toggle-done" aria-expanded="${doneOpen}">
                                     <i class="fas fa-chevron-${doneOpen ? 'down' : 'right'}" aria-hidden="true"></i>
@@ -10273,26 +10302,15 @@
                     }
                 }
                 this.bindListaComprasEvents(el);
-                if (focusAdd) el.querySelector('.lc-add__input')?.focus();
             }
-            rerenderListaCompras(el, options = {}) {
+            rerenderListaCompras(el) {
                 const previousScrollTop = el.scrollTop || 0;
-                this.renderListaComprasContent(el, { rows: el._listaComprasRows || [] }, options);
+                this.renderListaComprasContent(el, { rows: el._listaComprasRows || [] });
                 el.scrollTop = previousScrollTop;
             }
             bindListaComprasEvents(el) {
                 if (el._listaEventsBound) return;
                 el._listaEventsBound = true;
-                el.addEventListener('submit', (event) => {
-                    const form = event.target.closest('[data-lista-add-form]');
-                    if (!form) return;
-                    event.preventDefault();
-                    const input = form.querySelector('.lc-add__input');
-                    const item = String(input?.value || '').trim();
-                    if (!item) return;
-                    input.value = '';
-                    this.submitListaAddItem(item, el);
-                });
                 el.addEventListener('change', (event) => {
                     const chk = event.target.closest('[data-lista-check]');
                     if (chk) {
@@ -10316,7 +10334,8 @@
                         return;
                     }
                     const action = event.target.closest('[data-lista-action]')?.dataset.listaAction;
-                    if (action === 'reset') this.submitListaResetChecks(el);
+                    if (action === 'add') this.openListaAddModal(el);
+                    else if (action === 'reset') this.submitListaResetChecks(el);
                     else if (action === 'delete-all') this.submitListaDeleteAll(el);
                     else if (action === 'toggle-done') {
                         el._listaComprasDoneOpen = el._listaComprasDoneOpen === false;
@@ -10324,34 +10343,98 @@
                     }
                 });
             }
-            async refreshListaComprasContent(el, options = {}) {
+            async refreshListaComprasContent(el) {
                 if (!el) return this.refreshAppContent('lista_compras');
+                await this.flushUndoToast();
                 const previousScrollTop = el.scrollTop || 0;
                 try {
                     const res = await fetch('/api/lista-compras', { cache: 'no-store' });
                     const data = await this.readApiJsonOrThrow(res, 'Falha ao carregar lista de compras');
-                    this.renderListaComprasContent(el, data, options);
+                    this.renderListaComprasContent(el, data);
                     requestAnimationFrame(() => { el.scrollTop = previousScrollTop; });
                 } catch (err) {
                     console.error(err);
                     alert(err.message || 'Erro ao carregar lista de compras');
                 }
             }
-            async submitListaAddItem(item, el) {
+            openListaAddModal(el) {
+                document.querySelector('.lc-add-overlay')?.remove();
+                const overlay = document.createElement('div');
+                overlay.className = 'app-confirm-overlay lc-add-overlay';
+                overlay.innerHTML = `
+                    <form class="app-confirm-modal lc-add-modal" role="dialog" aria-modal="true" aria-labelledby="lc-add-title" autocomplete="off" novalidate>
+                        <h4 id="lc-add-title">Novo item</h4>
+                        <div class="lc-field">
+                            <label for="lc-add-nome">Item</label>
+                            <input id="lc-add-nome" name="item" type="text" maxlength="120" placeholder="Ex.: Leite integral" enterkeyhint="next" required />
+                        </div>
+                        <div class="lc-field">
+                            <label for="lc-add-qtd">Quantidade</label>
+                            <div class="lc-qty">
+                                <button type="button" class="lc-qty__btn" data-qty-step="-1" aria-label="Diminuir quantidade"><i class="fas fa-minus" aria-hidden="true"></i></button>
+                                <input id="lc-add-qtd" name="quantidade" type="number" inputmode="numeric" min="1" max="999" step="1" value="1" />
+                                <button type="button" class="lc-qty__btn" data-qty-step="1" aria-label="Aumentar quantidade"><i class="fas fa-plus" aria-hidden="true"></i></button>
+                            </div>
+                        </div>
+                        <p class="lc-field__error" data-lc-add-error hidden>Informe o nome do item.</p>
+                        <div class="app-confirm-actions">
+                            <button type="button" class="app-confirm-btn cancel" data-lc-add-cancel>Cancelar</button>
+                            <button type="submit" class="app-confirm-btn confirm">Salvar</button>
+                        </div>
+                    </form>
+                `;
+                const form = overlay.querySelector('form');
+                const nome = overlay.querySelector('#lc-add-nome');
+                const qtd = overlay.querySelector('#lc-add-qtd');
+                const error = overlay.querySelector('[data-lc-add-error]');
+                const onKey = (e) => { if (e.key === 'Escape') close(); };
+                const close = () => {
+                    document.removeEventListener('keydown', onKey);
+                    overlay.remove();
+                };
+                overlay.querySelector('[data-lc-add-cancel]').onclick = close;
+                overlay.onclick = (e) => { if (e.target === overlay) close(); };
+                overlay.querySelectorAll('[data-qty-step]').forEach((btn) => {
+                    btn.onclick = () => {
+                        const next = (parseInt(qtd.value, 10) || 1) + Number(btn.dataset.qtyStep);
+                        qtd.value = String(Math.min(999, Math.max(1, next)));
+                    };
+                });
+                nome.addEventListener('input', () => { error.hidden = true; });
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const item = nome.value.trim();
+                    if (!item) {
+                        error.hidden = false;
+                        nome.focus();
+                        return;
+                    }
+                    const quantidade = Math.min(999, Math.max(1, parseInt(qtd.value, 10) || 1));
+                    const submitBtn = form.querySelector('[type="submit"]');
+                    submitBtn.disabled = true;
+                    const ok = await this.submitListaAddItem(item, quantidade, el);
+                    if (ok) close();
+                    else submitBtn.disabled = false;
+                });
+                document.addEventListener('keydown', onKey);
+                document.body.appendChild(overlay);
+                nome.focus();
+            }
+            async submitListaAddItem(item, quantidade, el) {
                 try {
-                    const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item }) });
+                    const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao adicionar item'));
                     const created = await res.json().catch(() => null);
                     if (created?.id != null && Array.isArray(el?._listaComprasRows)) {
                         el._listaComprasRows = [...el._listaComprasRows, created];
-                        this.rerenderListaCompras(el, { focusAdd: true });
+                        this.rerenderListaCompras(el);
                     } else {
-                        await this.refreshListaComprasContent(el, { focusAdd: true });
+                        await this.refreshListaComprasContent(el);
                     }
+                    return true;
                 } catch (e) {
                     alert(e.message);
-                    const input = el?.querySelector('.lc-add__input');
-                    if (input && !input.value) input.value = item;
+                    return false;
                 }
             }
             async submitListaRenameItem(input, el) {
@@ -10383,6 +10466,11 @@
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, comprado }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
+                    if (comprado && row) {
+                        this.showUndoToast(`"${row.item || 'Item'}" marcado`, {
+                            onUndo: () => this.submitListaSetComprado(id, false, el),
+                        });
+                    }
                 } catch (e) {
                     alert(e.message);
                     if (row) {
@@ -10393,21 +10481,35 @@
                     }
                 }
             }
-            async submitListaItemDelete(id, el) {
-                if (!confirm('Excluir este item da lista?')) return;
-                try {
-                    const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
-                    if (Array.isArray(el?._listaComprasRows)) {
-                        el._listaComprasRows = el._listaComprasRows.filter((r) => String(r.id) !== String(id));
+            submitListaItemDelete(id, el) {
+                const rows = Array.isArray(el?._listaComprasRows) ? el._listaComprasRows : [];
+                const removed = rows.find((r) => String(r.id) === String(id));
+                if (!removed) return;
+                el._listaComprasRows = rows.filter((r) => r !== removed);
+                this.rerenderListaCompras(el);
+                this.showUndoToast(`"${removed.item || 'Item'}" excluído`, {
+                    onUndo: () => {
+                        el._listaComprasRows = [...(el._listaComprasRows || []), removed];
                         this.rerenderListaCompras(el);
-                    } else {
-                        await this.refreshListaComprasContent(el);
+                    },
+                    onExpire: () => this.commitListaItemDelete(removed, el),
+                });
+            }
+            async commitListaItemDelete(removed, el) {
+                try {
+                    const res = await fetch('/api/lista-compras', { method: 'DELETE', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: removed.id }) });
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir item'));
+                } catch (e) {
+                    alert(e.message);
+                    if (el?.isConnected) {
+                        el._listaComprasRows = [...(el._listaComprasRows || []), removed];
+                        this.rerenderListaCompras(el);
                     }
-                } catch (e) { alert(e.message); }
+                }
             }
             async submitListaResetChecks(el) {
-                if (!confirm('Desmarcar todos os itens da lista?')) return;
+                await this.flushUndoToast();
+                if (!(await this.showConfirm('Desmarcar tudo', 'Desmarcar todos os itens da lista?', { confirmLabel: 'Desmarcar' }))) return;
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset_checks: true }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
@@ -10415,7 +10517,8 @@
                 } catch (e) { alert(e.message); }
             }
             async submitListaDeleteAll(el) {
-                if (!confirm('Apagar TODOS os itens da lista? Nao é possivel desfazer.')) return;
+                await this.flushUndoToast();
+                if (!(await this.showConfirm('Apagar todos', 'Apagar TODOS os itens da lista? Não é possível desfazer.', { confirmLabel: 'Apagar todos' }))) return;
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete_all: true }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));

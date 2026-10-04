@@ -109,7 +109,7 @@ if (container._cleanup) container._cleanup();
 
 ### Lista de Compras
 
-- Lista livre no estilo bloco de notas (padrao bancario): campo "Item da lista" no topo (Enter adiciona), itens pendentes do mais novo para o mais antigo, bloco recolhivel "itens marcados" riscados, edicao do nome direto na linha e exclusao pelo "x".
+- Lista livre no estilo bloco de notas (padrao bancario): botao "+" no cabecalho abre modal "Novo item" (nome obrigatorio + quantidade com seletor -/+, padrao 1), itens pendentes do mais novo para o mais antigo, bloco recolhivel "itens marcados" riscados, edicao do nome direto na linha e exclusao pelo "x".
 - Categoria oculta na UI: novos itens recebem a categoria padrao (`Mantimentos`); quantidade e unidade existentes aparecem ao lado do nome. As colunas continuam no banco e a API nao mudou.
 - Cabecalho com desmarcar tudo e apagar todos; rodape fixo com pendentes e marcados.
 
