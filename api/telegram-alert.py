@@ -79,9 +79,41 @@ class handler(BaseHTTPRequestHandler):
         try:
             message_id = send_alert(text)
             self.reply(200, {"ok": True, "telegram_message_id": message_id})
+        except urllib.error.HTTPError as error:
+            # Read privately; only allowlisted codes leave the gateway.
+            description = ""
+            try:
+                details = json.loads(error.read(16384))
+                if isinstance(details, dict):
+                    description = str(details.get("description", "")).lower()
+            except (ValueError, OSError):
+                pass
+            if error.code in (401, 404):
+                reason = "telegram_token_invalid"
+            elif "chat not found" in description:
+                reason = "telegram_chat_not_found"
+            elif "blocked by the user" in description:
+                reason = "telegram_bot_blocked"
+            elif "initiate conversation" in description:
+                reason = "telegram_start_required"
+            elif "send messages to bots" in description:
+                reason = "telegram_recipient_is_bot"
+            elif "not enough rights" in description or "kicked" in description or "not a member" in description:
+                reason = "telegram_bot_no_permission"
+            elif error.code == 403:
+                reason = "telegram_forbidden"
+            elif error.code == 429:
+                reason = "telegram_rate_limited"
+            elif error.code == 400:
+                reason = "telegram_bad_request"
+            else:
+                reason = "telegram_send_failed"
+            self.reply(502, {"ok": False, "error": reason})
         except ValueError:
             self.reply(503, {"ok": False, "error": "telegram_config_missing"})
-        except (urllib.error.URLError, RuntimeError, ValueError, OSError):
+        except (urllib.error.URLError, OSError):
+            self.reply(502, {"ok": False, "error": "telegram_network_error"})
+        except RuntimeError:
             # Do not log exceptions: URLs contain the bot token.
             self.reply(502, {"ok": False, "error": "telegram_send_failed"})
 
