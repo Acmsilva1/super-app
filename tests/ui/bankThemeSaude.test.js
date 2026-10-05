@@ -17,11 +17,10 @@ describe('bank-theme — janela do Saúde (Vercel)', () => {
     );
   });
 
-  it('esconde a home quando um módulo está aberto e ancora modais do Saúde na janela', () => {
-    expect(bankTheme).toContain('body.app-module-open > header');
-    expect(bankTheme).toContain('.saude-window-content');
-    expect(bankTheme).toContain('#window-saude .saude-modal-backdrop');
-    expect(indexHtml).toContain('syncShellForOpenModules');
-    expect(indexHtml).toContain('saude-window-content');
+  it('mantém o cabeçalho mobile e oferece retorno à home como na versão VPS', () => {
+    expect(indexHtml).toMatch(/body\.view-apps > header\s*\{\s*position: sticky;\s*top: 0;/);
+    expect(indexHtml).toContain('id="headerHomeBtn"');
+    expect(indexHtml).toContain('aria-label="Voltar para a tela inicial"');
+    expect(indexHtml).not.toContain('syncShellForOpenModules');
   });
 });

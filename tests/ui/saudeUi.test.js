@@ -82,7 +82,7 @@ describe('UI mobile do módulo Saúde', () => {
   });
 
   it('segue o padrão bancário do Financeiro com subtelas, voltar, rodapé fixo e FAB', () => {
-    expect(source).toContain("const PROFILE_SCREENS = ['hub', 'peso', 'dietas']");
+    expect(source).toContain("const PROFILE_SCREENS = ['hub', 'peso', 'dietas', 'alertas']");
     expect(source).toContain('<main class="saude-root fin-bank');
     expect(source).toContain('class="fin-topbar"');
     expect(source).toContain('class="fin-back" data-saude-action="${action}"');

@@ -1,0 +1,34 @@
+name: Alertas de Saude
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: saude-alertas
+  cancel-in-progress: false
+jobs:
+  trigger:
+    if: vars.SAUDE_ALERTS_SCHEDULER_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Executar agendamentos na Vercel
+        env:
+          SUPERAPP_URL: ${{ vars.SUPERAPP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$SUPERAPP_URL" =~ ^https://[a-zA-Z0-9.-]+/?$ ]] || [[ ${#CRON_SECRET} -lt 32 ]]; then
+            echo 'Configure SUPERAPP_URL e CRON_SECRET no GitHub.'
+            exit 1
+          fi
+          headers=(-H "Authorization: Bearer $CRON_SECRET")
+          if [[ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]]; then
+            headers+=(-H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET")
+          fi
+          result=$(curl --silent --show-error --fail --max-time 170 "${headers[@]}" "${SUPERAPP_URL%/}/api/saude-alertas-cron")
+          RESULT="$result" python3 -c 'import json, os; data=json.loads(os.environ["RESULT"]); assert data.get("ok") and data.get("processed"), "Agendador desativado ou configuracao incompleta"'

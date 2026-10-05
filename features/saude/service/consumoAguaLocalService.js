@@ -9,8 +9,10 @@ export function waterDateInSaoPaulo(now = new Date()) {
 }
 
 export function isLocalWaterStorageMode(location = globalThis.location) {
+  if (location?.protocol === 'file:') return true;
+  if (globalThis.__superAppRuntimeMode) return globalThis.__superAppRuntimeMode === 'offline';
   const hostname = String(location?.hostname || '').toLowerCase();
-  return location?.protocol === 'file:' || ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(hostname);
+  return ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(hostname);
 }
 
 function blankState() {

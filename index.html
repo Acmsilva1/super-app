@@ -528,6 +528,15 @@
             box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.28);
         }
         .pwa-update-banner.hidden { display: none; }
+        .preview-mode-notice {
+            margin: 0 0 0.75rem;
+            padding: 0.7rem 0.85rem;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 0.7rem;
+            background: #17324d;
+            color: #fff;
+            font: 0.85rem/1.4 system-ui, sans-serif;
+        }
         .pwa-update-banner__text { flex: 1; min-width: 0; }
         .pwa-update-banner__text strong { display: block; font-size: 0.92rem; margin-bottom: 0.15rem; }
         .pwa-update-banner button {
@@ -693,8 +702,10 @@
                 white-space: nowrap;
             }
 
-            header {
-                position: relative;
+            body.view-apps > header {
+                position: sticky;
+                top: 0;
+                z-index: 60;
             }
         }
 
@@ -1871,12 +1882,6 @@
         .window-content.fluxograma-window-content {
             padding: 0 !important;
             overflow: hidden !important;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-        .window-content.saude-window-content {
-            padding: 0 !important;
             display: flex;
             flex-direction: column;
             min-height: 0;
@@ -6936,7 +6941,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-04-saude-screen-v1">
+    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-05-header-home-v1">
 </head>
 <body class="view-apps">
     <div id="appLaunchSplash" class="app-launch-splash" role="status" aria-live="polite" aria-label="Carregando Super App">
@@ -7100,6 +7105,9 @@
                     <button class="header-btn header-btn--install" id="pwaInstallBtn" title="Baixar app" aria-label="Baixar app" style="display: none;">
                         <i class="fas fa-download"></i>
                         <span class="header-btn-label">Baixar app</span>
+                    </button>
+                    <button class="header-btn header-btn--home" id="headerHomeBtn" type="button" title="Tela inicial" aria-label="Voltar para a tela inicial">
+                        <i class="fas fa-house" aria-hidden="true"></i>
                     </button>
                     <button class="header-btn" id="profileOpenBtn" title="Meu perfil" aria-label="Abrir meu perfil" style="display:none">
                         <i class="fas fa-user-circle"></i><span class="header-btn-label">Meu perfil</span>
@@ -7741,6 +7749,7 @@
                     const nav = document.querySelector('nav');
                     nav.classList.toggle('nav-open');
                 });
+                document.getElementById('headerHomeBtn')?.addEventListener('click', () => this.returnHome());
                 document.querySelectorAll('nav a').forEach(link => {
                     link.addEventListener('click', () => {
                         if (window.innerWidth <= 768) document.querySelector('nav').classList.remove('nav-open');
@@ -7792,34 +7801,163 @@
                         <div class="profile-admin-tabs" role="tablist" aria-label="Opções do perfil">
                             <button type="button" role="tab" aria-selected="true" data-profile-tab="overview" class="is-active">Meu perfil</button>
                             <button type="button" role="tab" aria-selected="false" data-profile-tab="admin" id="adminUsersToggle" hidden>Administração</button>
+                            <button type="button" role="tab" aria-selected="false" data-profile-tab="alerts" id="adminAlertsToggle" hidden>Alertas</button>
                         </div>
                         <div id="profileAdminOverview" role="tabpanel"><p>Conta conectada ao SUPERAPP.</p><p>Use a opção Administração para acompanhar cadastros e controlar os acessos aos módulos.</p></div>
                         <div id="profileAdminPane" role="tabpanel" hidden>
-                            <div class="profile-admin-toolbar"><div><h4>Usuários cadastrados</h4><p>Conceda ou revogue acesso por módulo e bloqueie ou reative contas.</p><p>Módulos ainda restritos ao administrador ficam identificados como bloqueados até terem isolamento de dados por usuário.</p></div><button type="button" class="auth-secondary" id="adminUsersRefresh">Atualizar lista</button></div>
+                            <div class="profile-admin-toolbar"><div><h4>Usuários cadastrados</h4><p>Gerencie contas e permissões por módulo.</p><p>Módulos ainda sem isolamento de dados permanecem restritos ao administrador.</p></div><button type="button" class="auth-secondary" id="adminUsersRefresh">Atualizar lista</button></div>
+                            <form id="adminCreateUserForm" class="profile-admin-create" hidden>
+                                <h4>Criar usuário</h4>
+                                <label class="profile-admin-field"><span>Nome</span><input name="name" type="text" placeholder="Nome completo" required maxlength="120"></label>
+                                
+                                <label class="profile-admin-field"><span>Email</span><input name="email" type="email" placeholder="email@exemplo.com" required maxlength="254"></label>
+                                <button type="submit" class="auth-submit">Criar</button>
+                            </form>
+                            <div id="adminTempSecret" class="profile-admin-temp-secret" hidden><strong>Senha temporária (exibida uma vez):</strong> <code id="adminTempSecretValue"></code><button type="button" id="adminTempSecretClose">Ocultar</button></div>
                             <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
                             <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
+                        </div>
+                        <div id="profileAdminAlertsPane" role="tabpanel" hidden>
+                            <div class="profile-admin-toolbar"><div><h4>Alertas pessoais</h4><p>Configure os avisos do Telegram para cada perfil da sua conta.</p></div><button type="button" class="auth-secondary" id="adminAlertsRefresh">Atualizar</button></div>
+                            <p id="adminAlertsMessage" role="status" class="profile-admin-message"></p>
+                            <div id="adminAlertsContent"></div>
                         </div>
                     </section>`;
                 document.body.appendChild(modal);
                 const modalStyle = document.createElement('style');
                 modalStyle.textContent = `
-                    .profile-admin-card{width:min(1100px,100%);max-height:min(90vh,900px);padding:1.25rem}
-                    .profile-admin-header,.profile-admin-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
-                    .profile-admin-header p,.profile-admin-toolbar p{margin:.25rem 0 0;color:var(--text-light)}
-                    .profile-admin-header .auth-legal-close{flex:none}
-                    .profile-admin-tabs{display:flex;gap:.5rem;margin:1rem 0;border-bottom:1px solid var(--border-color)}
-                    .profile-admin-tabs button{border:0;border-bottom:2px solid transparent;padding:.65rem .8rem;background:transparent;color:var(--text-light);font:inherit;cursor:pointer}
-                    .profile-admin-tabs button.is-active{border-color:var(--primary);color:var(--text-dark)}
-                    .profile-admin-toolbar h4{margin:0;color:var(--text-dark)}
-                    .profile-admin-message{min-height:1.5rem;margin:.8rem 0;color:var(--text-light)}
-                    .profile-admin-table-wrap{overflow:auto}
-                    .profile-admin-table{width:100%;min-width:860px;border-collapse:collapse;background:var(--bg-white);border:1px solid var(--border-color);border-radius:var(--radius)}
-                    .profile-admin-table th,.profile-admin-table td{padding:.75rem;text-align:center;border-bottom:1px solid var(--border-color)}
-                    .profile-admin-table th:first-child,.profile-admin-table td:first-child{text-align:left}
-                    .profile-admin-table input[type=checkbox]{width:1.15rem;height:1.15rem;accent-color:var(--primary)}
-                    .profile-admin-status{border:1px solid var(--border-color);border-radius:.6rem;padding:.4rem .6rem;background:transparent;color:var(--text-dark);cursor:pointer}
-                    .profile-admin-status[data-blocked=true]{color:#fca5a5}
-                    @media(max-width:640px){.profile-admin-card{padding:.85rem}.profile-admin-header{align-items:flex-start}}
+                    .profile-admin-card{
+                        --pa-surface:#0d1a30;--pa-panel:#14243e;--pa-ink:#e7f0ff;
+                        --pa-muted:#a4b6d1;--pa-border:rgba(125,211,252,.2);--pa-accent:#38bdf8;
+                        --pa-input:#0b182d;--pa-head:#192d4b;
+                        width:min(1040px,100%);max-height:min(92dvh,920px);padding:0;
+                        border:1px solid var(--pa-border);border-radius:1.35rem;
+                        background:var(--pa-surface);color:var(--pa-ink);overflow:auto;
+                        box-shadow:0 28px 80px rgba(2,6,23,.58);
+                    }
+                    [data-theme="light"] .auth-legal-card.profile-admin-card{
+                        --pa-surface:#f5f9ff;--pa-panel:#fff;--pa-ink:#17243a;
+                        --pa-muted:#52647d;--pa-border:#dbe6f3;--pa-accent:#087bb8;
+                        --pa-input:#fff;--pa-head:#eaf3fc;
+                        background:var(--pa-surface);color:var(--pa-ink);
+                    }
+                    .profile-admin-header,.profile-admin-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+                    .profile-admin-header{
+                        padding:1.45rem 1.6rem;border-bottom:1px solid var(--pa-border);
+                        background:linear-gradient(115deg,rgba(14,165,233,.16),rgba(34,197,94,.06) 70%),var(--pa-panel);
+                    }
+                    .profile-admin-header h3,.profile-admin-card h4{color:var(--pa-ink);font-family:'Space Grotesk',sans-serif;letter-spacing:-.025em}
+                    .profile-admin-header h3{margin:0;font-size:clamp(1.2rem,2.2vw,1.65rem);font-weight:800;line-height:1.2}
+                    .profile-admin-header p,.profile-admin-toolbar p{margin:.35rem 0 0;color:var(--pa-muted);overflow-wrap:anywhere}
+                    .profile-admin-card p{color:var(--pa-muted)}
+                    .profile-admin-header .auth-legal-close{
+                        flex:none;border:1px solid var(--pa-border);background:var(--pa-panel);
+                        color:var(--pa-ink);font:700 .88rem 'Space Grotesk',sans-serif;
+                    }
+                    .profile-admin-card button:focus-visible,.profile-admin-card input:focus-visible{
+                        outline:2px solid var(--pa-accent);outline-offset:2px;
+                    }
+                    .profile-admin-tabs{display:flex;gap:.35rem;margin:0;padding:0 1.6rem;border-bottom:1px solid var(--pa-border);background:var(--pa-panel)}
+                    .profile-admin-tabs button{
+                        border:0;border-bottom:3px solid transparent;padding:.9rem 1rem;
+                        background:transparent;color:var(--pa-muted);font:700 .92rem 'Space Grotesk',sans-serif;cursor:pointer;
+                    }
+                    .profile-admin-tabs button.is-active{border-color:var(--pa-accent);color:var(--pa-ink)}
+                    .profile-admin-tabs button:hover{color:var(--pa-ink)}
+                    #profileAdminOverview,#profileAdminPane,#profileAdminAlertsPane{padding:1.35rem 1.6rem 1.6rem}
+                    #profileAdminOverview{
+                        margin:1.35rem 1.6rem 1.6rem;padding:1.1rem 1.2rem;
+                        border:1px solid var(--pa-border);border-radius:1rem;background:var(--pa-panel);
+                    }
+                    #profileAdminOverview[hidden],#profileAdminPane[hidden],#profileAdminAlertsPane[hidden]{display:none}
+                    #profileAdminOverview p{margin:.25rem 0}
+                    .profile-admin-toolbar,.profile-admin-create{
+                        border:1px solid var(--pa-border);border-radius:1rem;
+                        background:var(--pa-panel);padding:1.1rem 1.2rem;
+                    }
+                    .profile-admin-card .profile-admin-toolbar h4,.profile-admin-card .profile-admin-create h4{margin:0 0 .25rem;font-size:1.04rem;font-weight:800}
+                    .profile-admin-toolbar p{font-size:.88rem;line-height:1.4}
+                    .profile-admin-card .auth-secondary{
+                        flex:none;border:1px solid var(--pa-border);border-radius:.7rem;
+                        background:var(--pa-input);color:var(--pa-ink);padding:.65rem .9rem;
+                        font:700 .85rem 'Space Grotesk',sans-serif;cursor:pointer;
+                    }
+                    .profile-admin-create{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:end;gap:.7rem;margin:1rem 0 0}
+                    .profile-admin-create[hidden],.profile-admin-temp-secret[hidden]{display:none}
+                    .profile-admin-create h4{grid-column:1/-1}
+                    .profile-admin-field{display:grid;gap:.35rem;min-width:0;color:var(--pa-ink);font-size:.82rem;font-weight:700}
+                    .profile-admin-field input{
+                        width:100%;min-width:0;padding:.72rem .8rem;border:1px solid var(--pa-border);
+                        border-radius:.7rem;background:var(--pa-input);color:var(--pa-ink);font:inherit;
+                    }
+                    .profile-admin-field input::placeholder{color:var(--pa-muted);opacity:.85}
+                    .profile-admin-create .auth-submit{
+                        width:auto;margin:0;padding:.75rem 1.1rem;border:0;border-radius:.7rem;
+                        background:linear-gradient(120deg,#0ea5e9,#10b981);color:#fff;
+                        font:800 .88rem 'Space Grotesk',sans-serif;cursor:pointer;
+                    }
+                    .profile-admin-temp-secret{
+                        margin:1rem 0;padding:.9rem 1rem;border:1px solid var(--pa-border);
+                        border-radius:.8rem;background:var(--pa-head);color:var(--pa-ink);overflow-wrap:anywhere;
+                    }
+                    .profile-admin-temp-secret code{user-select:all}
+                    .profile-admin-temp-secret button{margin-left:.5rem}
+                    .profile-admin-message{min-height:1.3rem;margin:1rem 0 .55rem;color:var(--pa-muted);font-size:.84rem}
+                    .profile-admin-table-wrap{overflow:auto;border:1px solid var(--pa-border);border-radius:1rem;background:var(--pa-panel)}
+                    .profile-admin-table{width:100%;min-width:760px;border-collapse:collapse;background:var(--pa-panel);color:var(--pa-ink);font-size:.86rem}
+                    .profile-admin-table th,.profile-admin-table td{padding:.85rem .7rem;text-align:center;border-bottom:1px solid var(--pa-border);vertical-align:middle}
+                    .profile-admin-table th{background:var(--pa-head);color:var(--pa-ink);font-weight:800;white-space:nowrap}
+                    .profile-admin-table th:first-child,.profile-admin-table td:first-child{text-align:left;min-width:195px}
+                    .profile-admin-table tbody tr:last-child td{border-bottom:0}
+                    .profile-admin-table tbody tr:hover{background:rgba(56,189,248,.06)}
+                    .profile-admin-user{display:block;color:var(--pa-ink);font-weight:800}
+                    .profile-admin-meta,.profile-admin-state{display:block;margin-top:.2rem;color:var(--pa-muted);font-size:.78rem;overflow-wrap:anywhere}
+                    .profile-admin-role{display:block;margin-top:.25rem;color:var(--pa-accent);font-size:.78rem;font-weight:800}
+                    .profile-admin-table input[type=checkbox]{width:1.15rem;height:1.15rem;accent-color:var(--pa-accent);cursor:pointer}
+                    .profile-admin-table input[type=checkbox]:disabled{cursor:default;opacity:.7}
+                    .profile-admin-status{
+                        border:1px solid var(--pa-border);border-radius:.6rem;padding:.43rem .7rem;
+                        background:var(--pa-input);color:var(--pa-ink);font:700 .8rem 'Space Grotesk',sans-serif;cursor:pointer;
+                    }
+                    .profile-admin-status:disabled{cursor:default;opacity:.75}
+                    .profile-admin-status[data-blocked=true]{color:#dc4755}
+                    .profile-admin-restricted{color:var(--pa-muted);font-size:.78rem}
+                    .profile-alerts-form{display:grid;gap:1rem;margin-top:.8rem}
+                    .profile-alerts-profile,.profile-alerts-group{border:1px solid var(--pa-border);border-radius:1rem;background:var(--pa-panel);padding:1rem 1.1rem}
+                    .profile-alerts-profile select,.profile-alerts-group select{width:100%;margin-top:.45rem;padding:.72rem .8rem;border:1px solid var(--pa-border);border-radius:.7rem;background:var(--pa-input);color:var(--pa-ink);font:inherit}
+                    .profile-alerts-group{display:grid;gap:.8rem}
+                    .profile-alerts-group legend{padding:0 .3rem;font-weight:800;color:var(--pa-ink)}
+                    .profile-alerts-group label{display:flex;align-items:center;gap:.55rem;color:var(--pa-ink);font-weight:700}
+                    .profile-alerts-group label.profile-admin-field{display:grid;align-items:initial}
+                    .profile-alerts-group input[type=checkbox]{width:1.1rem;height:1.1rem;accent-color:var(--pa-accent)}
+                    .profile-alerts-times{display:flex;flex-wrap:wrap;gap:.45rem;margin:0;padding:0;list-style:none}
+                    .profile-alerts-times li{padding:.38rem .65rem;border:1px solid var(--pa-border);border-radius:999px;background:var(--pa-head);font-size:.8rem;font-weight:800}
+                    .profile-alerts-save-row{display:flex;align-items:center;flex-wrap:wrap;gap:.75rem}
+                    .profile-alerts-save{justify-self:start;border:0;border-radius:.7rem;padding:.75rem 1.1rem;background:linear-gradient(120deg,#0ea5e9,#10b981);color:#fff;font:800 .88rem 'Space Grotesk',sans-serif;cursor:pointer}
+                    .profile-alerts-save:disabled{opacity:.65;cursor:wait}
+                    .profile-alerts-save-status{display:block;flex:1 1 100%;min-width:0;color:var(--pa-muted);font-size:.86rem;font-weight:700;overflow-wrap:anywhere}
+                    .profile-alerts-save-status[data-state="error"]{padding:.65rem .8rem;border:1px solid #dc262655;border-radius:.65rem;background:#fff1f2;color:#991b1b}
+                    @media(max-width:760px){
+                        .profile-admin-modal{padding:.5rem}
+                        .profile-admin-card{max-height:calc(100dvh - 1rem)}
+                        .profile-admin-header{padding:1rem;align-items:flex-start}
+                        .profile-admin-tabs{padding:0 1rem}
+                        #profileAdminOverview,#profileAdminPane,#profileAdminAlertsPane{padding:1rem}
+                        #profileAdminOverview{margin:1rem}
+                        .profile-admin-toolbar{align-items:stretch;flex-direction:column}
+                        .profile-admin-create{grid-template-columns:1fr}
+                        .profile-admin-table{display:block;min-width:0}
+                        .profile-admin-table thead{display:none}
+                        .profile-admin-table tbody{display:grid;gap:.7rem;padding:.7rem}
+                        .profile-admin-table tr{display:block;border:1px solid var(--pa-border);border-radius:.8rem;background:var(--pa-panel);overflow:hidden}
+                        .profile-admin-table td,.profile-admin-table td:first-child{
+                            display:flex;align-items:center;justify-content:space-between;gap:1rem;
+                            width:100%;min-width:0;text-align:right;padding:.65rem .8rem;
+                        }
+                        .profile-admin-table td:first-child{display:block;text-align:left;background:var(--pa-head)}
+                        .profile-admin-table td:not(:first-child)::before{content:attr(data-label);color:var(--pa-muted);font-weight:700;text-align:left}
+                        .profile-admin-table tbody tr:last-child td:not(:last-child){border-bottom:1px solid var(--pa-border)}
+                    }
                 `;
                 document.head.appendChild(modalStyle);
                 const profileButton = document.getElementById('profileOpenBtn');
@@ -7837,29 +7975,151 @@
 
                 const adminTab = document.getElementById('adminUsersToggle');
                 modal.querySelectorAll('[data-profile-tab]').forEach((tab) => tab.addEventListener('click', async () => {
-                    const isAdminTab = tab.dataset.profileTab === 'admin';
+                    const selectedTab = tab.dataset.profileTab;
+                    const isAdminTab = selectedTab === 'admin';
+                    const isAlertsTab = selectedTab === 'alerts';
                     modal.querySelectorAll('[data-profile-tab]').forEach((item) => {
                         item.classList.toggle('is-active', item === tab);
                         item.setAttribute('aria-selected', item === tab ? 'true' : 'false');
                     });
-                    document.getElementById('profileAdminOverview').hidden = isAdminTab;
+                    document.getElementById('profileAdminOverview').hidden = selectedTab !== 'overview';
                     document.getElementById('profileAdminPane').hidden = !isAdminTab;
-                    document.getElementById('profileAdminTitle').textContent = isAdminTab ? 'Administração do SUPERAPP' : 'Meu perfil';
+                    document.getElementById('profileAdminAlertsPane').hidden = !isAlertsTab;
+                    document.getElementById('profileAdminTitle').textContent = isAdminTab || isAlertsTab ? 'Administração do SUPERAPP' : 'Meu perfil';
                     if (isAdminTab) await this.loadAdminUsers();
+                    if (isAlertsTab) await this.loadAdminAlerts();
                 }));
                 document.getElementById('adminUsersRefresh')?.addEventListener('click', () => this.loadAdminUsers());
+                document.getElementById('adminAlertsRefresh')?.addEventListener('click', () => this.loadAdminAlerts());
+                document.getElementById('adminAlertsContent')?.addEventListener('change', (event) => {
+                    if (event.target.matches('[data-alert-profile]')) this.loadAdminAlerts(event.target.value);
+                });
+                document.getElementById('adminAlertsContent')?.addEventListener('submit', (event) => {
+                    if (event.target.matches('[data-admin-alert-form]')) this.saveAdminAlerts(event);
+                });
+                if (true) {
+                    const createForm = document.getElementById('adminCreateUserForm');
+                    createForm.hidden = false;
+                    createForm.addEventListener('submit', (event) => this.createAdminUser(event));
+                }
+                document.getElementById('adminTempSecretClose')?.addEventListener('click', () => this.hideAdminTempSecret());
                 document.getElementById('adminUsersContent')?.addEventListener('change', (event) => {
                     const input = event.target.closest('[data-admin-user-permission]');
                     if (input) this.saveAdminUserPermission(input);
                 });
                 document.getElementById('adminUsersContent')?.addEventListener('click', (event) => {
+                    const reset = event.target.closest('[data-admin-user-reset]');
+                    if (reset) return this.resetAdminUserPassword(reset);
                     const button = event.target.closest('[data-admin-user-status]');
                     if (button) this.saveAdminUserStatus(button);
                 });
                 try {
                     const response = await fetch('/api/admin/usuarios', { method: 'HEAD' });
-                    if (response.ok) adminTab.hidden = false;
+                    if (response.ok) {
+                        adminTab.hidden = false;
+                        document.getElementById('adminAlertsToggle').hidden = false;
+                    }
                 } catch (_error) {}
+            }
+            async loadAdminAlerts(requestedProfileId = '') {
+                const message = document.getElementById('adminAlertsMessage');
+                const content = document.getElementById('adminAlertsContent');
+                if (!message || !content) return;
+                message.textContent = 'Carregando perfis e agendamentos...';
+                content.innerHTML = '';
+                const fetchPayload = async (url, options) => {
+                    const response = await fetch(url, options);
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Não foi possível carregar os alertas.');
+                    return payload;
+                };
+                try {
+                    const profilePayload = await fetchPayload('/api/saude?resource=perfis');
+                    const profiles = Array.isArray(profilePayload.rows) ? profilePayload.rows : [];
+                    if (!profiles.length) {
+                        message.textContent = 'Cadastre um perfil em Saúde para configurar alertas.';
+                        return;
+                    }
+                    const previousProfileId = requestedProfileId || content.dataset.profileId || profiles[0].id;
+                    const profile = profiles.find((item) => String(item.id) === String(previousProfileId)) || profiles[0];
+                    const profileId = Number(profile.id);
+                    const [schedulePayload, dietPayload] = await Promise.all([
+                        fetchPayload(`/api/saude?resource=alertas-agenda&profile_id=${encodeURIComponent(profileId)}`),
+                        fetchPayload(`/api/saude?resource=dietas&profile_id=${encodeURIComponent(profileId)}`),
+                    ]);
+                    const schedule = schedulePayload.row || { agua_ativo: true, agua_intervalo_horas: 3, dieta_ativa: true, dieta_id: null };
+                    const diets = Array.isArray(dietPayload.rows) ? dietPayload.rows : [];
+                    const selectedDietId = schedule.dieta_id || diets[0]?.id || '';
+                    const escape = (value) => escapeHtml(String(value ?? ''));
+                    content.dataset.profileId = String(profileId);
+                    content.innerHTML = `
+                        <label class="profile-admin-field profile-alerts-profile"><span>Perfil de saúde</span>
+                            <select data-alert-profile>${profiles.map((item) => `<option value="${escape(item.id)}"${Number(item.id) === profileId ? ' selected' : ''}>${escape(item.nome || `Perfil ${item.id}`)}</option>`).join('')}</select>
+                        </label>
+                        <form class="profile-alerts-form" data-admin-alert-form>
+                            <input type="hidden" name="profile_id" value="${escape(profileId)}">
+                            <fieldset class="profile-alerts-group">
+                                <legend>💧 Alerta de água</legend>
+                                <label><input type="checkbox" name="agua_ativo"${schedule.agua_ativo ? ' checked' : ''}> Ativar lembretes de água</label>
+                                <label class="profile-admin-field"><span>Repetir a cada</span><select name="agua_intervalo_horas">${Array.from({ length: 12 }, (_, index) => index + 1).map((hours) => `<option value="${hours}"${Number(schedule.agua_intervalo_horas) === hours ? ' selected' : ''}>${hours} ${hours === 1 ? 'hora' : 'horas'}</option>`).join('')}</select></label>
+                                <p>Os avisos começam às 07:30 e seguem o intervalo escolhido até 22:30.</p>
+                            </fieldset>
+                            <fieldset class="profile-alerts-group">
+                                <legend>🥗 Alerta de dieta</legend>
+                                <label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa && diets.length ? ' checked' : ''}${diets.length ? '' : ' disabled'}> Ativar lembretes das refeições</label>
+                                <label class="profile-admin-field"><span>Dieta deste perfil</span><select name="dieta_id"${diets.length ? '' : ' disabled'}>${diets.length ? diets.map((diet) => `<option value="${escape(diet.id)}"${Number(diet.id) === Number(selectedDietId) ? ' selected' : ''}>${escape(diet.titulo || diet.nome || `Dieta ${diet.id}`)}</option>`).join('') : '<option value="">Cadastre uma dieta neste perfil</option>'}</select></label>
+                                <p>Horários fixos dos avisos:</p><ul class="profile-alerts-times"><li>07:00 · Café da manhã</li><li>11:00 · Almoço</li><li>15:00 · Café da tarde</li><li>19:00 · Jantar</li></ul>
+                            </fieldset>
+                            <div class="profile-alerts-save-row"><button class="profile-alerts-save" type="submit"${!diets.length ? ' title="A dieta pode ser deixada desativada até cadastrar uma dieta"' : ''}>💾 Salvar alertas</button><span class="profile-alerts-save-status" data-alert-save-status role="status" aria-live="polite"></span></div>
+                        </form>`;
+                    message.textContent = diets.length ? 'Ajuste os alertas deste perfil. Os horários das refeições são fixos.' : 'Água pode ser configurada agora; cadastre uma dieta neste perfil para ativar os avisos de refeições.';
+                } catch (error) {
+                    message.textContent = error.message || 'Falha ao carregar os alertas.';
+                }
+            }
+            async saveAdminAlerts(event) {
+                event.preventDefault();
+                // O submit e delegado no contêiner; o formulário submetido é event.target.
+                const form = event.target.closest('[data-admin-alert-form]');
+                if (!form) return;
+                const button = form.querySelector('[type="submit"]');
+                if (!button || button.disabled) return;
+                const message = document.getElementById('adminAlertsMessage');
+                const saveStatus = form.querySelector('[data-alert-save-status]');
+                const values = new FormData(form);
+                button.disabled = true;
+                button.textContent = '⏳ Salvando...';
+                if (saveStatus) saveStatus.textContent = '';
+                message.textContent = 'Salvando configurações...';
+                try {
+                    const response = await fetch('/api/saude?resource=alertas-agenda', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            profile_id: Number(values.get('profile_id')),
+                            agua_ativo: values.has('agua_ativo'),
+                            agua_intervalo_horas: Number(values.get('agua_intervalo_horas')),
+                            dieta_ativa: values.has('dieta_ativa'),
+                            dieta_id: values.get('dieta_id') || null,
+                        }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Não foi possível salvar os alertas.');
+                    button.textContent = '✅ Salvo';
+                    if (saveStatus) {
+                        saveStatus.textContent = 'Alterações aplicadas.';
+                        delete saveStatus.dataset.state;
+                    }
+                    message.textContent = '✅ Alertas salvos para este perfil.';
+                } catch (error) {
+                    button.textContent = '↻ Tentar novamente';
+                    if (saveStatus) {
+                        saveStatus.dataset.state = 'error';
+                        saveStatus.textContent = error.message || 'Não salvou. Revise os dados e tente novamente.';
+                    }
+                    message.textContent = error.message || 'Falha ao salvar os alertas.';
+                } finally {
+                    button.disabled = false;
+                }
             }
             async loadAdminUsers() {
                 const message = document.getElementById('adminUsersMessage');
@@ -7877,17 +8137,85 @@
                         return;
                     }
                     content.innerHTML = `<table class="profile-admin-table">
-                        <thead><tr><th>Usuário</th><th>Status</th>${payload.apps.map((app) => `<th>${escapeHtml(app.title)}</th>`).join('')}${(payload.restricted_apps || []).map((app) => `<th title="Acesso multiusuário indisponível até o isolamento dos dados">${escapeHtml(app.title)} 🔒</th>`).join('')}</tr></thead>
-                        <tbody>${payload.users.map((user) => `<tr style="border-top:1px solid var(--border-color)">
-                            <td><strong>${escapeHtml(user.name || user.email || 'Usuário')}</strong>${user.name ? `<div>${escapeHtml(user.email)}</div>` : ''}${user.is_admin ? '<div style="color:var(--accent);font-size:.8rem">Administrador</div>' : ''}<small style="display:block;color:var(--text-light)">Cadastro: ${escapeHtml(user.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : '—')}</small></td>
-                            <td><button type="button" class="profile-admin-status" data-admin-user-status data-user-id="${escapeHtml(user.id)}" data-blocked="${user.is_banned ? 'true' : 'false'}" ${user.is_admin ? 'disabled' : ''}>${user.is_admin ? 'Admin' : (user.is_banned ? 'Reativar' : 'Bloquear')}</button><small style="display:block;color:var(--text-light)">${user.is_banned ? 'Bloqueado' : 'Ativo'}</small></td>
-                            ${payload.apps.map((app) => `<td><input type="checkbox" aria-label="${escapeHtml(app.title)} para ${escapeHtml(user.email)}" data-admin-user-permission data-user-id="${escapeHtml(user.id)}" data-app-id="${escapeHtml(app.id)}" ${user.permissions.includes(app.id) ? 'checked' : ''} ${user.is_admin ? 'disabled' : ''}></td>`).join('')}
-                            ${(payload.restricted_apps || []).map(() => '<td><span aria-label="Restrito ao administrador" title="Acesso multiusuário indisponível até o isolamento dos dados">Admin</span></td>').join('')}
+                        <thead><tr><th>Usuário</th><th>Status</th>${true ? '<th>Senha</th>' : ''}${payload.apps.map((app) => `<th>${escapeHtml(app.title)}</th>`).join('')}${(payload.restricted_apps || []).map((app) => `<th title="Acesso multiusuário indisponível até o isolamento dos dados">${escapeHtml(app.title)} 🔒</th>`).join('')}</tr></thead>
+                        <tbody>${payload.users.map((user) => `<tr>
+                            <td><strong class="profile-admin-user">${escapeHtml(user.name || user.email || 'Usuário')}</strong>${user.name ? `<span class="profile-admin-meta">${escapeHtml(user.email)}</span>` : ''}${user.username ? `<span class="profile-admin-meta">@${escapeHtml(user.username)}</span>` : ''}${user.is_admin ? '<span class="profile-admin-role">Administrador</span>' : ''}<span class="profile-admin-meta">Cadastro: ${escapeHtml(user.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : '—')}</span></td>
+                            <td data-label="Status"><button type="button" class="profile-admin-status" data-admin-user-status data-user-id="${escapeHtml(user.id)}" data-blocked="${user.is_banned ? 'true' : 'false'}" ${user.is_admin ? 'disabled' : ''}>${user.is_admin ? 'Admin' : (user.is_banned ? 'Reativar' : 'Bloquear')}</button><span class="profile-admin-state">${user.is_banned ? 'Bloqueado' : 'Ativo'}</span></td>
+                            ${true ? `<td data-label="Senha">${user.is_admin ? '—' : `<button type="button" class="profile-admin-status" data-admin-user-reset data-user-id="${escapeHtml(user.id)}">Redefinir</button>`}${false ? '<span class="profile-admin-state">Troca pendente</span>' : ''}</td>` : ''}
+                            ${payload.apps.map((app) => `<td data-label="${escapeHtml(app.title)}"><input type="checkbox" aria-label="${escapeHtml(app.title)} para ${escapeHtml(user.email)}" data-admin-user-permission data-user-id="${escapeHtml(user.id)}" data-app-id="${escapeHtml(app.id)}" ${user.permissions.includes(app.id) ? 'checked' : ''} ${user.is_admin ? 'disabled' : ''}></td>`).join('')}
+                            ${(payload.restricted_apps || []).map((app) => `<td data-label="${escapeHtml(app.title)}"><span class="profile-admin-restricted" aria-label="Restrito ao administrador" title="Acesso multiusuário indisponível até o isolamento dos dados">Admin</span></td>`).join('')}
                         </tr>`).join('')}</tbody>
                     </table>`;
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao carregar usuários.';
                 }
+            }
+            showAdminTempSecret(password) {
+                const card = document.getElementById('adminTempSecret');
+                const value = document.getElementById('adminTempSecretValue');
+                if (!card || !value) return;
+                value.textContent = password;
+                card.hidden = false;
+            }
+            hideAdminTempSecret() {
+                const card = document.getElementById('adminTempSecret');
+                const value = document.getElementById('adminTempSecretValue');
+                if (value) value.textContent = '';
+                if (card) card.hidden = true;
+            }
+            async createAdminUser(event) {
+                event.preventDefault();
+                const form = event.currentTarget;
+                const button = form.querySelector('[type="submit"]');
+                const message = document.getElementById('adminUsersMessage');
+                const data = new FormData(form);
+                button.disabled = true;
+                this.hideAdminTempSecret();
+                try {
+                    const response = await fetch('/api/admin/usuarios', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: data.get('name'), email: data.get('email') }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Falha ao criar usuário.');
+                    form.reset();
+                    await this.loadAdminUsers();
+                    this.showAdminTempSecret(payload.temporary_password);
+                    message.textContent = 'Usuário criado. Entregue a senha gerada com segurança; ele pode usar a recuperação de senha para escolher outra.';
+                } catch (error) {
+                    message.textContent = error.message || 'Falha ao criar usuário.';
+                } finally { button.disabled = false; }
+            }
+            async resetAdminUserPassword(button) {
+                if (button.dataset.confirm !== 'true') {
+                    button.dataset.confirm = 'true';
+                    button.textContent = 'Confirmar reset';
+                    window.setTimeout(() => {
+                        if (button.isConnected && button.dataset.confirm === 'true') {
+                            button.dataset.confirm = '';
+                            button.textContent = 'Redefinir';
+                        }
+                    }, 10000);
+                    return;
+                }
+                button.disabled = true;
+                this.hideAdminTempSecret();
+                const message = document.getElementById('adminUsersMessage');
+                try {
+                    const response = await fetch('/api/admin/usuarios', {
+                        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'reset_password', user_id: button.dataset.userId }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Falha ao redefinir a senha.');
+                    await this.loadAdminUsers();
+                    this.showAdminTempSecret(payload.temporary_password);
+                    message.textContent = 'Senha redefinida. Entregue a nova senha com segurança.';
+                } catch (error) {
+                    button.dataset.confirm = '';
+                    button.textContent = 'Redefinir';
+                    message.textContent = error.message || 'Falha ao redefinir a senha.';
+                } finally { button.disabled = false; }
             }
             async saveAdminUserPermission(input) {
                 const priorValue = !input.checked;
@@ -8515,8 +8843,8 @@
                             <div class="window-title">${app.title}</div>
                         </div>
                         <div class="window-controls">
-                            <button class="window-btn" onclick="superApp.goHome('${windowId}')" title="Voltar ao incio">
-                                <i class="fas fa-home"></i>
+                            <button class="window-btn" onclick="superApp.goHome('${windowId}')" title="Voltar para a tela inicial" aria-label="Voltar para a tela inicial">
+                                <i class="fas fa-arrow-left" aria-hidden="true"></i>
                             </button>
                             <button class="window-btn" onclick="superApp.closeWindow('${windowId}')" title="Fechar">
                                 <i class="fas fa-times"></i>
@@ -8575,7 +8903,7 @@
                     window.removeEventListener('resize', prevRoot._fluxOnResize);
                 }
                 const previousScrollTop = contentEl.scrollTop || 0;
-                contentEl.classList.remove('fluxograma-window-content', 'saude-window-content');
+                contentEl.classList.remove('fluxograma-window-content');
                 contentEl.innerHTML = '<div class="app-loading"><i class="fas fa-spinner spinner"></i> Carregando...</div>';
                 if (appId === 'fluxograma') {
                     contentEl.classList.add('fluxograma-window-content');
@@ -8587,7 +8915,6 @@
                     return;
                 }
                 if (appId === 'saude') {
-                    contentEl.classList.add('saude-window-content');
                     try {
                         const mod = await import('./features/saude/index.js?v=2026-10-03-saude-bank-v6');
                         await mod.renderSaudeContent(contentEl);
@@ -9155,8 +9482,10 @@
                     const pt = Number(r.parcela_total ?? 0);
                     const pa = Number(r.parcela_atual ?? 0);
                     const hasParcelas = Number.isFinite(pt) && Number.isFinite(pa) && pt > 0 && pa > 0 && pa <= pt;
+                    const isContaFixa = r?.conta_fixa === true || String(r?.conta_fixa || '').toLowerCase() === 'true';
                     const tags = [
                         hasParcelas ? `<span class="fin-tag">Parcela ${escapeHtml(String(pa))} de ${escapeHtml(String(pt))}</span>` : '',
+                        !hasParcelas && isContaFixa ? '<span class="fin-tag">Conta fixa</span>' : '',
                         pendenteMes ? '<span class="fin-tag fin-tag--neg">Pendente no mês</span>' : '',
                     ].join('');
                     return `<li class="fin-entry">
@@ -10800,18 +11129,11 @@
                 this.returnHome();
             }
 
-            syncShellForOpenModules() {
-                const moduleOpen = this.openWindows.size > 0;
-                document.body.classList.toggle('app-module-open', moduleOpen);
-                document.body.classList.toggle('view-apps', !moduleOpen);
-            }
-
             updateStatistics() {
                 this.statistics.openApps = this.openWindows.size;
                 const showHomeQuickActions = this.openWindows.size === 0;
                 const quickbar = document.getElementById('homeQuickbar');
                 if (quickbar) quickbar.style.display = showHomeQuickActions ? '' : 'none';
-                this.syncShellForOpenModules();
             }
 
             // ============================================

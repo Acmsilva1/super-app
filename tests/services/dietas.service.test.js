@@ -15,7 +15,7 @@ describe('dietasService', () => {
       { tipo: 'almoco', itens: [{ nome: 'Frango', quantidade: '120 g', observacao: null }] },
       { tipo: 'ceia', itens: [{ nome: 'Chá', quantidade: '1 xícara', observacao: 'Sem açúcar' }] },
     ]);
-    expect(meals.find((meal) => meal.tipo === 'almoco').itens[0]).toEqual({ nome: 'Frango', quantidade: '120 g', observacao: '' });
+    expect(meals.find((meal) => meal.tipo === 'almoco').itens[0]).toEqual({ nome: 'Frango', quantidade: '120 g', observacao: '', calorias: null });
     expect(countDietItems(meals)).toBe(2);
   });
 });

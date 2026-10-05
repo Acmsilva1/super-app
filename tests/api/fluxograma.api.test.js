@@ -73,7 +73,7 @@ describe('API do fluxograma', () => {
     const update = vi.fn(() => ({
       eq: vi.fn(() => ({
         select: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({
+          maybeSingle: vi.fn().mockResolvedValue({
             data: {
               id: 'proj-1',
               nome: 'Novo nome',

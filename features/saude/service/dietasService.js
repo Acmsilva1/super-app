@@ -20,6 +20,7 @@ export function normalizeDietMeals(value) {
         nome: String(item?.nome || ''),
         quantidade: String(item?.quantidade || ''),
         observacao: String(item?.observacao || ''),
+        calorias: item?.calorias === '' || item?.calorias == null ? null : Number(item.calorias),
       }))
       : [];
     return { ...meal, itens };

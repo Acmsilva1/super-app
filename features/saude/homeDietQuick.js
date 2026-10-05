@@ -168,9 +168,13 @@ function renderDietDetail(state) {
   if (!diet) return '<p class="home-diet-quick-notice home-diet-quick-notice--error">A dieta selecionada não está disponível.</p>';
   const meals = normalizeDietMeals(diet.refeicoes).filter((meal) => meal.itens.length);
   const content = meals.length
-    ? `<div class="home-diet-quick-meals">${meals.map((meal) => `<section class="home-diet-quick-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="home-diet-quick-item"><strong>${escapeHtml(item.nome)} — ${escapeHtml(item.quantidade)}</strong>${item.observacao ? `<p>${escapeHtml(item.observacao)}</p>` : ''}</div>`).join('')}</section>`).join('')}</div>`
+    ? `<div class="home-diet-quick-meals">${meals.map((meal) => `<section class="home-diet-quick-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="home-diet-quick-item"><strong>${escapeHtml(item.nome)} — ${escapeHtml(item.quantidade)}${item.calorias == null ? '' : ` · ${escapeHtml(item.calorias)} kcal`}</strong>${item.observacao ? `<p>${escapeHtml(item.observacao)}</p>` : ''}</div>`).join('')}</section>`).join('')}</div>`
     : '<p class="home-diet-quick-notice">Esta dieta ainda não possui alimentos cadastrados.</p>';
-  return `${content}${diet.observacoes ? `<p class="home-diet-quick-observation"><strong>Observações:</strong><br>${escapeHtml(diet.observacoes)}</p>` : ''}<div class="home-diet-quick-actions">${state.diets.length > 1 ? '<button type="button" class="home-diet-quick-btn" data-action="back-to-diets">Outras dietas</button>' : '<button type="button" class="home-diet-quick-btn" data-action="change-profile">Trocar perfil</button>'}${typeof state.launchSaude === 'function' ? '<button type="button" class="home-diet-quick-btn home-diet-quick-btn--primary" data-action="open-saude">Editar em Saúde</button>' : ''}</div>`;
+  const calorieGoal = Number(diet.meta_calorias);
+  const calorieSummary = Number.isInteger(calorieGoal) && calorieGoal > 0
+    ? `<p class="home-diet-quick-observation"><strong>Meta diária:</strong> ${escapeHtml(calorieGoal)} kcal</p>`
+    : '';
+  return `${content}${calorieSummary}${diet.observacoes ? `<p class="home-diet-quick-observation"><strong>Observações:</strong><br>${escapeHtml(diet.observacoes)}</p>` : ''}<div class="home-diet-quick-actions">${state.diets.length > 1 ? '<button type="button" class="home-diet-quick-btn" data-action="back-to-diets">Outras dietas</button>' : '<button type="button" class="home-diet-quick-btn" data-action="change-profile">Trocar perfil</button>'}${typeof state.launchSaude === 'function' ? '<button type="button" class="home-diet-quick-btn home-diet-quick-btn--primary" data-action="open-saude">Editar em Saúde</button>' : ''}</div>`;
 }
 
 function paintModal(overlay, state) {

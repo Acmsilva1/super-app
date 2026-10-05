@@ -3,6 +3,7 @@ import { TABELAS_NUTRICIONAIS } from '../features/saude/data/tabelasNutricionais
 import { opcoesTabelaNutricional } from '../features/saude/service/tabelaNutricionalService.js';
 import { calcularImc } from '../features/saude/service/perfilSaudeService.js';
 import { DIET_MEALS } from '../features/saude/service/dietasService.js';
+import { normalizeAlertSchedule, validateAlertSchedule } from '../features/saude/service/alertScheduleConfig.js';
 
 const TABELA_NUTRICIONAL = 'tb_saude_tabela_nutricional';
 const RESOURCE_TABELA_NUTRICIONAL = 'tabelas-nutricionais';
@@ -15,12 +16,15 @@ const RESOURCE_PERFIL_MEDIDAS = 'perfil-medidas';
 const TABELA_AGUA_METAS = 'tb_saude_agua_metas';
 const TABELA_AGUA_LOGS = 'tb_saude_agua_logs';
 const RESOURCE_CONSUMO_AGUA = 'consumo-agua';
+const TABELA_ALERTAS_AGENDA = 'tb_saude_alertas_agenda';
+const RESOURCE_ALERTAS_AGENDA = 'alertas-agenda';
 let offlineNutritionRows = bundledNutritionRows();
 let offlineDiets = [];
 let offlineProfiles = [];
 let offlineProfileMeasurements = [];
 const offlineWaterGoals = new Map();
 let offlineWaterLogs = [];
+const offlineAlertSchedules = new Map();
 
 function json(res, status, data) {
   res.setHeader('Content-Type', 'application/json');
@@ -118,6 +122,7 @@ function validateDietPayload(body, isCreate = false) {
   const orientacoes_gerais = String(body?.orientacoes_gerais || '').trim();
   const ritual_diario = String(body?.ritual_diario || '').trim();
   const observacoes = String(body?.observacoes || '').trim();
+  const meta_calorias = body?.meta_calorias === '' || body?.meta_calorias == null ? null : Number(body.meta_calorias);
   const duracao_dias = Number(body?.duracao_dias);
   const dias = Array.isArray(body?.dias) ? body.dias : [];
   const refeicoes = Array.isArray(body?.refeicoes) ? body.refeicoes : null;
@@ -131,6 +136,10 @@ function validateDietPayload(body, isCreate = false) {
   }
 
   const profileField = perfil_id ? { perfil_id } : {};
+
+  if (meta_calorias !== null && (!Number.isInteger(meta_calorias) || meta_calorias < 500 || meta_calorias > 10000)) {
+    return { error: 'A meta diaria deve ficar entre 500 e 10000 kcal.' };
+  }
 
   if (refeicoes) {
     if (!titulo || titulo.length > 160 || objetivo.length > 120 || descricao.length > 2000 || observacoes.length > 4000) {
@@ -148,11 +157,15 @@ function validateDietPayload(body, isCreate = false) {
         const nome = String(item?.nome || '').trim();
         const quantidade = String(item?.quantidade || '').trim();
         const observacao = String(item?.observacao || '').trim();
+        const calorias = item?.calorias === '' || item?.calorias == null ? null : Number(item.calorias);
         if (!nome || !quantidade) return { error: `Alimento e quantidade sao obrigatorios em ${mealDefinition.titulo}.` };
+        if (calorias !== null && (!Number.isInteger(calorias) || calorias < 0 || calorias > 10000)) {
+          return { error: `As calorias de cada alimento devem ser um numero inteiro entre 0 e 10000.` };
+        }
         if (nome.length > 160 || quantidade.length > 120 || observacao.length > 500) {
           return { error: `Um item de ${mealDefinition.titulo} ultrapassa o limite permitido.` };
         }
-        normalizedItems.push({ nome, quantidade, observacao });
+        normalizedItems.push({ nome, quantidade, observacao, calorias });
       }
       itemCount += normalizedItems.length;
       normalizedMeals.push({ ...mealDefinition, itens: normalizedItems });
@@ -171,6 +184,7 @@ function validateDietPayload(body, isCreate = false) {
         ritual_diario: '',
         dias: [{ numero: 1, titulo: 'Plano alimentar', jejum_horas: 0, quantidade_refeicoes: activeMealCount, carboidrato: '', conteudo: '' }],
         refeicoes: normalizedMeals,
+        meta_calorias,
         observacoes,
       },
     };
@@ -198,7 +212,7 @@ function validateDietPayload(body, isCreate = false) {
     normalizedDays.push({ numero: index + 1, titulo: tituloDia.slice(0, 160), jejum_horas, quantidade_refeicoes, carboidrato: carboidrato.slice(0, 1000), conteudo: conteudo.slice(0, 12000) });
   }
 
-  return { data: { ...profileField, titulo, objetivo, duracao_dias, descricao, orientacoes_gerais, ritual_diario, dias: normalizedDays, refeicoes: [], observacoes } };
+  return { data: { ...profileField, titulo, objetivo, duracao_dias, descricao, orientacoes_gerais, ritual_diario, dias: normalizedDays, refeicoes: [], observacoes, meta_calorias } };
 }
 
 const PROFILE_MEASURE_FIELDS = ['peso_kg', 'altura_cm'];
@@ -321,9 +335,9 @@ async function requireSaudeProfileForWater(userId, profileId) {
     return { profile: { id: profile.id, nome: profile.nome }, storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
-  const { data, error } = await supabase.from(TABELA_PERFIS)
+  const { data, error, status, statusText } = await supabase.from(TABELA_PERFIS)
     .select('id,nome').eq('id', id).eq('created_by', userId).maybeSingle();
-  if (error) return { error };
+  if (error) return { error, status, statusText };
   if (!data) return { notFound: true };
   return { profile: data, storage: 'supabase' };
 }
@@ -491,6 +505,54 @@ async function updateWaterProgress(payload, userId) {
       realizado_doses: Number(data.realizado_doses),
     },
   };
+}
+
+async function loadAlertSchedule(profileId, userId) {
+  const owned = await requireSaudeProfileForWater(userId, profileId);
+  if (owned.error || owned.notFound || owned.invalid) return owned;
+  if (isOfflineMode()) {
+    const row = offlineAlertSchedules.get(`${userId}:${profileId}`) || null;
+    return { row: normalizeAlertSchedule(row), storage: 'memory' };
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  const { data, error } = await supabase.from(TABELA_ALERTAS_AGENDA)
+    .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id,updated_at')
+    .eq('perfil_id', profileId).eq('created_by', userId).maybeSingle();
+  if (error) return { error };
+  return { row: normalizeAlertSchedule(data), storage: 'supabase', updated_at: data?.updated_at || null };
+}
+
+async function saveAlertSchedule(profileId, payload, userId) {
+  const validation = validateAlertSchedule(payload);
+  if (validation.error) return { validationError: validation.error };
+  const owned = await requireSaudeProfileForWater(userId, profileId);
+  if (owned.error || owned.notFound || owned.invalid) return owned;
+  if (validation.data.dieta_id !== null) {
+    if (isOfflineMode()) {
+      const dietExists = offlineDiets.some((diet) => Number(diet.id) === validation.data.dieta_id
+        && Number(diet.perfil_id) === Number(profileId) && diet.created_by === userId);
+      if (!dietExists) return { dietNotFound: true };
+    } else {
+      const { supabase } = await import('../lib/supabase.js');
+      const { data: diet, error: dietError, status, statusText } = await supabase.from(TABELA_DIETAS)
+        .select('id').eq('id', validation.data.dieta_id).eq('perfil_id', profileId).eq('created_by', userId).maybeSingle();
+      if (dietError) return { error: dietError, status, statusText };
+      if (!diet) return { dietNotFound: true };
+    }
+  }
+  const row = { perfil_id: profileId, created_by: userId, ...validation.data };
+  if (isOfflineMode()) {
+    offlineAlertSchedules.set(`${userId}:${profileId}`, row);
+    return { row: normalizeAlertSchedule(row), storage: 'memory' };
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  const { data, error, status, statusText } = await supabase.from(TABELA_ALERTAS_AGENDA)
+    .upsert(row, { onConflict: 'perfil_id' })
+    .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id,updated_at')
+    .single();
+  return error
+    ? { error, status, statusText }
+    : { row: normalizeAlertSchedule(data), storage: 'supabase', updated_at: data.updated_at };
 }
 
 async function loadProfiles(userId) {
@@ -709,7 +771,7 @@ async function loadDiets(userId, profileId = null, isAdmin = false) {
   const { supabase } = await import('../lib/supabase.js');
   let query = supabase
     .from(TABELA_DIETAS)
-    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,perfil_id,source_file,created_at,updated_at')
+    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,meta_calorias,perfil_id,source_file,created_at,updated_at')
     .order('created_at', { ascending: false });
   if (profileId) {
     query = query.eq('perfil_id', profileId);
@@ -739,7 +801,7 @@ async function createDiet(payload, userId) {
   const { data, error } = await supabase
     .from(TABELA_DIETAS)
     .insert({ slug, ...payload, source_file: 'Cadastro manual', created_by: userId })
-    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,perfil_id,source_file,created_at,updated_at')
+    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,meta_calorias,perfil_id,source_file,created_at,updated_at')
     .single();
   return error ? { error } : { row: data, storage: 'supabase' };
 }
@@ -763,7 +825,7 @@ async function updateDiet(id, payload, userId, isAdmin = false) {
     .eq('id', id);
   if (!isAdmin) query = query.eq('created_by', userId);
   const { data, error } = await query
-    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,perfil_id,source_file,created_at,updated_at')
+    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,meta_calorias,perfil_id,source_file,created_at,updated_at')
     .maybeSingle();
   if (error) return { error };
   return data ? { row: data, storage: 'supabase' } : { notFound: true };
@@ -898,6 +960,14 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
+    if (req.query?.resource === RESOURCE_ALERTAS_AGENDA) {
+      const profileId = parseId(req.query?.profile_id);
+      if (!profileId) return json(res, 400, { error: 'Perfil invalido.' });
+      const result = await loadAlertSchedule(profileId, auth.user.id);
+      if (result.error) return json(res, 500, { error: 'Nao foi possivel carregar os agendamentos.' });
+      if (result.notFound || result.invalid) return json(res, 404, { error: 'Perfil de saude nao encontrado.' });
+      return json(res, 200, { resource: RESOURCE_ALERTAS_AGENDA, ...result });
+    }
     if (req.query?.resource === RESOURCE_TABELA_NUTRICIONAL) {
       const result = await loadNutritionRows();
       if (result.error) return json(res, 500, { error: result.error.message });
@@ -958,8 +1028,51 @@ export default async function handler(req, res) {
     });
   }
 
-  if (![RESOURCE_TABELA_NUTRICIONAL, RESOURCE_DIETAS, RESOURCE_PERFIS, RESOURCE_PERFIL_MEDIDAS, RESOURCE_CONSUMO_AGUA].includes(req.query?.resource)) {
+  if (![RESOURCE_TABELA_NUTRICIONAL, RESOURCE_DIETAS, RESOURCE_PERFIS, RESOURCE_PERFIL_MEDIDAS, RESOURCE_CONSUMO_AGUA, RESOURCE_ALERTAS_AGENDA].includes(req.query?.resource)) {
     return json(res, 400, { error: 'Recurso invalido.' });
+  }
+
+  if (req.query?.resource === RESOURCE_ALERTAS_AGENDA && req.method === 'POST') {
+    const body = readBody(req);
+    if (!body) return json(res, 400, { error: 'JSON invalido.' });
+    const profileId = parseId(body.profile_id ?? req.query?.profile_id);
+    if (!profileId) return json(res, 400, { error: 'Perfil invalido.' });
+    const result = await saveAlertSchedule(profileId, body, auth.user.id);
+    if (result.error) {
+      const code = String(result.error.code || 'BACKEND_ERROR').replace(/[^A-Z0-9_-]/gi, '').slice(0, 32) || 'BACKEND_ERROR';
+      const messages = {
+        '23503': 'O perfil ou a dieta selecionada não está mais disponível. Atualize os dados e tente novamente.',
+        '23514': 'O intervalo escolhido não é aceito pelo banco. Atualize a tela e selecione de 1 a 12 horas.',
+        '42501': 'O banco recusou a gravação por falta de permissão. Código de suporte: 42501.',
+      };
+      const error = result.error;
+      const diagnostic = JSON.stringify({
+        type: typeof error,
+        constructor: error?.constructor?.name || null,
+        keys: error && (typeof error === 'object' || typeof error === 'function')
+          ? Object.keys(error).slice(0, 12)
+          : [],
+        name: error?.name || null,
+        message: error?.message || (typeof error === 'string' ? error : null),
+        status: error?.status ?? error?.statusCode ?? null,
+        responseStatus: result.status ?? null,
+        responseStatusText: result.statusText || null,
+      })
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [redacted]')
+        .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[token]')
+        .replace(/https?:\/\/[^\s?]+\?[^\s]+/gi, '[url]')
+        .slice(0, 180);
+      console.error(`[saude] Falha ao salvar agendamentos. Código: ${code}; diagnóstico: ${diagnostic}`);
+      return json(res, 500, {
+        error: messages[code] || `Não foi possível salvar os agendamentos. Código de suporte: ${code}.`,
+        code,
+      });
+    }
+    if (result.notFound || result.invalid) return json(res, 404, { error: 'Perfil de saude nao encontrado.' });
+    if (result.dietNotFound) return json(res, 404, { error: 'A dieta selecionada nao pertence a este perfil.' });
+    if (result.validationError) return json(res, 400, { error: result.validationError });
+    return json(res, 200, { resource: RESOURCE_ALERTAS_AGENDA, ...result });
   }
 
   if (req.query?.resource === RESOURCE_CONSUMO_AGUA && req.method === 'POST') {

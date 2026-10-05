@@ -174,6 +174,18 @@ html[data-theme] header .auth-logout {
     border-radius: 0.5rem;
     transform: none;
 }
+html[data-theme] header .header-btn--home {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    padding: 0.4rem;
+    border-color: var(--bk-primary);
+    background: var(--bk-primary);
+    color: var(--bk-primary-ink);
+}
+html[data-theme] header .header-btn--home:hover {
+    background: var(--bk-primary-press);
+    border-color: var(--bk-primary-press);
+}
 html[data-theme] header .header-btn:hover,
 html[data-theme] header .auth-logout:hover {
     background: var(--bk-bg);
@@ -193,6 +205,51 @@ html[data-theme] header .menu-toggle { display: none; }
 /* ---------- Home ---------- */
 body.view-apps .home-shell {
     padding: 1rem 0 calc(var(--bk-quickbar-h) + env(safe-area-inset-bottom) + 1rem);
+}
+@media (max-width: 768px) {
+    html[data-theme] .app-window { z-index: 70; }
+    html[data-theme] .app-window.maximized {
+        inset: auto 0 0;
+        top: calc(var(--bk-topbar-h) + env(safe-area-inset-top));
+        width: 100%;
+        height: auto;
+        max-height: none;
+    }
+    body.view-apps > header { position: sticky; top: 0; z-index: 80; }
+    html:has(body.view-apps) {
+        height: 100%;
+        overflow: hidden;
+    }
+    body.view-apps {
+        height: 100vh;
+        height: 100dvh;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    body.view-apps > header { flex: 0 0 auto; }
+    body.view-apps .home-shell {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    body.view-apps .home-shell > .container {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    body.view-apps #appsContainer {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+    body.view-apps > #windowsContainer { flex: 0 0 auto; }
 }
 .home-shell .container { max-width: var(--bk-max); }
 html[data-theme] .home-shell .section-title {
@@ -358,6 +415,25 @@ html[data-theme] #window-lista_compras {
     #window-lista_compras { --bk-module-bg: url('/backgrounds/lista-compras-mobile.jpg'); }
     #window-fluxograma { --bk-module-bg: url('/backgrounds/fluxograma-mobile.jpg'); }
 }
+@media (max-width: 520px) {
+    html[data-theme] .app-window .window-title-group {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    html[data-theme] .app-window .window-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    html[data-theme] .app-window .window-controls {
+        flex: 0 0 auto;
+    }
+    html[data-theme] .app-window .window-btn {
+        min-width: 2.5rem;
+        min-height: 2.5rem;
+    }
+}
 
 html[data-theme] #window-financeiro,
 html[data-theme] #window-saude,
@@ -398,37 +474,6 @@ html[data-theme] #window-lista_compras .window-content {
     background: transparent;
     color: var(--bk-ink);
     padding: 0;
-}
-
-/* Módulo aberto: ocupa a viewport inteira (sem home/header por baixo) */
-body.app-module-open {
-    overflow: hidden;
-}
-body.app-module-open > header,
-body.app-module-open > #apps {
-    display: none !important;
-}
-html[data-theme] body.app-module-open #windowsContainer .app-window.maximized {
-    z-index: 1100;
-}
-html[data-theme] #window-saude .window-content.saude-window-content {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: auto;
-}
-html[data-theme] #window-saude .window-content.saude-window-content > .saude-root.fin-bank {
-    flex: 1;
-    min-height: 100%;
-}
-html[data-theme] #window-saude .saude-modal-backdrop,
-html[data-theme] #window-saude .saude-confirm-backdrop,
-html[data-theme] #window-saude .saude-water-celebration-layer {
-    position: absolute;
-}
-html[data-theme] #window-saude .saude-success-toast {
-    position: absolute;
 }
 
 /* ---------- Telas do Financeiro ---------- */

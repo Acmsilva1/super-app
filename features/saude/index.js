@@ -5,6 +5,7 @@ import {
 } from './service/tabelaNutricionalService.js';
 import { calcularImc, calcularLarguraGraficoPeso, classificarImc, criarCurvaSuave, criarTendenciaPeso, formatarNumeroSaude } from './service/perfilSaudeService.js';
 import { countDietItems, createEmptyDietMeals, DIET_MEALS, normalizeDietMeals } from './service/dietasService.js';
+import { DEFAULT_ALERT_SCHEDULE, WATER_ALERT_END, WATER_ALERT_START } from './service/alertScheduleConfig.js';
 import {
   deleteLocalWaterGoal,
   ensureLocalWaterProfileLinkedToHealth,
@@ -274,6 +275,18 @@ const SAUDE_STYLES = `
     .saude-section-title { font-size: 1.05rem; font-weight: 700; margin: 1.5rem 0 .5rem; color: var(--saude-lima); display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
     .saude-profile-detail { display: flex; flex-direction: column; gap: .25rem; }
     .saude-profile-detail .saude-profile-timeline { padding-inline: 0; }
+    .saude-alert-panel { padding: 1rem; border: 1px solid rgba(74, 164, 85, .3); border-radius: 1rem; background: linear-gradient(145deg, rgba(22, 34, 56, .96), rgba(8, 16, 30, .98)); }
+    .saude-alert-panel__header { display: flex; align-items: center; gap: .85rem; margin-bottom: 1rem; }
+    .saude-alert-panel__header h3 { margin: 0; font-size: 1.05rem; }
+    .saude-alert-panel__header p, .saude-alert-help { margin: .25rem 0 0; color: var(--saude-texto-secundario); font-size: .82rem; line-height: 1.45; }
+    .saude-alert-panel__icon { width: 2.8rem; height: 2.8rem; display: grid; place-items: center; flex: 0 0 auto; border-radius: .85rem; background: rgba(74, 164, 85, .2); color: var(--saude-lima); font-size: 1.1rem; }
+    .saude-alert-group { min-width: 0; margin: .85rem 0; padding: .85rem; border: 1px solid rgba(148, 163, 184, .18); border-radius: .8rem; }
+    .saude-alert-group legend { padding: 0 .35rem; font-weight: 700; }
+    .saude-alert-group legend label { display: flex; align-items: center; gap: .5rem; cursor: pointer; }
+    .saude-alert-group input[type="checkbox"] { accent-color: var(--saude-lima); width: 1.1rem; height: 1.1rem; }
+    .saude-alert-meal-row { display: grid; grid-template-columns: minmax(8rem, 1fr) minmax(9rem, 16rem); align-items: center; gap: .75rem; margin-top: .75rem; color: var(--saude-texto); font-size: .85rem; }
+    .saude-alert-meal-row .saude-field { width: 100%; }
+    .saude-alert-group:disabled { opacity: .62; }
     .saude-profile-form__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
     .saude-profile-form__section { grid-column: 1 / -1; margin: .25rem 0 0; color: var(--saude-lima); font-size: .78rem; font-weight: 700; text-transform: uppercase; }
     .saude-water-progress { height: .45rem; margin-top: .7rem; overflow: hidden; border-radius: 999px; background: rgba(148, 163, 184, .18); }
@@ -371,6 +384,7 @@ const SAUDE_STYLES = `
       .saude-diet-form__grid, .saude-meal-builder { grid-template-columns: 1fr; }
       .saude-diet-card { min-height: auto; padding: .85rem 1rem; }
       .saude-profile-form__grid { grid-template-columns: 1fr; }
+      .saude-alert-meal-row { grid-template-columns: 1fr; gap: .4rem; }
       .saude-profile-summary { grid-template-columns: 1fr 1fr; gap: .5rem; padding-inline: .85rem; }
       .saude-profile-summary--detail { padding-inline: 0; }
       .saude-profile-stat { padding: .6rem .55rem; }
@@ -753,6 +767,7 @@ function blankDietDraft(profileId = null) {
   return {
     perfil_id: profileId ? Number(profileId) : null,
     titulo: '',
+    meta_calorias: '',
     observacoes: '',
     refeicoes: createEmptyDietMeals(),
   };
@@ -762,6 +777,7 @@ function dietDraftFromDiet(diet) {
   return {
     perfil_id: diet?.perfil_id ? Number(diet.perfil_id) : null,
     titulo: String(diet?.titulo || ''),
+    meta_calorias: diet?.meta_calorias == null ? '' : String(diet.meta_calorias),
     observacoes: String(diet?.observacoes || ''),
     refeicoes: normalizeDietMeals(diet?.refeicoes),
   };
@@ -776,13 +792,14 @@ function captureDietFormFields(container, state) {
     ...state.dietDraft,
     perfil_id: perfilId || state.dietDraft?.perfil_id || null,
     titulo: String(values.get('titulo') || '').trim(),
+    meta_calorias: String(values.get('meta_calorias') || '').trim(),
     observacoes: String(values.get('observacoes') || '').trim(),
   };
 }
 
 function renderDietMealEditor(meal) {
   const items = meal.itens.length
-    ? `<div class="saude-meal-items">${meal.itens.map((item, index) => `<div class="saude-meal-item"><div><strong>${escapeHtml(item.nome)}</strong><span>${escapeHtml(item.quantidade)}${item.observacao ? ` · ${escapeHtml(item.observacao)}` : ''}</span></div><div class="saude-meal-item__actions"><button type="button" class="saude-icon-btn" data-saude-action="edit-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Editar ${escapeHtml(item.nome)}"><i class="fas fa-pencil"></i></button><button type="button" class="saude-icon-btn saude-icon-btn--danger" data-saude-action="delete-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Excluir ${escapeHtml(item.nome)}"><i class="fas fa-trash"></i></button></div></div>`).join('')}</div>`
+    ? `<div class="saude-meal-items">${meal.itens.map((item, index) => `<div class="saude-meal-item"><div><strong>${escapeHtml(item.nome)}</strong><span>${escapeHtml(item.quantidade)}${item.calorias == null ? '' : ` · ${escapeHtml(item.calorias)} kcal`}${item.observacao ? ` · ${escapeHtml(item.observacao)}` : ''}</span></div><div class="saude-meal-item__actions"><button type="button" class="saude-icon-btn" data-saude-action="edit-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Editar ${escapeHtml(item.nome)}"><i class="fas fa-pencil"></i></button><button type="button" class="saude-icon-btn saude-icon-btn--danger" data-saude-action="delete-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Excluir ${escapeHtml(item.nome)}"><i class="fas fa-trash"></i></button></div></div>`).join('')}</div>`
     : '<p class="saude-meal-empty">Nenhum item adicionado.</p>';
   return `<section class="saude-meal-card" aria-labelledby="meal-${escapeHtml(meal.tipo)}"><div class="saude-meal-card__header"><h4 id="meal-${escapeHtml(meal.tipo)}">${escapeHtml(meal.titulo)}</h4><button type="button" class="saude-btn saude-meal-card__add" data-saude-action="add-diet-item" data-meal-type="${escapeHtml(meal.tipo)}"><i class="fas fa-plus"></i> Item</button></div>${items}</section>`;
 }
@@ -822,6 +839,7 @@ function renderDietForm(state) {
         <form class="saude-diet-form" data-saude-diet-form style="margin:0;padding:0;background:transparent;border:0;box-shadow:none;">
           <div class="saude-diet-form__grid">${profileField}</div>
           <div class="saude-meal-builder">${normalizeDietMeals(draft.refeicoes).map(renderDietMealEditor).join('')}</div>
+          <div class="saude-field-group" style="margin-top:.8rem"><label for="diet-meta-calorias">Meta calórica diária (kcal)</label><input id="diet-meta-calorias" name="meta_calorias" class="saude-field" type="number" min="500" max="10000" step="1" value="${escapeHtml(draft.meta_calorias)}" placeholder="Ex.: 2000"><small>O alerta compara a soma planejada dos alimentos com esta meta.</small></div>
           <div class="saude-field-group" style="margin-top:.8rem"><label for="diet-observacoes">Observações</label><textarea id="diet-observacoes" name="observacoes" class="saude-field" maxlength="4000" rows="2">${escapeHtml(draft.observacoes)}</textarea></div>
           <div class="saude-editor__actions">
             <button type="button" class="saude-btn" data-saude-action="cancel-diet-editor"${state.busy ? ' disabled' : ''}>Cancelar</button>
@@ -836,7 +854,7 @@ function renderDietOverlay(state) {
   if (state.dietModal === 'item') {
     const meal = DIET_MEALS.find((entry) => entry.tipo === state.dietItemMealType);
     const editing = Number.isInteger(state.dietItemEditingIndex);
-    return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal saude-diet-modal--item" role="dialog" aria-modal="true" aria-labelledby="diet-item-title"><div class="saude-diet-modal__header"><div><h3 id="diet-item-title">${editing ? 'Editar item' : 'Adicionar item'}</h3><p>${escapeHtml(meal?.titulo || '')}</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div><form data-diet-item-form><div class="saude-field-group"><label for="diet-item-name">Nome do alimento</label><input id="diet-item-name" name="nome" class="saude-field" required maxlength="160" value="${escapeHtml(state.dietItemDraft.nome)}" placeholder="Ex.: Arroz integral"></div><div class="saude-field-group" style="margin-top:.75rem"><label for="diet-item-quantity">Quantidade</label><input id="diet-item-quantity" name="quantidade" class="saude-field" required maxlength="120" value="${escapeHtml(state.dietItemDraft.quantidade)}" placeholder="Ex.: 100 g ou 2 unidades"></div><div class="saude-field-group" style="margin-top:.75rem"><label for="diet-item-note">Observação (opcional)</label><textarea id="diet-item-note" name="observacao" class="saude-field" maxlength="500" rows="3" placeholder="Ex.: Sem açúcar">${escapeHtml(state.dietItemDraft.observacao)}</textarea></div><div class="saude-editor__actions"><button type="button" class="saude-btn" data-saude-action="close-diet-modal">Cancelar</button><button type="submit" class="saude-btn saude-btn--primary"><i class="fas fa-check"></i> Salvar item</button></div></form></section></div>`;
+    return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal saude-diet-modal--item" role="dialog" aria-modal="true" aria-labelledby="diet-item-title"><div class="saude-diet-modal__header"><div><h3 id="diet-item-title">${editing ? 'Editar item' : 'Adicionar item'}</h3><p>${escapeHtml(meal?.titulo || '')}</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div><form data-diet-item-form><div class="saude-field-group"><label for="diet-item-name">Nome do alimento</label><input id="diet-item-name" name="nome" class="saude-field" required maxlength="160" value="${escapeHtml(state.dietItemDraft.nome)}" placeholder="Ex.: Arroz integral"></div><div class="saude-field-group" style="margin-top:.75rem"><label for="diet-item-quantity">Quantidade</label><input id="diet-item-quantity" name="quantidade" class="saude-field" required maxlength="120" value="${escapeHtml(state.dietItemDraft.quantidade)}" placeholder="Ex.: 100 g ou 2 unidades"></div><div class="saude-field-group" style="margin-top:.75rem"><label for="diet-item-calorias">Calorias da porção (kcal)</label><input id="diet-item-calorias" name="calorias" class="saude-field" type="number" min="0" max="10000" step="1" value="${escapeHtml(state.dietItemDraft.calorias ?? '')}" placeholder="Opcional"></div><div class="saude-field-group" style="margin-top:.75rem"><label for="diet-item-note">Observação (opcional)</label><textarea id="diet-item-note" name="observacao" class="saude-field" maxlength="500" rows="3" placeholder="Ex.: Sem açúcar">${escapeHtml(state.dietItemDraft.observacao)}</textarea></div><div class="saude-editor__actions"><button type="button" class="saude-btn" data-saude-action="close-diet-modal">Cancelar</button><button type="submit" class="saude-btn saude-btn--primary"><i class="fas fa-check"></i> Salvar item</button></div></form></section></div>`;
   }
   if (state.dietModal !== 'detail') return '';
   const diet = state.diets.find((item) => Number(item.id) === Number(state.dietSelectedId));
@@ -845,9 +863,9 @@ function renderDietOverlay(state) {
   const showProfileName = state.view !== 'profile-detail' && profile;
   const meals = normalizeDietMeals(diet.refeicoes).filter((meal) => meal.itens.length > 0);
   const mealContent = meals.length
-    ? `<div class="saude-diet-detail-meals">${meals.map((meal) => `<section class="saude-diet-detail-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="saude-diet-detail-item"><strong>${escapeHtml(item.nome)} — ${escapeHtml(item.quantidade)}</strong>${item.observacao ? `<p>${escapeHtml(item.observacao)}</p>` : ''}</div>`).join('')}</section>`).join('')}</div>`
+    ? `<div class="saude-diet-detail-meals">${meals.map((meal) => `<section class="saude-diet-detail-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="saude-diet-detail-item"><strong>${escapeHtml(item.nome)} — ${escapeHtml(item.quantidade)}${item.calorias == null ? '' : ` · ${escapeHtml(item.calorias)} kcal`}</strong>${item.observacao ? `<p>${escapeHtml(item.observacao)}</p>` : ''}</div>`).join('')}</section>`).join('')}</div>`
     : '<div class="saude-empty"><i class="fas fa-bowl-food"></i>Nenhum item cadastrado nesta dieta.</div>';
-  return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-detail-title"><div class="saude-diet-modal__header"><div><h3 id="diet-detail-title">${escapeHtml(diet.titulo)}</h3>${showProfileName ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;"><i class="fas fa-user"></i> ${escapeHtml(profile.nome)}</p>` : ''}</div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${mealContent}${diet.observacoes ? `<div class="saude-diet-section"><h4>Observações</h4><p class="saude-diet-copy">${escapeHtml(diet.observacoes)}</p></div>` : ''}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--danger" data-saude-action="delete-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-trash"></i> Excluir</button><button type="button" class="saude-btn" data-saude-action="edit-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-pencil"></i> Editar</button><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-modal">Fechar</button></div></section></div>`;
+  return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-detail-title"><div class="saude-diet-modal__header"><div><h3 id="diet-detail-title">${escapeHtml(diet.titulo)}</h3>${showProfileName ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;"><i class="fas fa-user"></i> ${escapeHtml(profile.nome)}</p>` : ''}${diet.meta_calorias ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;">Meta diária: ${escapeHtml(diet.meta_calorias)} kcal</p>` : ''}</div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${mealContent}${diet.observacoes ? `<div class="saude-diet-section"><h4>Observações</h4><p class="saude-diet-copy">${escapeHtml(diet.observacoes)}</p></div>` : ''}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--danger" data-saude-action="delete-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-trash"></i> Excluir</button><button type="button" class="saude-btn" data-saude-action="edit-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-pencil"></i> Editar</button><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-modal">Fechar</button></div></section></div>`;
 }
 
 function renderDietas(container, state) {
@@ -1208,7 +1226,7 @@ async function hydrateWaterHistoriesForProfiles(state) {
   });
 }
 
-const PROFILE_SCREENS = ['hub', 'peso', 'dietas'];
+const PROFILE_SCREENS = ['hub', 'peso', 'dietas', 'alertas'];
 
 function normalizeProfileScreen(screen) {
   return PROFILE_SCREENS.includes(screen) ? screen : 'hub';
@@ -1327,12 +1345,41 @@ function renderProfileHub(profile, state) {
       </li>
       ${navRow('peso', 'fa-weight-scale', 'Peso e IMC', `${historyCount} ${historyCount === 1 ? 'registro' : 'registros'}`)}
       ${navRow('dietas', 'fa-utensils', 'Dietas', String(diets.length))}
+      ${navRow('alertas', 'fa-bell', 'Agendadores', 'Configurar')}
       <li><button type="button" class="fin-nav-row" data-saude-action="edit-profile" data-saude-id="${id}">
         <i class="fas fa-pencil fin-nav-row__icon" aria-hidden="true"></i>
         <span class="fin-nav-row__label">Editar perfil</span>
         <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
       </button></li>
     </ul>`;
+}
+
+function renderProfileAlertSchedules(profile, state) {
+  const schedule = state.alertSchedule || DEFAULT_ALERT_SCHEDULE;
+  const diets = dietsForProfile(state, profile.id);
+  const selectedDietId = schedule.dieta_id || diets[0]?.id || '';
+  const dietOptions = diets.map((diet) => `<option value="${escapeHtml(diet.id)}"${Number(diet.id) === Number(selectedDietId) ? ' selected' : ''}>${escapeHtml(diet.titulo)}</option>`).join('');
+  const loading = state.alertScheduleLoading
+    ? '<p class="saude-alert-help" role="status">Carregando agendamentos salvos...</p>'
+    : '';
+  return `${renderNotice(state)}<section class="saude-alert-panel" aria-labelledby="saude-alert-title">
+    <header class="saude-alert-panel__header"><span class="saude-alert-panel__icon"><i class="fas fa-bell"></i></span><div><h3 id="saude-alert-title">Agendadores deste perfil</h3><p>Configure quando este perfil recebe os avisos diários no Telegram.</p></div></header>
+    ${loading}
+    <form data-alert-schedule-form data-profile-id="${escapeHtml(profile.id)}">
+      <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
+        <legend><label><input type="checkbox" name="agua_ativo"${schedule.agua_ativo ? ' checked' : ''}> Alertas de água</label></legend>
+        <p class="saude-alert-help">Começa às ${WATER_ALERT_START} e repete até ${WATER_ALERT_END}.</p>
+        <label class="saude-alert-meal-row"><span>Intervalo entre alertas</span><select class="saude-field" name="agua_intervalo_horas">${Array.from({ length: 12 }, (_, index) => index + 1).map((hours) => `<option value="${hours}"${Number(schedule.agua_intervalo_horas) === hours ? ' selected' : ''}>A cada ${hours} ${hours === 1 ? 'hora' : 'horas'}</option>`).join('')}</select></label>
+      </fieldset>
+      <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
+        <legend><label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa && diets.length ? ' checked' : ''}${diets.length ? '' : ' disabled'}> Alertas de dieta</label></legend>
+        <p class="saude-alert-help">Os horários são fixos: 07h, 11h, 15h e 19h.</p>
+        <label class="saude-alert-meal-row"><span>Dieta deste perfil</span><select class="saude-field" name="dieta_id"${diets.length ? '' : ' disabled'}>${dietOptions || '<option value="">Cadastre uma dieta neste perfil</option>'}</select></label>
+      </fieldset>
+      <p class="saude-alert-help">Água começa às ${WATER_ALERT_START}, mantendo 30 minutos de intervalo das refeições. Os horários usam Brasília diariamente. A dieta pode ser avisada mesmo sem calorias preenchidas.</p>
+      <div class="saude-editor__actions"><button class="saude-btn saude-btn--primary" type="submit"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar agendadores</button></div>
+    </form>
+  </section>`;
 }
 
 function renderProfileDetail(container, state) {
@@ -1371,6 +1418,10 @@ function renderProfileDetail(container, state) {
     body = renderProfileDietSection(profile, state);
     footer = `<div class="fin-footer__row">${renderFooterItem('Dietas', String(diets.length))}${renderFooterItem('Itens cadastrados', String(totalItems))}</div>`;
     addButton = renderAddButton('add-diet', 'Nova dieta');
+  } else if (screen === 'alertas') {
+    title = 'Agendadores';
+    back = backToHub;
+    body = renderProfileAlertSchedules(profile, state);
   } else {
     const { imc } = profileImcInfo(profile);
     const water = waterSummary(state);
@@ -1600,6 +1651,20 @@ async function requestWater(method, payload) {
   return data;
 }
 
+async function requestAlertSchedule(method, payload) {
+  const params = new URLSearchParams({ resource: 'alertas-agenda' });
+  if (payload?.profile_id) params.set('profile_id', payload.profile_id);
+  const response = await fetch(`/api/saude?${params}`, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    ...(method === 'GET' ? {} : { body: JSON.stringify(payload) }),
+    cache: 'no-store',
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Nao foi possivel carregar os agendamentos.');
+  return data;
+}
+
 function applyWaterData(state, data) {
   if (!data || typeof data !== 'object') return;
   if (Array.isArray(data.profiles)) state.waterProfiles = data.profiles;
@@ -1714,6 +1779,9 @@ export async function renderSaudeContent(container) {
     waterDraft: { nome: '', meta_doses: 8 },
     waterCelebrationTimer: null,
     waterDoseSyncing: false,
+    alertSchedule: { ...DEFAULT_ALERT_SCHEDULE },
+    alertScheduleStorage: null,
+    alertScheduleLoading: false,
   };
 
   const onClick = async (event) => {
@@ -1843,6 +1911,7 @@ export async function renderSaudeContent(container) {
         ]);
         rememberSaudeCheckpoint({ view: 'profile-detail', selectedProfileId: profileId, profileScreen: 'hub' });
         renderProfileDetail(container, state);
+        container.closest('.window-content')?.scrollTo?.({ top: 0 });
       } catch (error) {
         renderError(container, error instanceof Error ? error.message : 'Não foi possível abrir o perfil.');
       }
@@ -1853,6 +1922,23 @@ export async function renderSaudeContent(container) {
       state.notice = null;
       rememberSaudeCheckpoint({ view: 'profile-detail', selectedProfileId: state.selectedProfileId, profileScreen: state.profileScreen });
       renderProfileDetail(container, state);
+      if (state.profileScreen === 'alertas') {
+        state.alertScheduleLoading = true;
+        renderProfileDetail(container, state);
+        try {
+          const result = await requestAlertSchedule('GET', { profile_id: state.selectedProfileId });
+          state.alertSchedule = result.row;
+          if (!state.alertSchedule.dieta_id) {
+            state.alertSchedule.dieta_id = dietsForProfile(state, state.selectedProfileId)[0]?.id || null;
+          }
+          state.alertScheduleStorage = result.storage;
+        } catch (error) {
+          state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar os agendadores.' };
+        } finally {
+          state.alertScheduleLoading = false;
+          renderProfileDetail(container, state);
+        }
+      }
       container.closest('.window-content')?.scrollTo?.({ top: 0 });
       return;
     }
@@ -2079,7 +2165,7 @@ export async function renderSaudeContent(container) {
       captureDietFormFields(container, state);
       state.dietItemMealType = actionElement.dataset.mealType;
       state.dietItemEditingIndex = null;
-      state.dietItemDraft = { nome: '', quantidade: '', observacao: '' };
+      state.dietItemDraft = { nome: '', quantidade: '', calorias: null, observacao: '' };
       state.dietModal = 'item';
       renderActiveSaudeView(container, state);
       requestAnimationFrame(() => container.querySelector('#diet-item-name')?.focus());
@@ -2223,6 +2309,34 @@ export async function renderSaudeContent(container) {
   };
 
   const onSubmit = async (event) => {
+    const alertScheduleForm = event.target.closest('[data-alert-schedule-form]');
+    if (alertScheduleForm) {
+      event.preventDefault();
+      if (state.busy || !alertScheduleForm.reportValidity()) return;
+      const values = new FormData(alertScheduleForm);
+      const payload = {
+        profile_id: Number(alertScheduleForm.dataset.profileId),
+        agua_ativo: values.has('agua_ativo'),
+        agua_intervalo_horas: Number(values.get('agua_intervalo_horas')),
+        dieta_ativa: values.has('dieta_ativa'),
+        dieta_id: values.get('dieta_id') || null,
+      };
+      state.busy = true;
+      state.notice = null;
+      renderProfileDetail(container, state);
+      try {
+        const result = await requestAlertSchedule('POST', payload);
+        state.alertSchedule = result.row;
+        state.alertScheduleStorage = result.storage;
+        state.notice = { type: 'success', text: 'Agendadores salvos para este perfil.' };
+      } catch (error) {
+        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel salvar os agendadores.' };
+      } finally {
+        state.busy = false;
+        renderProfileDetail(container, state);
+      }
+      return;
+    }
     const weightForm = event.target.closest('[data-saude-weight-form]');
     if (weightForm) {
       event.preventDefault();
@@ -2374,9 +2488,11 @@ export async function renderSaudeContent(container) {
       event.preventDefault();
       if (!dietItemForm.reportValidity()) return;
       const values = new FormData(dietItemForm);
+      const caloriesValue = String(values.get('calorias') || '').trim();
       const item = {
         nome: String(values.get('nome') || '').trim(),
         quantidade: String(values.get('quantidade') || '').trim(),
+        calorias: caloriesValue === '' ? null : Number(caloriesValue),
         observacao: String(values.get('observacao') || '').trim(),
       };
       state.dietDraft.refeicoes = normalizeDietMeals(state.dietDraft.refeicoes).map((meal) => {
@@ -2389,7 +2505,7 @@ export async function renderSaudeContent(container) {
       state.dietModal = null;
       state.dietItemMealType = null;
       state.dietItemEditingIndex = null;
-      state.dietItemDraft = { nome: '', quantidade: '', observacao: '' };
+      state.dietItemDraft = { nome: '', quantidade: '', calorias: null, observacao: '' };
       renderActiveSaudeView(container, state);
       return;
     }
@@ -2408,6 +2524,7 @@ export async function renderSaudeContent(container) {
       state.dietDraft = {
         perfil_id: perfilId,
         titulo: String(values.get('titulo') || '').trim(),
+        meta_calorias: String(values.get('meta_calorias') || '').trim(),
         observacoes: String(values.get('observacoes') || '').trim(),
         refeicoes: normalizeDietMeals(state.dietDraft.refeicoes),
       };
@@ -2565,6 +2682,16 @@ export async function renderSaudeContent(container) {
           syncWaterWithHealthProfile(state, healthProfile),
           syncDietsForHealthProfile(state, healthProfile),
         ]);
+        if (state.profileScreen === 'alertas') {
+          try {
+            const result = await requestAlertSchedule('GET', { profile_id: checkpointProfileId });
+            state.alertSchedule = result.row;
+            state.alertSchedule.dieta_id ||= dietsForProfile(state, checkpointProfileId)[0]?.id || null;
+            state.alertScheduleStorage = result.storage;
+          } catch (error) {
+            state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar os agendadores.' };
+          }
+        }
         renderProfileDetail(container, state);
       } catch (_error) {
         state.view = 'profiles';

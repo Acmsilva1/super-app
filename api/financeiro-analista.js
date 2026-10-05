@@ -10,7 +10,8 @@ function json(res, status, data) {
 function isMissingViewError(error) {
   const code = String(error?.code || '');
   const message = String(error?.message || '').toLowerCase();
-  return code === '42P01' || message.includes('does not exist') || message.includes('nao existe');
+  return code === '42P01' || code === 'PGRST205'
+    || message.includes('does not exist') || message.includes('nao existe') || message.includes('schema cache');
 }
 
 async function obterCategoriasAno(ano, context = {}) {
