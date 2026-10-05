@@ -7820,6 +7820,8 @@
                         <div id="profileAdminAlertsPane" role="tabpanel" hidden>
                             <div class="profile-admin-toolbar"><div><h4>Alertas pessoais</h4><p>Configure os avisos do Telegram para cada perfil da sua conta.</p></div><button type="button" class="auth-secondary" id="adminAlertsRefresh">Atualizar</button></div>
                             <p id="adminAlertsMessage" role="status" class="profile-admin-message"></p>
+                            <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia duas mensagens fictícias: água e dieta. Seus agendamentos e dados não serão alterados.</p></div><button type="button" class="auth-secondary" id="adminTelegramTest">Testar Telegram</button></div>
+                            <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                             <div id="adminAlertsContent"></div>
                         </div>
                     </section>`;
@@ -7991,6 +7993,7 @@
                 }));
                 document.getElementById('adminUsersRefresh')?.addEventListener('click', () => this.loadAdminUsers());
                 document.getElementById('adminAlertsRefresh')?.addEventListener('click', () => this.loadAdminAlerts());
+                document.getElementById('adminTelegramTest')?.addEventListener('click', () => this.testAdminTelegram());
                 document.getElementById('adminAlertsContent')?.addEventListener('change', (event) => {
                     if (event.target.matches('[data-alert-profile]')) this.loadAdminAlerts(event.target.value);
                 });
@@ -8119,6 +8122,30 @@
                     message.textContent = error.message || 'Falha ao salvar os alertas.';
                 } finally {
                     button.disabled = false;
+                }
+            }
+            async testAdminTelegram() {
+                const button = document.getElementById('adminTelegramTest');
+                const message = document.getElementById('adminTelegramTestMessage');
+                if (!button || !message || button.disabled) return;
+                button.disabled = true;
+                button.textContent = 'Enviando testes…';
+                message.textContent = 'Aguarde a confirmação de entrega das duas mensagens.';
+                try {
+                    const response = await fetch('/api/admin/usuarios', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'test_telegram' }),
+                    });
+                    const payload = await response.json().catch(() => ({ error: 'Não foi possível ler a resposta do servidor. Confira se o deploy terminou.' }));
+                    if (!response.ok || !payload.ok) throw new Error(payload.error || 'Não foi possível confirmar o envio. Confira o Telegram antes de repetir.');
+                    message.textContent = payload.simulated
+                        ? '✅ Teste simulado no modo mock. Nenhuma mensagem enviada ao Telegram.'
+                        : '✅ Telegram confirmou os dois alertas de teste: água e dieta. Confira o chat do bot.';
+                } catch (error) {
+                    message.textContent = error.message || 'Falha no teste. Confira o Telegram antes de repetir.';
+                } finally {
+                    button.disabled = false;
+                    button.textContent = 'Testar Telegram';
                 }
             }
             async loadAdminUsers() {

@@ -89,3 +89,13 @@ Não executar para teste sem autorização para mensageria externa.
 Usar os testes locais e o relatório de integração. A instalação das variáveis,
 as migrations reais, a validação visual e o envio real ao Telegram continuam
 dependendo do ambiente. Commit, push e deploy são manuais.
+
+## Teste manual do Telegram no admin
+
+Depois do deploy, entrar com a conta administradora e abrir **Meu perfil → Alertas → Testar Telegram**. O botão envia duas mensagens fictícias identificadas como TESTE MANUAL, uma de água e outra de dieta. Não altera os agendamentos nem consulta dados de saúde reais.
+
+A ação usa `POST /api/admin/usuarios` com `action: test_telegram`, após a mesma autorização owner usada na administração de usuários. O Node chama `/api/telegram-alert` no servidor. As três variáveis sensíveis permanecem somente no runtime da Vercel; o navegador não recebe seus valores. Não depende de ativar o cron ou de aplicar as migrations dos alertas.
+
+No modo mock, retorna simulação com zero mensagens enviadas. Em produção, sucesso exige confirmação do Telegram para ambas. Falha parcial informa que água foi entregue e dieta não foi confirmada; timeout não causa reenvio automático. Confira o chat antes de repetir. Existe um intervalo de um minuto por instância do servidor entre tentativas, além do bloqueio do botão enquanto o envio está em andamento.
+
+Requer `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` e `ALERTS_API_TOKEN` (pelo menos 32 caracteres) aplicadas no deploy. A URL do gateway pode ser configurada em `ALERTS_API_URL`; sem ela usa o domínio de produção da Vercel. Se Deployment Protection bloquear a chamada, configurar `VERCEL_AUTOMATION_BYPASS_SECRET` no servidor. O handler administrativo recebeu duração máxima de 60 segundos para aguardar os dois envios.

@@ -19,6 +19,7 @@ export function createLocalMockHandler(apps){
       if(req.method==='GET')return send(res,200,{apps:apps.map(({id,title})=>({id,title})),restricted_apps:[],users});
       const body=req.body||{};
       if(req.method==='POST'){
+        if(body.action==='test_telegram')return send(res,200,{ok:true,simulated:true,sent:0});
         if(!String(body.name||'').trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.email||'')))return send(res,400,{error:'Nome ou email inválido.'});
         if(users.some(user=>user.email===body.email))return send(res,409,{error:'Email já cadastrado.'});
         const id=crypto.randomUUID();users.push({id,name:body.name,email:body.email,is_admin:false,is_banned:false,permissions:[],created_at:new Date().toISOString()});

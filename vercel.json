@@ -91,6 +91,9 @@
     }
   ],
   "functions": {
+    "api/admin/usuarios.js": {
+      "maxDuration": 60
+    },
     "api/saude-alertas-cron.js": {
       "maxDuration": 60
     },
