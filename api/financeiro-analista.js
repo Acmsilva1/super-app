@@ -15,6 +15,7 @@ function isMissingViewError(error) {
 }
 
 async function obterCategoriasAno(ano, context = {}) {
+  if (process.env.OFFLINE_DEV === 'true') return [];
   const query = supabase
     .from('vw_financeiro_categoria_anual')
     .select('categoria,valor_total,quantidade_lancamentos,media_lancamento,ranking_maior,ranking_menor')

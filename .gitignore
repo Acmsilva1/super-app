@@ -86,3 +86,20 @@ tabelas nutricionais dieta.xlsx
 # Seed ja aplicado no Supabase; manter apenas como copia local.
 scripts/seed-saude-tabela-nutricional.sql
 
+
+# Runtime local, relatorios e caches Python
+local/
+work/
+outputs/
+reports/
+monitoring/
+__pycache__/
+*.py[cod]
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+*.pid
+SKILLS.md
+AGENTS copy.md
+checkpoint.txt

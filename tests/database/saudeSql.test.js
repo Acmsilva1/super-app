@@ -8,7 +8,7 @@ import { TABELAS_NUTRICIONAIS } from '../../features/saude/data/tabelasNutricion
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const resetMigration = fs.readFileSync(path.join(root, 'migration/20260926_reset_modulo_saude.sql'), 'utf8');
 const resetRollback = fs.readFileSync(path.join(root, 'migration/rollback/20260926_rollback_reset_modulo_saude.sql'), 'utf8');
-const seed = fs.readFileSync(path.join(root, 'scripts/seed-saude-tabela-nutricional.sql'), 'utf8');
+const seed = fs.readFileSync(path.join(root, 'tests/fixtures/seed-saude-tabela-nutricional.sql'), 'utf8');
 const dietsSeed = fs.readFileSync(path.join(root, 'scripts/seed-saude-dietas.sql'), 'utf8');
 
 function parseSqlText(value) {

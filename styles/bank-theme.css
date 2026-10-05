@@ -960,6 +960,12 @@ html[data-theme] #window-saude .saude-root {
     font-family: var(--bk-font);
 }
 html[data-theme="dark"] #window-saude .saude-root { color-scheme: dark; }
+html[data-theme] #window-saude .saude-alert-panel {
+    background: var(--bk-surface);
+    color: var(--bk-ink);
+    border-color: var(--bk-line);
+}
+html[data-theme] #window-saude .saude-alert-group { border-color: var(--bk-line); }
 html[data-theme] #window-saude .saude-page { max-width: none; }
 html[data-theme] #window-saude .saude-root :is(h2, h3, h4) { font-family: var(--bk-font); letter-spacing: 0; text-transform: none; }
 

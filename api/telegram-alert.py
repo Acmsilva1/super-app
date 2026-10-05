@@ -84,3 +84,14 @@ class handler(BaseHTTPRequestHandler):
         except (urllib.error.URLError, RuntimeError, ValueError, OSError):
             # Do not log exceptions: URLs contain the bot token.
             self.reply(502, {"ok": False, "error": "telegram_send_failed"})
+
+
+if __name__ == "__main__":
+    import argparse
+    from http.server import HTTPServer
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=8091)
+    arguments = parser.parse_args()
+    server = HTTPServer(("127.0.0.1", arguments.port), handler)
+    print(f"Telegram Python local: {server.server_port}", flush=True)
+    server.serve_forever()

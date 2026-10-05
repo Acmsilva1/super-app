@@ -6941,7 +6941,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-05-header-home-v1">
+    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-05-local-checkin-v2">
 </head>
 <body class="view-apps">
     <div id="appLaunchSplash" class="app-launch-splash" role="status" aria-live="polite" aria-label="Carregando Super App">
@@ -11261,7 +11261,13 @@
         }
         updateInstallButton();
         // PWA: registrar SW, detectar mudança de versão (deploy) e atualizar cache
-        if ('serviceWorker' in navigator) {
+        const localDevelopmentHost = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+        if ('serviceWorker' in navigator && localDevelopmentHost) {
+            navigator.serviceWorker.getRegistrations().then((registrations) => {
+                registrations.forEach((registration) => registration.unregister());
+            });
+        }
+        if ('serviceWorker' in navigator && !localDevelopmentHost) {
             let pendingWorker = null;
             const banner = document.createElement('div');
             banner.className = 'pwa-update-banner hidden';

@@ -793,7 +793,7 @@ async function createDiet(payload, userId) {
   const slug = slugify(payload.titulo);
   if (isOfflineMode()) {
     const id = Math.max(0, ...offlineDiets.map((diet) => Number(diet.id) || 0)) + 1;
-    const row = { id, slug, ...payload, source_file: 'Cadastro manual' };
+    const row = { id, slug, ...payload, created_by: userId, source_file: 'Cadastro manual' };
     offlineDiets.unshift(row);
     return { row: structuredClone(row), storage: 'memory' };
   }
