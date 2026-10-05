@@ -21,12 +21,17 @@ export function createLocalMockHandler(apps){
       if(req.method==='POST'){
         if(body.action==='test_telegram')return send(res,200,{ok:true,simulated:true,sent:0});
         if(!String(body.name||'').trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.email||'')))return send(res,400,{error:'Nome ou email inválido.'});
+        if(body.password!==undefined&&(typeof body.password!=='string'||body.password.length<8||body.password.length>128))return send(res,400,{error:'A senha deve ter entre 8 e 128 caracteres.'});
         if(users.some(user=>user.email===body.email))return send(res,409,{error:'Email já cadastrado.'});
         const id=crypto.randomUUID();users.push({id,name:body.name,email:body.email,is_admin:false,is_banned:false,permissions:[],created_at:new Date().toISOString()});
-        return send(res,201,{ok:true,user_id:id,temporary_password:'SENHA-MOCK-SEM-VALIDADE'});
+        return send(res,201,{ok:true,user_id:id,simulated:true,...(body.password===undefined?{temporary_password:'SENHA-MOCK-SEM-VALIDADE'}:{})});
       }
       if(req.method==='PATCH'){
         const user=users.find(row=>row.id===body.user_id);
+        if(body.action==='set_password'){
+          if(!user||typeof body.password!=='string'||body.password.length<8||body.password.length>128)return send(res,400,{error:'Usuário inválido ou senha fora do limite de 8 a 128 caracteres.'});
+          return send(res,200,{ok:true,user_id:user.id,simulated:true});
+        }
         if(!user||user.is_admin)return send(res,400,{error:'Usuário inválido ou protegido.'});
         if(body.action==='reset_password')return send(res,200,{ok:true,temporary_password:'SENHA-MOCK-SEM-VALIDADE'});
         if(body.action==='status'){

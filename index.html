@@ -6965,7 +6965,6 @@
 
             <div id="authTabs" class="auth-tabs">
                 <button type="button" class="auth-tab active" data-auth-tab="login">🔑 Entrar</button>
-                <button type="button" class="auth-tab" data-auth-tab="signup">✨ Cadastrar</button>
             </div>
 
             <form id="loginForm" class="auth-form">
@@ -6979,30 +6978,6 @@
                 </div>
                 <button type="submit" class="auth-submit">Entrar</button>
                 <button type="button" id="forgotPasswordBtn" class="auth-secondary">Esqueci minha senha</button>
-            </form>
-
-            <form id="signupForm" class="auth-form" hidden>
-                <div class="auth-field">
-                    <label for="signupName">Nome</label>
-                    <input id="signupName" name="name" type="text" autocomplete="name" required maxlength="120" />
-                </div>
-                <div class="auth-field">
-                    <label for="signupEmail">Email</label>
-                    <input id="signupEmail" name="email" type="email" autocomplete="email" required />
-                </div>
-                <div class="auth-field">
-                    <label for="signupPassword">Senha</label>
-                    <div class="auth-password-wrap"><input id="signupPassword" name="password" type="password" autocomplete="new-password" required minlength="6" /><button type="button" class="auth-password-toggle" data-password-toggle="signupPassword" aria-label="Mostrar senha" aria-pressed="false"><i class="fas fa-eye"></i></button></div>
-                </div>
-                <div class="auth-privacy-note">
-                    Ao criar sua conta, você concorda com o tratamento dos seus dados para uso do SUPERAPP, conforme os Termos e a Política de Privacidade.
-                    <button type="button" class="auth-link" data-auth-legal-open>Ler documento</button>
-                </div>
-                <label class="auth-consent">
-                    <input id="signupConsent" name="consent" type="checkbox" required />
-                    <span>Li e aceito os <button type="button" class="auth-link" data-auth-legal-open>Termos de Uso e a Política de Privacidade</button>.</span>
-                </label>
-                <button type="submit" class="auth-submit">Criar cadastro</button>
             </form>
 
             <form id="resetPasswordForm" class="auth-form" hidden>
@@ -7260,9 +7235,9 @@
             },
 
             setMode(mode) {
+                mode = mode === 'reset' ? 'reset' : 'login';
                 const isReset = mode === 'reset';
                 document.getElementById('loginForm').hidden = mode !== 'login';
-                document.getElementById('signupForm').hidden = mode !== 'signup';
                 document.getElementById('resetPasswordForm').hidden = !isReset;
                 document.getElementById('authTabs').hidden = isReset;
                 document.getElementById('authSubtitle').textContent = isReset
@@ -7388,29 +7363,6 @@
                     });
                     if (error) return this.setMessage(this.formatAuthError(error), 'error');
                     window.location.replace(window.location.pathname);
-                });
-
-                document.getElementById('signupForm')?.addEventListener('submit', async (event) => {
-                    event.preventDefault();
-                    const form = new FormData(event.currentTarget);
-                    const name = String(form.get('name') || '').trim();
-                    const email = String(form.get('email') || '').trim();
-                    const password = String(form.get('password') || '');
-                    const consent = Boolean(form.get('consent'));
-                    if (!name) return this.setMessage('Informe seu nome.', 'error');
-                    if (!consent) return this.setMessage('Aceite os Termos de Uso e a Política de Privacidade para criar o cadastro.', 'error');
-                    this.setMessage('Criando cadastro...');
-                    const { data, error } = await this.client.auth.signUp({
-                        email,
-                        password,
-                        options: {
-                            data: { name, nome: name },
-                            emailRedirectTo: window.location.origin + window.location.pathname,
-                        },
-                    });
-                    if (error) return this.setMessage(this.formatAuthError(error), 'error');
-                    if (data?.session) window.location.replace(window.location.pathname);
-                    else this.setMessage('Cadastro criado. Confira seu email para confirmar o acesso.');
                 });
 
                 document.getElementById('forgotPasswordBtn')?.addEventListener('click', async () => {
@@ -7811,7 +7763,17 @@
                                 <label class="profile-admin-field"><span>Nome</span><input name="name" type="text" placeholder="Nome completo" required maxlength="120"></label>
                                 
                                 <label class="profile-admin-field"><span>Email</span><input name="email" type="email" placeholder="email@exemplo.com" required maxlength="254"></label>
-                                <button type="submit" class="auth-submit">Criar</button>
+                                <label class="profile-admin-field"><span>Senha inicial (8 a 128 caracteres)</span><input name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
+                                <label class="profile-admin-field"><span>Confirmar senha</span><input name="confirmPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
+                                <button type="submit" class="auth-submit">Criar usuário</button>
+                            </form>
+                            <form id="adminPasswordForm" class="profile-admin-create" hidden>
+                                <h4>Alterar senha: <span id="adminPasswordTarget"></span></h4>
+                                <input type="hidden" name="user_id">
+                                <label class="profile-admin-field"><span>Nova senha (8 a 128 caracteres)</span><input name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
+                                <label class="profile-admin-field"><span>Confirmar nova senha</span><input name="confirmPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
+                                <button type="submit" class="auth-submit">Salvar senha</button>
+                                <button type="button" class="auth-secondary" id="adminPasswordCancel">Cancelar</button>
                             </form>
                             <div id="adminTempSecret" class="profile-admin-temp-secret" hidden><strong>Senha temporária (exibida uma vez):</strong> <code id="adminTempSecretValue"></code><button type="button" id="adminTempSecretClose">Ocultar</button></div>
                             <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
@@ -7971,14 +7933,25 @@
                     modal.hidden = false;
                     document.querySelector('[data-profile-tab="overview"]')?.click();
                 });
-                document.getElementById('profileAdminClose').addEventListener('click', () => { modal.hidden = true; });
-                modal.addEventListener('click', (event) => { if (event.target === modal) modal.hidden = true; });
-                document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) modal.hidden = true; });
+                const closeProfile = () => {
+                    modal.hidden = true;
+                    this.hideAdminPasswordForm();
+                    this.hideAdminTempSecret();
+                    document.getElementById('adminCreateUserForm').reset();
+                };
+                document.getElementById('profileAdminClose').addEventListener('click', closeProfile);
+                modal.addEventListener('click', (event) => { if (event.target === modal) closeProfile(); });
+                document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closeProfile(); });
 
                 const adminTab = document.getElementById('adminUsersToggle');
                 modal.querySelectorAll('[data-profile-tab]').forEach((tab) => tab.addEventListener('click', async () => {
                     const selectedTab = tab.dataset.profileTab;
                     const isAdminTab = selectedTab === 'admin';
+                    if (!isAdminTab) {
+                        this.hideAdminPasswordForm();
+                        this.hideAdminTempSecret();
+                        document.getElementById('adminCreateUserForm').reset();
+                    }
                     const isAlertsTab = selectedTab === 'alerts';
                     modal.querySelectorAll('[data-profile-tab]').forEach((item) => {
                         item.classList.toggle('is-active', item === tab);
@@ -8005,12 +7978,16 @@
                     createForm.hidden = false;
                     createForm.addEventListener('submit', (event) => this.createAdminUser(event));
                 }
+                document.getElementById('adminPasswordForm').addEventListener('submit', (event) => this.saveAdminUserPassword(event));
+                document.getElementById('adminPasswordCancel').addEventListener('click', () => this.hideAdminPasswordForm());
                 document.getElementById('adminTempSecretClose')?.addEventListener('click', () => this.hideAdminTempSecret());
                 document.getElementById('adminUsersContent')?.addEventListener('change', (event) => {
                     const input = event.target.closest('[data-admin-user-permission]');
                     if (input) this.saveAdminUserPermission(input);
                 });
                 document.getElementById('adminUsersContent')?.addEventListener('click', (event) => {
+                    const password = event.target.closest('[data-admin-user-password]');
+                    if (password) return this.openAdminPasswordForm(password);
                     const reset = event.target.closest('[data-admin-user-reset]');
                     if (reset) return this.resetAdminUserPassword(reset);
                     const button = event.target.closest('[data-admin-user-status]');
@@ -8168,7 +8145,7 @@
                         <tbody>${payload.users.map((user) => `<tr>
                             <td><strong class="profile-admin-user">${escapeHtml(user.name || user.email || 'Usuário')}</strong>${user.name ? `<span class="profile-admin-meta">${escapeHtml(user.email)}</span>` : ''}${user.username ? `<span class="profile-admin-meta">@${escapeHtml(user.username)}</span>` : ''}${user.is_admin ? '<span class="profile-admin-role">Administrador</span>' : ''}<span class="profile-admin-meta">Cadastro: ${escapeHtml(user.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : '—')}</span></td>
                             <td data-label="Status"><button type="button" class="profile-admin-status" data-admin-user-status data-user-id="${escapeHtml(user.id)}" data-blocked="${user.is_banned ? 'true' : 'false'}" ${user.is_admin ? 'disabled' : ''}>${user.is_admin ? 'Admin' : (user.is_banned ? 'Reativar' : 'Bloquear')}</button><span class="profile-admin-state">${user.is_banned ? 'Bloqueado' : 'Ativo'}</span></td>
-                            ${true ? `<td data-label="Senha">${user.is_admin ? '—' : `<button type="button" class="profile-admin-status" data-admin-user-reset data-user-id="${escapeHtml(user.id)}">Redefinir</button>`}${false ? '<span class="profile-admin-state">Troca pendente</span>' : ''}</td>` : ''}
+                            <td data-label="Senha"><button type="button" class="profile-admin-status" data-admin-user-password data-user-id="${escapeHtml(user.id)}" data-user-email="${escapeHtml(user.email)}">${user.is_admin ? 'Alterar minha senha' : 'Alterar senha'}</button></td>
                             ${payload.apps.map((app) => `<td data-label="${escapeHtml(app.title)}"><input type="checkbox" aria-label="${escapeHtml(app.title)} para ${escapeHtml(user.email)}" data-admin-user-permission data-user-id="${escapeHtml(user.id)}" data-app-id="${escapeHtml(app.id)}" ${user.permissions.includes(app.id) ? 'checked' : ''} ${user.is_admin ? 'disabled' : ''}></td>`).join('')}
                             ${(payload.restricted_apps || []).map((app) => `<td data-label="${escapeHtml(app.title)}"><span class="profile-admin-restricted" aria-label="Restrito ao administrador" title="Acesso multiusuário indisponível até o isolamento dos dados">Admin</span></td>`).join('')}
                         </tr>`).join('')}</tbody>
@@ -8196,22 +8173,75 @@
                 const button = form.querySelector('[type="submit"]');
                 const message = document.getElementById('adminUsersMessage');
                 const data = new FormData(form);
+                const password = String(data.get('password') || '');
+                if (password.length < 8 || password.length > 128) { message.textContent = 'A senha deve ter entre 8 e 128 caracteres.'; return; }
+                if (password !== data.get('confirmPassword')) { message.textContent = 'As senhas não conferem.'; return; }
                 button.disabled = true;
                 this.hideAdminTempSecret();
                 try {
                     const response = await fetch('/api/admin/usuarios', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: data.get('name'), email: data.get('email') }),
+                        body: JSON.stringify({ name: data.get('name'), email: data.get('email'), password }),
                     });
                     const payload = await response.json();
                     if (!response.ok) throw new Error(payload.error || 'Falha ao criar usuário.');
                     form.reset();
                     await this.loadAdminUsers();
-                    this.showAdminTempSecret(payload.temporary_password);
-                    message.textContent = 'Usuário criado. Entregue a senha gerada com segurança; ele pode usar a recuperação de senha para escolher outra.';
+                    if (payload.temporary_password) this.showAdminTempSecret(payload.temporary_password);
+                    message.textContent = 'Usuário criado com a senha definida. Libere os módulos abaixo e entregue as credenciais com segurança.';
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao criar usuário.';
-                } finally { button.disabled = false; }
+                } finally {
+                    form.elements.password.value = '';
+                    form.elements.confirmPassword.value = '';
+                    button.disabled = false;
+                }
+            }
+            openAdminPasswordForm(button) {
+                const form = document.getElementById('adminPasswordForm');
+                if (form.querySelector('[type="submit"]').disabled) return;
+                form.reset();
+                form.elements.user_id.value = button.dataset.userId;
+                document.getElementById('adminPasswordTarget').textContent = button.dataset.userEmail || 'Conta selecionada';
+                this.hideAdminTempSecret();
+                form.hidden = false;
+                form.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                form.elements.password.focus();
+            }
+            hideAdminPasswordForm() {
+                const form = document.getElementById('adminPasswordForm');
+                if (!form) return;
+                form.reset();
+                form.hidden = true;
+                document.getElementById('adminPasswordTarget').textContent = '';
+            }
+            async saveAdminUserPassword(event) {
+                event.preventDefault();
+                const form = event.currentTarget;
+                const message = document.getElementById('adminUsersMessage');
+                const data = new FormData(form);
+                const password = String(data.get('password') || '');
+                if (password.length < 8 || password.length > 128) { message.textContent = 'A senha deve ter entre 8 e 128 caracteres.'; return; }
+                if (password !== data.get('confirmPassword')) { message.textContent = 'As senhas não conferem.'; return; }
+                const buttons = [...form.querySelectorAll('button')];
+                buttons.forEach(button => { button.disabled = true; });
+                message.textContent = 'Salvando nova senha...';
+                try {
+                    const response = await fetch('/api/admin/usuarios', {
+                        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'set_password', user_id: data.get('user_id'), password }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Falha ao alterar a senha.');
+                    this.hideAdminPasswordForm();
+                    message.textContent = payload.simulated ? 'Troca simulada. O login mock continua fictício.' : 'Senha alterada. Use a nova senha no próximo login.';
+                } catch (error) {
+                    message.textContent = error.message || 'Falha ao alterar a senha.';
+                } finally {
+                    form.elements.password.value = '';
+                    form.elements.confirmPassword.value = '';
+                    buttons.forEach(button => { button.disabled = false; });
+                }
             }
             async resetAdminUserPassword(button) {
                 if (button.dataset.confirm !== 'true') {

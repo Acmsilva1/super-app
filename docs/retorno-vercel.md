@@ -99,3 +99,33 @@ A ação usa `POST /api/admin/usuarios` com `action: test_telegram`, após a mes
 No modo mock, retorna simulação com zero mensagens enviadas. Em produção, sucesso exige confirmação do Telegram para ambas. Falha parcial informa que água foi entregue e dieta não foi confirmada; timeout não causa reenvio automático. Confira o chat antes de repetir. Existe um intervalo de um minuto por instância do servidor entre tentativas, além do bloqueio do botão enquanto o envio está em andamento.
 
 Requer `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` e `ALERTS_API_TOKEN` (pelo menos 32 caracteres) aplicadas no deploy. A URL do gateway pode ser configurada em `ALERTS_API_URL`; sem ela usa o domínio de produção da Vercel. Se Deployment Protection bloquear a chamada, configurar `VERCEL_AUTOMATION_BYPASS_SECRET` no servidor. O handler administrativo recebeu duração máxima de 60 segundos para aguardar os dois envios.
+
+## Ativação dos alertas — 05/10/2026
+
+André confirmou a execução de `20261005_saude_alertas_supabase.sql` e o recebimento do teste manual pelo botão administrativo. Essas confirmações são do usuário; o disparo automático ainda não foi validado em produção nesta etapa.
+
+Configuração criada no ambiente Production da Vercel: `SAUDE_ALERTS_ENABLED=true`, `SAUDE_ALERTS_OWNER_USER_ID` com o proprietário existente e `CRON_SECRET`. No GitHub Actions foram configurados o mesmo secret `CRON_SECRET`, `SUPERAPP_URL=https://super-app-zeta-virid.vercel.app` e `SAUDE_ALERTS_SCHEDULER_ENABLED=true`. Telegram e Supabase continuam configurados somente na Vercel.
+
+Horários diários em America/Sao_Paulo, preservados da VPS:
+
+- Dieta: 07:00, 11:00, 15:00 e 19:00.
+- Água: de 07:30 a 22:30; padrão de 3 horas (07:30, 10:30, 13:30, 16:30, 19:30 e 22:30).
+- O admin mantém ativação individual de água/dieta, intervalo de água entre 1 e 12 horas e seleção de dieta por perfil.
+
+O GitHub chama o Node a cada cinco minutos; o Node consulta as agendas salvas e chama o Python, que envia ao Telegram usando as variáveis do servidor. GitHub Actions pode atrasar. A falha de envio em um perfil agora permite processar os demais, incluindo o intervalo atual e o anterior; ao final, o erro continua sendo informado ao workflow. A proteção persistente contra duplicidade foi preservada.
+
+Uma cópia de recuperação da chave do cron está em `.env.cron.local`, confirmada como ignorada pelo Git. Não compartilhar nem versionar esse arquivo.
+
+Ainda é necessário o commit/push manual e o deploy para aplicar as mudanças e as variáveis novas ao runtime. Nenhum commit, push ou deploy foi executado nesta etapa. Não foram executados testes automatizados novos nem disparo manual do cron; apenas revisão do diff e `git diff --check`.
+
+## Administração de contas e senhas — 05/10/2026
+
+Em **Meu perfil → Administração**, o proprietário pode criar uma conta com nome, email, senha inicial e confirmação; liberar módulos; bloquear/reativar usuários; e escolher uma nova senha para qualquer conta, inclusive a própria (botão **Alterar minha senha**). Novas senhas aceitam de 8 a 128 caracteres e continuam sujeitas à política configurada no Supabase.
+
+A ação `PATCH /api/admin/usuarios` com `action: set_password` usa a Admin API do Supabase somente no servidor e mantém `requireUser({ adminOnly: true })`, que exige a identidade do proprietário e papel administrativo existentes. As senhas escolhidas não são retornadas na resposta nem persistidas em armazenamento local; os campos são limpos após envio e ao fechar o painel. O modo mock simula a mudança sem alterar o login fictício ou guardar a senha.
+
+O botão, formulário e chamada `auth.signUp` do cadastro público foram removidos. Login e recuperação de senha do Supabase permanecem.
+
+**Configuração externa ainda obrigatória:** em Supabase → Authentication → Sign In / Providers, desligar **Allow new users to sign up** e manter **Allow anonymous sign-ins** desligado. Isso bloqueia cadastro direto pela API pública; a criação administrativa continua usando a Admin API. Remover a tela não substitui essa configuração. Não há credencial de gerenciamento do Supabase disponível nesta sessão para aplicar essa alteração; ela não foi executada nem confirmada.
+
+Não foi alterada nenhuma senha real, criada nenhuma conta em produção ou executado deploy. Revisão do diff e sintaxe JavaScript realizadas; testes automatizados e validação visual/funcional dessas mudanças não executados. Commit, push e deploy ficam a cargo de André.

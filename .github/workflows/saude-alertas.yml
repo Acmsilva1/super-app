@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Executar agendamentos na Vercel
         env:
-          SUPERAPP_URL: ${{ vars.SUPERAPP_URL }}
+          SUPERAPP_URL: ${{ vars.SUPERAPP_URL || 'https://super-app-zeta-virid.vercel.app' }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         shell: bash

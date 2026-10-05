@@ -253,7 +253,8 @@ async function dispatchDietForProfile(config, data, profile, diet, meal, date, t
 
 async function dispatchCurrentSlot(config, value) {
   const { date, time } = saoPauloClock(value);
-  if (!['00', '30'].includes(time.slice(-2))) return;
+  if (!['00', '30'].includes(time.slice(-2))) return [];
+  const failures = [];
   try {
     const data = await loadOwnedData(config, date);
     const defaults = normalizeAlertSchedule(DEFAULT_ALERT_SCHEDULE);
@@ -266,19 +267,30 @@ async function dispatchCurrentSlot(config, value) {
       const waterEnd = Number(WATER_ALERT_END.slice(0, 2)) * 60 + Number(WATER_ALERT_END.slice(3, 5));
       if (schedule.agua_ativo && minuteOfDay >= waterStart && minuteOfDay <= waterEnd
         && (minuteOfDay - waterStart) % (schedule.agua_intervalo_horas * 60) === 0) {
-        await dispatchWaterForProfile(config, data, profile, date, time);
+        try {
+          await dispatchWaterForProfile(config, data, profile, date, time);
+        } catch (error) {
+          failures.push(error);
+        }
       }
       if (schedule.dieta_ativa && (schedule.dieta_id || !hasCustomSchedule)) {
         const meal = DIET_ALERT_MEALS.find((entry) => entry.horario === time);
         const selectedDiet = schedule.dieta_id
           ? data.dietsById.get(String(schedule.dieta_id)) || null
           : data.diets.get(profileKey) || null;
-        if (meal && selectedDiet && String(selectedDiet.perfil_id) === profileKey) await dispatchDietForProfile(config, data, profile, selectedDiet, meal, date, time);
+        if (meal && selectedDiet && String(selectedDiet.perfil_id) === profileKey) {
+          try {
+            await dispatchDietForProfile(config, data, profile, selectedDiet, meal, date, time);
+          } catch (error) {
+            failures.push(error);
+          }
+        }
       }
     }
   } catch (error) {
     throw error;
   }
+  return failures;
 }
 
 export async function runSaudeAlertSlot(now = new Date()) {
@@ -288,7 +300,15 @@ export async function runSaudeAlertSlot(now = new Date()) {
   if (error || !roles?.some(row => ['owner', 'admin'].includes(row.role))) throw new Error('alerts_owner_invalid');
   const start = new Date(Math.floor(now.getTime() / 1800000) * 1800000);
   // A delayed trigger can recover the previous half-hour; keys persist in Supabase.
-  await dispatchCurrentSlot(config, new Date(start.getTime() - 1800000));
-  await dispatchCurrentSlot(config, start);
+  const failures = [];
+  for (const slot of [new Date(start.getTime() - 1800000), start]) {
+    try {
+      failures.push(...await dispatchCurrentSlot(config, slot));
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+  // Continue processing the remaining profiles, then report failure to the trigger.
+  if (failures.length) throw failures[0];
   return { processed: true };
 }
