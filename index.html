@@ -8172,7 +8172,7 @@
                     });
                     const payload = await response.json();
                     if (!response.ok || !payload.ok) throw new Error(payload.error || 'Não foi possível ativar.');
-                    message.textContent = '✅ Recebimento cadastrado. Envie ao bot: Local: supermercado; valor: 30,50; pagamento: débito. Confira o resumo antes de confirmar uma compra real.';
+                    message.textContent = '✅ Recebimento cadastrado. Envie ao bot: Supermercado, 30,50, débito. Confira o resumo antes de confirmar uma compra real.';
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao ativar o recebimento.';
                 } finally {
