@@ -555,23 +555,23 @@ async function saveAlertSchedule(profileId, payload, userId) {
     : { row: normalizeAlertSchedule(data), storage: 'supabase', updated_at: data.updated_at };
 }
 
-async function loadProfiles(userId) {
+async function loadProfiles(userId, includeAllUsers = false) {
   if (isOfflineMode()) return { rows: withProfileHistory(offlineProfiles, offlineProfileMeasurements), storage: 'memory' };
   const { supabase } = await import('../lib/supabase.js');
-  const { data: profiles, error } = await supabase
-    .from(TABELA_PERFIS)
+  let profilesQuery = supabase.from(TABELA_PERFIS)
     .select('id,nome,sexo,data_nascimento,data_medicao,peso_kg,altura_cm,created_at,updated_at')
-    .eq('created_by', userId)
     .order('created_at', { ascending: true });
+  if (!includeAllUsers) profilesQuery = profilesQuery.eq('created_by', userId);
+  const { data: profiles, error } = await profilesQuery;
   if (error) return { error };
   if (!profiles?.length) return { rows: [], storage: 'supabase' };
   const ids = profiles.map((profile) => profile.id);
-  const { data: measurements, error: historyError } = await supabase
-    .from(TABELA_PERFIL_MEDIDAS)
+  let measurementsQuery = supabase.from(TABELA_PERFIL_MEDIDAS)
     .select('id,perfil_id,peso_kg,altura_cm,imc,registrado_em')
-    .eq('created_by', userId)
     .in('perfil_id', ids)
     .order('registrado_em', { ascending: false });
+  if (!includeAllUsers) measurementsQuery = measurementsQuery.eq('created_by', userId);
+  const { data: measurements, error: historyError } = await measurementsQuery;
   return historyError ? { error: historyError } : { rows: withProfileHistory(profiles, measurements || []), storage: 'supabase' };
 }
 
@@ -1000,9 +1000,12 @@ export default async function handler(req, res) {
       return json(res, 200, { resource: RESOURCE_DIETAS, storage: result.storage, total: result.rows.length, rows: result.rows });
     }
     if (req.query?.resource === RESOURCE_PERFIS) {
-      const result = await loadProfiles(auth.user.id);
+      if (auth.isAdmin && !isOfflineMode() && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return json(res, 503, { error: 'A visualização master de Saúde requer SUPABASE_SERVICE_ROLE_KEY no servidor.' });
+      }
+      const result = await loadProfiles(auth.user.id, auth.isAdmin);
       if (result.error) return json(res, 500, { error: result.error.message });
-      return json(res, 200, { resource: RESOURCE_PERFIS, storage: result.storage, total: result.rows.length, rows: result.rows });
+      return json(res, 200, { resource: RESOURCE_PERFIS, storage: result.storage, admin_view: auth.isAdmin, total: result.rows.length, rows: result.rows });
     }
     if (req.query?.resource === RESOURCE_CONSUMO_AGUA) {
       const requestedProfileId = req.query?.profile_id == null ? null : parseId(req.query.profile_id);
