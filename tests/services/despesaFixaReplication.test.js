@@ -105,6 +105,30 @@ describe('seriesDefinitionsFromYearRows + slotsNeededForMonth', () => {
       parcela_atual: 2,
     });
   });
+
+  it('usa o vencimento mais recente da série como base para próximos meses', () => {
+    const series = seriesDefinitionsFromYearRows([
+      {
+        descricao: 'Notebook',
+        valor: 100,
+        parcela_atual: 1,
+        parcela_total: 6,
+        data_vencimento: '2024-01-10',
+        created_at: '2024-01-01T12:00:00.000Z',
+      },
+      {
+        descricao: 'Notebook',
+        valor: 100,
+        parcela_atual: 3,
+        parcela_total: 6,
+        data_vencimento: '2024-03-20',
+        created_at: '2024-03-01T12:00:00.000Z',
+      },
+    ])[0];
+    const slot = slotsNeededForMonth(series, '2024-04')[0];
+
+    expect(buildInsertPayloadFromSlot(series, slot).data_vencimento).toBe('2024-04-20');
+  });
 });
 
 describe('rowMatchesReplicationSlot', () => {

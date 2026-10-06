@@ -468,6 +468,64 @@ async function cleanupFutureContaFixa(row, context = {}) {
   if (delErr) throw delErr;
 }
 
+async function findFutureDueDateRows(row, context = {}) {
+  const rowMesAno = mesAnoFromDateLike(row?.created_at);
+  if (!rowMesAno || (!isParcelaRow(row) && row?.conta_fixa !== true && row?.conta_fixa !== 'true')) return [];
+  const nextMonth = addMonthsToMesAno(rowMesAno, 1);
+  const [ano, mes] = nextMonth.split('-').map(Number);
+  const cutoff = new Date(Date.UTC(ano, mes - 1, 1)).toISOString();
+  let query = supabase
+    .from(TABLE_DESPESAS_FIXAS)
+    .select('id, descricao, conta_fixa, parcela_atual, parcela_total, serie_id, created_at');
+
+  if (row.serie_id) {
+    query = query.eq('serie_id', row.serie_id).gte('created_at', cutoff);
+  } else if (row.conta_fixa === true || row.conta_fixa === 'true') {
+    query = query.eq('conta_fixa', true).gte('created_at', cutoff);
+  } else {
+    query = query.eq('parcela_total', row.parcela_total)
+      .gt('parcela_atual', row.parcela_atual)
+      .gte('created_at', cutoff);
+  }
+
+  const { data, error } = await scopeQueryByUser(query, context);
+  if (error) throw error;
+  if (row.serie_id) return data || [];
+
+  const descricao = normalizeSerieDescricao(row.descricao);
+  return (data || []).filter((candidate) => {
+    if (normalizeSerieDescricao(candidate?.descricao) !== descricao) return false;
+    if (row.conta_fixa === true || row.conta_fixa === 'true') {
+      return candidate?.conta_fixa === true || candidate?.conta_fixa === 'true';
+    }
+    return Number(candidate?.parcela_total) === Number(row.parcela_total)
+      && Number(candidate?.parcela_atual) > Number(row.parcela_atual);
+  });
+}
+
+async function replicateFutureDueDate(row, dataVencimento, context = {}) {
+  const futureRows = await findFutureDueDateRows(row, context);
+  if (!futureRows.length) return;
+
+  const byDate = new Map();
+  for (const future of futureRows) {
+    const mesAno = mesAnoFromDateLike(future.created_at);
+    const date = dataVencimentoForMesAno(dataVencimento, mesAno);
+    const ids = byDate.get(date) || [];
+    ids.push(future.id);
+    byDate.set(date, ids);
+  }
+
+  for (const [date, ids] of byDate) {
+    const updateQuery = scopeQueryByUser(
+      supabase.from(TABLE_DESPESAS_FIXAS).update({ data_vencimento: date }),
+      context
+    );
+    const { error } = await updateQuery.in('id', ids);
+    if (error) throw error;
+  }
+}
+
 const DESPESA_FIXA_SERIES_COLUMNS = 'descricao, valor, status, conta_fixa, parcela_atual, parcela_total, serie_id, data_vencimento, created_at';
 
 function rangeDiasMes(ano, mes) {
@@ -931,6 +989,18 @@ export async function atualizarRegistroFinanceiro(req, context = {}) {
       await cleanupFutureContaFixa(existingRow, context);
     } catch (cleanupErr) {
       return { status: 500, data: { error: cleanupErr.message } };
+    }
+  }
+
+  if (
+    parsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA
+    && Object.prototype.hasOwnProperty.call(parsed.payload, 'data_vencimento')
+    && existingRow
+  ) {
+    try {
+      await replicateFutureDueDate(existingRow, parsed.payload.data_vencimento, context);
+    } catch (replicationErr) {
+      return { status: 500, data: { error: replicationErr.message } };
     }
   }
 

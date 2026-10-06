@@ -112,7 +112,7 @@ export function buildReplicationSlotsFromStart(mesAno, options = {}) {
  * @param {Array<Record<string, unknown>>} rows
  */
 export function seriesDefinitionsFromYearRows(rows = []) {
-  /** @type {Map<string, { type: 'conta_fixa'|'parcelas', descricao: string, valor: number, startMesAno: string, startCreatedAt?: string, dataVencimento?: string|null, parcelaAtual?: number, parcelaTotal?: number, serieId?: string|null }>} */
+  /** @type {Map<string, { type: 'conta_fixa'|'parcelas', descricao: string, valor: number, startMesAno: string, startCreatedAt?: string, dataVencimento?: string|null, dataVencimentoMesAno?: string, parcelaAtual?: number, parcelaTotal?: number, serieId?: string|null }>} */
   const series = new Map();
 
   for (const row of rows) {
@@ -133,17 +133,24 @@ export function seriesDefinitionsFromYearRows(rows = []) {
       const key = serieId ? `cf:${serieId}` : `cf:${descNorm}`;
       const existing = series.get(key);
       if (!existing || startMesAno < existing.startMesAno) {
+        const keepLatestDueDate = existing?.dataVencimento
+          && existing.dataVencimentoMesAno > startMesAno;
         series.set(key, {
           type: 'conta_fixa',
           descricao,
           valor,
           startMesAno,
           startCreatedAt: String(row?.created_at || ''),
-          dataVencimento: row?.data_vencimento || null,
+          dataVencimento: keepLatestDueDate ? existing.dataVencimento : (row?.data_vencimento || null),
+          dataVencimentoMesAno: keepLatestDueDate ? existing.dataVencimentoMesAno : (row?.data_vencimento ? startMesAno : ''),
           serieId,
         });
-      } else if (!existing.dataVencimento && row?.data_vencimento) {
+      } else if (
+        row?.data_vencimento
+        && startMesAno >= (existing.dataVencimentoMesAno || '')
+      ) {
         existing.dataVencimento = String(row.data_vencimento);
+        existing.dataVencimentoMesAno = startMesAno;
       }
       continue;
     }
@@ -156,19 +163,26 @@ export function seriesDefinitionsFromYearRows(rows = []) {
         || pa < existing.parcelaAtual
         || (pa === existing.parcelaAtual && startMesAno < existing.startMesAno)
       ) {
+        const keepLatestDueDate = existing?.dataVencimento
+          && existing.dataVencimentoMesAno > startMesAno;
         series.set(key, {
           type: 'parcelas',
           descricao,
           valor,
           startMesAno,
           startCreatedAt: String(row?.created_at || ''),
-          dataVencimento: row?.data_vencimento || null,
+          dataVencimento: keepLatestDueDate ? existing.dataVencimento : (row?.data_vencimento || null),
+          dataVencimentoMesAno: keepLatestDueDate ? existing.dataVencimentoMesAno : (row?.data_vencimento ? startMesAno : ''),
           parcelaAtual: pa,
           parcelaTotal: pt,
           serieId,
         });
-      } else if (!existing.dataVencimento && row?.data_vencimento) {
+      } else if (
+        row?.data_vencimento
+        && startMesAno >= (existing.dataVencimentoMesAno || '')
+      ) {
         existing.dataVencimento = String(row.data_vencimento);
+        existing.dataVencimentoMesAno = startMesAno;
       }
     }
   }

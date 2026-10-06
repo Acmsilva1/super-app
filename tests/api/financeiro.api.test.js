@@ -24,6 +24,7 @@ function createApp(handler) {
 }
 
 function createDespesaFixaParceladaTableMock({ currentRow, updatedRow = null, futureRows = [] }) {
+  const updateCalls = [];
   const select = vi.fn((fields) => ({
     eq: vi.fn((column, value) => {
       if (column === 'id') {
@@ -44,13 +45,45 @@ function createDespesaFixaParceladaTableMock({ currentRow, updatedRow = null, fu
         obj.eq = vi.fn(() => obj);
         return obj;
       }
+      if (column === 'serie_id' || column === 'conta_fixa') {
+        let cutoff = '';
+        let parcelaAtual = null;
+        const obj = {
+          gte: vi.fn((filterColumn, filterValue) => {
+            if (filterColumn === 'created_at') cutoff = filterValue;
+            return obj;
+          }),
+          gt: vi.fn((filterColumn, filterValue) => {
+            if (filterColumn === 'parcela_atual') parcelaAtual = Number(filterValue);
+            return obj;
+          }),
+          eq: vi.fn(() => obj),
+          then: (resolve, reject) => Promise.resolve({
+            data: futureRows.filter((row) => {
+              if (cutoff && String(row.created_at) < cutoff) return false;
+              if (column === 'serie_id' && String(row.serie_id) !== String(value)) return false;
+              if (column === 'conta_fixa' && row.conta_fixa !== value) return false;
+              if (parcelaAtual != null && Number(row.parcela_atual) <= parcelaAtual) return false;
+              return true;
+            }),
+            error: null,
+          }).then(resolve, reject),
+        };
+        return obj;
+      }
       throw new Error(`Filtro inesperado em select: ${column}`);
     }),
   }));
 
   const update = vi.fn((payload) => {
+    const call = { payload, ids: null };
+    updateCalls.push(call);
     const obj = {
       eq: vi.fn(() => obj),
+      in: vi.fn((column, ids) => {
+        call.ids = ids;
+        return Promise.resolve({ error: null });
+      }),
       select: vi.fn(() => ({
         single: vi.fn().mockResolvedValue({
           data: updatedRow || { ...currentRow, ...payload },
@@ -84,6 +117,7 @@ function createDespesaFixaParceladaTableMock({ currentRow, updatedRow = null, fu
     delete: deleteFn,
     deleteEq,
     deleteIn,
+    updateCalls,
   };
 }
 
@@ -315,6 +349,65 @@ describe('API do financeiro', () => {
     }));
     expect(tableMock.deleteEq).not.toHaveBeenCalled();
     expect(res.body.pendente_mes).toBe(true);
+  });
+
+  it('replica vencimento editado somente para os meses futuros da mesma serie', async () => {
+    const currentRow = {
+      id: 'fixed-aug',
+      descricao: 'Internet',
+      valor: 120,
+      status: 'pendente',
+      conta_fixa: true,
+      serie_id: 'internet-series',
+      data_vencimento: '2026-08-10',
+      created_at: '2026-08-01T12:00:00.000Z',
+    };
+    const futureRows = [
+      {
+        id: 'fixed-jul',
+        descricao: 'Internet',
+        conta_fixa: true,
+        serie_id: 'internet-series',
+        data_vencimento: '2026-07-10',
+        created_at: '2026-07-01T12:00:00.000Z',
+      },
+      {
+        id: 'fixed-sep',
+        descricao: 'Internet',
+        conta_fixa: true,
+        serie_id: 'internet-series',
+        created_at: '2026-09-01T12:00:00.000Z',
+      },
+      {
+        id: 'fixed-oct',
+        descricao: 'Internet',
+        conta_fixa: true,
+        serie_id: 'internet-series',
+        created_at: '2026-10-01T12:00:00.000Z',
+      },
+    ];
+    const tableMock = createDespesaFixaParceladaTableMock({ currentRow, futureRows });
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_despesas_fixas') return tableMock;
+      throw new Error(`Tabela inesperada: ${table}`);
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .patch('/api/test')
+      .send({
+        id: currentRow.id,
+        tipo_registro: 'despesa_fixa',
+        data_vencimento: '2026-08-20',
+      });
+
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(tableMock.updateCalls).toEqual(expect.arrayContaining([
+      expect.objectContaining({ payload: { data_vencimento: '2026-08-20' }, ids: null }),
+      expect.objectContaining({ payload: { data_vencimento: '2026-09-20' }, ids: ['fixed-sep'] }),
+      expect.objectContaining({ payload: { data_vencimento: '2026-10-20' }, ids: ['fixed-oct'] }),
+    ]));
+    expect(tableMock.updateCalls.some((call) => call.ids?.includes('fixed-jul'))).toBe(false);
   });
 
   it('remove um registro financeiro sem tocar no ledger paralelo', async () => {
