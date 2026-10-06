@@ -1,5 +1,6 @@
 import { isCronAuthorized } from '../lib/cronAuth.js';
 import { runSaudeAlertSlot } from '../features/saude/service/alertasSaudeScheduler.js';
+import { runFinanceiroDailySummary } from '../features/financeiro/service/financeiroTelegramScheduler.js';
 import { runTelegramManualTest } from '../lib/telegramManualTest.js';
 
 async function startRun() {
@@ -35,8 +36,20 @@ export default async function handler(req, res) {
   }
   const runId = await startRun();
   try {
-    const result = await runSaudeAlertSlot();
-    await finishRun(runId, result.skipped ? 'skipped' : 'processed', null, result.alerts_sent || 0);
+    const [healthResult, financeResult] = await Promise.allSettled([
+      runSaudeAlertSlot(), runFinanceiroDailySummary(),
+    ]);
+    const failures = [healthResult, financeResult].filter((result) => result.status === 'rejected');
+    const alertsSent = [healthResult, financeResult].reduce((sum, result) =>
+      sum + (result.status === 'fulfilled' ? Number(result.value.alerts_sent || 0) : 0), 0);
+    if (failures.length) {
+      await finishRun(runId, 'failed', 'scheduler_failed', alertsSent);
+      return res.status(503).json({ ok: false, error: 'Falha ao processar os alertas. Confira a configuração e as migrations.' });
+    }
+    const result = { processed: true, alerts_sent: alertsSent,
+      health: healthResult.value, financeiro: financeResult.value };
+    const runStatus = [healthResult.value, financeResult.value].some((item) => !item.skipped) ? 'processed' : 'skipped';
+    await finishRun(runId, runStatus, null, alertsSent);
     return res.status(200).json({ ok: true, ...result });
   } catch {
     await finishRun(runId, 'failed', 'scheduler_failed');

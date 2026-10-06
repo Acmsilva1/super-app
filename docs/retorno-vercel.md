@@ -47,8 +47,14 @@ não repetem o envio. Falhas com resultado incerto ficam registradas como
 `uncertain` e não são reenviadas automaticamente, evitando duplicidade caso
 o Telegram tenha recebido a mensagem antes de um timeout. Conferir manualmente
 esses registros; não há garantia de entrega exatamente uma vez entre serviços.
-O destino Telegram é único e os alertas consultam somente o proprietário
-configurado em `SAUDE_ALERTS_OWNER_USER_ID`.
+O destino Telegram é único (`TELEGRAM_CHAT_ID`). Os alertas de Saúde consideram
+os perfis configurados por todos os usuários; o resumo diário agrega os dados de
+Financeiro de todas as contas. Portanto, todos que tiverem acesso ao chat de
+destino verão os mesmos alertas e dados. Para compartilhar com a família, use o
+ID de um grupo privado com o bot adicionado; um chat privado continua visível
+somente para a conta Telegram correspondente. O proprietário em
+`SAUDE_ALERTS_OWNER_USER_ID` permanece como identidade administrativa que
+autoriza o agendador, não como filtro dos dados incluídos.
 
 ## Variáveis da Vercel — ambiente Production
 

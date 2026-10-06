@@ -20,7 +20,7 @@ def format_alert(payload):
         value = payload.get(field)
         if not isinstance(value, str) or not value.strip() or len(value) > limit:
             raise ValueError("invalid_field")
-    if not re.fullmatch(r"health\.(water_progress|diet_menu)", payload["event_type"]):
+    if not re.fullmatch(r"(?:health\.(water_progress|diet_menu)|financeiro\.daily_summary)", payload["event_type"]):
         raise ValueError("invalid_event")
     if payload.get("severity") != "info":
         raise ValueError("invalid_severity")

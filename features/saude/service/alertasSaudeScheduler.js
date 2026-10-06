@@ -254,30 +254,23 @@ function formatDietAlert(report) {
 async function dispatchWaterForProfile(config, data, profile, date, time) {
   const key = `agua:${date}:${time}:${profile.id}`;
   const report = waterProfileReport(profile, data.goals.get(String(profile.id)), data.logs.get(String(profile.id)), date, time);
-  try {
-    return Number(await sendAlert(config, { eventType: 'health.water_progress', title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key }));
-  } catch (error) {
-    throw error;
-  }
+  return Number(await sendAlert(config, { eventType: 'health.water_progress', title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key }));
 }
 
 async function dispatchDietForProfile(config, data, profile, diet, meal, date, time) {
   const key = `dieta:${date}:${time}:${profile.id}`;
   const report = dietProfileReport(profile, diet, meal, date, time);
-  try {
-    return Number(await sendAlert(config, { eventType: 'health.diet_menu', title: `Cardapio ${meal.titulo} - ${profile.nome}`, message: formatDietAlert(report), dedupeKey: key }));
-  } catch (error) {
-    throw error;
-  }
+  return Number(await sendAlert(config, { eventType: 'health.diet_menu', title: `Cardapio ${meal.titulo} - ${profile.nome}`, message: formatDietAlert(report), dedupeKey: key }));
 }
 
-async function dispatchCurrentSlot(config, value) {
+async function dispatchCurrentSlot(config, sourceUserId, value) {
   const { date, time } = saoPauloClock(value);
   if (!['00', '30'].includes(time.slice(-2))) return { failures: [], alertsSent: 0 };
+  const userConfig = { ...config, ownerId: sourceUserId };
   const failures = [];
   let alertsSent = 0;
   try {
-    const data = await loadOwnedData(config, date);
+    const data = await loadOwnedData(userConfig, date);
     const defaults = normalizeAlertSchedule(DEFAULT_ALERT_SCHEDULE);
     for (const profile of data.profiles) {
       const profileKey = String(profile.id);
@@ -289,7 +282,7 @@ async function dispatchCurrentSlot(config, value) {
       if (schedule.agua_ativo && minuteOfDay >= waterStart && minuteOfDay <= waterEnd
         && (minuteOfDay - waterStart) % (schedule.agua_intervalo_horas * 60) === 0) {
         try {
-          alertsSent += await dispatchWaterForProfile(config, data, profile, date, time);
+          alertsSent += await dispatchWaterForProfile(userConfig, data, profile, date, time);
         } catch (error) {
           failures.push(error);
         }
@@ -301,7 +294,7 @@ async function dispatchCurrentSlot(config, value) {
           : data.diets.get(profileKey) || null;
         if (meal && selectedDiet && String(selectedDiet.perfil_id) === profileKey) {
           try {
-            alertsSent += await dispatchDietForProfile(config, data, profile, selectedDiet, meal, date, time);
+            alertsSent += await dispatchDietForProfile(userConfig, data, profile, selectedDiet, meal, date, time);
           } catch (error) {
             failures.push(error);
           }
@@ -319,17 +312,23 @@ export async function runSaudeAlertSlot(now = new Date()) {
   if (!config) return { skipped: true, reason: 'disabled_or_missing_config' };
   const { data: roles, error } = await config.client.from('app_user_roles').select('role').eq('user_id', config.ownerId);
   if (error || !roles?.some(row => ['owner', 'admin'].includes(row.role))) throw new Error('alerts_owner_invalid');
+  const { data: profiles, error: profilesError } = await config.client.from('tb_saude_perfis').select('created_by');
+  if (profilesError) throw new Error(`saude_profiles_${profilesError.code || 'unavailable'}`);
+  const sourceUserIds = [...new Set((profiles || []).map((row) => String(row.created_by || '')).filter(Boolean))];
+  if (!sourceUserIds.includes(config.ownerId)) sourceUserIds.push(config.ownerId);
   const start = new Date(Math.floor(now.getTime() / 1800000) * 1800000);
   // A delayed trigger can recover the previous half-hour; keys persist in Supabase.
   const failures = [];
   let alertsSent = 0;
   for (const slot of [new Date(start.getTime() - 1800000), start]) {
-    try {
-      const result = await dispatchCurrentSlot(config, slot);
-      alertsSent += result.alertsSent;
-      failures.push(...result.failures);
-    } catch (error) {
-      failures.push(error);
+    for (const sourceUserId of sourceUserIds) {
+      try {
+        const result = await dispatchCurrentSlot(config, sourceUserId, slot);
+        alertsSent += result.alertsSent;
+        failures.push(...result.failures);
+      } catch (error) {
+        failures.push(error);
+      }
     }
   }
   // Continue processing the remaining profiles, then report failure to the trigger.
