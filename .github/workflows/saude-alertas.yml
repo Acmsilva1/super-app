@@ -30,5 +30,7 @@ jobs:
           if [[ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]]; then
             headers+=(-H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET")
           fi
-          result=$(curl --silent --show-error --fail --max-time 170 "${headers[@]}" "${SUPERAPP_URL%/}/api/saude-alertas-cron")
-          RESULT="$result" python3 -c 'import json, os; data=json.loads(os.environ["RESULT"]); assert data.get("ok") and data.get("processed"), "Agendador desativado ou configuracao incompleta"'
+          result=$(curl --silent --show-error --max-time 170 --write-out $'\n%{http_code}' "${headers[@]}" "${SUPERAPP_URL%/}/api/saude-alertas-cron")
+          http_status="${result##*$'\n'}"
+          body="${result%$'\n'*}"
+          RESULT="$body" HTTP_STATUS="$http_status" python3 -c 'import json, os; data=json.loads(os.environ["RESULT"]); print("HTTP " + os.environ["HTTP_STATUS"] + ": " + json.dumps(data, ensure_ascii=False)); assert os.environ["HTTP_STATUS"] == "200" and data.get("ok") and data.get("processed"), "Agendador desativado ou configuracao incompleta"'

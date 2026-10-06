@@ -2,6 +2,12 @@ import { DIET_MEALS } from './dietasService.js';
 import { DEFAULT_ALERT_SCHEDULE, DIET_ALERT_MEALS, normalizeAlertSchedule, WATER_ALERT_END, WATER_ALERT_START } from './alertScheduleConfig.js';
 
 const TIME_ZONE = 'America/Sao_Paulo';
+const SAFE_DELIVERY_ERRORS = new Set([
+  'telegram_token_invalid', 'telegram_chat_not_found', 'telegram_bot_blocked',
+  'telegram_start_required', 'telegram_recipient_is_bot', 'telegram_bot_no_permission',
+  'telegram_forbidden', 'telegram_rate_limited', 'telegram_bad_request',
+  'telegram_network_error', 'telegram_config_missing', 'telegram_send_failed',
+]);
 
 
 function saoPauloClock(value = new Date()) {
@@ -49,15 +55,28 @@ async function sendAlert(config, { eventType, title, message, dedupeKey }) {
         severity: 'info', title, message, dedupe_key: dedupeKey, occurred_at: new Date().toISOString() }),
       signal: AbortSignal.timeout(20000),
     });
-    if (!response.ok) throw new Error('alerts_gateway_failed');
-    const payload = await response.json();
+    let payload = null;
+    try { payload = await response.json(); } catch {}
+    if (!response.ok) {
+      const errorCode = SAFE_DELIVERY_ERRORS.has(payload?.error)
+        ? payload.error
+        : `gateway_http_${response.status}`;
+      throw Object.assign(new Error(errorCode), { code: errorCode });
+    }
     if (!payload.ok || !Number.isSafeInteger(payload.telegram_message_id)) throw new Error('alerts_gateway_invalid_response');
     const { error } = await client.from('tb_saude_alertas_envios')
       .update({ status: 'sent', telegram_message_id: payload.telegram_message_id, updated_at: new Date().toISOString() })
       .eq('created_by', config.ownerId).eq('dedupe_key', dedupeKey);
     if (error) throw new Error('alerts_delivery_record_failed');
-  } catch {
-    await client.from('tb_saude_alertas_envios').update({ status: 'uncertain', updated_at: new Date().toISOString() })
+  } catch (error) {
+    const errorCode = SAFE_DELIVERY_ERRORS.has(error?.code)
+      ? error.code
+      : /^gateway_http_[1-5][0-9]{2}$/.test(error?.code || '')
+        ? error.code
+        : ['alerts_gateway_invalid_response', 'alerts_delivery_record_failed'].includes(error?.message)
+          ? error.message
+          : 'delivery_error';
+    await client.from('tb_saude_alertas_envios').update({ status: 'uncertain', last_error: errorCode, updated_at: new Date().toISOString() })
       .eq('created_by', config.ownerId).eq('dedupe_key', dedupeKey);
     throw new Error('alerts_delivery_uncertain');
   }

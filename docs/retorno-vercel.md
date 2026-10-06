@@ -114,6 +114,16 @@ Horários diários em America/Sao_Paulo, preservados da VPS:
 
 O GitHub chama o Node a cada cinco minutos; o Node consulta as agendas salvas e chama o Python, que envia ao Telegram usando as variáveis do servidor. GitHub Actions pode atrasar. A falha de envio em um perfil agora permite processar os demais, incluindo o intervalo atual e o anterior; ao final, o erro continua sendo informado ao workflow. A proteção persistente contra duplicidade foi preservada.
 
+O painel administrativo agora mostra as execuções aceitas pelo endpoint, tentativas de envio e códigos de falha sem tokens. Sem execuções recentes, confira em GitHub → Actions se o workflow `Alertas de Saude` foi disparado e se `SAUDE_ALERTS_SCHEDULER_ENABLED=true`; sem tentativas com o workflow rodando, confira `SAUDE_ALERTS_ENABLED`, UUID do proprietário, agendas e horários. `sent` com `telegram_message_id` confirma a entrega aceita pelo Telegram; `uncertain` exige conferir o chat antes de qualquer reenvio. Uma execução ainda como `running` pode indicar timeout ou encerramento da função. Os alertas automáticos continuam consultando somente `SAUDE_ALERTS_OWNER_USER_ID`.
+
+## Monitoramento administrativo de Saúde — 06/10/2026
+
+Em **Meu perfil → Administração → Acompanhamento do módulo Saúde**, o owner seleciona uma conta com acesso ao módulo e consulta perfis atuais, medições, dietas, água, agendas e eventos. A API exige a mesma validação owner-only de `requireUser({ adminOnly: true })` e usa a chave service role exclusivamente no servidor.
+
+Antes de usar o histórico, aplicar `migration/20261006_saude_admin_activity_audit.sql` depois das migrations de alertas e tabelas do módulo Saúde. Os triggers registram snapshots de INSERT, UPDATE e DELETE de perfis, medidas, dietas, metas e logs de água e agendas. O histórico começa na instalação da migration; ele não consegue reconstruir alterações anteriores. O painel pagina os eventos anteriores. A tabela de auditoria nega acesso a `anon` e `authenticated`; somente service role acessa via endpoint administrativo.
+
+Essa migration também habilita códigos seguros de falha de entrega e um registro de execuções autenticadas do cron, retido por 30 dias. Se não houver execução registrada, a chamada pode não ter chegado autenticada ao endpoint; verificar o run do GitHub Actions e conferir URL/segredo. Se houver `skipped`, verificar as variáveis de ativação; `failed` indica falha ao processar agenda/dados; `uncertain` significa que não foi possível confirmar a resposta do gateway e requer conferência manual no Telegram.
+
 Uma cópia de recuperação da chave do cron está em `.env.cron.local`, confirmada como ignorada pelo Git. Não compartilhar nem versionar esse arquivo.
 
 Ainda é necessário o commit/push manual e o deploy para aplicar as mudanças e as variáveis novas ao runtime. Nenhum commit, push ou deploy foi executado nesta etapa. Não foram executados testes automatizados novos nem disparo manual do cron; apenas revisão do diff e `git diff --check`.

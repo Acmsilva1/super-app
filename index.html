@@ -7809,6 +7809,12 @@
                             <div id="adminTempSecret" class="profile-admin-temp-secret" hidden><strong>Senha temporária (exibida uma vez):</strong> <code id="adminTempSecretValue"></code><button type="button" id="adminTempSecretClose">Ocultar</button></div>
                             <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
                             <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
+                            <section class="profile-admin-monitor">
+                                <div class="profile-admin-toolbar"><div><h4>Acompanhamento do módulo Saúde</h4><p>Veja os perfis, dados atuais e o histórico de criações, alterações e exclusões do usuário selecionado.</p></div><button type="button" class="auth-secondary" id="adminHealthRefresh">Atualizar Saúde</button></div>
+                                <label class="profile-admin-field"><span>Usuário com acesso a Saúde</span><select id="adminHealthUser"><option value="">Carregando usuários...</option></select></label>
+                                <p id="adminHealthMessage" role="status" class="profile-admin-message"></p>
+                                <div id="adminHealthContent"></div>
+                            </section>
                         </div>
                         <div id="profileAdminAlertsPane" role="tabpanel" hidden>
                             <div class="profile-admin-toolbar"><div><h4>Alertas pessoais</h4><p>Configure os avisos do Telegram para cada perfil da sua conta.</p></div><button type="button" class="auth-secondary" id="adminAlertsRefresh">Atualizar</button></div>
@@ -7917,6 +7923,15 @@
                     .profile-admin-status:disabled{cursor:default;opacity:.75}
                     .profile-admin-status[data-blocked=true]{color:#dc4755}
                     .profile-admin-restricted{color:var(--pa-muted);font-size:.78rem}
+                    .profile-admin-monitor{display:grid;gap:.75rem;margin-top:1.5rem}
+                    .profile-admin-monitor select{width:100%;padding:.72rem .8rem;border:1px solid var(--pa-border);border-radius:.7rem;background:var(--pa-input);color:var(--pa-ink);font:inherit}
+                    .profile-admin-monitor-card,.profile-admin-activity{margin:.55rem 0;padding:.9rem 1rem;border:1px solid var(--pa-border);border-radius:.8rem;background:var(--pa-panel);color:var(--pa-ink)}
+                    .profile-admin-monitor-card h5{margin:0 0 .35rem;color:var(--pa-ink);font-size:.95rem}
+                    .profile-admin-monitor h4{margin:1.1rem 0 .45rem;color:var(--pa-ink)}
+                    .profile-admin-monitor details summary{cursor:pointer;font-weight:750;overflow-wrap:anywhere}
+                    .profile-admin-monitor pre{max-height:22rem;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:.8rem;border-radius:.6rem;background:var(--pa-head);color:var(--pa-ink);font: .76rem/1.5 ui-monospace,Consolas,monospace}
+                    .profile-admin-activity summary{display:grid;grid-template-columns:minmax(130px,auto) minmax(150px,auto) 1fr;gap:.7rem;align-items:center}
+                    .profile-admin-activity-diff{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}
                     .profile-alerts-form{display:grid;gap:1rem;margin-top:.8rem}
                     .profile-alerts-profile,.profile-alerts-group{border:1px solid var(--pa-border);border-radius:1rem;background:var(--pa-panel);padding:1rem 1.1rem}
                     .profile-alerts-profile select,.profile-alerts-group select{width:100%;margin-top:.45rem;padding:.72rem .8rem;border:1px solid var(--pa-border);border-radius:.7rem;background:var(--pa-input);color:var(--pa-ink);font:inherit}
@@ -7933,6 +7948,8 @@
                     .profile-alerts-save-status{display:block;flex:1 1 100%;min-width:0;color:var(--pa-muted);font-size:.86rem;font-weight:700;overflow-wrap:anywhere}
                     .profile-alerts-save-status[data-state="error"]{padding:.65rem .8rem;border:1px solid #dc262655;border-radius:.65rem;background:#fff1f2;color:#991b1b}
                     @media(max-width:760px){
+                        .profile-admin-activity summary{grid-template-columns:1fr;gap:.25rem}
+                        .profile-admin-activity-diff{grid-template-columns:1fr}
                         .profile-admin-modal{padding:.5rem}
                         .profile-admin-card{max-height:calc(100dvh - 1rem)}
                         .profile-admin-header{padding:1rem;align-items:flex-start}
@@ -7996,6 +8013,12 @@
                     if (isAlertsTab) await this.loadAdminAlerts();
                 }));
                 document.getElementById('adminUsersRefresh')?.addEventListener('click', () => this.loadAdminUsers());
+                document.getElementById('adminHealthRefresh')?.addEventListener('click', () => this.loadAdminHealthMonitor());
+                document.getElementById('adminHealthUser')?.addEventListener('change', () => this.loadAdminHealthMonitor());
+                document.getElementById('adminHealthContent')?.addEventListener('click', (event) => {
+                    const button = event.target.closest('[data-admin-health-more]');
+                    if (button) this.loadMoreAdminHealthActivity(button);
+                });
                 document.getElementById('adminAlertsRefresh')?.addEventListener('click', () => this.loadAdminAlerts());
                 document.getElementById('adminTelegramTest')?.addEventListener('click', () => this.testAdminTelegram());
                 document.getElementById('adminAlertsContent')?.addEventListener('change', (event) => {
@@ -8181,8 +8204,102 @@
                             ${(payload.restricted_apps || []).map((app) => `<td data-label="${escapeHtml(app.title)}"><span class="profile-admin-restricted" aria-label="Restrito ao administrador" title="Acesso multiusuário indisponível até o isolamento dos dados">Admin</span></td>`).join('')}
                         </tr>`).join('')}</tbody>
                     </table>`;
+                    const monitor = document.getElementById('adminHealthUser');
+                    if (monitor) {
+                        const eligible = payload.users.filter((user) => user.is_admin || user.permissions.includes('saude'));
+                        const selected = monitor.value;
+                        monitor.innerHTML = eligible.length
+                            ? eligible.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name || user.email || user.id)}${user.email && user.name ? ` · ${escapeHtml(user.email)}` : ''}</option>`).join('')
+                            : '<option value="">Nenhum usuário com acesso a Saúde</option>';
+                        if (eligible.some((user) => user.id === selected)) monitor.value = selected;
+                        if (monitor.value) await this.loadAdminHealthMonitor();
+                    }
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao carregar usuários.';
+                }
+            }
+            async loadAdminHealthMonitor() {
+                const select = document.getElementById('adminHealthUser');
+                const message = document.getElementById('adminHealthMessage');
+                const content = document.getElementById('adminHealthContent');
+                if (!select || !message || !content) return;
+                const userId = select.value;
+                if (!userId) {
+                    message.textContent = 'Selecione um usuário com acesso ao módulo Saúde.';
+                    content.innerHTML = '';
+                    return;
+                }
+                message.textContent = 'Carregando dados e histórico de Saúde...';
+                content.innerHTML = '';
+                try {
+                    const response = await fetch(`/api/admin/usuarios?resource=saude_monitor&user_id=${encodeURIComponent(userId)}`, { cache: 'no-store' });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Falha ao carregar os dados de Saúde.');
+                    const profileName = new Map((payload.profiles || []).map((profile) => [String(profile.id), profile.nome]));
+                    const dateTime = (value) => value ? new Date(value).toLocaleString('pt-BR') : '—';
+                    const pretty = (value) => escapeHtml(JSON.stringify(value, null, 2));
+                    const profileCards = (payload.profiles || []).map((profile) => {
+                        const measures = (payload.measurements || []).filter((row) => Number(row.perfil_id) === Number(profile.id));
+                        const water = (payload.water_profiles || []).filter((row) => (payload.water_goals || []).some((goal) => Number(goal.perfil_id) === Number(row.id)));
+                        return `<article class="profile-admin-monitor-card"><h5>${escapeHtml(profile.nome)}</h5><p>${escapeHtml(profile.sexo)} · Nascimento: ${escapeHtml(profile.data_nascimento)} · ${escapeHtml(profile.peso_kg)} kg · ${escapeHtml(profile.altura_cm)} cm</p><p>Perfil criado: ${escapeHtml(dateTime(profile.created_at))} · Atualizado: ${escapeHtml(dateTime(profile.updated_at))}</p><p>${measures.length} registro(s) de medidas · ${water.length} perfil(is) de água</p><details><summary>Dados completos do perfil</summary><pre>${pretty(profile)}</pre></details><details><summary>Histórico de medidas (${measures.length})</summary><pre>${pretty(measures)}</pre></details></article>`;
+                    }).join('');
+                    const eventRows = (payload.activity || []).map((event) => this.renderAdminHealthEvent(event, profileName)).join('');
+                    const dietCards = (payload.diets || []).map((diet) => `<details class="profile-admin-monitor-card"><summary>${escapeHtml(diet.titulo)} · ${escapeHtml(profileName.get(String(diet.perfil_id)) || 'Perfil')} · atualizada ${escapeHtml(dateTime(diet.updated_at))}</summary><pre>${pretty(diet)}</pre></details>`).join('');
+                    const waterSummary = (payload.water_profiles || []).map((profile) => {
+                        const goal = (payload.water_goals || []).find((row) => Number(row.perfil_id) === Number(profile.id));
+                        const logs = (payload.water_logs || []).filter((row) => Number(row.perfil_id) === Number(profile.id));
+                        return `<article class="profile-admin-monitor-card"><h5>Água · ${escapeHtml(profile.nome)}</h5><p>Meta: ${goal ? `${escapeHtml(goal.meta_doses)} doses (${escapeHtml(goal.nome)})` : 'não configurada'} · ${logs.length} dia(s) no histórico</p>${logs.length ? `<pre>${pretty(logs)}</pre>` : ''}</article>`;
+                    }).join('');
+                    const scheduleCards = (payload.alert_schedules || []).map((schedule) => `<details class="profile-admin-monitor-card"><summary>Alertas · ${escapeHtml(profileName.get(String(schedule.perfil_id)) || schedule.perfil_id)}</summary><pre>${pretty(schedule)}</pre></details>`).join('');
+                    const deliveryCards = (payload.alert_deliveries || []).map((delivery) => `<article class="profile-admin-monitor-card"><strong>${escapeHtml(delivery.status)}</strong><p>${escapeHtml(dateTime(delivery.created_at))} · confirmação Telegram: ${escapeHtml(delivery.telegram_message_id || 'sem confirmação')}</p><p>Motivo: ${escapeHtml(delivery.last_error || '—')}</p><p>${escapeHtml(delivery.dedupe_key)}</p></article>`).join('');
+                    const runCards = (payload.alert_runs || []).map((run) => `<article class="profile-admin-monitor-card"><strong>${escapeHtml(run.status)}</strong><p>${escapeHtml(dateTime(run.created_at))} · ${escapeHtml(run.error_code || 'sem erro reportado')}</p></article>`).join('');
+                    const alertHistoryNote = payload.alert_delivery_history_ready
+                        ? (deliveryCards || '<p>Nenhuma tentativa registrada para esta conta. Isso normalmente aponta para o workflow não ter disparado, alertas desativados, ou nenhum horário/perfil elegível.</p>')
+                        : '<p>O histórico de entregas ainda não está instalado no banco.</p>';
+                    const activityNote = payload.activity_ready
+                        ? (eventRows || '<p>Nenhum evento de atividade registrado ainda.</p>')
+                        : '<p>Aplique a migration 20261006_saude_admin_activity_audit.sql para iniciar o histórico permanente. Perfis e dados atuais já estão disponíveis.</p>';
+                    const runHistoryNote = payload.alert_run_history_ready
+                        ? (runCards || '<p>Nenhuma chamada autenticada do workflow registrada nos últimos 30 dias.</p>')
+                        : '<p>O monitoramento de execuções começa após aplicar a migration de auditoria.</p>';
+                    const moreButton = payload.next_activity_cursor
+                        ? `<button type="button" class="auth-secondary" data-admin-health-more data-before-time="${escapeHtml(payload.next_activity_cursor.time)}" data-before-id="${escapeHtml(payload.next_activity_cursor.id)}">Carregar eventos anteriores</button>`
+                        : '';
+                    content.innerHTML = `<h4>Perfis atuais (${payload.profiles.length})</h4>${profileCards || '<p>Nenhum perfil de Saúde cadastrado.</p>'}<h4>Dietas (${payload.diets.length})</h4>${dietCards || '<p>Nenhuma dieta cadastrada.</p>'}<h4>Consumo de água</h4>${waterSummary || '<p>Nenhum perfil de água cadastrado.</p>'}<h4>Agenda de alertas</h4>${scheduleCards || '<p>Nenhuma agenda configurada.</p>'}<h4>Execuções do agendador (${payload.alert_runs.length})</h4>${runHistoryNote}<h4>Entregas do Telegram para o proprietário (${payload.alert_deliveries.length})</h4>${alertHistoryNote}<h4>Atividade recente</h4><div id="adminHealthActivity">${activityNote}</div>${moreButton}`;
+                    message.textContent = `Dados carregados. ${payload.activity.length} evento(s) recente(s).`;
+                } catch (error) {
+                    message.textContent = error.message || 'Falha ao carregar os dados de Saúde.';
+                }
+            }
+            renderAdminHealthEvent(event, profileNames = new Map()) {
+                const row = event.new_data || event.old_data || {};
+                const profileId = row.perfil_id || row.id;
+                const title = profileNames.get(String(profileId)) || row.nome || row.titulo || row.data_local || row.perfil_id || 'Registro';
+                const action = { INSERT: 'Criou', UPDATE: 'Alterou', DELETE: 'Excluiu' }[event.operation] || event.operation;
+                return `<details class="profile-admin-activity"><summary><span>${escapeHtml(event.occurred_at ? new Date(event.occurred_at).toLocaleString('pt-BR') : '—')}</span><strong>${escapeHtml(action)} · ${escapeHtml(String(event.table_name || '').replace(/^tb_saude_/, ''))}</strong><span>${escapeHtml(title)}</span></summary><div class="profile-admin-activity-diff"><div><b>Antes</b><pre>${escapeHtml(JSON.stringify(event.old_data, null, 2))}</pre></div><div><b>Depois</b><pre>${escapeHtml(JSON.stringify(event.new_data, null, 2))}</pre></div></div></details>`;
+            }
+            async loadMoreAdminHealthActivity(button) {
+                button.disabled = true;
+                button.textContent = 'Carregando...';
+                try {
+                    const params = new URLSearchParams({
+                        resource: 'saude_monitor', history_only: '1',
+                        user_id: document.getElementById('adminHealthUser')?.value || '',
+                        before_time: button.dataset.beforeTime || '', before_id: button.dataset.beforeId || '',
+                    });
+                    const response = await fetch(`/api/admin/usuarios?${params}`, { cache: 'no-store' });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Falha ao carregar eventos anteriores.');
+                    document.getElementById('adminHealthActivity')?.insertAdjacentHTML('beforeend', (payload.activity || []).map((event) => this.renderAdminHealthEvent(event)).join(''));
+                    if (payload.next_activity_cursor) {
+                        button.dataset.beforeTime = payload.next_activity_cursor.time;
+                        button.dataset.beforeId = payload.next_activity_cursor.id;
+                        button.disabled = false;
+                        button.textContent = 'Carregar eventos anteriores';
+                    } else button.remove();
+                } catch (error) {
+                    button.disabled = false;
+                    button.textContent = error.message || 'Tentar carregar eventos anteriores';
                 }
             }
             showAdminTempSecret(password) {
