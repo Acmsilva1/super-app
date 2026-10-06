@@ -1,8 +1,8 @@
 name: Alertas de Saude
 on:
   schedule:
-    # Evita o minuto zero, quando o GitHub concentra agendamentos; mantém polling a cada 5 min.
-    - cron: '2-59/5 * * * *'
+    # Evita o minuto zero, quando o GitHub concentra agendamentos; consulta a cada 30 min.
+    - cron: '2,32 * * * *'
   workflow_dispatch:
     inputs:
       mode:
