@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks=vi.hoisted(()=>({
-  requireUser:vi.fn(),createUser:vi.fn(),updateUserById:vi.fn(),
+  requireUser:vi.fn(),createUser:vi.fn(),updateUserById:vi.fn(),listUsers:vi.fn(),upsert:vi.fn(),select:vi.fn(),
 }));
 vi.mock('../../lib/auth.js',()=>({requireUser:mocks.requireUser}));
-vi.mock('@supabase/supabase-js',()=>({createClient:()=>({auth:{admin:{createUser:mocks.createUser,updateUserById:mocks.updateUserById}}})}));
+vi.mock('@supabase/supabase-js',()=>({createClient:()=>({
+  auth:{admin:{createUser:mocks.createUser,updateUserById:mocks.updateUserById,listUsers:mocks.listUsers}},
+  from:()=>({select:()=>({eq:()=>({limit:()=>Promise.resolve({data:[],error:null})}),data:[],error:null}),upsert:mocks.upsert}),
+})}));
 import handler from '../../lib/adminUsuariosHandler.js';
 const owner='00000000-0000-4000-8000-000000000001';
 const user='00000000-0000-4000-8000-000000000002';
@@ -25,7 +28,7 @@ describe('Admin commands through Supabase Auth',()=>{
   it('creates a Supabase account and returns a generated password without caching',async()=>{
     const res=response();await handler({method:'POST',body:{name:'Novo',email:'NEW@example.invalid'}},res,[]);
     expect(res.code).toBe(201);expect(res.headers['Cache-Control']).toBe('no-store');
-    expect(mocks.createUser).toHaveBeenCalledWith(expect.objectContaining({email:'new@example.invalid',user_metadata:{name:'Novo'},email_confirm:true}));
+    expect(mocks.createUser).toHaveBeenCalledWith(expect.objectContaining({email:'new@example.invalid',user_metadata:expect.objectContaining({name:'Novo'}),email_confirm:true}));
     expect(res.body.temporary_password.length).toBeGreaterThanOrEqual(32);
   });
   it('validates registration data before contacting Supabase Admin',async()=>{

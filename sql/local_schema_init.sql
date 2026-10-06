@@ -150,6 +150,16 @@ CREATE TABLE IF NOT EXISTS public.app_user_profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS public.usuarios (
+  id UUID PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  email TEXT NOT NULL,
+  name TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
 -- 6. Índices Financeiros
 CREATE INDEX IF NOT EXISTS idx_tb_financas_user_data ON public.tb_financas (user_id, data_lancamento);
 CREATE INDEX IF NOT EXISTS idx_tb_despesas_fixas_user_created ON public.tb_despesas_fixas (user_id, created_at);

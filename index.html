@@ -6969,8 +6969,8 @@
 
             <form id="loginForm" class="auth-form">
                 <div class="auth-field">
-                    <label for="loginEmail">Email</label>
-                    <input id="loginEmail" name="email" type="email" autocomplete="email" required />
+                    <label for="loginEmail">Email ou Usuário</label>
+                    <input id="loginEmail" name="email" type="text" autocomplete="username" required placeholder="Email ou usuário" />
                 </div>
                 <div class="auth-field">
                     <label for="loginPassword">Senha</label>
@@ -7357,8 +7357,25 @@
                         window.location.replace(window.location.pathname);
                         return;
                     }
+                    const inputVal = String(form.get('email') || '').trim();
+                    let targetEmail = inputVal;
+
+                    if (this.client && inputVal) {
+                        try {
+                            const { data: usuario } = await this.client
+                                .from('usuarios')
+                                .select('email')
+                                .or(`username.eq.${inputVal},email.eq.${inputVal}`)
+                                .limit(1)
+                                .maybeSingle();
+                            if (usuario?.email) {
+                                targetEmail = usuario.email;
+                            }
+                        } catch (_) {}
+                    }
+
                     const { error } = await this.client.auth.signInWithPassword({
-                        email: String(form.get('email') || '').trim(),
+                        email: targetEmail,
                         password: String(form.get('password') || ''),
                     });
                     if (error) return this.setMessage(this.formatAuthError(error), 'error');
@@ -7366,10 +7383,24 @@
                 });
 
                 document.getElementById('forgotPasswordBtn')?.addEventListener('click', async () => {
-                    const email = String(document.getElementById('loginEmail')?.value || '').trim();
-                    if (!email) return this.setMessage('Digite seu email para receber o link.', 'error');
+                    const inputVal = String(document.getElementById('loginEmail')?.value || '').trim();
+                    if (!inputVal) return this.setMessage('Digite seu email ou usuário para receber o link.', 'error');
+                    let targetEmail = inputVal;
+                    if (this.client && inputVal) {
+                        try {
+                            const { data: usuario } = await this.client
+                                .from('usuarios')
+                                .select('email')
+                                .or(`username.eq.${inputVal},email.eq.${inputVal}`)
+                                .limit(1)
+                                .maybeSingle();
+                            if (usuario?.email) {
+                                targetEmail = usuario.email;
+                            }
+                        } catch (_) {}
+                    }
                     this.setMessage('Enviando link de recuperacao...');
-                    const { error } = await this.client.auth.resetPasswordForEmail(email, {
+                    const { error } = await this.client.auth.resetPasswordForEmail(targetEmail, {
                         redirectTo: window.location.origin + window.location.pathname + '?auth=recovery',
                     });
                     if (error) return this.setMessage(this.formatAuthError(error), 'error');
