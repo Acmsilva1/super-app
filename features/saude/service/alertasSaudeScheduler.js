@@ -44,7 +44,7 @@ async function sendAlert(config, { eventType, title, message, dedupeKey }) {
   const { error: claimError } = await client.from('tb_saude_alertas_envios').insert({
     created_by: config.ownerId, dedupe_key: dedupeKey, status: 'sending',
   });
-  if (claimError?.code === '23505') return;
+  if (claimError?.code === '23505') return false;
   if (claimError) throw new Error('alerts_claim_failed');
   try {
     const headers = { 'Content-Type': 'application/json', 'X-Alert-Token': config.token };
@@ -68,6 +68,7 @@ async function sendAlert(config, { eventType, title, message, dedupeKey }) {
       .update({ status: 'sent', telegram_message_id: payload.telegram_message_id, updated_at: new Date().toISOString() })
       .eq('created_by', config.ownerId).eq('dedupe_key', dedupeKey);
     if (error) throw new Error('alerts_delivery_record_failed');
+    return true;
   } catch (error) {
     const errorCode = SAFE_DELIVERY_ERRORS.has(error?.code)
       ? error.code
@@ -254,7 +255,7 @@ async function dispatchWaterForProfile(config, data, profile, date, time) {
   const key = `agua:${date}:${time}:${profile.id}`;
   const report = waterProfileReport(profile, data.goals.get(String(profile.id)), data.logs.get(String(profile.id)), date, time);
   try {
-    await sendAlert(config, { eventType: 'health.water_progress', title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key });
+    return Number(await sendAlert(config, { eventType: 'health.water_progress', title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key }));
   } catch (error) {
     throw error;
   }
@@ -264,7 +265,7 @@ async function dispatchDietForProfile(config, data, profile, diet, meal, date, t
   const key = `dieta:${date}:${time}:${profile.id}`;
   const report = dietProfileReport(profile, diet, meal, date, time);
   try {
-    await sendAlert(config, { eventType: 'health.diet_menu', title: `Cardapio ${meal.titulo} - ${profile.nome}`, message: formatDietAlert(report), dedupeKey: key });
+    return Number(await sendAlert(config, { eventType: 'health.diet_menu', title: `Cardapio ${meal.titulo} - ${profile.nome}`, message: formatDietAlert(report), dedupeKey: key }));
   } catch (error) {
     throw error;
   }
@@ -272,8 +273,9 @@ async function dispatchDietForProfile(config, data, profile, diet, meal, date, t
 
 async function dispatchCurrentSlot(config, value) {
   const { date, time } = saoPauloClock(value);
-  if (!['00', '30'].includes(time.slice(-2))) return [];
+  if (!['00', '30'].includes(time.slice(-2))) return { failures: [], alertsSent: 0 };
   const failures = [];
+  let alertsSent = 0;
   try {
     const data = await loadOwnedData(config, date);
     const defaults = normalizeAlertSchedule(DEFAULT_ALERT_SCHEDULE);
@@ -287,7 +289,7 @@ async function dispatchCurrentSlot(config, value) {
       if (schedule.agua_ativo && minuteOfDay >= waterStart && minuteOfDay <= waterEnd
         && (minuteOfDay - waterStart) % (schedule.agua_intervalo_horas * 60) === 0) {
         try {
-          await dispatchWaterForProfile(config, data, profile, date, time);
+          alertsSent += await dispatchWaterForProfile(config, data, profile, date, time);
         } catch (error) {
           failures.push(error);
         }
@@ -299,7 +301,7 @@ async function dispatchCurrentSlot(config, value) {
           : data.diets.get(profileKey) || null;
         if (meal && selectedDiet && String(selectedDiet.perfil_id) === profileKey) {
           try {
-            await dispatchDietForProfile(config, data, profile, selectedDiet, meal, date, time);
+            alertsSent += await dispatchDietForProfile(config, data, profile, selectedDiet, meal, date, time);
           } catch (error) {
             failures.push(error);
           }
@@ -309,7 +311,7 @@ async function dispatchCurrentSlot(config, value) {
   } catch (error) {
     throw error;
   }
-  return failures;
+  return { failures, alertsSent };
 }
 
 export async function runSaudeAlertSlot(now = new Date()) {
@@ -320,14 +322,17 @@ export async function runSaudeAlertSlot(now = new Date()) {
   const start = new Date(Math.floor(now.getTime() / 1800000) * 1800000);
   // A delayed trigger can recover the previous half-hour; keys persist in Supabase.
   const failures = [];
+  let alertsSent = 0;
   for (const slot of [new Date(start.getTime() - 1800000), start]) {
     try {
-      failures.push(...await dispatchCurrentSlot(config, slot));
+      const result = await dispatchCurrentSlot(config, slot);
+      alertsSent += result.alertsSent;
+      failures.push(...result.failures);
     } catch (error) {
       failures.push(error);
     }
   }
   // Continue processing the remaining profiles, then report failure to the trigger.
   if (failures.length) throw failures[0];
-  return { processed: true };
+  return { processed: true, alerts_sent: alertsSent };
 }

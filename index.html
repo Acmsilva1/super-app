@@ -8206,12 +8206,13 @@
                     </table>`;
                     const monitor = document.getElementById('adminHealthUser');
                     if (monitor) {
-                        const eligible = payload.users.filter((user) => user.is_admin || user.permissions.includes('saude'));
+                        const eligible = payload.users.filter((user) => user.is_admin || user.permissions.includes('saude') || user.has_saude_data);
                         const selected = monitor.value;
                         monitor.innerHTML = eligible.length
-                            ? eligible.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name || user.email || user.id)}${user.email && user.name ? ` · ${escapeHtml(user.email)}` : ''}</option>`).join('')
+                            ? `<option value="all">Todos os usuários de Saúde (${eligible.length})</option>${eligible.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name || user.email || user.id)}${user.email && user.name ? ` · ${escapeHtml(user.email)}` : ''}</option>`).join('')}`
                             : '<option value="">Nenhum usuário com acesso a Saúde</option>';
-                        if (eligible.some((user) => user.id === selected)) monitor.value = selected;
+                        if (selected && (selected === 'all' || eligible.some((user) => user.id === selected))) monitor.value = selected;
+                        else if (eligible.length) monitor.value = 'all';
                         if (monitor.value) await this.loadAdminHealthMonitor();
                     }
                 } catch (error) {
@@ -8235,24 +8236,27 @@
                     const response = await fetch(`/api/admin/usuarios?resource=saude_monitor&user_id=${encodeURIComponent(userId)}`, { cache: 'no-store' });
                     const payload = await response.json();
                     if (!response.ok) throw new Error(payload.error || 'Falha ao carregar os dados de Saúde.');
+                    const userLabelById = new Map([...select.options]
+                        .filter((option) => option.value && option.value !== 'all')
+                        .map((option) => [option.value, option.textContent.trim()]));
                     const profileName = new Map((payload.profiles || []).map((profile) => [String(profile.id), profile.nome]));
                     const dateTime = (value) => value ? new Date(value).toLocaleString('pt-BR') : '—';
                     const pretty = (value) => escapeHtml(JSON.stringify(value, null, 2));
                     const profileCards = (payload.profiles || []).map((profile) => {
                         const measures = (payload.measurements || []).filter((row) => Number(row.perfil_id) === Number(profile.id));
-                        const water = (payload.water_profiles || []).filter((row) => (payload.water_goals || []).some((goal) => Number(goal.perfil_id) === Number(row.id)));
-                        return `<article class="profile-admin-monitor-card"><h5>${escapeHtml(profile.nome)}</h5><p>${escapeHtml(profile.sexo)} · Nascimento: ${escapeHtml(profile.data_nascimento)} · ${escapeHtml(profile.peso_kg)} kg · ${escapeHtml(profile.altura_cm)} cm</p><p>Perfil criado: ${escapeHtml(dateTime(profile.created_at))} · Atualizado: ${escapeHtml(dateTime(profile.updated_at))}</p><p>${measures.length} registro(s) de medidas · ${water.length} perfil(is) de água</p><details><summary>Dados completos do perfil</summary><pre>${pretty(profile)}</pre></details><details><summary>Histórico de medidas (${measures.length})</summary><pre>${pretty(measures)}</pre></details></article>`;
+                        const water = (payload.water_profiles || []).filter((row) => row.created_by === profile.created_by && (payload.water_goals || []).some((goal) => Number(goal.perfil_id) === Number(row.id)));
+                        return `<article class="profile-admin-monitor-card"><h5>${escapeHtml(profile.nome)}</h5><p>Conta: ${escapeHtml(userLabelById.get(profile.created_by) || profile.created_by)}</p><p>${escapeHtml(profile.sexo)} · Nascimento: ${escapeHtml(profile.data_nascimento)} · ${escapeHtml(profile.peso_kg)} kg · ${escapeHtml(profile.altura_cm)} cm</p><p>Perfil criado: ${escapeHtml(dateTime(profile.created_at))} · Atualizado: ${escapeHtml(dateTime(profile.updated_at))}</p><p>${measures.length} registro(s) de medidas · ${water.length} perfil(is) de água</p><details><summary>Dados completos do perfil</summary><pre>${pretty(profile)}</pre></details><details><summary>Histórico de medidas (${measures.length})</summary><pre>${pretty(measures)}</pre></details></article>`;
                     }).join('');
-                    const eventRows = (payload.activity || []).map((event) => this.renderAdminHealthEvent(event, profileName)).join('');
-                    const dietCards = (payload.diets || []).map((diet) => `<details class="profile-admin-monitor-card"><summary>${escapeHtml(diet.titulo)} · ${escapeHtml(profileName.get(String(diet.perfil_id)) || 'Perfil')} · atualizada ${escapeHtml(dateTime(diet.updated_at))}</summary><pre>${pretty(diet)}</pre></details>`).join('');
+                    const eventRows = (payload.activity || []).map((event) => this.renderAdminHealthEvent(event, profileName, userLabelById)).join('');
+                    const dietCards = (payload.diets || []).map((diet) => `<details class="profile-admin-monitor-card"><summary>${escapeHtml(diet.titulo)} · ${escapeHtml(profileName.get(String(diet.perfil_id)) || 'Perfil')} · ${escapeHtml(userLabelById.get(diet.created_by) || diet.created_by || '')} · atualizada ${escapeHtml(dateTime(diet.updated_at))}</summary><pre>${pretty(diet)}</pre></details>`).join('');
                     const waterSummary = (payload.water_profiles || []).map((profile) => {
                         const goal = (payload.water_goals || []).find((row) => Number(row.perfil_id) === Number(profile.id));
                         const logs = (payload.water_logs || []).filter((row) => Number(row.perfil_id) === Number(profile.id));
-                        return `<article class="profile-admin-monitor-card"><h5>Água · ${escapeHtml(profile.nome)}</h5><p>Meta: ${goal ? `${escapeHtml(goal.meta_doses)} doses (${escapeHtml(goal.nome)})` : 'não configurada'} · ${logs.length} dia(s) no histórico</p>${logs.length ? `<pre>${pretty(logs)}</pre>` : ''}</article>`;
+                        return `<article class="profile-admin-monitor-card"><h5>Água · ${escapeHtml(profile.nome)}</h5><p>Conta: ${escapeHtml(userLabelById.get(profile.created_by) || profile.created_by)}</p><p>Meta: ${goal ? `${escapeHtml(goal.meta_doses)} doses (${escapeHtml(goal.nome)})` : 'não configurada'} · ${logs.length} dia(s) no histórico</p>${logs.length ? `<pre>${pretty(logs)}</pre>` : ''}</article>`;
                     }).join('');
-                    const scheduleCards = (payload.alert_schedules || []).map((schedule) => `<details class="profile-admin-monitor-card"><summary>Alertas · ${escapeHtml(profileName.get(String(schedule.perfil_id)) || schedule.perfil_id)}</summary><pre>${pretty(schedule)}</pre></details>`).join('');
+                    const scheduleCards = (payload.alert_schedules || []).map((schedule) => `<details class="profile-admin-monitor-card"><summary>Alertas · ${escapeHtml(profileName.get(String(schedule.perfil_id)) || schedule.perfil_id)} · ${escapeHtml(userLabelById.get(schedule.created_by) || schedule.created_by)}</summary><pre>${pretty(schedule)}</pre></details>`).join('');
                     const deliveryCards = (payload.alert_deliveries || []).map((delivery) => `<article class="profile-admin-monitor-card"><strong>${escapeHtml(delivery.status)}</strong><p>${escapeHtml(dateTime(delivery.created_at))} · confirmação Telegram: ${escapeHtml(delivery.telegram_message_id || 'sem confirmação')}</p><p>Motivo: ${escapeHtml(delivery.last_error || '—')}</p><p>${escapeHtml(delivery.dedupe_key)}</p></article>`).join('');
-                    const runCards = (payload.alert_runs || []).map((run) => `<article class="profile-admin-monitor-card"><strong>${escapeHtml(run.status)}</strong><p>${escapeHtml(dateTime(run.created_at))} · ${escapeHtml(run.error_code || 'sem erro reportado')}</p></article>`).join('');
+                    const runCards = (payload.alert_runs || []).map((run) => `<article class="profile-admin-monitor-card"><strong>${escapeHtml(run.status)}</strong><p>${escapeHtml(dateTime(run.created_at))} · ${escapeHtml(run.error_code || 'sem erro reportado')} · ${escapeHtml(run.alerts_sent ?? '—')} alerta(s) enviado(s)</p></article>`).join('');
                     const alertHistoryNote = payload.alert_delivery_history_ready
                         ? (deliveryCards || '<p>Nenhuma tentativa registrada para esta conta. Isso normalmente aponta para o workflow não ter disparado, alertas desativados, ou nenhum horário/perfil elegível.</p>')
                         : '<p>O histórico de entregas ainda não está instalado no banco.</p>';
@@ -8266,17 +8270,17 @@
                         ? `<button type="button" class="auth-secondary" data-admin-health-more data-before-time="${escapeHtml(payload.next_activity_cursor.time)}" data-before-id="${escapeHtml(payload.next_activity_cursor.id)}">Carregar eventos anteriores</button>`
                         : '';
                     content.innerHTML = `<h4>Perfis atuais (${payload.profiles.length})</h4>${profileCards || '<p>Nenhum perfil de Saúde cadastrado.</p>'}<h4>Dietas (${payload.diets.length})</h4>${dietCards || '<p>Nenhuma dieta cadastrada.</p>'}<h4>Consumo de água</h4>${waterSummary || '<p>Nenhum perfil de água cadastrado.</p>'}<h4>Agenda de alertas</h4>${scheduleCards || '<p>Nenhuma agenda configurada.</p>'}<h4>Execuções do agendador (${payload.alert_runs.length})</h4>${runHistoryNote}<h4>Entregas do Telegram para o proprietário (${payload.alert_deliveries.length})</h4>${alertHistoryNote}<h4>Atividade recente</h4><div id="adminHealthActivity">${activityNote}</div>${moreButton}`;
-                    message.textContent = `Dados carregados. ${payload.activity.length} evento(s) recente(s).`;
+                    message.textContent = `${payload.profiles.length} perfil(is) de Saúde encontrados em ${payload.monitored_user_ids.length} conta(s). ${payload.activity.length} evento(s) recente(s).`;
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao carregar os dados de Saúde.';
                 }
             }
-            renderAdminHealthEvent(event, profileNames = new Map()) {
+            renderAdminHealthEvent(event, profileNames = new Map(), userNames = new Map()) {
                 const row = event.new_data || event.old_data || {};
                 const profileId = row.perfil_id || row.id;
                 const title = profileNames.get(String(profileId)) || row.nome || row.titulo || row.data_local || row.perfil_id || 'Registro';
                 const action = { INSERT: 'Criou', UPDATE: 'Alterou', DELETE: 'Excluiu' }[event.operation] || event.operation;
-                return `<details class="profile-admin-activity"><summary><span>${escapeHtml(event.occurred_at ? new Date(event.occurred_at).toLocaleString('pt-BR') : '—')}</span><strong>${escapeHtml(action)} · ${escapeHtml(String(event.table_name || '').replace(/^tb_saude_/, ''))}</strong><span>${escapeHtml(title)}</span></summary><div class="profile-admin-activity-diff"><div><b>Antes</b><pre>${escapeHtml(JSON.stringify(event.old_data, null, 2))}</pre></div><div><b>Depois</b><pre>${escapeHtml(JSON.stringify(event.new_data, null, 2))}</pre></div></div></details>`;
+                return `<details class="profile-admin-activity"><summary><span>${escapeHtml(event.occurred_at ? new Date(event.occurred_at).toLocaleString('pt-BR') : '—')}</span><strong>${escapeHtml(action)} · ${escapeHtml(String(event.table_name || '').replace(/^tb_saude_/, ''))}</strong><span>${escapeHtml(title)} · ${escapeHtml(userNames.get(event.owner_user_id) || event.owner_user_id || '')}</span></summary><div class="profile-admin-activity-diff"><div><b>Antes</b><pre>${escapeHtml(JSON.stringify(event.old_data, null, 2))}</pre></div><div><b>Depois</b><pre>${escapeHtml(JSON.stringify(event.new_data, null, 2))}</pre></div></div></details>`;
             }
             async loadMoreAdminHealthActivity(button) {
                 button.disabled = true;

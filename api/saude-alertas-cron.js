@@ -13,11 +13,11 @@ async function startRun() {
   return null;
 }
 
-async function finishRun(runId, status, errorCode = null) {
+async function finishRun(runId, status, errorCode = null, alertsSent = 0) {
   if (!runId) return;
   try {
     const { supabase } = await import('../lib/supabase.js');
-    await supabase.from('tb_saude_alertas_runs').update({ status, error_code: errorCode }).eq('id', runId);
+    await supabase.from('tb_saude_alertas_runs').update({ status, error_code: errorCode, alerts_sent: alertsSent }).eq('id', runId);
   } catch {}
 }
 
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   const runId = await startRun();
   try {
     const result = await runSaudeAlertSlot();
-    await finishRun(runId, result.skipped ? 'skipped' : 'processed');
+    await finishRun(runId, result.skipped ? 'skipped' : 'processed', null, result.alerts_sent || 0);
     return res.status(200).json({ ok: true, ...result });
   } catch {
     await finishRun(runId, 'failed', 'scheduler_failed');
