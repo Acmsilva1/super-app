@@ -81,8 +81,11 @@ Em Settings → Secrets and variables → Actions:
   a Vercel e o banco. Sem essa variável o workflow permanece desativado.
 
 Token do Telegram, chat e chave do Supabase ficam exclusivamente na Vercel.
-O workflow aceita execução manual, mas envia alertas reais quando habilitado.
-Não executar para teste sem autorização para mensageria externa.
+O disparo automático exige `SAUDE_ALERTS_SCHEDULER_ENABLED=true`. Uma execução
+manual do workflow oferece `telegram_test` (padrão, envia duas mensagens
+fictícias com confirmação explícita no log) ou `scheduled` (processa somente
+horários devidos; pode enviar zero mensagens). A execução manual não depende da
+variável que habilita o cron automático.
 
 ## Validação e publicação
 
@@ -118,7 +121,7 @@ O painel administrativo agora mostra as execuções aceitas pelo endpoint, tenta
 
 ## Monitoramento administrativo de Saúde — 06/10/2026
 
-Em **Meu perfil → Administração → Acompanhamento do módulo Saúde**, a visualização abre em **Todos os usuários de Saúde**, com opção de filtrar por conta. Mostra perfis atuais, medições, dietas, água, agendas e eventos, identificando a conta dona dos registros. A API exige a mesma validação owner-only de `requireUser({ adminOnly: true })` e usa a chave service role exclusivamente no servidor.
+Em **Meu perfil → Administração → Acompanhamento do módulo Saúde**, a visualização abre em **Todos os usuários de Saúde**, com opção de filtrar por conta. A opção total lista os perfis diretamente da tabela, sem restringir por `created_by` ou pela permissão do módulo; as demais informações identificam a conta dona dos registros. A API exige a mesma validação owner-only de `requireUser({ adminOnly: true })` e usa a chave service role exclusivamente no servidor.
 
 Antes de usar o histórico, aplicar `migration/20261006_saude_admin_activity_audit.sql` depois das migrations de alertas e tabelas do módulo Saúde. Os triggers registram snapshots de INSERT, UPDATE e DELETE de perfis, medidas, dietas, metas e logs de água e agendas. Se essa migration já tiver sido executada, aplicar também `migration/20261006_saude_alertas_runs_running.sql` para habilitar o estado de execução em andamento usado pela versão atual do cron. O histórico começa na instalação da auditoria; ele não consegue reconstruir alterações anteriores. O painel pagina os eventos anteriores. A tabela de auditoria nega acesso a `anon` e `authenticated`; somente service role acessa via endpoint administrativo.
 

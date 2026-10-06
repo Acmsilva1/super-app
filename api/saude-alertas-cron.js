@@ -1,5 +1,6 @@
 import { isCronAuthorized } from '../lib/cronAuth.js';
 import { runSaudeAlertSlot } from '../features/saude/service/alertasSaudeScheduler.js';
+import { runTelegramManualTest } from '../lib/telegramManualTest.js';
 
 async function startRun() {
   try {
@@ -28,6 +29,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
   if (!isCronAuthorized(req)) return res.status(401).json({ error: 'Não autorizado.' });
+  if (req.query?.mode === 'telegram_test') {
+    const result = await runTelegramManualTest();
+    return res.status(result.status).json(result.body);
+  }
   const runId = await startRun();
   try {
     const result = await runSaudeAlertSlot();

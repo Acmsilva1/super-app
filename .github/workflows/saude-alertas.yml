@@ -3,6 +3,15 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Teste envia duas mensagens fictícias; agendador só processa horários devidos'
+        required: true
+        type: choice
+        default: telegram_test
+        options:
+          - telegram_test
+          - scheduled
 permissions:
   contents: read
 concurrency:
@@ -10,15 +19,16 @@ concurrency:
   cancel-in-progress: false
 jobs:
   trigger:
-    if: vars.SAUDE_ALERTS_SCHEDULER_ENABLED == 'true'
+    if: github.event_name == 'workflow_dispatch' || vars.SAUDE_ALERTS_SCHEDULER_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
-      - name: Executar agendamentos na Vercel
+      - name: Executar alertas ou teste Telegram na Vercel
         env:
           SUPERAPP_URL: ${{ vars.SUPERAPP_URL || 'https://super-app-zeta-virid.vercel.app' }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          RUN_MODE: ${{ inputs.mode || 'scheduled' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -30,7 +40,7 @@ jobs:
           if [[ -n "$VERCEL_AUTOMATION_BYPASS_SECRET" ]]; then
             headers+=(-H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET")
           fi
-          result=$(curl --silent --show-error --max-time 170 --write-out $'\n%{http_code}' "${headers[@]}" "${SUPERAPP_URL%/}/api/saude-alertas-cron")
+          result=$(curl --silent --show-error --max-time 170 --write-out $'\n%{http_code}' "${headers[@]}" "${SUPERAPP_URL%/}/api/saude-alertas-cron?mode=${RUN_MODE}")
           http_status="${result##*$'\n'}"
           body="${result%$'\n'*}"
-          RESULT="$body" HTTP_STATUS="$http_status" python3 -c 'import json, os; data=json.loads(os.environ["RESULT"]); print("HTTP " + os.environ["HTTP_STATUS"] + ": " + json.dumps(data, ensure_ascii=False)); assert os.environ["HTTP_STATUS"] == "200" and data.get("ok") and data.get("processed"), "Agendador desativado ou configuracao incompleta"'
+          RESULT="$body" HTTP_STATUS="$http_status" RUN_MODE="$RUN_MODE" python3 -c 'import json, os; data=json.loads(os.environ["RESULT"]); print("HTTP " + os.environ["HTTP_STATUS"] + ": " + json.dumps(data, ensure_ascii=False)); success = data.get("sent") == 2 if os.environ["RUN_MODE"] == "telegram_test" else data.get("processed"); assert os.environ["HTTP_STATUS"] == "200" and data.get("ok") and success, "Teste Telegram sem confirmação ou agendador sem processamento"'
