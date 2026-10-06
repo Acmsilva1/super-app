@@ -311,32 +311,34 @@ function waterResult(config, today, history, storage, profiles = null, profileId
   };
 }
 
-async function loadSaudeProfilesForWater(userId) {
+async function loadSaudeProfilesForWater(userId, includeAllUsers = false) {
   if (isOfflineMode()) {
     return {
       rows: offlineProfiles
-        .filter((row) => row.created_by === userId)
+        .filter((row) => includeAllUsers || row.created_by === userId)
         .map((row) => ({ id: row.id, nome: row.nome })),
       storage: 'memory',
     };
   }
   const { supabase } = await import('../lib/supabase.js');
-  const { data, error } = await supabase.from(TABELA_PERFIS)
-    .select('id,nome').eq('created_by', userId).order('created_at', { ascending: true });
+  let query = supabase.from(TABELA_PERFIS).select('id,nome').order('created_at', { ascending: true });
+  if (!includeAllUsers) query = query.eq('created_by', userId);
+  const { data, error } = await query;
   return error ? { error } : { rows: data || [], storage: 'supabase' };
 }
 
-async function requireSaudeProfileForWater(userId, profileId) {
+async function requireSaudeProfileForWater(userId, profileId, isAdmin = false) {
   const id = parseId(profileId);
   if (!id) return { invalid: true };
   if (isOfflineMode()) {
-    const profile = offlineProfiles.find((row) => Number(row.id) === id && row.created_by === userId);
+    const profile = offlineProfiles.find((row) => Number(row.id) === id && (isAdmin || row.created_by === userId));
     if (!profile) return { notFound: true };
     return { profile: { id: profile.id, nome: profile.nome }, storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
-  const { data, error, status, statusText } = await supabase.from(TABELA_PERFIS)
-    .select('id,nome').eq('id', id).eq('created_by', userId).maybeSingle();
+  let query = supabase.from(TABELA_PERFIS).select('id,nome').eq('id', id);
+  if (!isAdmin) query = query.eq('created_by', userId);
+  const { data, error, status, statusText } = await query.maybeSingle();
   if (error) return { error, status, statusText };
   if (!data) return { notFound: true };
   return { profile: data, storage: 'supabase' };
@@ -361,14 +363,14 @@ async function deleteWaterGoal(profileId, userId) {
   return loadWater(userId, profileId);
 }
 
-async function loadWater(userId, requestedProfileId = null, { includeProfiles = true } = {}) {
+async function loadWater(userId, requestedProfileId = null, { includeProfiles = true, isAdmin = false } = {}) {
   const today = dateInSaoPaulo(new Date());
-  const profileResult = includeProfiles ? await loadSaudeProfilesForWater(userId) : null;
+  const profileResult = includeProfiles ? await loadSaudeProfilesForWater(userId, isAdmin) : null;
   if (profileResult?.error) return profileResult;
   const profiles = profileResult?.rows || null;
   let profileId = parseId(requestedProfileId);
   if (requestedProfileId != null) {
-    const owned = await requireSaudeProfileForWater(userId, requestedProfileId);
+    const owned = await requireSaudeProfileForWater(userId, requestedProfileId, isAdmin);
     if (owned.error) return owned;
     if (owned.invalid) return { invalidProfile: true };
     if (owned.notFound) return { notFound: true };
@@ -378,10 +380,13 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
   }
   if (!profileId) return waterResult(null, null, [], profileResult?.storage || 'supabase', profiles, null);
   if (isOfflineMode()) {
-    const config = offlineWaterGoals.get(`${userId}:${profileId}`) || null;
+    const config = offlineWaterGoals.get(`${userId}:${profileId}`)
+      || (isAdmin ? [...offlineWaterGoals.entries()].find(([key]) => key.endsWith(`:${profileId}`))?.[1] : null)
+      || null;
     if (!config) return waterResult(null, null, [], 'memory', profiles, profileId);
-    let todayRow = offlineWaterLogs.find((row) => row.created_by === userId && Number(row.perfil_id) === Number(profileId) && row.data_local === today);
-    if (!todayRow) {
+    let todayRow = offlineWaterLogs.find((row) => Number(row.perfil_id) === Number(profileId)
+      && (isAdmin || row.created_by === userId) && row.data_local === today);
+    if (!todayRow && !isAdmin) {
       todayRow = {
         id: Math.max(0, ...offlineWaterLogs.map((row) => Number(row.id) || 0)) + 1,
         created_by: userId,
@@ -393,29 +398,34 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
       offlineWaterLogs.push(todayRow);
     }
     const history = offlineWaterLogs
-      .filter((row) => row.created_by === userId && Number(row.perfil_id) === Number(profileId) && row.data_local < today)
+      .filter((row) => (isAdmin || row.created_by === userId) && Number(row.perfil_id) === Number(profileId) && row.data_local < today)
       .sort((a, b) => b.data_local.localeCompare(a.data_local))
       .slice(0, 90);
     return waterResult(config, todayRow, history, 'memory', profiles, profileId);
   }
 
   const { supabase } = await import('../lib/supabase.js');
-  const configRequest = supabase.from(TABELA_AGUA_METAS)
-    .select('nome,meta_doses').eq('created_by', userId).eq('perfil_id', profileId).maybeSingle();
-  const todayRequest = supabase.from(TABELA_AGUA_LOGS)
-    .select('id,data_local,meta_doses,realizado_doses')
-    .eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).maybeSingle();
-  const historyRequest = supabase.from(TABELA_AGUA_LOGS)
-    .select('id,data_local,meta_doses,realizado_doses')
-    .eq('created_by', userId).eq('perfil_id', profileId).lt('data_local', today)
+  let configRequest = supabase.from(TABELA_AGUA_METAS)
+    .select('nome,meta_doses').eq('perfil_id', profileId);
+  let todayRequest = supabase.from(TABELA_AGUA_LOGS)
+    .select('id,data_local,meta_doses,realizado_doses').eq('perfil_id', profileId).eq('data_local', today);
+  let historyRequest = supabase.from(TABELA_AGUA_LOGS)
+    .select('id,data_local,meta_doses,realizado_doses').eq('perfil_id', profileId).lt('data_local', today)
     .order('data_local', { ascending: false }).limit(90);
+  if (!isAdmin) {
+    configRequest = configRequest.eq('created_by', userId);
+    todayRequest = todayRequest.eq('created_by', userId);
+    historyRequest = historyRequest.eq('created_by', userId);
+  }
+  configRequest = configRequest.maybeSingle();
+  todayRequest = todayRequest.maybeSingle();
   const [configResult, todayResult, historyResult] = await Promise.all([configRequest, todayRequest, historyRequest]);
   const { data: config, error: configError } = configResult;
   if (configError) return { error: configError };
   if (!config) return waterResult(null, null, [], 'supabase', profiles, profileId);
   let { data: todayRow, error: todayError } = todayResult;
   if (todayError) return { error: todayError };
-  if (!todayRow) {
+  if (!todayRow && !isAdmin) {
     const { data: inserted, error: insertError } = await supabase.from(TABELA_AGUA_LOGS).insert({
       created_by: userId, perfil_id: profileId, data_local: today,
       meta_doses: config.meta_doses, realizado_doses: 0,
@@ -507,17 +517,20 @@ async function updateWaterProgress(payload, userId) {
   };
 }
 
-async function loadAlertSchedule(profileId, userId) {
-  const owned = await requireSaudeProfileForWater(userId, profileId);
+async function loadAlertSchedule(profileId, userId, isAdmin = false) {
+  const owned = await requireSaudeProfileForWater(userId, profileId, isAdmin);
   if (owned.error || owned.notFound || owned.invalid) return owned;
   if (isOfflineMode()) {
-    const row = offlineAlertSchedules.get(`${userId}:${profileId}`) || null;
+    const row = offlineAlertSchedules.get(`${userId}:${profileId}`)
+      || (isAdmin ? [...offlineAlertSchedules.entries()].find(([key]) => key.endsWith(`:${profileId}`))?.[1] : null)
+      || null;
     return { row: normalizeAlertSchedule(row), storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
-  const { data, error } = await supabase.from(TABELA_ALERTAS_AGENDA)
-    .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id,updated_at')
-    .eq('perfil_id', profileId).eq('created_by', userId).maybeSingle();
+  let query = supabase.from(TABELA_ALERTAS_AGENDA)
+    .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id,updated_at').eq('perfil_id', profileId);
+  if (!isAdmin) query = query.eq('created_by', userId);
+  const { data, error } = await query.maybeSingle();
   if (error) return { error };
   return { row: normalizeAlertSchedule(data), storage: 'supabase', updated_at: data?.updated_at || null };
 }
@@ -963,7 +976,10 @@ export default async function handler(req, res) {
     if (req.query?.resource === RESOURCE_ALERTAS_AGENDA) {
       const profileId = parseId(req.query?.profile_id);
       if (!profileId) return json(res, 400, { error: 'Perfil invalido.' });
-      const result = await loadAlertSchedule(profileId, auth.user.id);
+      if (auth.isAdmin && !isOfflineMode() && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return json(res, 503, { error: 'A leitura master de Saúde requer SUPABASE_SERVICE_ROLE_KEY no servidor.' });
+      }
+      const result = await loadAlertSchedule(profileId, auth.user.id, auth.isAdmin);
       if (result.error) return json(res, 500, { error: 'Nao foi possivel carregar os agendamentos.' });
       if (result.notFound || result.invalid) return json(res, 404, { error: 'Perfil de saude nao encontrado.' });
       return json(res, 200, { resource: RESOURCE_ALERTAS_AGENDA, ...result });
@@ -1010,7 +1026,12 @@ export default async function handler(req, res) {
     if (req.query?.resource === RESOURCE_CONSUMO_AGUA) {
       const requestedProfileId = req.query?.profile_id == null ? null : parseId(req.query.profile_id);
       if (req.query?.profile_id != null && !requestedProfileId) return json(res, 400, { error: 'Perfil invalido.' });
-      const result = await loadWater(auth.user.id, requestedProfileId, { includeProfiles: req.query?.include_profiles !== '0' });
+      if (auth.isAdmin && !isOfflineMode() && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return json(res, 503, { error: 'A leitura master de Saúde requer SUPABASE_SERVICE_ROLE_KEY no servidor.' });
+      }
+      const result = await loadWater(auth.user.id, requestedProfileId, {
+        includeProfiles: req.query?.include_profiles !== '0', isAdmin: auth.isAdmin,
+      });
       if (result.error) return json(res, 500, { error: result.error.message });
       if (result.notFound) return json(res, 404, { error: 'Perfil de saude nao encontrado.' });
       if (result.invalidProfile) return json(res, 400, { error: 'Perfil invalido.' });
