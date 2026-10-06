@@ -23,7 +23,6 @@ export {
   rowMatchesReplicationSlot,
   buildInsertPayloadFromSlot,
   createdAtForMesAno,
-  dataVencimentoForMesAno,
 } from './service/despesaFixaReplication.js';
 
 export {

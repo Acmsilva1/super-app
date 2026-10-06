@@ -210,18 +210,6 @@ function parseBooleanFlag(value) {
   return value === true || value === 'true' || value === 1 || value === '1';
 }
 
-function parseDataVencimento(value) {
-  if (value === undefined || value === null) return { data_vencimento: null };
-  const date = String(value).trim();
-  if (!date) return { data_vencimento: null };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: 'data_vencimento invalida' };
-  const parsed = new Date(`${date}T00:00:00.000Z`);
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
-    return { error: 'data_vencimento invalida' };
-  }
-  return { data_vencimento: date };
-}
-
 export function payloadInsertFinanceiro(body = {}) {
   const tipoRegistro = inferTipoRegistro(body);
   if (!tipoRegistro) return { error: 'tipo_registro obrigatorio' };
@@ -232,8 +220,6 @@ export function payloadInsertFinanceiro(body = {}) {
     if ('error' in exclusividade) return { error: exclusividade.error };
     const par = parcelasDespesaFixaFromBody(body);
     if ('error' in par) return { error: par.error };
-    const vencimento = parseDataVencimento(body.data_vencimento);
-    if ('error' in vencimento) return { error: vencimento.error };
     const pendenteMes = parseBooleanFlag(body.pendente_mes);
     return {
       tipo_registro: tipoRegistro,
@@ -245,7 +231,6 @@ export function payloadInsertFinanceiro(body = {}) {
         parcela_atual: par.parcela_atual,
         parcela_total: par.parcela_total,
         conta_fixa: exclusividade.contaFixa,
-        data_vencimento: vencimento.data_vencimento,
         ...(body.serie_id !== undefined ? { serie_id: String(body.serie_id || '').trim() || null } : {}),
         ...(body.created_at !== undefined ? { created_at: String(body.created_at || '').trim() || null } : {}),
       },
@@ -335,11 +320,6 @@ export function payloadUpdateFinanceiro(body = {}) {
     const exclusividade = validateExclusividadeContaFixaParcelas(body);
     if ('error' in exclusividade) return { error: exclusividade.error };
     const out = {};
-    if (body.data_vencimento !== undefined) {
-      const vencimento = parseDataVencimento(body.data_vencimento);
-      if ('error' in vencimento) return { error: vencimento.error };
-      out.data_vencimento = vencimento.data_vencimento;
-    }
     if (body.descricao !== undefined) out.descricao = String(body.descricao).trim();
     if (body.valor !== undefined) out.valor = Math.round((Number(body.valor) || 0) * 100) / 100;
     if (body.status !== undefined) {
