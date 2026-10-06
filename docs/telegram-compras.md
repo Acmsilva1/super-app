@@ -1,8 +1,8 @@
 # Compras pelo Telegram
 
-Versão sem IA: lugar, valor e pagamento, nessa ordem, separados por vírgula; somente débito/Pix, data de hoje e categoria Outros. Compras entram em `tb_financas` no usuário administrativo definido por `SAUDE_ALERTS_OWNER_USER_ID`. Não grava contas fixas ou compras no crédito. Não altera o cron de alertas.
+Versão sem IA: descrição e valor, nessa ordem, separados por vírgula; pagamento sempre débito, data de hoje e categoria Outros. Compras entram em `tb_financas` no usuário administrativo definido por `SAUDE_ALERTS_OWNER_USER_ID`. Não grava contas fixas ou compras no crédito. Não altera o cron de alertas. O método interno `debito_pix` corresponde ao agrupamento já usado pelo Financeiro; não altera o contrato do banco.
 
-Exemplos: `Almoço, 15, débito` e `Supermercado, 30,50, pix`. Não usar separador de milhar no valor nem vírgula no nome do lugar. O formato anterior com campos identificados continua aceito.
+Exemplos: `Almoço, 15` e `Supermercado, 30,50`. Não usar separador de milhar no valor nem vírgula na descrição. Formatos anteriores com três campos ou cabeçalhos não são mais aceitos. Não incluir crédito ou parcelas.
 
 O bot envia resumo e botões Confirmar/Cancelar. A confirmação expira após 15 minutos. O banco confirma e insere numa única transação, impedindo duplicação por clique ou reentrega. Somente o chat privado positivo configurado em `TELEGRAM_CHAT_ID` e seu titular podem usar. Grupos e mensagens encaminhadas são rejeitados.
 

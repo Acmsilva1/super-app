@@ -7821,7 +7821,7 @@
                             <p id="adminAlertsMessage" role="status" class="profile-admin-message"></p>
                             <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia duas mensagens fictícias: água e dieta. Seus agendamentos e dados não serão alterados.</p></div><button type="button" class="auth-secondary" id="adminTelegramTest">Testar Telegram</button></div>
                             <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
-                            <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Ative o recebimento de compras no chat privado do bot. Débito e Pix, com confirmação antes de salvar.</p></div><button type="button" class="auth-secondary" id="adminTelegramWebhook">Ativar compras pelo Telegram</button></div>
+                            <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie descrição e valor no chat privado do bot. Sempre débito, com confirmação antes de salvar.</p></div><button type="button" class="auth-secondary" id="adminTelegramWebhook">Ativar compras pelo Telegram</button></div>
                             <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                             <div id="adminAlertsContent"></div>
                         </div>
@@ -8172,7 +8172,7 @@
                     });
                     const payload = await response.json();
                     if (!response.ok || !payload.ok) throw new Error(payload.error || 'Não foi possível ativar.');
-                    message.textContent = '✅ Recebimento cadastrado. Envie ao bot: Supermercado, 30,50, débito. Confira o resumo antes de confirmar uma compra real.';
+                    message.textContent = '✅ Recebimento cadastrado. Envie ao bot: Supermercado, 30,50. O lançamento será no débito. Confira o resumo antes de confirmar uma compra real.';
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao ativar o recebimento.';
                 } finally {
