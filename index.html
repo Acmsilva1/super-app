@@ -9574,6 +9574,7 @@
                     const tags = [
                         hasParcelas ? `<span class="fin-tag">Parcela ${escapeHtml(String(pa))} de ${escapeHtml(String(pt))}</span>` : '',
                         !hasParcelas && isContaFixa ? '<span class="fin-tag">Conta fixa</span>' : '',
+                        r.data_vencimento ? `<span class="fin-tag">Vence ${escapeHtml(fmtDataBr(String(r.data_vencimento).slice(0, 10)))}</span>` : '',
                         pendenteMes ? '<span class="fin-tag fin-tag--neg">Pendente no mês</span>' : '',
                     ].join('');
                     return `<li class="fin-entry">
@@ -10076,6 +10077,7 @@
                                 </div>
                                 <div class="field" id="financeiro-parcela-atual-field" style="display:none;"><label><span class="finance-emoji finance-emoji--tilt" aria-hidden="true">1️⃣</span>Parcela atual</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-atual" value="${parcelasCheckedInit ? String(parcelaAtualInit) : ''}" placeholder="Ex.: 1" /></div>
                                 <div class="field" id="financeiro-parcela-total-field" style="display:none;"><label><span class="finance-emoji finance-emoji--tilt" aria-hidden="true">🔢</span>Total de parcelas</label><input type="number" min="1" step="1" id="financeiro-modal-parcela-total" value="${parcelasCheckedInit ? String(parcelaTotalInit) : ''}" placeholder="Ex.: 12" /></div>
+                                <div class="field" id="financeiro-vencimento-wrap" style="display:none;"><label for="financeiro-modal-vencimento"><span class="finance-emoji finance-emoji--float" aria-hidden="true">📅</span>Data de vencimento</label><input type="date" id="financeiro-modal-vencimento" value="${escapeHtml(String(item?.data_vencimento || '').slice(0, 10))}" /></div>
                                 <div class="field" id="financeiro-data-wrap"><label><span class="finance-emoji finance-emoji--float" aria-hidden="true">📅</span>Data e hora do lançamento</label><input type="datetime-local" id="financeiro-modal-data" value="${escapeHtml(initialDateTime)}" /></div>
                             </div>
                         </div>
@@ -10104,6 +10106,8 @@
                 const parcelaAtualField = overlay.querySelector('#financeiro-parcela-atual-field');
                 const parcelaTotalField = overlay.querySelector('#financeiro-parcela-total-field');
                 const parcelasCb = overlay.querySelector('#financeiro-modal-parcelas');
+                const vencimentoWrap = overlay.querySelector('#financeiro-vencimento-wrap');
+                const vencimentoEl = overlay.querySelector('#financeiro-modal-vencimento');
                 const categoriaPayload = (tipo) => {
                     if (tipo !== 'gasto_variado' && tipo !== 'receita') return null;
                     if (item?.categoria && item?.tipo_registro === tipo) return item.categoria;
@@ -10166,6 +10170,7 @@
                     if (tipo === 'despesa_fixa') {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = '';
+                        if (vencimentoWrap) vencimentoWrap.style.display = '';
                         if (metodoWrap) metodoWrap.style.display = 'none';
                         dataWrap.style.display = 'none';
                         const mr = mesForBounds();
@@ -10173,6 +10178,7 @@
                     } else if (tipo === 'poupanca') {
                         if (descricaoWrap) descricaoWrap.style.display = 'none';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
+                        if (vencimentoWrap) vencimentoWrap.style.display = 'none';
                         if (metodoWrap) metodoWrap.style.display = 'none';
                         if (descricaoEl && !descricaoEl.value) descricaoEl.value = 'Poupança';
                         dataWrap.style.display = 'none';
@@ -10180,6 +10186,7 @@
                     } else {
                         if (descricaoWrap) descricaoWrap.style.display = '';
                         if (mesRefWrap) mesRefWrap.style.display = tipo === 'receita' ? '' : 'none';
+                        if (vencimentoWrap) vencimentoWrap.style.display = 'none';
                         if (metodoWrap) metodoWrap.style.display = 'none';
                         dataWrap.style.display = showDateTime ? '' : 'none';
                         if (contextoEl) {
@@ -10248,6 +10255,7 @@
                         parcela_total: null,
                     };
                     if (tipoVal === 'despesa_fixa') {
+                        payload.data_vencimento = String(vencimentoEl?.value || '').trim() || null;
                         payload.conta_fixa = !!(contaFixaCb && contaFixaCb.checked);
                         payload.parcelas = !!(parcelasCb && parcelasCb.checked);
                         if (payload.parcelas) {
@@ -10317,6 +10325,7 @@
                     requestBody.data_lancamento = dataLanc;
                 }
                 if (tipoRegistro === 'despesa_fixa') {
+                    requestBody.data_vencimento = payload?.data_vencimento ?? null;
                     requestBody.conta_fixa = !!payload?.conta_fixa;
                     requestBody.parcelas = !!payload?.parcelas;
                     if (requestBody.parcelas) {

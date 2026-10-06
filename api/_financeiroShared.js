@@ -25,6 +25,7 @@ import {
   rowMatchesReplicationSlot,
   buildInsertPayloadFromSlot,
   createdAtForMesAno,
+  dataVencimentoForMesAno,
 } from '../features/financeiro/index.js';
 import crypto from 'node:crypto';
 
@@ -322,6 +323,7 @@ function buildDespesaFixaInsertPayloads(basePayload, mesAno) {
     conta_fixa: slot.conta_fixa === true,
     parcela_atual: slot.parcela_atual,
     parcela_total: slot.parcela_total,
+    data_vencimento: dataVencimentoForMesAno(basePayload.data_vencimento, slot.mes_ano),
     serie_id: slot.serie_id || serieId || null,
     created_at: createdAtForMesAno(slot.mes_ano, basePayload.created_at || null),
   }));
@@ -466,7 +468,7 @@ async function cleanupFutureContaFixa(row, context = {}) {
   if (delErr) throw delErr;
 }
 
-const DESPESA_FIXA_SERIES_COLUMNS = 'descricao, valor, status, conta_fixa, parcela_atual, parcela_total, serie_id, created_at';
+const DESPESA_FIXA_SERIES_COLUMNS = 'descricao, valor, status, conta_fixa, parcela_atual, parcela_total, serie_id, data_vencimento, created_at';
 
 function rangeDiasMes(ano, mes) {
   const lastDay = new Date(ano, mes, 0).getDate();
@@ -483,7 +485,7 @@ function periodOrFilter({ dayStart, dayEnd, start, end }) {
 
 const FINANCEIRO_PAGE_SIZE = 50;
 const FINANCAS_LIST_COLUMNS = 'id,descricao,valor,tipo,tipo_gasto,metodo_pagamento,categoria,data_lancamento,created_at';
-const FIXAS_LIST_COLUMNS = 'id,descricao,valor,status,pendente_mes,conta_fixa,parcela_atual,parcela_total,serie_id,created_at';
+const FIXAS_LIST_COLUMNS = 'id,descricao,valor,status,pendente_mes,conta_fixa,parcela_atual,parcela_total,serie_id,data_vencimento,created_at';
 const POUPANCA_LIST_COLUMNS = 'id,descricao,valor,motivo_resgate,data_lancamento,created_at';
 
 function normalizeFinanceiroSection(value) {
@@ -1009,5 +1011,3 @@ export async function removerRegistroFinanceiro(req, context = {}) {
 
   return { status: 200, data: { ok: true } };
 }
-
-

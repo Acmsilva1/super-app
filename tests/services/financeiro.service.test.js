@@ -125,6 +125,28 @@ describe('financeiroService', () => {
     expect(upd.payload.created_at).toBe('2026-05-29T08:15:00.000Z');
   });
 
+  it('valida e permite limpar a data de vencimento de despesas fixas', () => {
+    const insert = payloadInsertFinanceiro({
+      tipo_registro: 'despesa_fixa',
+      descricao: 'Internet',
+      data_vencimento: '2026-05-10',
+    });
+    expect(insert.error).toBeUndefined();
+    expect(insert.payload.data_vencimento).toBe('2026-05-10');
+
+    expect(payloadInsertFinanceiro({
+      tipo_registro: 'despesa_fixa',
+      descricao: 'Internet',
+      data_vencimento: '2026-02-30',
+    }).error).toMatch(/data_vencimento/i);
+
+    expect(payloadUpdateFinanceiro({
+      id: 'df-1',
+      tipo_registro: 'despesa_fixa',
+      data_vencimento: '',
+    }).payload.data_vencimento).toBeNull();
+  });
+
   it('valida valor, motivo e data do resgate da poupanca', () => {
     expect(payloadResgatePoupanca({
       valor: 150.456,

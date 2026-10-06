@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildReplicationSlotsFromStart,
+  buildInsertPayloadFromSlot,
   seriesDefinitionsFromYearRows,
   slotsNeededForMonth,
   rowMatchesReplicationSlot,
@@ -86,6 +87,23 @@ describe('seriesDefinitionsFromYearRows + slotsNeededForMonth', () => {
       parcela_total: null,
       serie_id: null,
     }]);
+  });
+
+  it('replica o vencimento no mês de cada parcela e limita ao último dia do mês', () => {
+    const series = seriesDefinitionsFromYearRows([{
+      descricao: 'Internet',
+      valor: 100,
+      parcela_atual: 1,
+      parcela_total: 3,
+      data_vencimento: '2024-01-31',
+      created_at: '2024-01-01T12:00:00.000Z',
+    }])[0];
+    const slot = slotsNeededForMonth(series, '2024-02')[0];
+
+    expect(buildInsertPayloadFromSlot(series, slot)).toMatchObject({
+      data_vencimento: '2024-02-29',
+      parcela_atual: 2,
+    });
   });
 });
 
