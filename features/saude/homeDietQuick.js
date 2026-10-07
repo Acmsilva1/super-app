@@ -1,4 +1,5 @@
 import { countDietItems, normalizeDietMeals } from './service/dietasService.js';
+import { DIET_NUTRITION_STYLES, renderDietFoodDetails, renderDietNutritionTotal } from './dietNutritionView.js';
 
 const STYLE_ID = 'home-diet-quick-styles-v1';
 export const HOME_DIET_LAST_PROFILE_KEY = 'superapp:home-diet-quick:last-profile-id';
@@ -78,6 +79,7 @@ function ensureStyles() {
     document.head.appendChild(style);
   }
   style.textContent = `
+    ${DIET_NUTRITION_STYLES}
     .home-diet-quick-overlay { position: fixed; inset: 0; z-index: 1300; display: grid; place-items: end center; padding: max(.65rem, env(safe-area-inset-top)) .65rem max(.65rem, env(safe-area-inset-bottom)); background: rgba(2, 6, 23, .78); backdrop-filter: blur(5px); cursor: pointer; }
     @media (min-width: 520px) { .home-diet-quick-overlay { place-items: center; padding: 1rem; } }
     .home-diet-quick-modal { width: min(100%, 36rem); max-height: min(90dvh, 48rem); overflow: auto; padding: 1rem; border: 1px solid rgba(74, 164, 85, .42); border-radius: 1.1rem; background: radial-gradient(circle at 15% 0%, rgba(50, 119, 70, .18), transparent 18rem), #0f172a; color: #e5eef5; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); font-family: Montserrat, Arial, sans-serif; cursor: default; }
@@ -168,13 +170,13 @@ function renderDietDetail(state) {
   if (!diet) return '<p class="home-diet-quick-notice home-diet-quick-notice--error">A dieta selecionada não está disponível.</p>';
   const meals = normalizeDietMeals(diet.refeicoes).filter((meal) => meal.itens.length);
   const content = meals.length
-    ? `<div class="home-diet-quick-meals">${meals.map((meal) => `<section class="home-diet-quick-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="home-diet-quick-item"><strong>${escapeHtml(item.nome)} — ${escapeHtml(item.quantidade)}${item.calorias == null ? '' : ` · ${escapeHtml(item.calorias)} kcal`}</strong>${item.observacao ? `<p>${escapeHtml(item.observacao)}</p>` : ''}</div>`).join('')}</section>`).join('')}</div>`
+    ? `<div class="home-diet-quick-meals">${meals.map((meal) => `<section class="home-diet-quick-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="home-diet-quick-item">${renderDietFoodDetails(item)}</div>`).join('')}</section>`).join('')}</div>`
     : '<p class="home-diet-quick-notice">Esta dieta ainda não possui alimentos cadastrados.</p>';
   const calorieGoal = Number(diet.meta_calorias);
   const calorieSummary = Number.isInteger(calorieGoal) && calorieGoal > 0
     ? `<p class="home-diet-quick-observation"><strong>Meta diária:</strong> ${escapeHtml(calorieGoal)} kcal</p>`
     : '';
-  return `${content}${calorieSummary}${diet.observacoes ? `<p class="home-diet-quick-observation"><strong>Observações:</strong><br>${escapeHtml(diet.observacoes)}</p>` : ''}<div class="home-diet-quick-actions">${state.diets.length > 1 ? '<button type="button" class="home-diet-quick-btn" data-action="back-to-diets">Outras dietas</button>' : '<button type="button" class="home-diet-quick-btn" data-action="change-profile">Trocar perfil</button>'}${typeof state.launchSaude === 'function' ? '<button type="button" class="home-diet-quick-btn home-diet-quick-btn--primary" data-action="open-saude">Editar em Saúde</button>' : ''}</div>`;
+  return `${content}${renderDietNutritionTotal(diet) || calorieSummary}${diet.observacoes ? `<p class="home-diet-quick-observation"><strong>Observações:</strong><br>${escapeHtml(diet.observacoes)}</p>` : ''}<div class="home-diet-quick-actions">${state.diets.length > 1 ? '<button type="button" class="home-diet-quick-btn" data-action="back-to-diets">Outras dietas</button>' : '<button type="button" class="home-diet-quick-btn" data-action="change-profile">Trocar perfil</button>'}${typeof state.launchSaude === 'function' ? '<button type="button" class="home-diet-quick-btn home-diet-quick-btn--primary" data-action="open-saude">Editar em Saúde</button>' : ''}</div>`;
 }
 
 function paintModal(overlay, state) {

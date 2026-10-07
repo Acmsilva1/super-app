@@ -5,6 +5,8 @@ import {
 } from './service/tabelaNutricionalService.js';
 import { calcularImc, calcularLarguraGraficoPeso, classificarImc, criarCurvaSuave, criarTendenciaPeso, formatarNumeroSaude } from './service/perfilSaudeService.js';
 import { countDietItems, createEmptyDietMeals, DIET_MEALS, normalizeDietMeals } from './service/dietasService.js';
+import { dietQuantity, matchFoodForDietItem, nutritionForDietItem } from './service/alimentosService.js';
+import { DIET_NUTRITION_STYLES, renderDietFoodDetails, renderDietNutritionTotal } from './dietNutritionView.js';
 import { DEFAULT_ALERT_SCHEDULE, WATER_ALERT_END, WATER_ALERT_START } from './service/alertScheduleConfig.js';
 import {
   deleteLocalWaterGoal,
@@ -86,6 +88,7 @@ function readSaudeCheckpoint() {
 
 const SAUDE_STYLES = `
   <style>
+    ${DIET_NUTRITION_STYLES}
     .saude-root {
       --saude-verde: #327746;
       --saude-lima: #95c11f;
@@ -422,7 +425,7 @@ const SAUDE_STYLES = `
       .saude-table thead { display: none; }
       .saude-table, .saude-table tbody, .saude-table tr, .saude-table td { display: block; width: 100%; }
       .saude-table tbody { display: block; }
-      .saude-table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tipo acoes" "item acoes" "porcao acoes"; column-gap: .75rem; padding: .75rem .8rem; background: transparent; }
+      .saude-table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tipo acoes" "item acoes" "porcao acoes" "nutricao acoes"; column-gap: .75rem; padding: .75rem .8rem; background: transparent; }
       .saude-table tr + tr { border-top: 1px solid rgba(148, 163, 184, .16); }
       .saude-table tr:hover { background: rgba(74, 164, 85, .06); }
       .saude-table td { padding: 0; border: 0; white-space: normal !important; }
@@ -430,6 +433,7 @@ const SAUDE_STYLES = `
       .saude-table td[data-label="Nome do item"] { grid-area: item; margin-top: .2rem; font-size: .9rem; line-height: 1.35; }
       .saude-table td[data-label="Quantidade da porção"] { grid-area: porcao; margin-top: .25rem; color: var(--saude-texto-secundario); font-size: .78rem; line-height: 1.35; }
       .saude-table td[data-label="Quantidade da porção"]::before { content: 'Porção: '; color: #718399; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+      .saude-table td[data-label="Nutrição"] { grid-area: nutricao; margin-top: .35rem; color: var(--saude-texto-secundario); font-size: .72rem; line-height: 1.45; }
       .saude-table td[data-label="Ações"] { grid-area: acoes; width: auto; align-self: center; }
       .saude-row-actions { flex-direction: column; justify-content: center; gap: .35rem; }
       .saude-icon-btn { width: 2.65rem; height: 2.65rem; }
@@ -609,7 +613,7 @@ function renderActiveSaudeView(container, state) {
     state.view = 'profiles';
     renderProfiles(container, state);
   } else if (state.view === 'dietas') renderDietas(container, state);
-  else if (state.view === 'tabela-nutricional') renderTabelaNutricional(container, state);
+  else if (state.view === 'alimentos' || state.view === 'tabela-nutricional') renderTabelaNutricional(container, state);
   else renderProfiles(container, state);
 }
 
@@ -637,6 +641,17 @@ async function syncDietsForHealthProfile(state, healthProfile) {
   state.diets = [...rows, ...others];
 }
 
+async function ensureFoodCatalog(state) {
+  if (state.foodCatalogLoaded) return;
+  const response = await fetch('/api/saude?resource=alimentos', { cache: 'no-store' });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Não foi possível carregar os alimentos.');
+  state.foodRows = Array.isArray(data.rows) ? data.rows : [];
+  state.rows = [...state.foodRows];
+  state.foodCatalogCanEdit = Boolean(data.admin_view);
+  state.foodCatalogLoaded = true;
+}
+
 function dietsForProfile(state, profileId) {
   return (state.diets || []).filter((diet) => Number(diet.perfil_id) === Number(profileId));
 }
@@ -662,20 +677,29 @@ function paginationNumbers(currentPage, totalPages) {
     .sort((a, b) => a - b);
 }
 
-function renderTableRows(rows) {
+function renderTableRows(rows, canEdit = false) {
   return rows.map((row) => `
     <tr>
       <td data-label="Tipo da tabela">${escapeHtml(row.categoria)}</td>
       <td data-label="Nome do item"><strong>${escapeHtml(row.item)}</strong></td>
       <td data-label="Quantidade da porção">${escapeHtml(row.porcao)}</td>
-      <td data-label="Ações">
+      <td data-label="Nutrição"><strong>${escapeHtml(row.kcal_100g)} kcal</strong> · P ${escapeHtml(row.proteina_100g)} g · C ${escapeHtml(row.carboidrato_100g)} g · G ${escapeHtml(row.gordura_100g)} g / 100 g/ml${row.peso_referencia_g ? `<br>Porção: ${escapeHtml(row.kcal_porcao)} kcal · P ${escapeHtml(row.proteina_porcao)} g · C ${escapeHtml(row.carboidrato_porcao)} g · G ${escapeHtml(row.gordura_porcao)} g` : ''}</td>
+      <td data-label="Ações">${canEdit ? `
         <div class="saude-row-actions">
           <button type="button" class="saude-icon-btn" data-saude-action="edit" data-saude-id="${escapeHtml(row.id)}" aria-label="Editar ${escapeHtml(row.item)}" title="Editar"><i class="fas fa-pencil" aria-hidden="true"></i></button>
           <button type="button" class="saude-icon-btn saude-icon-btn--danger" data-saude-action="delete" data-saude-id="${escapeHtml(row.id)}" aria-label="Excluir ${escapeHtml(row.item)}" title="Excluir"><i class="fas fa-trash" aria-hidden="true"></i></button>
         </div>
-      </td>
+      ` : ''}</td>
     </tr>
   `).join('');
+}
+
+function blankFoodDraft() {
+  return {
+    item: '', categoria: '', porcao: '', peso_referencia_g: '', peso_unidade_g: '',
+    kcal_100g: '', proteina_100g: '', carboidrato_100g: '', gordura_100g: '',
+    observacoes: '', fonte_nutricional: 'Cadastro manual',
+  };
 }
 
 function renderEditor(state, options) {
@@ -683,21 +707,19 @@ function renderEditor(state, options) {
   const draft = state.draft || {};
   return `
     <form class="saude-editor" data-saude-form>
-      <h3 class="saude-editor__title">${state.editingId ? 'Editar item' : 'Inserir item'}</h3>
+      <h3 class="saude-editor__title">${state.editingId ? 'Editar alimento' : 'Adicionar alimento'}</h3>
       <div class="saude-editor__grid">
-        <div class="saude-field-group">
-          <label for="saude-item">Nome do item</label>
-          <input id="saude-item" name="item" class="saude-field" maxlength="200" required autocomplete="off" placeholder="Ex.: Peito de frango" value="${escapeHtml(draft.item)}">
-        </div>
-        <div class="saude-field-group">
-          <label for="saude-tipo-tabela">Tipo da tabela</label>
-          <input id="saude-tipo-tabela" name="categoria" class="saude-field" maxlength="80" required autocomplete="off" list="saude-tipos-tabela" placeholder="Ex.: Proteínas" value="${escapeHtml(draft.categoria)}">
-          <datalist id="saude-tipos-tabela">${options.categorias.map((value) => `<option value="${escapeHtml(value)}"></option>`).join('')}</datalist>
-        </div>
-        <div class="saude-field-group">
-          <label for="saude-porcao">Quantidade da porção</label>
-          <textarea id="saude-porcao" name="porcao" class="saude-field" maxlength="2000" required rows="2" placeholder="Ex.: 100 g">${escapeHtml(draft.porcao)}</textarea>
-        </div>
+        <div class="saude-field-group"><label for="saude-item">Alimento</label><input id="saude-item" name="item" class="saude-field" maxlength="200" required autocomplete="off" placeholder="Ex.: Peito de frango grelhado" value="${escapeHtml(draft.item)}"></div>
+        <div class="saude-field-group"><label for="saude-tipo-tabela">Categoria</label><input id="saude-tipo-tabela" name="categoria" class="saude-field" maxlength="80" required autocomplete="off" list="saude-tipos-tabela" placeholder="Ex.: Proteínas" value="${escapeHtml(draft.categoria)}"><datalist id="saude-tipos-tabela">${options.categorias.map((value) => `<option value="${escapeHtml(value)}"></option>`).join('')}</datalist></div>
+        <div class="saude-field-group"><label for="saude-porcao">Porção de referência</label><input id="saude-porcao" name="porcao" class="saude-field" maxlength="200" required placeholder="Ex.: 100 g" value="${escapeHtml(draft.porcao)}"></div>
+        <div class="saude-field-group"><label for="saude-peso-referencia">Peso usado (g/ml)</label><input id="saude-peso-referencia" name="peso_referencia_g" class="saude-field" type="number" min="0.01" max="10000" step="0.01" value="${escapeHtml(draft.peso_referencia_g ?? '')}" placeholder="Opcional"></div>
+        <div class="saude-field-group"><label for="saude-peso-unidade">Peso por unidade (g)</label><input id="saude-peso-unidade" name="peso_unidade_g" class="saude-field" type="number" min="0.01" max="10000" step="0.01" value="${escapeHtml(draft.peso_unidade_g ?? '')}" placeholder="Opcional; necessário para lançar em unidades"></div>
+        <div class="saude-field-group"><label for="saude-kcal-100g">Calorias por 100 g/ml</label><input id="saude-kcal-100g" name="kcal_100g" class="saude-field" type="number" min="0" max="2000" step="0.01" required value="${escapeHtml(draft.kcal_100g ?? '')}"></div>
+        <div class="saude-field-group"><label for="saude-proteina-100g">Proteína (g/100 g/ml)</label><input id="saude-proteina-100g" name="proteina_100g" class="saude-field" type="number" min="0" max="1000" step="0.01" required value="${escapeHtml(draft.proteina_100g ?? '')}"></div>
+        <div class="saude-field-group"><label for="saude-carboidrato-100g">Carboidrato (g/100 g/ml)</label><input id="saude-carboidrato-100g" name="carboidrato_100g" class="saude-field" type="number" min="0" max="1000" step="0.01" required value="${escapeHtml(draft.carboidrato_100g ?? '')}"></div>
+        <div class="saude-field-group"><label for="saude-gordura-100g">Gordura (g/100 g/ml)</label><input id="saude-gordura-100g" name="gordura_100g" class="saude-field" type="number" min="0" max="1000" step="0.01" required value="${escapeHtml(draft.gordura_100g ?? '')}"></div>
+        <div class="saude-field-group"><label for="saude-fonte-nutricional">Fonte nutricional</label><input id="saude-fonte-nutricional" name="fonte_nutricional" class="saude-field" maxlength="200" value="${escapeHtml(draft.fonte_nutricional || 'Cadastro manual')}"></div>
+        <div class="saude-field-group"><label for="saude-observacoes">Observações</label><textarea id="saude-observacoes" name="observacoes" class="saude-field" maxlength="1000" rows="2">${escapeHtml(draft.observacoes || '')}</textarea></div>
       </div>
       <div class="saude-editor__actions">
         <button type="button" class="saude-btn" data-saude-action="cancel-editor"${state.busy ? ' disabled' : ''}>Cancelar</button>
@@ -715,8 +737,8 @@ function renderTabelaNutricional(container, state) {
   const tableContent = pagination.totalItems
     ? `<div class="saude-table-wrap">
         <table class="saude-table">
-          <thead><tr><th>Tipo da tabela</th><th>Nome do item</th><th>Quantidade da porção</th><th>Ações</th></tr></thead>
-          <tbody>${renderTableRows(pagination.rows)}</tbody>
+        <thead><tr><th>Categoria</th><th>Alimento</th><th>Porção de referência</th><th>Valores nutricionais</th><th>Ações</th></tr></thead>
+          <tbody>${renderTableRows(pagination.rows, state.foodCatalogCanEdit)}</tbody>
         </table>
       </div>`
     : `<div class="saude-empty"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>Nenhum item encontrado com os filtros selecionados.</div>`;
@@ -731,17 +753,17 @@ function renderTabelaNutricional(container, state) {
         <div class="saude-page-header">
           <button type="button" class="saude-btn" data-saude-action="home" aria-label="Voltar para o início de Saúde"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
           <div>
-            <h2 id="tabela-nutricional-title">Tabela Nutricional</h2>
-            <p>Cadastre e organize alimentos por tipo de tabela.</p>
+            <h2 id="tabela-nutricional-title">Alimentos</h2>
+            <p>Consulte e mantenha o catálogo nutricional usado pelos cardápios.</p>
           </div>
         </div>
-        <button type="button" class="saude-btn saude-btn--primary saude-btn--insert" data-saude-action="insert"${state.busy ? ' disabled' : ''}><i class="fas fa-plus" aria-hidden="true"></i><span>Inserir</span></button>
+        ${state.foodCatalogCanEdit ? `<button type="button" class="saude-btn saude-btn--primary saude-btn--insert" data-saude-action="insert"${state.busy ? ' disabled' : ''}><i class="fas fa-plus" aria-hidden="true"></i><span>Adicionar novo</span></button>` : ''}
       </div>
       ${state.notice ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status"><i class="fas ${state.notice.type === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-check'}" aria-hidden="true"></i><span>${escapeHtml(state.notice.text)}</span></div>` : ''}
       ${renderEditor(state, options)}
       <div class="saude-filters">
         <div class="saude-field-group">
-          <label for="saude-busca">Buscar item</label>
+          <label for="saude-busca">Buscar alimento</label>
           <input id="saude-busca" class="saude-field" type="search" placeholder="Ex.: frango, arroz, morango" value="${escapeHtml(state.filters.busca)}" data-saude-filter="busca">
         </div>
         <div class="saude-field-group">
@@ -797,9 +819,9 @@ function captureDietFormFields(container, state) {
   };
 }
 
-function renderDietMealEditor(meal) {
+function renderDietMealEditor(meal, foods = []) {
   const items = meal.itens.length
-    ? `<div class="saude-meal-items">${meal.itens.map((item, index) => `<div class="saude-meal-item"><div><strong>${escapeHtml(item.nome)}</strong><span>${escapeHtml(item.quantidade)}${item.calorias == null ? '' : ` · ${escapeHtml(item.calorias)} kcal`}${item.observacao ? ` · ${escapeHtml(item.observacao)}` : ''}</span></div><div class="saude-meal-item__actions"><button type="button" class="saude-icon-btn" data-saude-action="edit-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Editar ${escapeHtml(item.nome)}"><i class="fas fa-pencil"></i></button><button type="button" class="saude-icon-btn saude-icon-btn--danger" data-saude-action="delete-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Excluir ${escapeHtml(item.nome)}"><i class="fas fa-trash"></i></button></div></div>`).join('')}</div>`
+    ? `<div class="saude-meal-items">${meal.itens.map((item, index) => `<div class="saude-meal-item"><div style="min-width:0;flex:1">${renderDietFoodDetails(item, foods)}</div><div class="saude-meal-item__actions"><button type="button" class="saude-icon-btn" data-saude-action="edit-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Editar ${escapeHtml(item.nome)}"><i class="fas fa-pencil"></i></button><button type="button" class="saude-icon-btn saude-icon-btn--danger" data-saude-action="delete-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Excluir ${escapeHtml(item.nome)}"><i class="fas fa-trash"></i></button></div></div>`).join('')}</div>`
     : '<p class="saude-meal-empty">Nenhum item adicionado.</p>';
   return `<section class="saude-meal-card" aria-labelledby="meal-${escapeHtml(meal.tipo)}"><div class="saude-meal-card__header"><h4 id="meal-${escapeHtml(meal.tipo)}">${escapeHtml(meal.titulo)}</h4><button type="button" class="saude-btn saude-meal-card__add" data-saude-action="add-diet-item" data-meal-type="${escapeHtml(meal.tipo)}"><i class="fas fa-plus"></i> Item</button></div>${items}</section>`;
 }
@@ -838,7 +860,7 @@ function renderDietForm(state) {
         </div>
         <form class="saude-diet-form" data-saude-diet-form style="margin:0;padding:0;background:transparent;border:0;box-shadow:none;">
           <div class="saude-diet-form__grid">${profileField}</div>
-          <div class="saude-meal-builder">${normalizeDietMeals(draft.refeicoes).map(renderDietMealEditor).join('')}</div>
+          <div class="saude-meal-builder">${normalizeDietMeals(draft.refeicoes).map((meal) => renderDietMealEditor(meal, state.foodRows)).join('')}</div>${renderDietNutritionTotal(draft, state.foodRows)}<p class="saude-diet-copy">Cada alimento é salvo na dieta ao confirmar o item.</p>
           <div class="saude-field-group" style="margin-top:.8rem"><label for="diet-meta-calorias">Meta calórica diária (kcal)</label><input id="diet-meta-calorias" name="meta_calorias" class="saude-field" type="number" min="500" max="10000" step="1" value="${escapeHtml(draft.meta_calorias)}" placeholder="Ex.: 2000"><small>O alerta compara a soma planejada dos alimentos com esta meta.</small></div>
           <div class="saude-field-group" style="margin-top:.8rem"><label for="diet-observacoes">Observações</label><textarea id="diet-observacoes" name="observacoes" class="saude-field" maxlength="4000" rows="2">${escapeHtml(draft.observacoes)}</textarea></div>
           <div class="saude-editor__actions">
@@ -850,11 +872,47 @@ function renderDietForm(state) {
     </div>`;
 }
 
+function captureDietItemFields(form, state) {
+  const values = new FormData(form);
+  const selected_food = String(values.get('alimento_id') || '');
+  state.dietItemDraft = {
+    ...state.dietItemDraft, selected_food,
+    quantidade_valor: String(values.get('quantidade_valor') || '').trim(),
+    quantidade_unidade: String(values.get('quantidade_unidade') || 'g'),
+    observacao: String(values.get('observacao') || '').trim(),
+    novo_alimento: selected_food === '__other__' && form.querySelector('[name=novo_item]') ? {
+      item: String(values.get('novo_item') || '').trim(), categoria: String(values.get('novo_categoria') || 'Outros').trim(),
+      porcao: String(values.get('novo_porcao') || '').trim(), peso_referencia_g: String(values.get('novo_peso') || '').trim(), peso_unidade_g: String(values.get('novo_peso_unidade') || '').trim(),
+      kcal_100g: String(values.get('novo_kcal') || '').trim(), proteina_100g: String(values.get('novo_proteina') || '').trim(),
+      carboidrato_100g: String(values.get('novo_carboidrato') || '').trim(), gordura_100g: String(values.get('novo_gordura') || '').trim(),
+      fonte_nutricional: String(values.get('novo_fonte') || 'Cadastro manual').trim(),
+    } : state.dietItemDraft.novo_alimento,
+  };
+}
+
+function renderDietItemForm(state, meal, editing) {
+  const draft = state.dietItemDraft;
+  const quantity = dietQuantity(draft);
+  const unit = draft.quantidade_unidade || quantity?.unit || 'g';
+  const amount = draft.quantidade_valor ?? quantity?.amount ?? '';
+  const selected = draft.selected_food ?? String(matchFoodForDietItem(draft, state.foodRows)?.id || '');
+  const custom = draft.novo_alimento || { item: draft.nome || '', categoria: 'Outros', porcao: '100 g', peso_referencia_g: '100' };
+  const field = (key, label, value, attrs = '') => `<div class="saude-field-group"><label for="${key}">${label}</label><input id="${key}" name="${key}" class="saude-field" required ${attrs} value="${escapeHtml(value ?? '')}"></div>`;
+  const macro = (key, label, value, max) => field(key, label, value, `type="number" min="0" max="${max}" step="0.01"`);
+  const groups = [...new Set(state.foodRows.map((food) => food.categoria))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal saude-diet-modal--item" role="dialog" aria-modal="true" aria-labelledby="diet-item-title"><div class="saude-diet-modal__header"><div><h3 id="diet-item-title">${editing ? 'Editar item' : 'Adicionar item'}</h3><p>${escapeHtml(meal?.titulo || '')}</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"${state.busy ? ' disabled' : ''}><i class="fas fa-xmark"></i></button></div>
+    <form data-diet-item-form><fieldset style="border:0;padding:0;margin:0;min-width:0"${state.busy ? ' disabled' : ''}>
+    ${state.dietItemError ? `<p class="saude-notice saude-notice--error" role="alert">${escapeHtml(state.dietItemError)}</p>` : ''}
+    <div class="saude-field-group"><label for="diet-item-name">Alimento</label><select id="diet-item-name" name="alimento_id" class="saude-field" data-diet-food-select required><option value="">Selecione um alimento</option>${groups.map((category) => `<optgroup label="${escapeHtml(category)}">${state.foodRows.filter((food) => food.categoria === category).sort((a, b) => a.item.localeCompare(b.item, 'pt-BR')).map((food) => `<option value="${escapeHtml(food.id)}"${String(food.id) === selected ? ' selected' : ''}>${escapeHtml(food.item)}</option>`).join('')}</optgroup>`).join('')}${state.foodCatalogCanEdit ? `<option value="__other__"${selected === '__other__' ? ' selected' : ''}>Outros — cadastrar novo alimento</option>` : ''}</select></div>
+    ${selected === '__other__' ? `<div class="saude-editor__grid" style="margin-top:.75rem">${field('novo_item', 'Nome do novo alimento', custom.item, 'maxlength="160"')}${field('novo_categoria', 'Categoria', custom.categoria, 'maxlength="80"')}${field('novo_porcao', 'Porção de referência', custom.porcao, 'maxlength="200"')}${field('novo_peso', 'Peso da porção (g/ml)', custom.peso_referencia_g, 'type="number" min="0.01" max="10000" step="0.01"')}${field('novo_peso_unidade', 'Peso de uma unidade (g; opcional)', custom.peso_unidade_g, 'type="number" min="0.01" max="10000" step="0.01"').replace('required ', '')}${macro('novo_kcal', 'Calorias por 100 g/ml', custom.kcal_100g, 2000)}${macro('novo_proteina', 'Proteína por 100 g/ml', custom.proteina_100g, 1000)}${macro('novo_carboidrato', 'Carboidratos por 100 g/ml', custom.carboidrato_100g, 1000)}${macro('novo_gordura', 'Gordura por 100 g/ml', custom.gordura_100g, 1000)}${field('novo_fonte', 'Fonte / rótulo', custom.fonte_nutricional || 'Cadastro manual', 'maxlength="200"')}</div><p class="saude-diet-copy">Ao salvar, o alimento entra na dieta e fica disponível no catálogo para os próximos lançamentos.</p>` : ''}
+    <div class="saude-editor__grid" style="margin-top:.75rem"><div class="saude-field-group"><label for="diet-item-quantity">Quantidade</label><input id="diet-item-quantity" name="quantidade_valor" class="saude-field" type="number" required min="0.01" max="10000" step="0.01" value="${escapeHtml(amount)}" placeholder="Ex.: 100 ou 2"></div><div class="saude-field-group"><label for="diet-item-unit">Unidade</label><select id="diet-item-unit" name="quantidade_unidade" class="saude-field" required>${[['g', 'Gramas (g)'], ['un', 'Unidades'], ['ml', 'Mililitros (ml)'], ['porcao', 'Porções de referência']].map(([value, label]) => `<option value="${value}"${unit === value ? ' selected' : ''}>${label}</option>`).join('')}</select></div></div><p class="saude-diet-copy">Em unidades, o cálculo usa o peso de uma unidade cadastrado no alimento.</p><div class="saude-field-group" style="margin-top:.75rem"><label for="diet-item-note">Observação (opcional)</label><textarea id="diet-item-note" name="observacao" class="saude-field" maxlength="500" rows="2">${escapeHtml(draft.observacao)}</textarea></div><div class="saude-editor__actions"><button type="button" class="saude-btn" data-saude-action="close-diet-modal">Cancelar</button><button type="submit" class="saude-btn saude-btn--primary">${state.busy ? 'Salvando...' : 'Salvar item'}</button></div></fieldset></form></section></div>`;
+}
+
 function renderDietOverlay(state) {
   if (state.dietModal === 'item') {
     const meal = DIET_MEALS.find((entry) => entry.tipo === state.dietItemMealType);
     const editing = Number.isInteger(state.dietItemEditingIndex);
-    return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal saude-diet-modal--item" role="dialog" aria-modal="true" aria-labelledby="diet-item-title"><div class="saude-diet-modal__header"><div><h3 id="diet-item-title">${editing ? 'Editar item' : 'Adicionar item'}</h3><p>${escapeHtml(meal?.titulo || '')}</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div><form data-diet-item-form><div class="saude-field-group"><label for="diet-item-name">Nome do alimento</label><input id="diet-item-name" name="nome" class="saude-field" required maxlength="160" value="${escapeHtml(state.dietItemDraft.nome)}" placeholder="Ex.: Arroz integral"></div><div class="saude-field-group" style="margin-top:.75rem"><label for="diet-item-quantity">Quantidade</label><input id="diet-item-quantity" name="quantidade" class="saude-field" required maxlength="120" value="${escapeHtml(state.dietItemDraft.quantidade)}" placeholder="Ex.: 100 g ou 2 unidades"></div><div class="saude-field-group" style="margin-top:.75rem"><label for="diet-item-calorias">Calorias da porção (kcal)</label><input id="diet-item-calorias" name="calorias" class="saude-field" type="number" min="0" max="10000" step="1" value="${escapeHtml(state.dietItemDraft.calorias ?? '')}" placeholder="Opcional"></div><div class="saude-field-group" style="margin-top:.75rem"><label for="diet-item-note">Observação (opcional)</label><textarea id="diet-item-note" name="observacao" class="saude-field" maxlength="500" rows="3" placeholder="Ex.: Sem açúcar">${escapeHtml(state.dietItemDraft.observacao)}</textarea></div><div class="saude-editor__actions"><button type="button" class="saude-btn" data-saude-action="close-diet-modal">Cancelar</button><button type="submit" class="saude-btn saude-btn--primary"><i class="fas fa-check"></i> Salvar item</button></div></form></section></div>`;
+    return renderDietItemForm(state, meal, editing);
   }
   if (state.dietModal !== 'detail') return '';
   const diet = state.diets.find((item) => Number(item.id) === Number(state.dietSelectedId));
@@ -863,9 +921,9 @@ function renderDietOverlay(state) {
   const showProfileName = state.view !== 'profile-detail' && profile;
   const meals = normalizeDietMeals(diet.refeicoes).filter((meal) => meal.itens.length > 0);
   const mealContent = meals.length
-    ? `<div class="saude-diet-detail-meals">${meals.map((meal) => `<section class="saude-diet-detail-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="saude-diet-detail-item"><strong>${escapeHtml(item.nome)} — ${escapeHtml(item.quantidade)}${item.calorias == null ? '' : ` · ${escapeHtml(item.calorias)} kcal`}</strong>${item.observacao ? `<p>${escapeHtml(item.observacao)}</p>` : ''}</div>`).join('')}</section>`).join('')}</div>`
+    ? `<div class="saude-diet-detail-meals">${meals.map((meal) => `<section class="saude-diet-detail-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="saude-diet-detail-item">${renderDietFoodDetails(item, state.foodRows)}</div>`).join('')}</section>`).join('')}</div>`
     : '<div class="saude-empty"><i class="fas fa-bowl-food"></i>Nenhum item cadastrado nesta dieta.</div>';
-  return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-detail-title"><div class="saude-diet-modal__header"><div><h3 id="diet-detail-title">${escapeHtml(diet.titulo)}</h3>${showProfileName ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;"><i class="fas fa-user"></i> ${escapeHtml(profile.nome)}</p>` : ''}${diet.meta_calorias ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;">Meta diária: ${escapeHtml(diet.meta_calorias)} kcal</p>` : ''}</div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${mealContent}${diet.observacoes ? `<div class="saude-diet-section"><h4>Observações</h4><p class="saude-diet-copy">${escapeHtml(diet.observacoes)}</p></div>` : ''}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--danger" data-saude-action="delete-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-trash"></i> Excluir</button><button type="button" class="saude-btn" data-saude-action="edit-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-pencil"></i> Editar</button><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-modal">Fechar</button></div></section></div>`;
+  return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-detail-title"><div class="saude-diet-modal__header"><div><h3 id="diet-detail-title">${escapeHtml(diet.titulo)}</h3>${showProfileName ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;"><i class="fas fa-user"></i> ${escapeHtml(profile.nome)}</p>` : ''}${diet.meta_calorias ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;">Meta diária: ${escapeHtml(diet.meta_calorias)} kcal</p>` : ''}</div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${mealContent}${renderDietNutritionTotal(diet, state.foodRows)}${diet.observacoes ? `<div class="saude-diet-section"><h4>Observações</h4><p class="saude-diet-copy">${escapeHtml(diet.observacoes)}</p></div>` : ''}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--danger" data-saude-action="delete-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-trash"></i> Excluir</button><button type="button" class="saude-btn" data-saude-action="edit-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-pencil"></i> Editar</button><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-modal">Fechar</button></div></section></div>`;
 }
 
 function renderDietas(container, state) {
@@ -937,6 +995,7 @@ async function requestDiets(method, payload) {
 async function loadDietas(container, state) {
   renderLoading(container, 'Carregando dietas e perfis...');
   try {
+    await ensureFoodCatalog(state);
     const [dietsResponse, profilesResponse] = await Promise.all([
       fetch('/api/saude?resource=dietas', { cache: 'no-store' }),
       fetch('/api/saude?resource=perfis', { cache: 'no-store' }),
@@ -1261,6 +1320,9 @@ function renderProfiles(container, state) {
 
   renderShell(container, `<section class="saude-page" aria-labelledby="profiles-title">
     ${renderNotice(state)}
+    <ul class="fin-list" aria-label="Outros recursos de saúde"><li><button type="button" class="fin-nav-row" data-saude-action="open-alimentos">
+      <i class="fas fa-apple-whole fin-nav-row__icon" aria-hidden="true"></i><span class="fin-nav-row__label">Alimentos</span><span class="saude-nav-meta">Tabela nutricional</span><i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
+    </button></li></ul>
     <p class="fin-section-label">Perfis · ${profiles.length}</p>
     <ul class="fin-list" aria-label="Perfis de saúde">${rows}</ul>
     ${profiles.length ? '' : '<button type="button" class="fin-btn fin-btn--block" data-saude-action="add-profile"><i class="fas fa-plus" aria-hidden="true"></i> Criar primeiro perfil</button>'}
@@ -1697,7 +1759,7 @@ function renderError(container, message) {
 }
 
 async function requestNutrition(method, payload) {
-  const response = await fetch('/api/saude?resource=tabelas-nutricionais', {
+  const response = await fetch('/api/saude?resource=alimentos', {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -1719,10 +1781,13 @@ async function loadTabelaNutricional(container, state) {
 
   renderLoading(container, 'Carregando tabela nutricional...');
   try {
-    const response = await fetch('/api/saude?resource=tabelas-nutricionais', { cache: 'no-store' });
+    const response = await fetch('/api/saude?resource=alimentos', { cache: 'no-store' });
     if (!response.ok) throw new Error('O endpoint da tabela nutricional não respondeu corretamente.');
     const data = await response.json();
     state.rows = Array.isArray(data.rows) ? data.rows : [];
+    state.foodRows = [...state.rows];
+    state.foodCatalogCanEdit = Boolean(data.admin_view);
+    state.foodCatalogLoaded = true;
     renderTabelaNutricional(container, state);
   } catch (error) {
     renderError(container, error instanceof Error ? error.message : 'Não foi possível carregar a tabela nutricional.');
@@ -1734,13 +1799,13 @@ export async function renderSaudeContent(container) {
   if (typeof container._cleanup === 'function') container._cleanup();
 
   const state = {
-    view: 'home',
+    view: 'profiles',
     rows: [],
     page: 1,
     filters: { busca: '', categoria: '' },
     editorOpen: false,
     editingId: null,
-    draft: { item: '', categoria: '', porcao: '' },
+    draft: blankFoodDraft(),
     busy: false,
     notice: null,
     diets: [],
@@ -1752,7 +1817,10 @@ export async function renderSaudeContent(container) {
     dietSelectedProfileId: null,
     dietItemMealType: null,
     dietItemEditingIndex: null,
-    dietItemDraft: { nome: '', quantidade: '', observacao: '' },
+    dietItemDraft: { nome: '', quantidade: '', calorias: null, alimento_id: null, observacao: '' },
+    foodRows: [],
+    foodCatalogLoaded: false,
+    foodCatalogCanEdit: false,
     profiles: [],
     profileScreen: 'hub',
     weightChartKey: null,
@@ -1785,6 +1853,7 @@ export async function renderSaudeContent(container) {
   };
 
   const onClick = async (event) => {
+    if (state.busy) return;
     if (event.target.matches('[data-diet-modal-backdrop]') && state.dietModal) {
       state.dietModal = null;
       state.dietItemMealType = null;
@@ -1806,19 +1875,20 @@ export async function renderSaudeContent(container) {
     const actionElement = event.target.closest('[data-saude-action]');
     const action = actionElement?.dataset.saudeAction;
     if (action === 'home') {
-      state.view = 'home';
+      state.view = 'profiles';
       state.waterModal = null;
       state.dietModal = null;
       state.notice = null;
-      renderHome(container);
+      renderProfiles(container, state);
       return;
     }
     if (action === 'retry' && state.view === 'home') {
       await renderSaudeContent(container);
       return;
     }
-    if (action === 'open-tabela-nutricional' || (action === 'retry' && state.view === 'tabela-nutricional')) {
-      state.view = 'tabela-nutricional';
+    if (action === 'open-alimentos' || action === 'open-tabela-nutricional'
+      || (action === 'retry' && ['alimentos', 'tabela-nutricional'].includes(state.view))) {
+      state.view = 'alimentos';
       await loadTabelaNutricional(container, state);
       return;
     }
@@ -2163,9 +2233,19 @@ export async function renderSaudeContent(container) {
     }
     if (action === 'add-diet-item') {
       captureDietFormFields(container, state);
+      if (!state.dietDraft.titulo || !state.dietDraft.perfil_id) {
+        state.notice = { type: 'error', text: 'Informe o nome da dieta e o perfil antes de adicionar alimentos.' };
+        renderActiveSaudeView(container, state);
+        container.querySelector('#diet-titulo')?.focus();
+        return;
+      }
+      state.dietItemError = null;
+      try { await ensureFoodCatalog(state); } catch (error) {
+        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível carregar os alimentos.' };
+      }
       state.dietItemMealType = actionElement.dataset.mealType;
       state.dietItemEditingIndex = null;
-      state.dietItemDraft = { nome: '', quantidade: '', calorias: null, observacao: '' };
+      state.dietItemDraft = { nome: '', quantidade: '', calorias: null, alimento_id: null, observacao: '' };
       state.dietModal = 'item';
       renderActiveSaudeView(container, state);
       requestAnimationFrame(() => container.querySelector('#diet-item-name')?.focus());
@@ -2173,6 +2253,10 @@ export async function renderSaudeContent(container) {
     }
     if (action === 'edit-diet-item') {
       captureDietFormFields(container, state);
+      state.dietItemError = null;
+      try { await ensureFoodCatalog(state); } catch (error) {
+        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível carregar os alimentos.' };
+      }
       const mealType = actionElement.dataset.mealType;
       const itemIndex = Number(actionElement.dataset.itemIndex);
       const meal = normalizeDietMeals(state.dietDraft.refeicoes).find((entry) => entry.tipo === mealType);
@@ -2248,7 +2332,7 @@ export async function renderSaudeContent(container) {
     if (action === 'insert') {
       state.editorOpen = true;
       state.editingId = null;
-      state.draft = { item: '', categoria: '', porcao: '' };
+      state.draft = blankFoodDraft();
       state.notice = null;
       renderTabelaNutricional(container, state);
       focusEditor(container);
@@ -2257,7 +2341,7 @@ export async function renderSaudeContent(container) {
     if (action === 'cancel-editor') {
       state.editorOpen = false;
       state.editingId = null;
-      state.draft = { item: '', categoria: '', porcao: '' };
+      state.draft = blankFoodDraft();
       renderTabelaNutricional(container, state);
       return;
     }
@@ -2267,7 +2351,13 @@ export async function renderSaudeContent(container) {
       if (!row) return;
       state.editorOpen = true;
       state.editingId = id;
-      state.draft = { item: row.item, categoria: row.categoria, porcao: row.porcao };
+      state.draft = {
+        item: row.item, categoria: row.categoria, porcao: row.porcao,
+        peso_referencia_g: row.peso_referencia_g, peso_unidade_g: row.peso_unidade_g, kcal_100g: row.kcal_100g,
+        proteina_100g: row.proteina_100g, carboidrato_100g: row.carboidrato_100g,
+        gordura_100g: row.gordura_100g, observacoes: row.observacoes,
+        fonte_nutricional: row.fonte_nutricional,
+      };
       state.notice = null;
       renderTabelaNutricional(container, state);
       focusEditor(container);
@@ -2278,8 +2368,8 @@ export async function renderSaudeContent(container) {
       const row = state.rows.find((item) => Number(item.id) === id);
       if (!row) return;
       const confirmed = await requestSaudeConfirmation(container, {
-        title: 'Excluir item nutricional?',
-        message: `O item "${row.item}" será excluído da tabela nutricional.`,
+        title: 'Excluir alimento?',
+        message: `O alimento "${row.item}" será excluído do catálogo compartilhado.`,
       });
       if (!confirmed) return;
       state.busy = true;
@@ -2288,6 +2378,7 @@ export async function renderSaudeContent(container) {
       try {
         await requestNutrition('DELETE', { id });
         state.rows = state.rows.filter((item) => Number(item.id) !== id);
+        state.foodRows = [...state.rows];
         state.notice = { type: 'success', text: 'Item excluído com sucesso.' };
         deleted = true;
       } catch (error) {
@@ -2296,7 +2387,7 @@ export async function renderSaudeContent(container) {
         state.busy = false;
         renderTabelaNutricional(container, state);
       }
-      if (deleted) showSaudeSuccess(container, 'Item da tabela nutricional excluído com sucesso.');
+      if (deleted) showSaudeSuccess(container, 'Alimento excluído com sucesso.');
       return;
     }
 
@@ -2486,27 +2577,63 @@ export async function renderSaudeContent(container) {
     const dietItemForm = event.target.closest('[data-diet-item-form]');
     if (dietItemForm) {
       event.preventDefault();
-      if (!dietItemForm.reportValidity()) return;
-      const values = new FormData(dietItemForm);
-      const caloriesValue = String(values.get('calorias') || '').trim();
+      if (state.busy || !dietItemForm.reportValidity()) return;
+      captureDietItemFields(dietItemForm, state);
+      captureDietFormFields(container, state);
+      const draft = state.dietItemDraft;
+      const custom = draft.selected_food === '__other__';
+      const food = custom ? { ...draft.novo_alimento, id: null } : state.foodRows.find((entry) => String(entry.id) === draft.selected_food);
       const item = {
-        nome: String(values.get('nome') || '').trim(),
-        quantidade: String(values.get('quantidade') || '').trim(),
-        calorias: caloriesValue === '' ? null : Number(caloriesValue),
-        observacao: String(values.get('observacao') || '').trim(),
+        nome: custom ? food?.item : food?.item,
+        quantidade_valor: Number(draft.quantidade_valor), quantidade_unidade: draft.quantidade_unidade,
+        quantidade: `${draft.quantidade_valor} ${draft.quantidade_unidade}`,
+        calorias: null, alimento_id: custom ? null : Number(food?.id), observacao: draft.observacao,
       };
-      state.dietDraft.refeicoes = normalizeDietMeals(state.dietDraft.refeicoes).map((meal) => {
-        if (meal.tipo !== state.dietItemMealType) return meal;
+      const nutrition = food ? nutritionForDietItem(item, [{ ...food, item: item.nome }]) : null;
+      if (!food || !nutrition || nutrition.proteina == null) {
+        state.dietItemError = draft.quantidade_unidade === 'un'
+          ? 'Cadastre o peso de uma unidade no alimento ou escolha gramas para informar o peso total.'
+          : 'Selecione um alimento e informe uma quantidade calculável.';
+        renderActiveSaudeView(container, state);
+        return;
+      }
+      const mealType = state.dietItemMealType;
+      let itemIndex = state.dietItemEditingIndex;
+      const refeicoes = normalizeDietMeals(state.dietDraft.refeicoes).map((meal) => {
+        if (meal.tipo !== mealType) return meal;
         const items = [...meal.itens];
-        if (Number.isInteger(state.dietItemEditingIndex)) items[state.dietItemEditingIndex] = item;
-        else items.push(item);
+        if (Number.isInteger(itemIndex)) items[itemIndex] = item;
+        else { itemIndex = items.length; items.push(item); }
         return { ...meal, itens: items };
       });
-      state.dietModal = null;
-      state.dietItemMealType = null;
-      state.dietItemEditingIndex = null;
-      state.dietItemDraft = { nome: '', quantidade: '', calorias: null, observacao: '' };
+      state.busy = true;
+      state.dietItemError = null;
       renderActiveSaudeView(container, state);
+      try {
+        const editingId = state.dietEditingId;
+        const result = await requestDiets(editingId ? 'PATCH' : 'POST', {
+          ...(editingId ? { id: editingId } : {}), ...state.dietDraft, refeicoes,
+          ...(custom ? { novo_alimento: draft.novo_alimento, novo_alimento_destino: { refeicao: mealType, indice: itemIndex } } : {}),
+        });
+        state.diets = editingId ? state.diets.map((diet) => Number(diet.id) === editingId ? result.row : diet) : [result.row, ...state.diets];
+        state.dietEditingId = Number(result.row.id);
+        state.dietSelectedId = Number(result.row.id);
+        state.dietDraft = dietDraftFromDiet(result.row);
+        if (result.food) {
+          state.foodRows = [...state.foodRows.filter((entry) => Number(entry.id) !== Number(result.food.id)), result.food];
+          state.rows = [...state.foodRows];
+        }
+        state.dietModal = null;
+        state.dietItemMealType = null;
+        state.dietItemEditingIndex = null;
+        state.notice = { type: 'success', text: custom ? 'Alimento salvo na dieta e no catálogo.' : 'Alimento salvo na dieta.' };
+      } catch (error) {
+        state.dietItemError = error instanceof Error ? error.message : 'Não foi possível salvar o alimento.';
+      } finally {
+        state.busy = false;
+        renderActiveSaudeView(container, state);
+        if (!state.dietModal) showSaudeSuccess(container, state.notice.text);
+      }
       return;
     }
 
@@ -2563,10 +2690,22 @@ export async function renderSaudeContent(container) {
     if (!form.reportValidity()) return;
 
     const formData = new FormData(form);
+    const decimal = (name) => {
+      const value = String(formData.get(name) ?? '').trim();
+      return value === '' ? null : Number(value.replace(',', '.'));
+    };
     state.draft = {
       item: String(formData.get('item') || '').trim(),
       categoria: String(formData.get('categoria') || '').trim(),
       porcao: String(formData.get('porcao') || '').trim(),
+      peso_referencia_g: decimal('peso_referencia_g'),
+      peso_unidade_g: decimal('peso_unidade_g'),
+      kcal_100g: decimal('kcal_100g'),
+      proteina_100g: decimal('proteina_100g'),
+      carboidrato_100g: decimal('carboidrato_100g'),
+      gordura_100g: decimal('gordura_100g'),
+      observacoes: String(formData.get('observacoes') || '').trim(),
+      fonte_nutricional: String(formData.get('fonte_nutricional') || 'Cadastro manual').trim(),
     };
     state.busy = true;
     state.notice = null;
@@ -2586,8 +2725,9 @@ export async function renderSaudeContent(container) {
       }
       state.editorOpen = false;
       state.editingId = null;
-      state.draft = { item: '', categoria: '', porcao: '' };
-      state.notice = { type: 'success', text: editingId ? 'Item atualizado com sucesso.' : 'Item inserido com sucesso.' };
+      state.draft = blankFoodDraft();
+      state.notice = { type: 'success', text: editingId ? 'Alimento atualizado com sucesso.' : 'Alimento adicionado com sucesso.' };
+      state.foodRows = [...state.rows];
     } catch (error) {
       state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível salvar o item.' };
     } finally {
@@ -2598,6 +2738,13 @@ export async function renderSaudeContent(container) {
   };
 
   const onFilter = (event) => {
+    if (event.type === 'change' && event.target.matches('[data-diet-food-select]')) {
+      captureDietItemFields(event.target.closest('form'), state);
+      state.dietItemError = null;
+      renderActiveSaudeView(container, state);
+      container.querySelector('#diet-item-quantity')?.focus();
+      return;
+    }
     const key = event.target.dataset.saudeFilter;
     if (!key || (event.type === 'input' && key !== 'busca') || (event.type === 'change' && key === 'busca')) return;
     state.filters[key] = event.target.value;
@@ -2663,6 +2810,11 @@ export async function renderSaudeContent(container) {
     if (!response.ok) throw new Error('O endpoint de Saúde não respondeu corretamente.');
     const data = await response.json().catch(() => ({}));
     state.profiles = Array.isArray(data.rows) ? data.rows : [];
+    try {
+      await ensureFoodCatalog(state);
+    } catch {
+      state.foodRows = [];
+    }
     if (isLocalWaterStorageMode() && state.profiles.length) {
       migrateLocalWaterDataToHealthProfiles(state.profiles);
     }

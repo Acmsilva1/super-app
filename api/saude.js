@@ -1,12 +1,16 @@
 import { requireUser } from '../lib/auth.js';
 import { TABELAS_NUTRICIONAIS } from '../features/saude/data/tabelasNutricionais.js';
+import { ALIMENTOS_NUTRICIONAIS } from '../features/saude/data/alimentosNutricionais.js';
 import { opcoesTabelaNutricional } from '../features/saude/service/tabelaNutricionalService.js';
 import { calcularImc } from '../features/saude/service/perfilSaudeService.js';
 import { DIET_MEALS } from '../features/saude/service/dietasService.js';
 import { normalizeAlertSchedule, validateAlertSchedule } from '../features/saude/service/alertScheduleConfig.js';
+import { enrichDietNutrition, foodUnitWeight, matchFoodForDietItem, nutritionForDietItem } from '../features/saude/service/alimentosService.js';
 
 const TABELA_NUTRICIONAL = 'tb_saude_tabela_nutricional';
 const RESOURCE_TABELA_NUTRICIONAL = 'tabelas-nutricionais';
+const TABELA_ALIMENTOS = 'tb_saude_alimentos';
+const RESOURCE_ALIMENTOS = 'alimentos';
 const TABELA_DIETAS = 'tb_saude_dietas';
 const RESOURCE_DIETAS = 'dietas';
 const TABELA_PERFIS = 'tb_saude_perfis';
@@ -19,6 +23,7 @@ const RESOURCE_CONSUMO_AGUA = 'consumo-agua';
 const TABELA_ALERTAS_AGENDA = 'tb_saude_alertas_agenda';
 const RESOURCE_ALERTAS_AGENDA = 'alertas-agenda';
 let offlineNutritionRows = bundledNutritionRows();
+let offlineFoods = bundledFoodRows();
 let offlineDiets = [];
 let offlineProfiles = [];
 let offlineProfileMeasurements = [];
@@ -42,6 +47,10 @@ function isMissingTableError(error) {
 
 function bundledNutritionRows() {
   return TABELAS_NUTRICIONAIS.map((row) => ({ ...row }));
+}
+
+function bundledFoodRows() {
+  return ALIMENTOS_NUTRICIONAIS.map((row) => ({ ...row, id: row.source_order }));
 }
 
 function isOfflineMode() {
@@ -70,6 +79,37 @@ function validateNutritionPayload(body) {
   if (porcao.length > 2000) return { error: 'Quantidade da porcao deve ter no maximo 2000 caracteres.' };
 
   return { data: { categoria, item, porcao } };
+}
+
+function validateFoodPayload(body) {
+  const categoria = String(body?.categoria || '').trim();
+  const item = String(body?.item || '').trim();
+  const porcao = String(body?.porcao ?? body?.porcao_equivalente ?? '').trim();
+  const observacoes = String(body?.observacoes || '').trim();
+  const fonte_nutricional = String(body?.fonte_nutricional || 'Cadastro manual').trim();
+  const pesoRaw = body?.peso_referencia_g ?? body?.peso_g;
+  const peso_referencia_g = pesoRaw === '' || pesoRaw == null ? null : Number(String(pesoRaw).replace(',', '.'));
+  const peso_unidade_g = body?.peso_unidade_g === '' || body?.peso_unidade_g == null ? null : Number(String(body.peso_unidade_g).replace(',', '.'));
+  const rawNutrients = [body?.kcal_100g, body?.proteina_100g, body?.carboidrato_100g, body?.gordura_100g];
+  if (rawNutrients.some((value) => value == null || String(value).trim() === '')) {
+    return { error: 'Preencha calorias, proteína, carboidrato e gordura por 100 g/ml.' };
+  }
+  const [kcal_100g, proteina_100g, carboidrato_100g, gordura_100g] = rawNutrients
+    .map((value) => Number(String(value).replace(',', '.')));
+  if (!categoria || !item || !porcao) return { error: 'Categoria, alimento e porção de referência são obrigatórios.' };
+  if (categoria.length > 80 || item.length > 200 || porcao.length > 200 || observacoes.length > 1000 || fonte_nutricional.length > 200) {
+    return { error: 'Um ou mais campos do alimento ultrapassam o limite permitido.' };
+  }
+  if (peso_referencia_g !== null && (!Number.isFinite(peso_referencia_g) || peso_referencia_g <= 0 || peso_referencia_g > 10000)) {
+    return { error: 'O peso de referência deve ser maior que zero e não passar de 10000 g/ml.' };
+  }
+  if (peso_unidade_g !== null && (!Number.isFinite(peso_unidade_g) || peso_unidade_g < 0.01 || peso_unidade_g > 10000)) return { error: 'Informe um peso por unidade entre 0,01 e 10000 g.' };
+  const nutrientValues = [kcal_100g, proteina_100g, carboidrato_100g, gordura_100g];
+  if (nutrientValues.some((value, index) => !Number.isFinite(value) || value < 0 || value > (index === 0 ? 2000 : 1000))) {
+    return { error: 'Informe valores nutricionais válidos por 100 g/ml.' };
+  }
+  return { data: { categoria, item, porcao, peso_referencia_g, peso_unidade_g, kcal_100g, proteina_100g,
+    carboidrato_100g, gordura_100g, observacoes: observacoes || null, fonte_nutricional: fonte_nutricional || 'Cadastro manual' } };
 }
 
 function parseId(value) {
@@ -155,17 +195,27 @@ function validateDietPayload(body, isCreate = false) {
       const normalizedItems = [];
       for (const item of items) {
         const nome = String(item?.nome || '').trim();
-        const quantidade = String(item?.quantidade || '').trim();
+        let quantidade = String(item?.quantidade || '').trim();
+        const structuredQuantity = item?.quantidade_valor != null || item?.quantidade_unidade != null;
+        const quantidade_valor = structuredQuantity ? Number(String(item.quantidade_valor).replace(',', '.')) : null;
+        const quantidade_unidade = String(item?.quantidade_unidade || '');
+        if (structuredQuantity) {
+          if (!Number.isFinite(quantidade_valor) || quantidade_valor <= 0 || quantidade_valor > 10000 || !['g', 'ml', 'un', 'porcao'].includes(quantidade_unidade)) return { error: 'Informe uma quantidade maior que zero e uma unidade válida.' };
+          quantidade = `${quantidade_valor} ${quantidade_unidade === 'un' ? 'unidades' : quantidade_unidade === 'porcao' ? 'porções' : quantidade_unidade}`;
+        }
         const observacao = String(item?.observacao || '').trim();
         const calorias = item?.calorias === '' || item?.calorias == null ? null : Number(item.calorias);
+        const alimento_id = item?.alimento_id == null || item?.alimento_id === '' ? null : parseId(item.alimento_id);
         if (!nome || !quantidade) return { error: `Alimento e quantidade sao obrigatorios em ${mealDefinition.titulo}.` };
         if (calorias !== null && (!Number.isInteger(calorias) || calorias < 0 || calorias > 10000)) {
           return { error: `As calorias de cada alimento devem ser um numero inteiro entre 0 e 10000.` };
         }
+        if (item?.alimento_id != null && item?.alimento_id !== '' && !alimento_id) return { error: 'O alimento selecionado é inválido.' };
         if (nome.length > 160 || quantidade.length > 120 || observacao.length > 500) {
           return { error: `Um item de ${mealDefinition.titulo} ultrapassa o limite permitido.` };
         }
-        normalizedItems.push({ nome, quantidade, observacao, calorias });
+        normalizedItems.push({ nome, quantidade, observacao, calorias, alimento_id,
+          ...(structuredQuantity ? { quantidade_valor, quantidade_unidade } : {}) });
       }
       itemCount += normalizedItems.length;
       normalizedMeals.push({ ...mealDefinition, itens: normalizedItems });
@@ -774,12 +824,14 @@ async function deleteProfileMeasurement(id, userId) {
 }
 
 async function loadDiets(userId, profileId = null, isAdmin = false) {
+  const foods = await loadFoods();
+  if (foods.error) return foods;
   if (isOfflineMode()) {
     let rows = offlineDiets.map((diet) => structuredClone(diet));
     if (profileId) {
       rows = rows.filter((diet) => Number(diet.perfil_id) === Number(profileId));
     }
-    return { rows, storage: 'memory' };
+    return { rows: rows.map((row) => enrichDietNutrition(row, foods.rows)), storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
   let query = supabase
@@ -794,7 +846,7 @@ async function loadDiets(userId, profileId = null, isAdmin = false) {
   }
   const { data, error } = await query;
   if (error && isMissingTableError(error)) return { rows: [], storage: 'empty-fallback' };
-  return error ? { error } : { rows: data || [], storage: 'supabase' };
+  return error ? { error } : { rows: (data || []).map((row) => enrichDietNutrition(row, foods.rows)), storage: 'supabase' };
 }
 
 async function createDiet(payload, userId) {
@@ -960,6 +1012,155 @@ async function deleteNutritionRow(id) {
   return data ? { storage: 'supabase' } : { notFound: true };
 }
 
+function foodApiRow(row) {
+  const weight = Number(row.peso_referencia_g ?? row.peso_g);
+  const scaled = (value) => Number.isFinite(weight) && weight > 0 && Number.isFinite(Number(value))
+    ? Math.round((Number(value) * weight / 100) * 100) / 100
+    : null;
+  return {
+    id: row.id,
+    source_order: row.source_order,
+    categoria: row.categoria,
+    item: row.item,
+    porcao: row.porcao ?? row.porcao_equivalente,
+    peso_referencia_g: Number.isFinite(weight) ? weight : null,
+    peso_unidade_g: foodUnitWeight(row),
+    kcal_100g: Number(row.kcal_100g),
+    proteina_100g: Number(row.proteina_100g),
+    carboidrato_100g: Number(row.carboidrato_100g),
+    gordura_100g: Number(row.gordura_100g),
+    kcal_porcao: scaled(row.kcal_100g),
+    proteina_porcao: scaled(row.proteina_100g),
+    carboidrato_porcao: scaled(row.carboidrato_100g),
+    gordura_porcao: scaled(row.gordura_100g),
+    observacoes: row.observacoes || null,
+    fonte_nutricional: row.fonte_nutricional || 'Cadastro manual',
+  };
+}
+
+async function loadFoods() {
+  if (isOfflineMode()) return { rows: offlineFoods.map(foodApiRow), storage: 'bundled-fallback' };
+  const { supabase } = await import('../lib/supabase.js');
+  const columns = 'id,source_order,categoria,item,porcao_equivalente,peso_referencia_g,peso_unidade_g,kcal_100g,proteina_100g,carboidrato_100g,gordura_100g,observacoes,fonte_nutricional';
+  let { data, error } = await supabase.from(TABELA_ALIMENTOS).select(columns).order('source_order', { ascending: true });
+  if (error && ['42703', 'PGRST204'].includes(error.code)) {
+    ({ data, error } = await supabase.from(TABELA_ALIMENTOS).select(columns.replace('peso_unidade_g,', '')).order('source_order', { ascending: true }));
+  }
+  if (error && isMissingTableError(error)) return { rows: bundledFoodRows().map(foodApiRow), storage: 'bundled-fallback' };
+  return error ? { error } : { rows: (data || []).map(foodApiRow), storage: 'supabase' };
+}
+
+async function createFood(payload) {
+  if (isOfflineMode()) {
+    const source_order = Math.max(0, ...offlineFoods.map((row) => Number(row.source_order) || 0)) + 1;
+    const row = { id: source_order, source_order, ...payload };
+    offlineFoods.unshift(row);
+    return { row: foodApiRow(row), storage: 'memory' };
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  const { data, error } = await supabase.from(TABELA_ALIMENTOS).insert({
+    categoria: payload.categoria, item: payload.item, porcao_equivalente: payload.porcao,
+    peso_referencia_g: payload.peso_referencia_g, peso_unidade_g: payload.peso_unidade_g, kcal_100g: payload.kcal_100g,
+    proteina_100g: payload.proteina_100g, carboidrato_100g: payload.carboidrato_100g,
+    gordura_100g: payload.gordura_100g, observacoes: payload.observacoes,
+    fonte_nutricional: payload.fonte_nutricional, source_file: 'Cadastro manual',
+  }).select('id,source_order,categoria,item,porcao_equivalente,peso_referencia_g,peso_unidade_g,kcal_100g,proteina_100g,carboidrato_100g,gordura_100g,observacoes,fonte_nutricional').single();
+  return error ? { error } : { row: foodApiRow(data), storage: 'supabase' };
+}
+
+async function saveDietWithNutrition(id, payload, body, auth) {
+  const loaded = await loadFoods();
+  if (loaded.error) return loaded;
+  const foods = loaded.rows;
+  for (const meal of payload.refeicoes || []) {
+    for (const [index, item] of meal.itens.entries()) {
+      const food = matchFoodForDietItem(item, foods);
+      if (item.alimento_id && !foods.some((entry) => Number(entry.id) === Number(item.alimento_id))) {
+        return { invalid: 'O alimento selecionado não está mais no catálogo. Selecione novamente.' };
+      }
+      if (food) { item.alimento_id = Number(food.id); item.nome = food.item; }
+      const customDestination = body.novo_alimento && body.novo_alimento_destino?.refeicao === meal.tipo && body.novo_alimento_destino?.indice === index;
+      if (item.quantidade_valor != null && !customDestination && (!food || nutritionForDietItem(item, foods).proteina == null)) {
+        return { invalid: 'Selecione um alimento com peso por unidade cadastrado ou informe a quantidade em gramas.' };
+      }
+    }
+  }
+  if (!body.novo_alimento) {
+    const result = id ? await updateDiet(id, payload, auth.user.id, auth.isAdmin) : await createDiet(payload, auth.user.id);
+    return result.row ? { ...result, row: enrichDietNutrition(result.row, foods) } : result;
+  }
+  if (!auth.isAdmin) return { forbidden: true };
+  const validation = validateFoodPayload(body.novo_alimento);
+  if (validation.error) return { invalid: validation.error };
+  const destination = body.novo_alimento_destino;
+  const meal = payload.refeicoes?.find((entry) => entry.tipo === destination?.refeicao);
+  const index = destination?.indice;
+  if (!meal || !Number.isInteger(index) || index < 0 || index >= meal.itens.length) return { invalid: 'Destino do novo alimento inválido.' };
+  const foodPayload = validation.data;
+  meal.itens[index].nome = foodPayload.item;
+  meal.itens[index].alimento_id = null;
+  meal.itens[index].calorias = null;
+  const reusedFood = matchFoodForDietItem({ nome: foodPayload.item }, foods);
+  if (reusedFood) foodPayload.item = reusedFood.item;
+  const candidate = reusedFood || { ...foodPayload, id: null };
+  if (nutritionForDietItem({ ...meal.itens[index], nome: candidate.item, alimento_id: candidate.id }, [candidate]).proteina == null) {
+    return { invalid: 'Informe o peso por unidade do novo alimento ou use gramas na quantidade da dieta.' };
+  }
+  if (isOfflineMode()) {
+    const profile = offlineProfiles.find((entry) => Number(entry.id) === Number(payload.perfil_id) && (id && auth.isAdmin || entry.created_by === auth.user.id));
+    const existing = id ? offlineDiets.find((entry) => Number(entry.id) === id && (auth.isAdmin || entry.created_by === auth.user.id)) : null;
+    if (!profile || id && !existing) return { notFound: true };
+    const existingFood = foods.find((entry) => entry.item.trim().toLowerCase() === foodPayload.item.toLowerCase());
+    const order = Math.max(0, ...offlineFoods.map((entry) => Number(entry.source_order))) + 1;
+    const newFood = existingFood || foodApiRow({ id: order, source_order: order, ...foodPayload });
+    meal.itens[index] = { ...meal.itens[index], nome: newFood.item, alimento_id: Number(newFood.id) };
+    const result = id ? await updateDiet(id, payload, auth.user.id, auth.isAdmin) : await createDiet(payload, auth.user.id);
+    if (!result.row) return result;
+    if (!existingFood) offlineFoods.push({ id: order, source_order: order, ...foodPayload });
+    return { ...result, food: newFood, row: enrichDietNutrition(result.row, [...foods, newFood]) };
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  const { data, error } = await supabase.rpc('save_saude_dieta_with_food', {
+    p_id: id, p_actor: auth.user.id, p_admin: auth.isAdmin,
+    p_diet: { ...payload, slug: slugify(payload.titulo) },
+    p_food: foodPayload, p_meal: destination.refeicao, p_index: index,
+  });
+  if (error) return { error: { ...error, message: ['PGRST202', '42883'].includes(error.code)
+    ? 'Aplique a migration de integração dos alimentos com as dietas antes de salvar pela opção Outros.' : error.message } };
+  const food = foodApiRow(data.food);
+  return { storage: 'supabase', food, row: enrichDietNutrition(data.row, [...foods.filter((entry) => Number(entry.id) !== Number(food.id)), food]) };
+}
+
+async function updateFood(id, payload) {
+  if (isOfflineMode()) {
+    const index = offlineFoods.findIndex((row) => Number(row.id) === id);
+    if (index < 0) return { notFound: true };
+    offlineFoods[index] = { ...offlineFoods[index], ...payload };
+    return { row: foodApiRow(offlineFoods[index]), storage: 'memory' };
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  const { data, error } = await supabase.from(TABELA_ALIMENTOS).update({
+    categoria: payload.categoria, item: payload.item, porcao_equivalente: payload.porcao,
+    peso_referencia_g: payload.peso_referencia_g, peso_unidade_g: payload.peso_unidade_g, kcal_100g: payload.kcal_100g,
+    proteina_100g: payload.proteina_100g, carboidrato_100g: payload.carboidrato_100g,
+    gordura_100g: payload.gordura_100g, observacoes: payload.observacoes,
+    fonte_nutricional: payload.fonte_nutricional,
+  }).eq('id', id)
+    .select('id,source_order,categoria,item,porcao_equivalente,peso_referencia_g,peso_unidade_g,kcal_100g,proteina_100g,carboidrato_100g,gordura_100g,observacoes,fonte_nutricional').maybeSingle();
+  return error ? { error } : data ? { row: foodApiRow(data), storage: 'supabase' } : { notFound: true };
+}
+
+async function deleteFood(id) {
+  if (isOfflineMode()) {
+    const length = offlineFoods.length;
+    offlineFoods = offlineFoods.filter((row) => Number(row.id) !== id);
+    return length === offlineFoods.length ? { notFound: true } : { storage: 'memory' };
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  const { data, error } = await supabase.from(TABELA_ALIMENTOS).delete().eq('id', id).select('id').maybeSingle();
+  return error ? { error } : data ? { storage: 'supabase' } : { notFound: true };
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET' && req.query?.health === '1') {
     return json(res, 200, { ok: true, service: 'saude' });
@@ -968,8 +1169,8 @@ export default async function handler(req, res) {
   const auth = await requireUser(req, { appId: 'saude' });
   if (!auth.ok) return json(res, auth.status, auth.data);
 
-  if (!auth.isAdmin && req.query?.resource === RESOURCE_TABELA_NUTRICIONAL && req.method !== 'GET') {
-    return json(res, 403, { error: 'Somente o administrador pode alterar a tabela nutricional compartilhada.' });
+  if (!auth.isAdmin && [RESOURCE_TABELA_NUTRICIONAL, RESOURCE_ALIMENTOS].includes(req.query?.resource) && req.method !== 'GET') {
+    return json(res, 403, { error: 'Somente o administrador pode alterar o catálogo compartilhado de alimentos.' });
   }
 
   if (req.method === 'GET') {
@@ -996,6 +1197,12 @@ export default async function handler(req, res) {
         ...options,
         rows: result.rows,
       });
+    }
+    if (req.query?.resource === RESOURCE_ALIMENTOS) {
+      const result = await loadFoods();
+      if (result.error) return json(res, 500, { error: result.error.message });
+      const categorias = [...new Set(result.rows.map((row) => row.categoria).filter(Boolean))];
+      return json(res, 200, { resource: RESOURCE_ALIMENTOS, storage: result.storage, admin_view: auth.isAdmin, total: result.rows.length, categorias, rows: result.rows });
     }
     if (req.query?.resource === RESOURCE_DIETAS) {
       const profileId = req.query?.profile_id ? parseId(req.query.profile_id) : null;
@@ -1043,6 +1250,7 @@ export default async function handler(req, res) {
       status: 'ready',
       configured: true,
       pages: [
+        { id: 'alimentos', title: 'Alimentos' },
         { id: 'tabela-nutricional', title: 'Tabela Nutricional' },
         { id: 'dietas', title: 'Dietas' },
         { id: 'perfis', title: 'Perfil' },
@@ -1052,7 +1260,7 @@ export default async function handler(req, res) {
     });
   }
 
-  if (![RESOURCE_TABELA_NUTRICIONAL, RESOURCE_DIETAS, RESOURCE_PERFIS, RESOURCE_PERFIL_MEDIDAS, RESOURCE_CONSUMO_AGUA, RESOURCE_ALERTAS_AGENDA].includes(req.query?.resource)) {
+  if (![RESOURCE_ALIMENTOS, RESOURCE_TABELA_NUTRICIONAL, RESOURCE_DIETAS, RESOURCE_PERFIS, RESOURCE_PERFIL_MEDIDAS, RESOURCE_CONSUMO_AGUA, RESOURCE_ALERTAS_AGENDA].includes(req.query?.resource)) {
     return json(res, 400, { error: 'Recurso invalido.' });
   }
 
@@ -1194,17 +1402,14 @@ export default async function handler(req, res) {
     const isCreate = req.method === 'POST';
     const validation = validateDietPayload(body, isCreate);
     if (validation.error) return json(res, 400, { error: validation.error });
-    if (req.method === 'POST') {
-      const result = await createDiet(validation.data, auth.user.id);
-      if (result.error) return json(res, 500, { error: result.error.message });
-      return json(res, 201, result);
-    }
-    const id = parseId(body.id ?? req.query?.id);
-    if (!id) return json(res, 400, { error: 'ID invalido.' });
-    const result = await updateDiet(id, validation.data, auth.user.id, auth.isAdmin);
+    const id = isCreate ? null : parseId(body.id ?? req.query?.id);
+    if (!isCreate && !id) return json(res, 400, { error: 'ID invalido.' });
+    const result = await saveDietWithNutrition(id, validation.data, body, auth);
+    if (result.invalid) return json(res, 400, { error: result.invalid });
+    if (result.forbidden) return json(res, 403, { error: 'Somente o administrador pode cadastrar um novo alimento no catálogo.' });
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Dieta nao encontrada.' });
-    return json(res, 200, result);
+    return json(res, isCreate ? 201 : 200, result);
   }
 
   if (req.query?.resource === RESOURCE_DIETAS && req.method === 'DELETE') {
@@ -1238,6 +1443,24 @@ export default async function handler(req, res) {
     return json(res, 200, result);
   }
 
+  if (req.query?.resource === RESOURCE_ALIMENTOS && (req.method === 'POST' || req.method === 'PATCH')) {
+    const body = readBody(req);
+    if (!body) return json(res, 400, { error: 'JSON inválido.' });
+    const validation = validateFoodPayload(body);
+    if (validation.error) return json(res, 400, { error: validation.error });
+    if (req.method === 'POST') {
+      const result = await createFood(validation.data);
+      if (result.error) return json(res, 500, { error: result.error.message });
+      return json(res, 201, result);
+    }
+    const id = parseId(body.id ?? req.query?.id);
+    if (!id) return json(res, 400, { error: 'ID inválido.' });
+    const result = await updateFood(id, validation.data);
+    if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.notFound) return json(res, 404, { error: 'Alimento não encontrado.' });
+    return json(res, 200, result);
+  }
+
   if (req.query?.resource === RESOURCE_TABELA_NUTRICIONAL && req.method === 'DELETE') {
     const body = readBody(req);
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
@@ -1246,6 +1469,17 @@ export default async function handler(req, res) {
     const result = await deleteNutritionRow(id);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Item nao encontrado.' });
+    return json(res, 200, { ok: true, ...result });
+  }
+
+  if (req.query?.resource === RESOURCE_ALIMENTOS && req.method === 'DELETE') {
+    const body = readBody(req);
+    if (!body) return json(res, 400, { error: 'JSON inválido.' });
+    const id = parseId(body.id ?? req.query?.id);
+    if (!id) return json(res, 400, { error: 'ID inválido.' });
+    const result = await deleteFood(id);
+    if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.notFound) return json(res, 404, { error: 'Alimento não encontrado.' });
     return json(res, 200, { ok: true, ...result });
   }
 

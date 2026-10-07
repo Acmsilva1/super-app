@@ -21,6 +21,10 @@ export function normalizeDietMeals(value) {
         quantidade: String(item?.quantidade || ''),
         observacao: String(item?.observacao || ''),
         calorias: item?.calorias === '' || item?.calorias == null ? null : Number(item.calorias),
+        alimento_id: Number.isSafeInteger(Number(item?.alimento_id)) && Number(item.alimento_id) > 0 ? Number(item.alimento_id) : null,
+        ...(item?.quantidade_valor != null ? { quantidade_valor: Number(item.quantidade_valor), quantidade_unidade: String(item.quantidade_unidade || '') } : {}),
+        ...(item?.alimento ? { alimento: item.alimento } : {}),
+        ...(item?.nutricao ? { nutricao: item.nutricao } : {}),
       }))
       : [];
     return { ...meal, itens };

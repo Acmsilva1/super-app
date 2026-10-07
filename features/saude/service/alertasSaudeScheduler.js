@@ -1,4 +1,5 @@
 import { DIET_MEALS } from './dietasService.js';
+import { enrichDietNutrition, nutritionForDietItem } from './alimentosService.js';
 import { DEFAULT_ALERT_SCHEDULE, DIET_ALERT_MEALS, normalizeAlertSchedule, WATER_ALERT_END, WATER_ALERT_START } from './alertScheduleConfig.js';
 
 const TIME_ZONE = 'America/Sao_Paulo';
@@ -85,7 +86,7 @@ async function sendAlert(config, { eventType, title, message, dedupeKey }) {
 
 async function loadOwnedData(config, today) {
   const supabase = config.client;
-  const [profilesResult, goalsResult, logsResult, dietsResult, schedulesResult] = await Promise.all([
+  const [profilesResult, goalsResult, logsResult, dietsResult, schedulesResult, foodsResult] = await Promise.all([
     supabase.from('tb_saude_perfis')
       .select('id,nome').eq('created_by', config.ownerId).order('created_at', { ascending: true }),
     supabase.from('tb_saude_agua_metas')
@@ -99,9 +100,19 @@ async function loadOwnedData(config, today) {
     supabase.from('tb_saude_alertas_agenda')
       .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id')
       .eq('created_by', config.ownerId),
+    supabase.from('tb_saude_alimentos')
+      .select('id,item,porcao_equivalente,peso_referencia_g,peso_unidade_g,kcal_100g,proteina_100g,carboidrato_100g,gordura_100g')
+      .order('source_order', { ascending: true }),
   ]);
+  let availableFoods = foodsResult;
+  if (availableFoods.error && ['42703', 'PGRST204'].includes(String(availableFoods.error.code))) {
+    availableFoods = await supabase.from('tb_saude_alimentos')
+      .select('id,item,porcao_equivalente,peso_referencia_g,kcal_100g,proteina_100g,carboidrato_100g,gordura_100g')
+      .order('source_order', { ascending: true });
+  }
   const scheduleTableMissing = schedulesResult.error && ['42P01', 'PGRST205'].includes(String(schedulesResult.error.code));
-  const failed = [profilesResult, goalsResult, logsResult, dietsResult, ...(scheduleTableMissing ? [] : [schedulesResult])].find((result) => result.error);
+  const foodsTableMissing = availableFoods.error && ['42P01', 'PGRST205'].includes(String(availableFoods.error.code));
+  const failed = [profilesResult, goalsResult, logsResult, dietsResult, ...(scheduleTableMissing ? [] : [schedulesResult]), ...(foodsTableMissing ? [] : [availableFoods])].find((result) => result.error);
   if (failed) throw new Error(`saude_data_${failed.error.code || 'unavailable'}`);
 
   const profiles = profilesResult.data || [];
@@ -119,7 +130,7 @@ async function loadOwnedData(config, today) {
   }
   const schedules = new Map((scheduleTableMissing ? [] : (schedulesResult.data || []))
     .map((row) => [String(row.perfil_id), normalizeAlertSchedule(row)]));
-  return { profiles, goals, logs, diets, dietsById, schedules };
+  return { profiles, goals, logs, diets, dietsById, schedules, foods: foodsTableMissing ? [] : (availableFoods.data || []) };
 }
 
 function waterProfileReport(profile, goal, log, date, time) {
@@ -140,18 +151,13 @@ function waterProfileReport(profile, goal, log, date, time) {
   };
 }
 
-function itemCalories(item) {
-  if (item?.calorias === null || item?.calorias === undefined || item?.calorias === '') return null;
-  const value = Number(item.calorias);
-  return Number.isInteger(value) && value >= 0 ? value : null;
-}
-
-function calorieSummary(diet) {
+function calorieSummary(diet, foods = []) {
   const meals = Array.isArray(diet?.refeicoes) ? diet.refeicoes : [];
   const items = meals.flatMap((meal) => Array.isArray(meal?.itens) ? meal.itens : []);
+  const itemNutrition = items.map((item) => nutritionForDietItem(item, foods));
   const target = Number(diet?.meta_calorias);
   const hasTarget = Number.isInteger(target) && target > 0;
-  const hasAllCalories = items.length > 0 && items.every((item) => itemCalories(item) !== null);
+  const hasAllCalories = items.length > 0 && itemNutrition.every((item) => item.kcal !== null);
   if (!hasTarget || !hasAllCalories) {
     return {
       meta_diaria_kcal: hasTarget ? target : null,
@@ -159,7 +165,7 @@ function calorieSummary(diet) {
       situacao: !hasTarget ? 'meta_nao_informada' : 'calorias_incompletas',
     };
   }
-  const total = items.reduce((sum, item) => sum + Number(item.calorias), 0);
+  const total = Math.round(itemNutrition.reduce((sum, item) => sum + item.kcal, 0) * 10) / 10;
   return {
     meta_diaria_kcal: target,
     total_planejado_kcal: total,
@@ -168,7 +174,7 @@ function calorieSummary(diet) {
   };
 }
 
-function dietProfileReport(profile, diet, meal, date, time) {
+function dietProfileReport(profile, diet, meal, date, time, foods = []) {
   const meals = Array.isArray(diet?.refeicoes) ? diet.refeicoes : [];
   const selectedMeal = meals.find((entry) => entry?.tipo === meal.tipo);
   const items = Array.isArray(selectedMeal?.itens) ? selectedMeal.itens : [];
@@ -180,12 +186,19 @@ function dietProfileReport(profile, diet, meal, date, time) {
     periodo: definition?.titulo || meal.titulo,
     perfil: { id: profile.id, nome: profile.nome },
     dieta: diet ? { id: diet.id, titulo: diet.titulo } : null,
-    menu: items.map((item) => ({
-      alimento: String(item?.nome || ''),
-      quantidade: String(item?.quantidade || ''),
-      calorias_kcal: itemCalories(item),
-    })),
-    calorias_planejadas: calorieSummary(diet),
+    menu: items.map((item) => {
+      const nutrition = nutritionForDietItem(item, foods);
+      return {
+        alimento: String(item?.nome || ''),
+        quantidade: String(item?.quantidade || ''),
+        calorias_kcal: nutrition.kcal,
+        proteina_g: nutrition.proteina,
+        carboidrato_g: nutrition.carboidrato,
+        gordura_g: nutrition.gordura,
+      };
+    }),
+    calorias_planejadas: calorieSummary(diet, foods),
+    macronutrientes_planejados: diet ? enrichDietNutrition(diet, foods).nutricao_total : null,
   };
 }
 
@@ -230,7 +243,10 @@ function formatDietAlert(report) {
       const hasCalories = item.calorias_kcal !== null && item.calorias_kcal !== undefined
         && item.calorias_kcal !== '' && Number.isFinite(Number(item.calorias_kcal));
       const calories = hasCalories ? ` · ${Number(item.calorias_kcal)} kcal` : '';
-      lines.push(`• ${food}${quantity ? ` — ${quantity}` : ''}${calories}`);
+      const macros = [item.proteina_g, item.carboidrato_g, item.gordura_g].every((value) => value != null && Number.isFinite(Number(value)))
+        ? ` · P ${Number(item.proteina_g)} g · C ${Number(item.carboidrato_g)} g · G ${Number(item.gordura_g)} g`
+        : '';
+      lines.push(`• ${food}${quantity ? ` — ${quantity}` : ''}${calories}${macros}`);
     }
     if (report.menu.length > menu.length) lines.push(`… e mais ${report.menu.length - menu.length} itens`);
   } else {
@@ -238,10 +254,12 @@ function formatDietAlert(report) {
   }
 
   const calories = report.calorias_planejadas || {};
+  const totals = report.macronutrientes_planejados;
+  if (totals?.completo) lines.push(`📊 Total do plano: P ${totals.proteina} g · C ${totals.carboidrato} g · G ${totals.gordura} g.`);
   if (calories.situacao === 'meta_nao_informada') {
     lines.push('🎯 Meta calórica ainda não informada; o aviso da refeição funciona normalmente.');
   } else if (calories.situacao === 'calorias_incompletas') {
-    lines.push(`🔥 Meta: ${calories.meta_diaria_kcal} kcal. Preencha as calorias dos alimentos para comparar.`);
+    lines.push(`🔥 Meta: ${calories.meta_diaria_kcal} kcal. Confira o alimento no catálogo e informe uma quantidade calculável.`);
   } else {
     lines.push(`🔥 Planejado: ${calories.total_planejado_kcal} / ${calories.meta_diaria_kcal} kcal.`);
     if (calories.situacao === 'meta_atingida') lines.push('✅ O plano está na meta calórica.');
@@ -259,7 +277,7 @@ async function dispatchWaterForProfile(config, data, profile, date, time) {
 
 async function dispatchDietForProfile(config, data, profile, diet, meal, date, time) {
   const key = `dieta:${date}:${time}:${profile.id}`;
-  const report = dietProfileReport(profile, diet, meal, date, time);
+  const report = dietProfileReport(profile, diet, meal, date, time, data.foods);
   return Number(await sendAlert(config, { eventType: 'health.diet_menu', title: `Cardapio ${meal.titulo} - ${profile.nome}`, message: formatDietAlert(report), dedupeKey: key }));
 }
 
