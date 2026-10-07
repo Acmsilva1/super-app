@@ -1996,7 +1996,11 @@ export async function renderSaudeContent(container) {
         state.alertScheduleLoading = true;
         renderProfileDetail(container, state);
         try {
-          const result = await requestAlertSchedule('GET', { profile_id: state.selectedProfileId });
+          const alertProfile = state.profiles.find((p) => Number(p.id) === Number(state.selectedProfileId));
+          const [result] = await Promise.all([
+            requestAlertSchedule('GET', { profile_id: state.selectedProfileId }),
+            syncDietsForHealthProfile(state, alertProfile),
+          ]);
           state.alertSchedule = result.row;
           if (!state.alertSchedule.dieta_id) {
             state.alertSchedule.dieta_id = dietsForProfile(state, state.selectedProfileId)[0]?.id || null;
