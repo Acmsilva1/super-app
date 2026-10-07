@@ -197,6 +197,7 @@ function dietProfileReport(profile, diet, meal, date, time, foods = []) {
         gordura_g: nutrition.gordura,
       };
     }),
+    nutricao_refeicao: enrichDietNutrition({ refeicoes: selectedMeal ? [selectedMeal] : [] }, foods).nutricao_total,
     calorias_planejadas: calorieSummary(diet, foods),
     macronutrientes_planejados: diet ? enrichDietNutrition(diet, foods).nutricao_total : null,
   };
@@ -240,28 +241,30 @@ function formatDietAlert(report) {
       const food = readablePart(item.alimento, 90);
       const quantity = readablePart(item.quantidade, 40);
       if (!food) continue;
-      const hasCalories = item.calorias_kcal !== null && item.calorias_kcal !== undefined
-        && item.calorias_kcal !== '' && Number.isFinite(Number(item.calorias_kcal));
-      const calories = hasCalories ? ` · ${Number(item.calorias_kcal)} kcal` : '';
-      const macros = [item.proteina_g, item.carboidrato_g, item.gordura_g].every((value) => value != null && Number.isFinite(Number(value)))
-        ? ` · P ${Number(item.proteina_g)} g · C ${Number(item.carboidrato_g)} g · G ${Number(item.gordura_g)} g`
-        : '';
-      lines.push(`• ${food}${quantity ? ` — ${quantity}` : ''}${calories}${macros}`);
+      lines.push(`• ${food}${quantity ? ` — ${quantity}` : ''}`);
     }
     if (report.menu.length > menu.length) lines.push(`… e mais ${report.menu.length - menu.length} itens`);
   } else {
     lines.push('🥗 O menu desta refeição ainda não foi cadastrado.');
   }
 
+  const displayNutrition = (value) => Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  const mealTotals = report.nutricao_refeicao;
+  if (menu.length && mealTotals?.completo) {
+    lines.push(`🥗 Nesta refeição, você ingere ${displayNutrition(mealTotals.proteina)} g de proteínas, ${displayNutrition(mealTotals.carboidrato)} g de carboidratos e ${displayNutrition(mealTotals.gordura)} g de gorduras, totalizando ${displayNutrition(mealTotals.kcal)} kcal.`);
+  } else if (menu.length) {
+    lines.push('ℹ️ Ainda faltam dados de alguns alimentos para calcular o total desta refeição. Confira o cadastro e as quantidades no app.');
+  }
+
   const calories = report.calorias_planejadas || {};
   const totals = report.macronutrientes_planejados;
-  if (totals?.completo) lines.push(`📊 Total do plano: P ${totals.proteina} g · C ${totals.carboidrato} g · G ${totals.gordura} g.`);
+  if (totals?.completo) lines.push(`📊 Para o dia inteiro, sua dieta prevê ${displayNutrition(totals.proteina)} g de proteínas, ${displayNutrition(totals.carboidrato)} g de carboidratos e ${displayNutrition(totals.gordura)} g de gorduras.`);
   if (calories.situacao === 'meta_nao_informada') {
     lines.push('🎯 Meta calórica ainda não informada; o aviso da refeição funciona normalmente.');
   } else if (calories.situacao === 'calorias_incompletas') {
     lines.push(`🔥 Meta: ${calories.meta_diaria_kcal} kcal. Confira o alimento no catálogo e informe uma quantidade calculável.`);
   } else {
-    lines.push(`🔥 Planejado: ${calories.total_planejado_kcal} / ${calories.meta_diaria_kcal} kcal.`);
+    lines.push(`🔥 Seu plano diário soma ${displayNutrition(calories.total_planejado_kcal)} kcal, para uma meta de ${displayNutrition(calories.meta_diaria_kcal)} kcal.`);
     if (calories.situacao === 'meta_atingida') lines.push('✅ O plano está na meta calórica.');
     else if (calories.situacao === 'abaixo_da_meta') lines.push(`ℹ️ ${Math.abs(calories.diferenca_kcal)} kcal abaixo da meta.`);
     else if (calories.situacao === 'acima_da_meta') lines.push(`ℹ️ ${calories.diferenca_kcal} kcal acima da meta.`);
