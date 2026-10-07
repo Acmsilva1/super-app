@@ -1416,7 +1416,7 @@ function renderProfileHub(profile, state) {
 
 function renderProfileAlertSchedules(profile, state) {
   const schedule = state.alertSchedule || DEFAULT_ALERT_SCHEDULE;
-  const diets = state.diets || [];
+  const diets = dietsForProfile(state, profile.id);
   const selectedDietId = schedule.dieta_id || diets[0]?.id || '';
   const dietOptions = diets.map((diet) => `<option value="${escapeHtml(diet.id)}"${Number(diet.id) === Number(selectedDietId) ? ' selected' : ''}>${escapeHtml(diet.titulo)}</option>`).join('');
   const loading = state.alertScheduleLoading
@@ -1996,12 +1996,12 @@ export async function renderSaudeContent(container) {
         try {
           const [result, allDietsRes] = await Promise.all([
             requestAlertSchedule('GET', { profile_id: state.selectedProfileId }),
-            fetch('/api/saude?resource=dietas', { cache: 'no-store' }),
+            fetch(`/api/saude?resource=dietas&profile_id=${state.selectedProfileId}`, { cache: 'no-store' }),
           ]);
           const allDietsData = await allDietsRes.json().catch(() => ({}));
-          if (allDietsRes.ok && Array.isArray(allDietsData.rows)) {
-            state.diets = allDietsData.rows;
-          }
+          if (!allDietsRes.ok) throw new Error(allDietsData.error || 'Não foi possível carregar as dietas deste perfil.');
+          if (!Array.isArray(allDietsData.rows)) throw new Error('A resposta das dietas deste perfil é inválida.');
+          state.diets = allDietsData.rows;
           state.alertSchedule = result.row;
           if (!state.alertSchedule.dieta_id) {
             state.alertSchedule.dieta_id = (state.diets || [])[0]?.id || null;

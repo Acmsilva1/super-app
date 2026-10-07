@@ -310,9 +310,13 @@ async function dispatchCurrentSlot(config, sourceUserId, value) {
       }
       if (schedule.dieta_ativa && (schedule.dieta_id || !hasCustomSchedule)) {
         const meal = DIET_ALERT_MEALS.find((entry) => entry.horario === time);
-        const selectedDiet = schedule.dieta_id
+        const selectedDietCandidate = schedule.dieta_id
           ? data.dietsById.get(String(schedule.dieta_id)) || null
           : data.diets.get(profileKey) || null;
+        const selectedDiet = selectedDietCandidate
+          && String(selectedDietCandidate.perfil_id) === profileKey
+          ? selectedDietCandidate
+          : null;
         if (meal && selectedDiet) {
           try {
             alertsSent += await dispatchDietForProfile(userConfig, data, profile, selectedDiet, meal, date, time);
