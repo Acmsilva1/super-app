@@ -1,4 +1,4 @@
-import { enrichDietNutrition, foodUnitWeight, matchFoodForDietItem, nutritionForDietItem } from './service/alimentosService.js';
+import { enrichDietNutrition, matchFoodForDietItem, nutritionForDietItem } from './service/alimentosService.js';
 
 function escape(value) {
   return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -23,11 +23,9 @@ export const DIET_NUTRITION_STYLES = `
 export function renderDietFoodDetails(item, foods = null) {
   const food = foods ? matchFoodForDietItem(item, foods) : item.alimento;
   const nutrition = nutritionForDietItem(item, food ? [food] : []);
-  const unitWeight = food ? foodUnitWeight(food) : null;
-  const per100 = food ? { kcal: food.kcal_100g, proteina: food.proteina_100g, carboidrato: food.carboidrato_100g, gordura: food.gordura_100g } : null;
   return `<details class="diet-food-details"><summary><span><strong>${escape(item.nome)}</strong> — ${escape(item.quantidade)}</span><i class="fas fa-chevron-right" aria-hidden="true"></i></summary><div class="diet-food-details__body">
-    ${food ? `<p><strong>Na quantidade da dieta:</strong><br>${escape(line(nutrition))}</p><p><strong>Por 100 g/ml:</strong><br>${escape(line(per100))}</p><p>Porção de referência: ${escape(food.porcao ?? food.porcao_equivalente)}${food.peso_referencia_g ? ` (${escape(food.peso_referencia_g)} g/ml)` : ''}</p>${nutrition.proteina == null ? '<p>Informe a quantidade em g, ml ou porções para calcular este item.</p>' : ''}<small>Fonte: ${escape(food.fonte_nutricional || 'Cadastro manual')}</small>${food.observacoes ? `<p>${escape(food.observacoes)}</p>` : ''}` : `<p>Este alimento ainda não está vinculado ao catálogo. Edite o item e selecione um alimento ou use “Outros”.</p>${nutrition.kcal != null ? `<p>Calorias manuais: ${escape(number(nutrition.kcal))} kcal</p>` : ''}`}
-    ${unitWeight ? `<p>Peso por unidade: ${escape(number(unitWeight))} g/ml.</p>` : ''}${item.observacao ? `<p>${escape(item.observacao)}</p>` : ''}
+    ${food ? (nutrition.proteina != null ? `<p>${escape(line(nutrition))}</p>` : '<p>Ajuste a quantidade do item. Para usar unidades, cadastre o peso por unidade em Alimentos.</p>') : `<p>Este alimento ainda não está vinculado ao catálogo. Edite o item e selecione um alimento ou use “Outros”.</p>${nutrition.kcal != null ? `<p>Calorias manuais: ${escape(number(nutrition.kcal))} kcal</p>` : ''}`}
+    ${item.observacao ? `<p>${escape(item.observacao)}</p>` : ''}
     </div></details>`;
 }
 

@@ -748,7 +748,7 @@ function renderTabelaNutricional(container, state) {
     .join('');
 
   renderShell(container, `
-    <section class="saude-page" aria-labelledby="tabela-nutricional-title">
+    <section class="saude-page saude-page--alimentos" aria-labelledby="tabela-nutricional-title">
       <div class="saude-page-toolbar">
         <div class="saude-page-header">
           <button type="button" class="saude-btn" data-saude-action="home" aria-label="Voltar para o início de Saúde"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>

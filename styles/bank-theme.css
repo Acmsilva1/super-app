@@ -969,6 +969,29 @@ html[data-theme] #window-saude .saude-alert-group { border-color: var(--bk-line)
 html[data-theme] #window-saude .saude-page { max-width: none; }
 html[data-theme] #window-saude .saude-root :is(h2, h3, h4) { font-family: var(--bk-font); letter-spacing: 0; text-transform: none; }
 
+/* O catálogo usa painéis escuros, inclusive quando o tema geral é claro. */
+html[data-theme] #window-saude .saude-page--alimentos {
+    --bk-ink: #e5eef5;
+    --bk-muted: #b8c7d9;
+    --bk-surface: #0f172a;
+    --bk-bg: #162238;
+    --bk-line: #475569;
+    --bk-pos: #86efac;
+    --bk-pos-soft: rgba(134, 239, 172, 0.12);
+    --bk-neg: #fca5a5;
+    --bk-neg-soft: rgba(252, 165, 165, 0.12);
+    --saude-texto: #e5eef5;
+    --saude-texto-secundario: #b8c7d9;
+    --saude-painel: #0f172a;
+    --saude-painel-elevado: #162238;
+    --saude-frame: #475569;
+    color: var(--saude-texto);
+    color-scheme: dark;
+}
+html[data-theme] #window-saude .saude-page--alimentos :is(h2, h3, h4) {
+    color: var(--saude-texto);
+}
+
 html[data-theme] #window-saude .saude-profile-avatar {
     width: 2.25rem;
     height: 2.25rem;
