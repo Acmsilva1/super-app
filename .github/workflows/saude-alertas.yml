@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Teste envia duas mensagens fictícias; agendador só processa horários devidos'
+        description: 'Teste envia água, dietas e Financeiro; agendador processa os horários devidos'
         required: true
         type: choice
         default: telegram_test
@@ -44,4 +44,4 @@ jobs:
           result=$(curl --silent --show-error --max-time 170 --write-out $'\n%{http_code}' "${headers[@]}" "${SUPERAPP_URL%/}/api/saude-alertas-cron?mode=${RUN_MODE}")
           http_status="${result##*$'\n'}"
           body="${result%$'\n'*}"
-          RESULT="$body" HTTP_STATUS="$http_status" RUN_MODE="$RUN_MODE" python3 -c 'import json, os; data=json.loads(os.environ["RESULT"]); print("HTTP " + os.environ["HTTP_STATUS"] + ": " + json.dumps(data, ensure_ascii=False)); success = data.get("sent") == 2 if os.environ["RUN_MODE"] == "telegram_test" else data.get("processed"); assert os.environ["HTTP_STATUS"] == "200" and data.get("ok") and success, "Teste Telegram sem confirmação ou agendador sem processamento"'
+          RESULT="$body" HTTP_STATUS="$http_status" RUN_MODE="$RUN_MODE" python3 -c 'import json, os; data=json.loads(os.environ["RESULT"]); print("HTTP " + os.environ["HTTP_STATUS"] + ": " + json.dumps(data, ensure_ascii=False)); expected=data.get("expected", 0); types={item.get("type") for item in data.get("results", [])}; success = isinstance(expected, int) and expected >= 4 and data.get("sent") == expected and {"health.water_progress", "health.diet_menu", "financeiro.daily_summary"}.issubset(types) if os.environ["RUN_MODE"] == "telegram_test" else data.get("processed"); assert os.environ["HTTP_STATUS"] == "200" and data.get("ok") and success, "Teste Telegram sem confirmação ou agendador sem processamento"'

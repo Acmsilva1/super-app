@@ -7819,7 +7819,14 @@
                         <div id="profileAdminAlertsPane" role="tabpanel" hidden>
                             <div class="profile-admin-toolbar"><div><h4>Alertas pessoais</h4><p>Configure os avisos do Telegram para cada perfil da sua conta.</p></div><button type="button" class="auth-secondary" id="adminAlertsRefresh">Atualizar</button></div>
                             <p id="adminAlertsMessage" role="status" class="profile-admin-message"></p>
-                            <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia duas mensagens fictícias: água e dieta. Seus agendamentos e dados não serão alterados.</p></div><button type="button" class="auth-secondary" id="adminTelegramTest">Testar Telegram</button></div>
+                            <section class="profile-alerts-group" aria-labelledby="adminFinanceiroAlertsTitle">
+                                <h4 id="adminFinanceiroAlertsTitle">💰 Alertas do Financeiro</h4>
+                                <ul class="profile-alerts-times"><li>13:00 · Débito/Pix do dia</li><li>20:00 · Débito/Pix do dia</li><li>21:00 · Despesas fixas do mês</li></ul>
+                                <p>Às 13h e 20h: total gasto hoje em débito/Pix. Às 21h: total pago e pendente das despesas fixas do mês.</p>
+                                <p>Horário de Brasília. Os disparos estão previstos por volta de 13h02, 20h02 e 21h02 e podem sofrer atraso.</p>
+                                <p>O botão Testar Telegram abaixo envia os dois formatos com os valores atuais do Financeiro.</p>
+                            </section>
+                            <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia o teste de água, todas as dietas cadastradas e os dois resumos reais do Financeiro: débito/Pix do dia e despesas fixas do mês.</p></div><button type="button" class="auth-secondary" id="adminTelegramTest">Testar Telegram</button></div>
                             <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                             <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie descrição e valor por texto ou áudio no chat privado do bot. Sempre débito, com confirmação antes de salvar.</p></div><button type="button" class="auth-secondary" id="adminTelegramWebhook">Ativar compras pelo Telegram</button></div>
                             <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
@@ -8187,7 +8194,7 @@
                 if (!button || !message || button.disabled) return;
                 button.disabled = true;
                 button.textContent = 'Enviando testes…';
-                message.textContent = 'Carregando todas as dietas cadastradas e enviando o teste…';
+                message.textContent = 'Carregando dietas e resumos do Financeiro para enviar o teste…';
                 try {
                     const response = await fetch('/api/admin/usuarios', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -8197,7 +8204,7 @@
                     if (!response.ok || !payload.ok) throw new Error(payload.error || 'Não foi possível confirmar o envio. Confira o Telegram antes de repetir.');
                     message.textContent = payload.simulated
                         ? '✅ Teste simulado no modo mock. Nenhuma mensagem enviada ao Telegram.'
-                        : `✅ Telegram confirmou ${payload.sent} mensagem(ns): teste de água e todas as dietas cadastradas. Confira o chat do bot.`;
+                        : `✅ Telegram confirmou ${payload.sent} mensagem(ns): água, todas as dietas e Financeiro (débito/Pix e despesas fixas). Confira o chat do bot.`;
                 } catch (error) {
                     message.textContent = error.message || 'Falha no teste. Confira o Telegram antes de repetir.';
                 } finally {

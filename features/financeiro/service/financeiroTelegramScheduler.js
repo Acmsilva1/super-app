@@ -104,6 +104,20 @@ async function loadSummary(config, date, slot) {
   ].join('\n');
 }
 
+export async function previewFinanceiroDailySummaries(now = new Date()) {
+  const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
+  const { date } = saoPauloClock(now);
+  const config = { client: getAlertServiceClient() };
+  const [daily, fixed] = await Promise.all([
+    loadSummary(config, date, 'debitos-pix-20h'),
+    loadSummary(config, date, 'despesas-fixas-21h'),
+  ]);
+  return [
+    { event_type: 'financeiro.daily_summary', title: '[TESTE MANUAL] Financeiro · Débito/Pix (13h e 20h)', message: daily },
+    { event_type: 'financeiro.daily_summary', title: '[TESTE MANUAL] Financeiro · Despesas fixas (21h)', message: fixed },
+  ];
+}
+
 export async function runFinanceiroDailySummary(now = new Date()) {
   const { date, time } = saoPauloClock(now);
   // The workflow polls at :02 and :32 to avoid GitHub's busy minute zero.
