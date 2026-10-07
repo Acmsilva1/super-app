@@ -18,7 +18,7 @@ vi.mock('../../lib/alertServiceClient.js', () => ({
     return query;
   } }),
 }));
-import { runSaudeAlertSlot } from '../../features/saude/service/alertasSaudeScheduler.js';
+import { buildDietAlertMessages, runSaudeAlertSlot } from '../../features/saude/service/alertasSaudeScheduler.js';
 
 beforeEach(() => {
   vi.unstubAllEnvs(); vi.unstubAllGlobals();
@@ -69,11 +69,41 @@ describe('Vercel alerts', () => {
     state.rows.app_user_roles=[{role:'user'}];
     await expect(runSaudeAlertSlot()).rejects.toThrow('alerts_owner_invalid');
   });
-  it('does not use a selected diet belonging to another profile', async () => {
+  it('includes every diet with its real profile even when an old schedule selected only one', async () => {
+    state.rows.tb_saude_perfis=[{id:1,nome:'André'},{id:99,nome:'Juliana'}];
     state.rows.tb_saude_alertas_agenda=[{perfil_id:1,agua_ativo:false,dieta_ativa:true,dieta_id:2}];
-    state.rows.tb_saude_dietas=[{id:2,perfil_id:99,titulo:'Outra'}];
-    const fetchMock=vi.fn(); vi.stubGlobal('fetch',fetchMock);
+    state.rows.tb_saude_dietas=[{id:2,perfil_id:99,titulo:'Emagrecimento'},{id:3,perfil_id:99,titulo:'Manutenção'},{id:4,perfil_id:1,titulo:'Plano André'}];
+    const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,telegram_message_id:7})});
+    vi.stubGlobal('fetch',fetchMock);
     await runSaudeAlertSlot(new Date('2026-10-05T22:05:00Z'));
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const payload=JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(payload.message).toContain('Emagrecimento');
+    expect(payload.message).toContain('Manutenção');
+    expect(payload.message).toContain('Plano André');
+    expect(payload.message).toContain('Juliana');
+    expect(payload.message).toContain('André');
+    expect(payload.dedupe_key).toBe('dietas:2026-10-05:19:00:todas:1');
+  });
+  it('respects inactive profiles and keeps diets without a linked profile visible', () => {
+    const messages=buildDietAlertMessages({profiles:[{id:1,nome:'André'}],foods:[],
+      schedules:new Map([['1',{dieta_ativa:false}]]),
+      diets:[{id:1,perfil_id:1,titulo:'Desativada'},{id:2,perfil_id:null,titulo:'Sem vínculo'}]},
+      {tipo:'jantar',titulo:'Jantar'},'2026-10-05','19:00');
+    expect(messages.join('')).not.toContain('Desativada');
+    expect(messages.join('')).toContain('Sem vínculo');
+    expect(messages.join('')).toContain('Perfil não vinculado');
+  });
+  it('splits long summaries without dropping diets or meal items', () => {
+    const diets=Array.from({length:5},(_,i)=>({id:i+1,perfil_id:1,titulo:`Plano ${i+1}`,
+      refeicoes:[{tipo:'jantar',itens:Array.from({length:20},(_,j)=>({nome:`Alimento ${i}-${j}`,quantidade:'100 g'}))}]}));
+    const messages=buildDietAlertMessages({profiles:[{id:1,nome:'Juliana'}],foods:[],schedules:new Map(),diets},
+      {tipo:'jantar',titulo:'Jantar'},'2026-10-05','19:00');
+    expect(messages.length).toBeGreaterThan(1);
+    expect(messages.every(message=>message.length<=2800)).toBe(true);
+    for(let i=0;i<5;i++) {
+      expect(messages.join('')).toContain(`Plano ${i+1}`);
+      for(let j=0;j<20;j++) expect(messages.join('')).toContain(`Alimento ${i}-${j}`);
+    }
   });
 });

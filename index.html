@@ -8082,16 +8082,16 @@
                     const profileId = Number(profile.id);
                     const [schedulePayload, dietPayload] = await Promise.all([
                         fetchPayload(`/api/saude?resource=alertas-agenda&profile_id=${encodeURIComponent(profileId)}`),
-                        fetchPayload(`/api/saude?resource=dietas&profile_id=${encodeURIComponent(profileId)}`),
+                        fetchPayload('/api/saude?resource=dietas'),
                     ]);
                     const schedule = schedulePayload.row || { agua_ativo: true, agua_intervalo_horas: 3, dieta_ativa: true, dieta_id: null };
                     const diets = Array.isArray(dietPayload.rows) ? dietPayload.rows : [];
-                    const selectedDietId = schedule.dieta_id || diets[0]?.id || '';
+                    const dietsForProfile = (id) => diets.filter((diet) => String(diet.perfil_id) === String(id));
                     const escape = (value) => escapeHtml(String(value ?? ''));
                     content.dataset.profileId = String(profileId);
                     content.innerHTML = `
                         <label class="profile-admin-field profile-alerts-profile"><span>Perfil de saúde</span>
-                            <select data-alert-profile>${profiles.map((item) => `<option value="${escape(item.id)}"${Number(item.id) === profileId ? ' selected' : ''}>${escape(item.nome || `Perfil ${item.id}`)}</option>`).join('')}</select>
+                            <select data-alert-profile>${profiles.map((item) => `<option value="${escape(item.id)}"${Number(item.id) === profileId ? ' selected' : ''}>${escape(item.nome || `Perfil ${item.id}`)} · ${dietsForProfile(item.id).length} dieta(s)</option>`).join('')}</select>
                         </label>
                         <form class="profile-alerts-form" data-admin-alert-form>
                             <input type="hidden" name="profile_id" value="${escape(profileId)}">
@@ -8103,13 +8103,14 @@
                             </fieldset>
                             <fieldset class="profile-alerts-group">
                                 <legend>🥗 Alerta de dieta</legend>
-                                <label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa && diets.length ? ' checked' : ''}${diets.length ? '' : ' disabled'}> Ativar lembretes das refeições</label>
-                                <label class="profile-admin-field"><span>Dieta deste perfil</span><select name="dieta_id"${diets.length ? '' : ' disabled'}>${diets.length ? diets.map((diet) => `<option value="${escape(diet.id)}"${Number(diet.id) === Number(selectedDietId) ? ' selected' : ''}>${escape(diet.titulo || diet.nome || `Dieta ${diet.id}`)}</option>`).join('') : '<option value="">Cadastre uma dieta neste perfil</option>'}</select></label>
+                                <label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa ? ' checked' : ''}> Ativar lembretes de todas as dietas de ${escape(profile.nome || 'este perfil')}</label>
+                                <div><strong>Dietas cadastradas que o bot consulta</strong><ul>${diets.length ? diets.map((diet) => `<li>${escape(diet.titulo || diet.nome || `Dieta ${diet.id}`)} — ${escape(profiles.find((item) => String(item.id) === String(diet.perfil_id))?.nome || 'Perfil não vinculado')}</li>`).join('') : '<li>Nenhuma dieta cadastrada.</li>'}</ul></div>
+                                <p>O aviso reúne todas as dietas dos perfis com lembretes ativos, com o cardápio da refeição. Mensagens longas continuam em partes.</p>
                                 <p>Horários fixos dos avisos:</p><ul class="profile-alerts-times"><li>07:00 · Café da manhã</li><li>11:00 · Almoço</li><li>15:00 · Café da tarde</li><li>19:00 · Jantar</li></ul>
                             </fieldset>
                             <div class="profile-alerts-save-row"><button class="profile-alerts-save" type="submit"${!diets.length ? ' title="A dieta pode ser deixada desativada até cadastrar uma dieta"' : ''}>💾 Salvar alertas</button><span class="profile-alerts-save-status" data-alert-save-status role="status" aria-live="polite"></span></div>
                         </form>`;
-                    message.textContent = diets.length ? 'Ajuste os alertas deste perfil. Os horários das refeições são fixos.' : 'Água pode ser configurada agora; cadastre uma dieta neste perfil para ativar os avisos de refeições.';
+                    message.textContent = `${diets.length} dieta(s) cadastrada(s) no total; ${dietsForProfile(profileId).length} neste perfil. Os avisos incluem todas as dietas dos perfis com lembretes ativos.`;
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao carregar os alertas.';
                 }
@@ -8136,7 +8137,7 @@
                             agua_ativo: values.has('agua_ativo'),
                             agua_intervalo_horas: Number(values.get('agua_intervalo_horas')),
                             dieta_ativa: values.has('dieta_ativa'),
-                            dieta_id: values.get('dieta_id') || null,
+                            dieta_id: null,
                         }),
                     });
                     const payload = await response.json();
@@ -8186,7 +8187,7 @@
                 if (!button || !message || button.disabled) return;
                 button.disabled = true;
                 button.textContent = 'Enviando testes…';
-                message.textContent = 'Aguarde a confirmação de entrega das duas mensagens.';
+                message.textContent = 'Carregando todas as dietas cadastradas e enviando o teste…';
                 try {
                     const response = await fetch('/api/admin/usuarios', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -8196,7 +8197,7 @@
                     if (!response.ok || !payload.ok) throw new Error(payload.error || 'Não foi possível confirmar o envio. Confira o Telegram antes de repetir.');
                     message.textContent = payload.simulated
                         ? '✅ Teste simulado no modo mock. Nenhuma mensagem enviada ao Telegram.'
-                        : '✅ Telegram confirmou os dois alertas de teste: água e dieta. Confira o chat do bot.';
+                        : `✅ Telegram confirmou ${payload.sent} mensagem(ns): teste de água e todas as dietas cadastradas. Confira o chat do bot.`;
                 } catch (error) {
                     message.textContent = error.message || 'Falha no teste. Confira o Telegram antes de repetir.';
                 } finally {

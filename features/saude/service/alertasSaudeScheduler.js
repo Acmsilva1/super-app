@@ -84,22 +84,21 @@ async function sendAlert(config, { eventType, title, message, dedupeKey }) {
   }
 }
 
-async function loadOwnedData(config, today) {
+async function loadAlertData(config, today) {
   const supabase = config.client;
   const [profilesResult, goalsResult, logsResult, dietsResult, schedulesResult, foodsResult] = await Promise.all([
     supabase.from('tb_saude_perfis')
-      .select('id,nome').eq('created_by', config.ownerId).order('created_at', { ascending: true }),
+      .select('id,nome,created_by').order('created_at', { ascending: true }),
     supabase.from('tb_saude_agua_metas')
-      .select('perfil_id,nome,meta_doses').eq('created_by', config.ownerId),
+      .select('perfil_id,nome,meta_doses'),
     supabase.from('tb_saude_agua_logs')
       .select('perfil_id,data_local,meta_doses,realizado_doses')
-      .eq('created_by', config.ownerId).eq('data_local', today),
+      .eq('data_local', today),
     supabase.from('tb_saude_dietas')
       .select('id,perfil_id,titulo,refeicoes,meta_calorias,updated_at')
-      .eq('created_by', config.ownerId).order('updated_at', { ascending: false }),
+      .order('id', { ascending: true }),
     supabase.from('tb_saude_alertas_agenda')
-      .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id')
-      .eq('created_by', config.ownerId),
+      .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id'),
     supabase.from('tb_saude_alimentos')
       .select('id,item,porcao_equivalente,peso_referencia_g,peso_unidade_g,kcal_100g,proteina_100g,carboidrato_100g,gordura_100g')
       .order('source_order', { ascending: true }),
@@ -116,21 +115,12 @@ async function loadOwnedData(config, today) {
   if (failed) throw new Error(`saude_data_${failed.error.code || 'unavailable'}`);
 
   const profiles = profilesResult.data || [];
-  const ownedProfileIds = new Set(profiles.map((profile) => String(profile.id)));
   const goals = new Map((goalsResult.data || []).map((row) => [String(row.perfil_id), row]));
   const logs = new Map((logsResult.data || []).map((row) => [String(row.perfil_id), row]));
-  const diets = new Map();
-  const dietsById = new Map();
-  for (const diet of dietsResult.data || []) {
-    const key = String(diet.perfil_id);
-    if (ownedProfileIds.has(key)) {
-      if (!diets.has(key)) diets.set(key, diet);
-      dietsById.set(String(diet.id), diet);
-    }
-  }
+  const diets = dietsResult.data || [];
   const schedules = new Map((scheduleTableMissing ? [] : (schedulesResult.data || []))
     .map((row) => [String(row.perfil_id), normalizeAlertSchedule(row)]));
-  return { profiles, goals, logs, diets, dietsById, schedules, foods: foodsTableMissing ? [] : (availableFoods.data || []) };
+  return { profiles, goals, logs, diets, schedules, foods: foodsTableMissing ? [] : (availableFoods.data || []) };
 }
 
 function waterProfileReport(profile, goal, log, date, time) {
@@ -234,7 +224,7 @@ function formatDietAlert(report) {
   const lines = [`🍽️ ${meal} na sequência, ${name}!`, `📅 ${displayDate(report.data)} · ⏰ ${report.horario}`];
   if (report.dieta?.titulo) lines.push(`📋 Plano: ${readablePart(report.dieta.titulo, 100)}`);
   else lines.push('📋 Nenhuma dieta selecionada para este perfil.');
-  const menu = Array.isArray(report.menu) ? report.menu.slice(0, 12) : [];
+  const menu = Array.isArray(report.menu) ? report.menu : [];
   if (menu.length) {
     lines.push('🥗 Menu:');
     for (const item of menu) {
@@ -243,7 +233,6 @@ function formatDietAlert(report) {
       if (!food) continue;
       lines.push(`• ${food}${quantity ? ` — ${quantity}` : ''}`);
     }
-    if (report.menu.length > menu.length) lines.push(`… e mais ${report.menu.length - menu.length} itens`);
   } else {
     lines.push('🥗 O menu desta refeição ainda não foi cadastrado.');
   }
@@ -269,7 +258,7 @@ function formatDietAlert(report) {
     else if (calories.situacao === 'abaixo_da_meta') lines.push(`ℹ️ ${Math.abs(calories.diferenca_kcal)} kcal abaixo da meta.`);
     else if (calories.situacao === 'acima_da_meta') lines.push(`ℹ️ ${calories.diferenca_kcal} kcal acima da meta.`);
   }
-  return lines.join('\n').slice(0, 3000);
+  return lines.join('\n');
 }
 
 async function dispatchWaterForProfile(config, data, profile, date, time) {
@@ -278,24 +267,48 @@ async function dispatchWaterForProfile(config, data, profile, date, time) {
   return Number(await sendAlert(config, { eventType: 'health.water_progress', title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key }));
 }
 
-async function dispatchDietForProfile(config, data, profile, diet, meal, date, time) {
-  const key = `dieta:${date}:${time}:${profile.id}`;
-  const report = dietProfileReport(profile, diet, meal, date, time, data.foods);
-  return Number(await sendAlert(config, { eventType: 'health.diet_menu', title: `Cardapio ${meal.titulo} - ${profile.nome}`, message: formatDietAlert(report), dedupeKey: key }));
+export function buildDietAlertMessages(data, meal, date, time, { includeInactive = false } = {}) {
+  const profiles = new Map(data.profiles.map((profile) => [String(profile.id), profile]));
+  const blocks = data.diets.filter((diet) => includeInactive
+    || data.schedules.get(String(diet.perfil_id))?.dieta_ativa !== false)
+    .map((diet) => {
+      const profile = profiles.get(String(diet.perfil_id)) || { id: diet.perfil_id, nome: 'Perfil não vinculado' };
+      return formatDietAlert(dietProfileReport(profile, diet, meal, date, time, data.foods));
+    });
+  if (!blocks.length) return [];
+  // Keep every diet and item; long summaries continue in additional Telegram messages.
+  const characters = Array.from(blocks.join('\n\n────────────────\n\n'));
+  const messages = [];
+  let message = '';
+  for (const character of characters) {
+    if (message.length + character.length > 2800) {
+      messages.push(message);
+      message = '';
+    }
+    message += character;
+  }
+  if (message) messages.push(message);
+  return messages;
 }
 
-async function dispatchCurrentSlot(config, sourceUserId, value) {
+export async function previewAllDietAlerts(now = new Date()) {
+  const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
+  const { date, time } = saoPauloClock(now);
+  const data = await loadAlertData({ client: getAlertServiceClient() }, date);
+  const meal = DIET_ALERT_MEALS.find((entry) => entry.horario >= time) || DIET_ALERT_MEALS[0];
+  return buildDietAlertMessages(data, meal, date, meal.horario, { includeInactive: true });
+}
+
+async function dispatchCurrentSlot(config, value) {
   const { date, time } = saoPauloClock(value);
   if (!['00', '30'].includes(time.slice(-2))) return { failures: [], alertsSent: 0 };
-  const userConfig = { ...config, ownerId: sourceUserId };
   const failures = [];
   let alertsSent = 0;
   try {
-    const data = await loadOwnedData(userConfig, date);
+    const data = await loadAlertData(config, date);
     const defaults = normalizeAlertSchedule(DEFAULT_ALERT_SCHEDULE);
     for (const profile of data.profiles) {
       const profileKey = String(profile.id);
-      const hasCustomSchedule = data.schedules.has(profileKey);
       const schedule = data.schedules.get(profileKey) || defaults;
       const minuteOfDay = Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
       const waterStart = Number(WATER_ALERT_START.slice(0, 2)) * 60 + Number(WATER_ALERT_START.slice(3, 5));
@@ -303,27 +316,22 @@ async function dispatchCurrentSlot(config, sourceUserId, value) {
       if (schedule.agua_ativo && minuteOfDay >= waterStart && minuteOfDay <= waterEnd
         && (minuteOfDay - waterStart) % (schedule.agua_intervalo_horas * 60) === 0) {
         try {
-          alertsSent += await dispatchWaterForProfile(userConfig, data, profile, date, time);
+          alertsSent += await dispatchWaterForProfile({ ...config, ownerId: profile.created_by || config.ownerId }, data, profile, date, time);
         } catch (error) {
           failures.push(error);
         }
       }
-      if (schedule.dieta_ativa && (schedule.dieta_id || !hasCustomSchedule)) {
-        const meal = DIET_ALERT_MEALS.find((entry) => entry.horario === time);
-        const selectedDietCandidate = schedule.dieta_id
-          ? data.dietsById.get(String(schedule.dieta_id)) || null
-          : data.diets.get(profileKey) || null;
-        const selectedDiet = selectedDietCandidate
-          && String(selectedDietCandidate.perfil_id) === profileKey
-          ? selectedDietCandidate
-          : null;
-        if (meal && selectedDiet) {
-          try {
-            alertsSent += await dispatchDietForProfile(userConfig, data, profile, selectedDiet, meal, date, time);
-          } catch (error) {
-            failures.push(error);
-          }
-        }
+    }
+    const meal = DIET_ALERT_MEALS.find((entry) => entry.horario === time);
+    const messages = meal ? buildDietAlertMessages(data, meal, date, time) : [];
+    for (const [index, message] of messages.entries()) {
+      try {
+        alertsSent += Number(await sendAlert(config, {
+          eventType: 'health.diet_menu', title: `Todas as dietas · ${meal.titulo}${messages.length > 1 ? ` (${index + 1}/${messages.length})` : ''}`,
+          message, dedupeKey: `dietas:${date}:${time}:todas:${index + 1}`,
+        }));
+      } catch (error) {
+        failures.push(error);
       }
     }
   } catch (error) {
@@ -337,23 +345,17 @@ export async function runSaudeAlertSlot(now = new Date()) {
   if (!config) return { skipped: true, reason: 'disabled_or_missing_config' };
   const { data: roles, error } = await config.client.from('app_user_roles').select('role').eq('user_id', config.ownerId);
   if (error || !roles?.some(row => ['owner', 'admin'].includes(row.role))) throw new Error('alerts_owner_invalid');
-  const { data: profiles, error: profilesError } = await config.client.from('tb_saude_perfis').select('created_by');
-  if (profilesError) throw new Error(`saude_profiles_${profilesError.code || 'unavailable'}`);
-  const sourceUserIds = [...new Set((profiles || []).map((row) => String(row.created_by || '')).filter(Boolean))];
-  if (!sourceUserIds.includes(config.ownerId)) sourceUserIds.push(config.ownerId);
   const start = new Date(Math.floor(now.getTime() / 1800000) * 1800000);
   // A delayed trigger can recover the previous half-hour; keys persist in Supabase.
   const failures = [];
   let alertsSent = 0;
   for (const slot of [new Date(start.getTime() - 1800000), start]) {
-    for (const sourceUserId of sourceUserIds) {
-      try {
-        const result = await dispatchCurrentSlot(config, sourceUserId, slot);
-        alertsSent += result.alertsSent;
-        failures.push(...result.failures);
-      } catch (error) {
-        failures.push(error);
-      }
+    try {
+      const result = await dispatchCurrentSlot(config, slot);
+      alertsSent += result.alertsSent;
+      failures.push(...result.failures);
+    } catch (error) {
+      failures.push(error);
     }
   }
   // Continue processing the remaining profiles, then report failure to the trigger.

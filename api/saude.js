@@ -383,10 +383,10 @@ async function requireSaudeProfileForWater(userId, profileId, isAdmin = false) {
   if (isOfflineMode()) {
     const profile = offlineProfiles.find((row) => Number(row.id) === id && (isAdmin || row.created_by === userId));
     if (!profile) return { notFound: true };
-    return { profile: { id: profile.id, nome: profile.nome }, storage: 'memory' };
+    return { profile: { id: profile.id, nome: profile.nome, created_by: profile.created_by }, storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
-  let query = supabase.from(TABELA_PERFIS).select('id,nome').eq('id', id);
+  let query = supabase.from(TABELA_PERFIS).select('id,nome,created_by').eq('id', id);
   if (!isAdmin) query = query.eq('created_by', userId);
   const { data, error, status, statusText } = await query.maybeSingle();
   if (error) return { error, status, statusText };
@@ -585,28 +585,31 @@ async function loadAlertSchedule(profileId, userId, isAdmin = false) {
   return { row: normalizeAlertSchedule(data), storage: 'supabase', updated_at: data?.updated_at || null };
 }
 
-async function saveAlertSchedule(profileId, payload, userId) {
+async function saveAlertSchedule(profileId, payload, userId, isAdmin = false) {
   const validation = validateAlertSchedule(payload);
   if (validation.error) return { validationError: validation.error };
-  const owned = await requireSaudeProfileForWater(userId, profileId);
+  const owned = await requireSaudeProfileForWater(userId, profileId, isAdmin);
   if (owned.error || owned.notFound || owned.invalid) return owned;
+  const scheduleOwnerId = owned.profile.created_by || userId;
   if (validation.data.dieta_id !== null) {
     if (isOfflineMode()) {
       const dietExists = offlineDiets.some((diet) => Number(diet.id) === validation.data.dieta_id
         && Number(diet.perfil_id) === Number(profileId)
-        && diet.created_by === userId);
+        && (isAdmin || diet.created_by === userId));
       if (!dietExists) return { dietNotFound: true };
     } else {
       const { supabase } = await import('../lib/supabase.js');
-      const { data: diet, error: dietError, status, statusText } = await supabase.from(TABELA_DIETAS)
-        .select('id').eq('id', validation.data.dieta_id).eq('perfil_id', profileId).eq('created_by', userId).maybeSingle();
+      let query = supabase.from(TABELA_DIETAS)
+        .select('id').eq('id', validation.data.dieta_id).eq('perfil_id', profileId);
+      if (!isAdmin) query = query.eq('created_by', userId);
+      const { data: diet, error: dietError, status, statusText } = await query.maybeSingle();
       if (dietError) return { error: dietError, status, statusText };
       if (!diet) return { dietNotFound: true };
     }
   }
-  const row = { perfil_id: profileId, created_by: userId, ...validation.data };
+  const row = { perfil_id: profileId, created_by: scheduleOwnerId, ...validation.data };
   if (isOfflineMode()) {
-    offlineAlertSchedules.set(`${userId}:${profileId}`, row);
+    offlineAlertSchedules.set(`${scheduleOwnerId}:${profileId}`, row);
     return { row: normalizeAlertSchedule(row), storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
@@ -1270,7 +1273,7 @@ export default async function handler(req, res) {
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
     const profileId = parseId(body.profile_id ?? req.query?.profile_id);
     if (!profileId) return json(res, 400, { error: 'Perfil invalido.' });
-    const result = await saveAlertSchedule(profileId, body, auth.user.id);
+    const result = await saveAlertSchedule(profileId, body, auth.user.id, auth.isAdmin);
     if (result.error) {
       const code = String(result.error.code || 'BACKEND_ERROR').replace(/[^A-Z0-9_-]/gi, '').slice(0, 32) || 'BACKEND_ERROR';
       const messages = {

@@ -1417,8 +1417,7 @@ function renderProfileHub(profile, state) {
 function renderProfileAlertSchedules(profile, state) {
   const schedule = state.alertSchedule || DEFAULT_ALERT_SCHEDULE;
   const diets = dietsForProfile(state, profile.id);
-  const selectedDietId = schedule.dieta_id || diets[0]?.id || '';
-  const dietOptions = diets.map((diet) => `<option value="${escapeHtml(diet.id)}"${Number(diet.id) === Number(selectedDietId) ? ' selected' : ''}>${escapeHtml(diet.titulo)}</option>`).join('');
+  const dietList = diets.map((diet) => `<li>${escapeHtml(diet.titulo)}</li>`).join('');
   const loading = state.alertScheduleLoading
     ? '<p class="saude-alert-help" role="status">Carregando agendamentos salvos...</p>'
     : '';
@@ -1432,9 +1431,10 @@ function renderProfileAlertSchedules(profile, state) {
         <label class="saude-alert-meal-row"><span>Intervalo entre alertas</span><select class="saude-field" name="agua_intervalo_horas">${Array.from({ length: 12 }, (_, index) => index + 1).map((hours) => `<option value="${hours}"${Number(schedule.agua_intervalo_horas) === hours ? ' selected' : ''}>A cada ${hours} ${hours === 1 ? 'hora' : 'horas'}</option>`).join('')}</select></label>
       </fieldset>
       <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
-        <legend><label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa && diets.length ? ' checked' : ''}${diets.length ? '' : ' disabled'}> Alertas de dieta</label></legend>
+        <legend><label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa ? ' checked' : ''}> Alertas de todas as dietas</label></legend>
         <p class="saude-alert-help">Os horários são fixos: 07h, 11h, 15h e 19h.</p>
-        <label class="saude-alert-meal-row"><span>Dieta deste perfil</span><select class="saude-field" name="dieta_id"${diets.length ? '' : ' disabled'}>${dietOptions || '<option value="">Cadastre uma dieta neste perfil</option>'}</select></label>
+        <ul>${dietList || '<li>Nenhuma dieta cadastrada neste perfil.</li>'}</ul>
+        <p class="saude-alert-help">O bot reúne todas as dietas dos perfis com alertas ativos na mensagem de cada refeição.</p>
       </fieldset>
       <p class="saude-alert-help">Água começa às ${WATER_ALERT_START}, mantendo 30 minutos de intervalo das refeições. Os horários usam Brasília diariamente. A dieta pode ser avisada mesmo sem calorias preenchidas.</p>
       <div class="saude-editor__actions"><button class="saude-btn saude-btn--primary" type="submit"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar agendadores</button></div>
@@ -2415,7 +2415,7 @@ export async function renderSaudeContent(container) {
         agua_ativo: values.has('agua_ativo'),
         agua_intervalo_horas: Number(values.get('agua_intervalo_horas')),
         dieta_ativa: values.has('dieta_ativa'),
-        dieta_id: values.get('dieta_id') || null,
+        dieta_id: null,
       };
       state.busy = true;
       state.notice = null;

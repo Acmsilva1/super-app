@@ -37,6 +37,5 @@ export function validateAlertSchedule(payload) {
   if (!WATER_ALERT_INTERVALS.includes(interval)) return { error: 'Escolha um intervalo inteiro entre 1 e 12 horas.' };
   const dietId = payload.dieta_id == null || payload.dieta_id === '' ? null : Number(payload.dieta_id);
   if (dietId !== null && (!Number.isSafeInteger(dietId) || dietId <= 0)) return { error: 'Selecione uma dieta valida.' };
-  if (payload.dieta_ativa && !dietId) return { error: 'Selecione qual dieta deve receber os alertas.' };
   return { data: { agua_ativo: payload.agua_ativo, agua_intervalo_horas: interval, dieta_ativa: payload.dieta_ativa, dieta_id: dietId } };
 }
