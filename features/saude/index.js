@@ -633,12 +633,10 @@ async function syncDietsForHealthProfile(state, healthProfile) {
   if (!healthProfile) return;
   const profileId = Number(healthProfile.id);
   state.dietSelectedProfileId = profileId;
-  const response = await fetch(`/api/saude?resource=dietas&profile_id=${profileId}`, { cache: 'no-store' });
+  const response = await fetch('/api/saude?resource=dietas', { cache: 'no-store' });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'Não foi possível carregar as dietas.');
-  const rows = Array.isArray(data.rows) ? data.rows : [];
-  const others = (state.diets || []).filter((diet) => Number(diet.perfil_id) !== profileId);
-  state.diets = [...rows, ...others];
+  state.diets = Array.isArray(data.rows) ? data.rows : [];
 }
 
 async function ensureFoodCatalog(state) {
