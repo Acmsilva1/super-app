@@ -1418,7 +1418,7 @@ function renderProfileHub(profile, state) {
 
 function renderProfileAlertSchedules(profile, state) {
   const schedule = state.alertSchedule || DEFAULT_ALERT_SCHEDULE;
-  const diets = dietsForProfile(state, profile.id);
+  const diets = state.diets || [];
   const selectedDietId = schedule.dieta_id || diets[0]?.id || '';
   const dietOptions = diets.map((diet) => `<option value="${escapeHtml(diet.id)}"${Number(diet.id) === Number(selectedDietId) ? ' selected' : ''}>${escapeHtml(diet.titulo)}</option>`).join('');
   const loading = state.alertScheduleLoading
@@ -1996,14 +1996,17 @@ export async function renderSaudeContent(container) {
         state.alertScheduleLoading = true;
         renderProfileDetail(container, state);
         try {
-          const alertProfile = state.profiles.find((p) => Number(p.id) === Number(state.selectedProfileId));
-          const [result] = await Promise.all([
+          const [result, allDietsRes] = await Promise.all([
             requestAlertSchedule('GET', { profile_id: state.selectedProfileId }),
-            syncDietsForHealthProfile(state, alertProfile),
+            fetch('/api/saude?resource=dietas', { cache: 'no-store' }),
           ]);
+          const allDietsData = await allDietsRes.json().catch(() => ({}));
+          if (allDietsRes.ok && Array.isArray(allDietsData.rows)) {
+            state.diets = allDietsData.rows;
+          }
           state.alertSchedule = result.row;
           if (!state.alertSchedule.dieta_id) {
-            state.alertSchedule.dieta_id = dietsForProfile(state, state.selectedProfileId)[0]?.id || null;
+            state.alertSchedule.dieta_id = (state.diets || [])[0]?.id || null;
           }
           state.alertScheduleStorage = result.storage;
         } catch (error) {

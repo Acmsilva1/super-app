@@ -593,12 +593,12 @@ async function saveAlertSchedule(profileId, payload, userId) {
   if (validation.data.dieta_id !== null) {
     if (isOfflineMode()) {
       const dietExists = offlineDiets.some((diet) => Number(diet.id) === validation.data.dieta_id
-        && Number(diet.perfil_id) === Number(profileId) && diet.created_by === userId);
+        && diet.created_by === userId);
       if (!dietExists) return { dietNotFound: true };
     } else {
       const { supabase } = await import('../lib/supabase.js');
       const { data: diet, error: dietError, status, statusText } = await supabase.from(TABELA_DIETAS)
-        .select('id').eq('id', validation.data.dieta_id).eq('perfil_id', profileId).eq('created_by', userId).maybeSingle();
+        .select('id').eq('id', validation.data.dieta_id).eq('created_by', userId).maybeSingle();
       if (dietError) return { error: dietError, status, statusText };
       if (!diet) return { dietNotFound: true };
     }

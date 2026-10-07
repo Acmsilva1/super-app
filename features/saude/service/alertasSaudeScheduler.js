@@ -313,7 +313,7 @@ async function dispatchCurrentSlot(config, sourceUserId, value) {
         const selectedDiet = schedule.dieta_id
           ? data.dietsById.get(String(schedule.dieta_id)) || null
           : data.diets.get(profileKey) || null;
-        if (meal && selectedDiet && String(selectedDiet.perfil_id) === profileKey) {
+        if (meal && selectedDiet) {
           try {
             alertsSent += await dispatchDietForProfile(userConfig, data, profile, selectedDiet, meal, date, time);
           } catch (error) {
