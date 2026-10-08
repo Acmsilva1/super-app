@@ -21,7 +21,7 @@ function saoPauloClock(value = new Date()) {
   return { date: `${values.year}-${values.month}-${values.day}`, time: `${values.hour}:${values.minute}` };
 }
 
-async function readAlertConfig() {
+async function readAlertConfig(deadline) {
   const ownerId = String(process.env.SAUDE_ALERTS_OWNER_USER_ID || '').trim();
   const configuredUrl = String(process.env.ALERTS_API_URL || '').trim();
   const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
@@ -37,10 +37,11 @@ async function readAlertConfig() {
     throw new Error('alerts_gateway_https_required');
   }
   const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
-  return { ownerId, url, token, client: getAlertServiceClient() };
+  return { ownerId, url, token, client: getAlertServiceClient({deadline}) };
 }
 
 async function sendAlert(config, { eventType, title, message, dedupeKey }) {
+  if (config.deadline && Date.now() + 22000 > config.deadline) throw new Error('alerts_time_budget');
   const client = config.client;
   const { error: claimError } = await client.from('tb_saude_alertas_envios').insert({
     created_by: config.ownerId, dedupe_key: dedupeKey, status: 'sending',
@@ -54,7 +55,7 @@ async function sendAlert(config, { eventType, title, message, dedupeKey }) {
       method: 'POST', headers, redirect: 'error',
       body: JSON.stringify({ source: 'superapp-node', event_type: eventType,
         severity: 'info', title, message, dedupe_key: dedupeKey, occurred_at: new Date().toISOString() }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(Math.max(1,Math.min(20000,(config.deadline || Date.now()+21000)-Date.now()-1000))),
     });
     let payload = null;
     try { payload = await response.json(); } catch {}
@@ -340,9 +341,10 @@ async function dispatchCurrentSlot(config, value) {
   return { failures, alertsSent };
 }
 
-export async function runSaudeAlertSlot(now = new Date()) {
-  const config = await readAlertConfig();
+export async function runSaudeAlertSlot(now = new Date(), {deadline = Date.now()+45000} = {}) {
+  const config = await readAlertConfig(deadline);
   if (!config) return { skipped: true, reason: 'disabled_or_missing_config' };
+  config.deadline = deadline;
   const { data: roles, error } = await config.client.from('app_user_roles').select('role').eq('user_id', config.ownerId);
   if (error || !roles?.some(row => ['owner', 'admin'].includes(row.role))) throw new Error('alerts_owner_invalid');
   const start = new Date(Math.floor(now.getTime() / 1800000) * 1800000);

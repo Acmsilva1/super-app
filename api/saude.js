@@ -436,7 +436,8 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
     if (!config) return waterResult(null, null, [], 'memory', profiles, profileId);
     let todayRow = offlineWaterLogs.find((row) => Number(row.perfil_id) === Number(profileId)
       && (isAdmin || row.created_by === userId) && row.data_local === today);
-    if (!todayRow && !isAdmin) {
+    const ownerCanInitialize = !isAdmin || offlineProfiles.some((row) => Number(row.id) === Number(profileId) && row.created_by === userId);
+    if (!todayRow && ownerCanInitialize) {
       todayRow = {
         id: Math.max(0, ...offlineWaterLogs.map((row) => Number(row.id) || 0)) + 1,
         created_by: userId,
@@ -451,6 +452,7 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
       .filter((row) => (isAdmin || row.created_by === userId) && Number(row.perfil_id) === Number(profileId) && row.data_local < today)
       .sort((a, b) => b.data_local.localeCompare(a.data_local))
       .slice(0, 90);
+    if (!todayRow && isAdmin) todayRow = { data_local: today, meta_doses: config.meta_doses, realizado_doses: 0 };
     return waterResult(config, todayRow, history, 'memory', profiles, profileId);
   }
 
@@ -475,7 +477,10 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
   if (!config) return waterResult(null, null, [], 'supabase', profiles, profileId);
   let { data: todayRow, error: todayError } = todayResult;
   if (todayError) return { error: todayError };
-  if (!todayRow && !isAdmin) {
+  const ownerProfile = isAdmin ? await requireSaudeProfileForWater(userId, profileId, true) : null;
+  if (ownerProfile?.error) return ownerProfile;
+  const ownerCanInitialize = !isAdmin || ownerProfile?.profile?.created_by === userId;
+  if (!todayRow && ownerCanInitialize) {
     const { data: inserted, error: insertError } = await supabase.from(TABELA_AGUA_LOGS).insert({
       created_by: userId, perfil_id: profileId, data_local: today,
       meta_doses: config.meta_doses, realizado_doses: 0,
@@ -492,6 +497,7 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
     }
   }
   const { data: history, error: historyError } = historyResult;
+  if (!todayRow && isAdmin) todayRow = { data_local: today, meta_doses: config.meta_doses, realizado_doses: 0 };
   return historyError ? { error: historyError } : waterResult(config, todayRow, history, 'supabase', profiles, profileId);
 }
 

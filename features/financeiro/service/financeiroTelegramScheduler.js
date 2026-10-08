@@ -20,7 +20,7 @@ function money(value) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value) || 0);
 }
 
-async function readConfig() {
+async function readConfig(deadline) {
   const ownerId = String(process.env.SAUDE_ALERTS_OWNER_USER_ID || '').trim();
   const configuredUrl = String(process.env.ALERTS_API_URL || '').trim();
   const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
@@ -35,10 +35,11 @@ async function readConfig() {
     throw new Error('alerts_gateway_https_required');
   }
   const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
-  return { ownerId, url, token, client: getAlertServiceClient() };
+  return { ownerId, url, token, deadline, client: getAlertServiceClient({deadline}) };
 }
 
 async function sendDailySummary(config, date, slot, message) {
+  if (config.deadline && Date.now()+22000 > config.deadline) throw new Error('alerts_time_budget');
   const dedupeKey = `financeiro:resumo-diario:${date}:${slot}`;
   const { error: claimError } = await config.client.from('tb_saude_alertas_envios').insert({
     created_by: config.ownerId, dedupe_key: dedupeKey, status: 'sending',
@@ -54,7 +55,7 @@ async function sendDailySummary(config, date, slot, message) {
       body: JSON.stringify({ source: 'superapp-node', event_type: 'financeiro.daily_summary', severity: 'info',
         title: `Resumo financeiro - ${date.split('-').reverse().join('/')}`, message,
         dedupe_key: dedupeKey, occurred_at: new Date().toISOString() }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(Math.max(1,Math.min(20000,(config.deadline || Date.now()+21000)-Date.now()-1000))),
     });
     let payload = null;
     try { payload = await response.json(); } catch {}
@@ -118,15 +119,15 @@ export async function previewFinanceiroDailySummaries(now = new Date()) {
   ];
 }
 
-export async function runFinanceiroDailySummary(now = new Date()) {
+export async function runFinanceiroDailySummary(now = new Date(), {deadline = Date.now()+45000} = {}) {
   const { date, time } = saoPauloClock(now);
-  // The workflow polls at :02 and :32 to avoid GitHub's busy minute zero.
+  // The workflow polls every five minutes; persistent keys prevent duplicate summaries.
   const hour = time.slice(0, 2);
   const slot = hour === '13' ? 'debitos-pix-13h'
     : hour === '20' ? 'debitos-pix-20h'
       : hour === '21' ? 'despesas-fixas-21h' : null;
   if (!slot) return { skipped: true, reason: 'outside_daily_window' };
-  const config = await readConfig();
+  const config = await readConfig(deadline);
   if (!config) return { skipped: true, reason: 'disabled_or_missing_config' };
   const { data: roles, error } = await config.client.from('app_user_roles').select('role').eq('user_id', config.ownerId);
   if (error || !roles?.some((row) => ['owner', 'admin'].includes(row.role))) throw new Error('financeiro_alerts_owner_invalid');

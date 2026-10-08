@@ -24,7 +24,7 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('DIET_MEALS');
     expect(source).toContain('data-saude-action="add-diet-item"');
     expect(source).toContain('data-diet-item-form');
-    expect(source).toContain('Nome do alimento');
+    expect(source).toContain('label for="diet-item-name">Alimento');
     expect(source).toContain('Quantidade');
     expect(source).toContain('Observação (opcional)');
     expect(source).not.toContain('id="diet-objetivo"');
@@ -46,7 +46,7 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain("title: 'Excluir medição?'");
     expect(source).toContain("title: 'Remover alimento?'");
     expect(source).toContain("title: 'Excluir dieta?'");
-    expect(source).toContain("title: 'Excluir item nutricional?'");
+    expect(source).toContain("title: 'Excluir alimento?'");
     expect(source).not.toMatch(/(?:globalThis\.)?confirm\s*\(/);
   });
 
@@ -60,7 +60,7 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('Medição excluída com sucesso.');
     expect(source).toContain('Alimento removido da refeição.');
     expect(source).toContain('Dieta excluída com sucesso.');
-    expect(source).toContain('Item da tabela nutricional excluído com sucesso.');
+    expect(source).toContain('Alimento excluído com sucesso.');
     expect(source).toContain('setTimeout(remove, 3600)');
   });
 

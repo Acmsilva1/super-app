@@ -19,10 +19,11 @@ describe('AUTH_MODE=fixed', () => {
     vi.resetModules();
   });
 
-  it('requireUser devolve o usuario fixo sem token', async () => {
+  it('requireUser exige a verificacao Basic Auth do servidor', async () => {
     stubFixedEnv();
     const { requireUser } = await import('../../lib/auth.js');
-    const result = await requireUser({ headers: {} }, { adminOnly: true });
+    expect((await requireUser({ headers: {} }, { adminOnly: true })).status).toBe(401);
+    const result = await requireUser({ headers: {}, fixedAuthVerified: true }, { adminOnly: true });
     expect(result).toEqual({ ok: true, user: { id: FIXED_ID, email: 'teste@local' }, isAdmin: true });
   });
 
@@ -30,7 +31,7 @@ describe('AUTH_MODE=fixed', () => {
     stubFixedEnv();
     const { default: handler } = await import('../../api/apps.js');
     const res = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, status(code) { this.code = code; return this; }, end(body) { this.body = JSON.parse(body); } };
-    await handler({ method: 'GET', query: { route: 'auth-config' } }, res);
+    await handler({ method: 'GET', query: { route: 'auth-config' }, fixedAuthVerified: true }, res);
     expect(res.code).toBe(200);
     expect(res.body).toEqual({ authMode: 'fixed', user: { id: FIXED_ID, email: 'teste@local' } });
   });
@@ -53,5 +54,12 @@ describe('AUTH_MODE=fixed', () => {
     expect((await request(app).get('/').auth('andre', 'senha-forte-123')).status).toBe(200);
     expect((await request(app).get('/healthz')).status).toBe(200);
     expect((await request(app).get('/manifest.json')).status).toBe(200);
+  });
+  it('limita tentativas invalidas sem bloquear credencial valida',async()=>{
+    vi.stubEnv('BASIC_AUTH_USER','mock');vi.stubEnv('BASIC_AUTH_PASSWORD','mock-password-not-real');
+    const {createApp}=await import('../../server.js');const app=createApp();
+    for(let i=0;i<20;i++)expect((await request(app).get('/').auth('mock','wrong')).status).toBe(401);
+    expect((await request(app).get('/').auth('mock','wrong')).status).toBe(429);
+    expect((await request(app).get('/').auth('mock','mock-password-not-real')).status).toBe(200);
   });
 });

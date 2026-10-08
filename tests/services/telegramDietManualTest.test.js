@@ -1,11 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+vi.mock('../../lib/actionRateLimit.js', () => ({ consumeActionLimit: async () => true }));
 const preview = vi.hoisted(() => vi.fn());
 const financePreview = vi.hoisted(() => vi.fn());
 vi.mock('../../features/saude/service/alertasSaudeScheduler.js', () => ({ previewAllDietAlerts: preview }));
 vi.mock('../../features/financeiro/service/financeiroTelegramScheduler.js', () => ({ previewFinanceiroDailySummaries: financePreview }));
-afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe('Teste manual das dietas reais', () => {
+  it('interrompe antes do limite Vercel e informa entrega parcial', async () => {
+    vi.resetModules();
+    vi.stubEnv('NODE_ENV','development'); vi.stubEnv('OFFLINE_DEV','false');
+    vi.stubEnv('TELEGRAM_BOT_TOKEN','fake');vi.stubEnv('TELEGRAM_CHAT_ID','fake');vi.stubEnv('ALERTS_API_TOKEN','x'.repeat(32));vi.stubEnv('ALERTS_API_URL','https://example.invalid/api/telegram-alert');
+    preview.mockResolvedValue(['Dieta']);financePreview.mockResolvedValue([{event_type:'financeiro.daily_summary',message:'Teste'}]);
+    let clock=Date.now(); const start=clock; vi.spyOn(Date,'now').mockImplementation(()=>clock);
+    const fetchMock=vi.fn().mockImplementation(async()=>{clock=start+44000;return {ok:true,json:async()=>({ok:true,telegram_message_id:1})};}); vi.stubGlobal('fetch',fetchMock);
+    const {runTelegramManualTest}=await import('../../lib/telegramManualTest.js'); const result=await runTelegramManualTest();
+    expect(result.status).toBe(502);expect(result.body.sent).toBe(1);expect(result.body.expected).toBe(3);expect(fetchMock).toHaveBeenCalledOnce();
+  });
   it('sends every preview part, including all registered diet titles', async () => {
     vi.resetModules();
     vi.stubEnv('NODE_ENV', 'development');

@@ -1,5 +1,7 @@
 import { PNG } from 'pngjs';
 import { requireUser } from '../lib/auth.js';
+import { validatePngHeader, MAX_PNG_BYTES } from '../lib/pngLimits.js';
+import { consumeActionLimit } from '../lib/actionRateLimit.js';
 import {
   buildExportFileName,
   getExportPageRects,
@@ -63,9 +65,11 @@ export default async function handler(req, res) {
   if (!auth.ok) return json(res, auth.status, auth.data);
 
   try {
+    if (!await consumeActionLimit('png-export',auth.user.id,10)) return json(res,429,{error:'Aguarde um minuto antes de exportar novamente.'});
     const body = parseBody(req);
     const b64 = stripDataUrl(body.imageBase64 || body.image || body.png);
     if (!b64) return json(res, 400, { error: 'imageBase64 obrigatorio' });
+    if (b64.length > Math.ceil(MAX_PNG_BYTES / 3) * 4 || !/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) return json(res, 400, { error: 'PNG base64 invalido ou muito grande.' });
 
     let buffer;
     try {
@@ -74,12 +78,14 @@ export default async function handler(req, res) {
       return json(res, 400, { error: 'PNG base64 invalido' });
     }
     if (!buffer.length) return json(res, 400, { error: 'PNG vazio' });
+    const headerError = validatePngHeader(buffer);
+    if (headerError) return json(res, 400, { error: headerError });
 
     let png;
     try {
       png = PNG.sync.read(buffer);
     } catch (e) {
-      return json(res, 400, { error: e?.message || 'Falha ao ler PNG' });
+      return json(res, 400, { error: 'Falha ao ler PNG.' });
     }
 
     const fileBase = typeof body.fileName === 'string' && body.fileName.trim()
@@ -108,6 +114,6 @@ export default async function handler(req, res) {
       pages,
     });
   } catch (e) {
-    return json(res, 500, { error: e?.message || 'Erro ao exportar PNG' });
+    return json(res, 500, { error: 'Erro ao exportar PNG.' });
   }
 }

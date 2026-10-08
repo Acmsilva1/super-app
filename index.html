@@ -7828,7 +7828,7 @@
                             </section>
                             <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia o teste de água, todas as dietas cadastradas e os dois resumos reais do Financeiro: débito/Pix do dia e despesas fixas do mês.</p></div><button type="button" class="auth-secondary" id="adminTelegramTest">Testar Telegram</button></div>
                             <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
-                            <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie descrição e valor por texto ou áudio no chat privado do bot. Sempre débito, com confirmação antes de salvar.</p></div><button type="button" class="auth-secondary" id="adminTelegramWebhook">Ativar compras pelo Telegram</button></div>
+                            <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie descrição e valor por texto ou áudio no chat privado do bot. Sempre débito, com confirmação antes de salvar. Se os botões não aparecerem, envie /pendente para recuperar a última compra.</p></div><button type="button" class="auth-secondary" id="adminTelegramWebhook">Ativar compras pelo Telegram</button></div>
                             <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                             <div id="adminAlertsContent"></div>
                         </div>
@@ -8867,7 +8867,7 @@
             }
 
             formatMoneyBr(value) {
-                return `R$ ${Number(value || 0).toFixed(2)}`;
+                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
             }
 
             downloadHtmlReport(filenameBase, htmlContent) {
@@ -9213,7 +9213,7 @@
                     this.rememberWindowScroll(appId, scrollToRestore);
                     this.restoreWindowScroll(appId, contentEl);
                 } catch (err) {
-                    contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> ' + (err.message || 'Erro ao carregar') + '</div>';
+                    contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> ' + escapeHtml(err.message || 'Erro ao carregar') + '</div>';
                 }
             }
 

@@ -34,10 +34,11 @@ export default async function handler(req, res) {
     const result = await runTelegramManualTest();
     return res.status(result.status).json(result.body);
   }
+  const deadline = Date.now()+45000;
   const runId = await startRun();
   try {
     const [healthResult, financeResult] = await Promise.allSettled([
-      runSaudeAlertSlot(), runFinanceiroDailySummary(),
+      runSaudeAlertSlot(new Date(),{deadline}), runFinanceiroDailySummary(new Date(),{deadline}),
     ]);
     const failures = [healthResult, financeResult].filter((result) => result.status === 'rejected');
     const alertsSent = [healthResult, financeResult].reduce((sum, result) =>

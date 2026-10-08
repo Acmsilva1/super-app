@@ -6,6 +6,7 @@ const CACHE_VERSION = 'app-1.1.0-abc1234';
 const CACHE_NAME = 'superapp-' + CACHE_VERSION;
 
 const ESSENTIAL_ASSETS = [
+  '/offline.html',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
@@ -57,7 +58,7 @@ self.addEventListener('fetch', (event) => {
 
   if (isHtmlRequest || isStaleSensitiveScript) {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request).catch(async () => isHtmlRequest ? (await caches.match('/offline.html')) || Response.error() : Response.error())
     );
     return;
   }

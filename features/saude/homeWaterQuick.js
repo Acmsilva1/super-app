@@ -155,6 +155,7 @@ function syncHomeWaterQuickDom(overlay, state, { animateFillFrom = null, enableC
   overlay.querySelectorAll('[data-water-dose]').forEach((btn) => {
     const dose = Number(btn.dataset.waterDose);
     btn.setAttribute('aria-pressed', String(dose <= state.today.realizado_doses));
+    btn.setAttribute('aria-label', `Dose ${dose}, ${dose <= state.today.realizado_doses ? 'tomada' : 'pendente'}`);
     if (enableChecks) {
       btn.disabled = false;
       btn.removeAttribute('disabled');

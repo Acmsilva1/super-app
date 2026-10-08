@@ -1,5 +1,6 @@
 import { requireUser } from '../lib/auth.js';
 import { getFixedUser, isFixedAuthMode } from '../lib/authMode.js';
+import { unsafeAuthEnvironment } from '../lib/authEnvironment.js';
 
 const ROADMAP = [
   { step: '1', title: 'Shell único publicado na Vercel', description: 'Frontend estático/PWA em index.html com catálogo central de apps e consumo de APIs serverless.' },
@@ -59,6 +60,7 @@ function json(res, status, data) {
 export default async function handler(req, res) {
   const route = String(req.query?.route || '');
   if (route === 'auth-config') {
+    if (unsafeAuthEnvironment()) return json(res, 503, { error: 'Configuracao de autenticacao insegura.' });
     if (req.method !== 'GET') {
       res.setHeader('Allow', 'GET');
       return json(res, 405, { error: 'Method Not Allowed' });
@@ -71,6 +73,7 @@ export default async function handler(req, res) {
       });
     }
     if (isFixedAuthMode()) {
+      if (!req.fixedAuthVerified) return json(res, 401, { error: 'Login obrigatorio' });
       return json(res, 200, { authMode: 'fixed', user: getFixedUser() });
     }
     const url = process.env.SUPABASE_URL;

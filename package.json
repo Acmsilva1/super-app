@@ -20,14 +20,18 @@
     "test:telegram": "node scripts/test-telegram.mjs --send"
   },
   "dependencies": {
-    "@supabase/postgrest-js": "^2.99.2",
-    "@supabase/supabase-js": "^2.45.0",
-    "express": "^4.21.2",
+    "@supabase/postgrest-js": "^2.117.3",
+    "@supabase/supabase-js": "^2.117.3",
+    "express": "^4.22.3",
     "pngjs": "^7.0.0"
   },
   "devDependencies": {
-    "supertest": "^7.1.1",
-    "vitest": "^2.1.4",
-    "vite": "^5.4.21"
+    "@electric-sql/pglite": "^0.5.8",
+    "supertest": "^7.3.1",
+    "vite": "^8.3.3",
+    "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

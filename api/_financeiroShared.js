@@ -843,14 +843,11 @@ export async function criarRegistroFinanceiro(req, context = {}) {
   }
 
   if (parsed.tipo_registro === TIPO_REGISTRO_META_POUPANCA) {
-    const metaDeactivateQuery = supabase
-      .from(TABLE_POUPANCA_METAS)
-      .update({ ativa: false })
-      .eq('ativa', true);
-    const { error: deactivateErr } = await scopeQueryByUser(metaDeactivateQuery, context);
-    if (deactivateErr && !isMissingTableError(deactivateErr)) {
-      return { status: 500, data: { error: deactivateErr.message } };
-    }
+    const { data, error } = await supabase.rpc('financeiro_criar_meta', {
+      p_user_id: getContextUserId(context), p_payload: parsed.payload,
+    });
+    if (error) return financeiroAtomicError(error);
+    return { status: 201, data: { ...rowOrFirst(data), tipo_registro: parsed.tipo_registro } };
   }
 
   const { data, error } = await supabase.from(table).insert(payload).select().single();
@@ -874,27 +871,17 @@ export async function atualizarRegistroFinanceiro(req, context = {}) {
     const insertParsed = payloadInsertFinanceiro({ ...body, id: undefined, tipo_registro: parsed.tipo_registro });
     if (insertParsed.error) return { status: 400, data: { error: insertParsed.error } };
 
-    let insertedRow = null;
-    if (insertParsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA && body.mes_ano && /^\d{4}-\d{2}$/.test(String(body.mes_ano))) {
-      const mesAno = String(body.mes_ano);
-      const insertPayloads = withContextUserRows(buildDespesaFixaInsertPayloads({ ...insertParsed.payload }, mesAno), context);
-      const { data: insertedRows, error: insertErr } = await supabase
-        .from(table)
-        .insert(insertPayloads)
-        .select();
-      if (insertErr) return { status: 500, data: { error: insertErr.message } };
-      const rows = Array.isArray(insertedRows) ? insertedRows : (insertedRows ? [insertedRows] : []);
-      insertedRow = rows.find((item) => String(item?.created_at || '').slice(0, 7) === mesAno) || rows[0] || null;
-    } else {
-      const { data: inserted, error: insertErr } = await supabase.from(table).insert(withContextUser(insertParsed.payload, context)).select().single();
-      if (insertErr) return { status: 500, data: { error: insertErr.message } };
-      insertedRow = rowOrFirst(inserted);
-    }
-
-    const { error: deleteErr } = await scopeQueryByUser(supabase.from(originalTable).delete().eq('id', parsed.id), context);
-    if (deleteErr) return { status: 500, data: { error: deleteErr.message } };
-
-    return { status: 200, data: { ...(insertedRow || {}), tipo_registro: parsed.tipo_registro, realocado: true } };
+    const rows = insertParsed.tipo_registro === TIPO_REGISTRO_DESPESA_FIXA && /^\d{4}-\d{2}$/.test(String(body.mes_ano || ''))
+      ? buildDespesaFixaInsertPayloads(insertParsed.payload, String(body.mes_ano))
+      : [insertParsed.payload];
+    const { data, error } = await supabase.rpc('financeiro_realocar_registro', {
+      p_user_id: getContextUserId(context), p_source_table: originalTable,
+      p_source_id: String(parsed.id), p_target_table: table, p_rows: rows,
+    });
+    if (error) return financeiroAtomicError(error);
+    const insertedRows = Array.isArray(data) ? data : [data];
+    const insertedRow = insertedRows.find((row) => String(row?.created_at || '').slice(0,7) === body.mes_ano) || insertedRows[0];
+    return { status: 200, data: { ...insertedRow, tipo_registro: parsed.tipo_registro, realocado: true } };
   }
 
   let existingRow = null;
@@ -1008,4 +995,12 @@ export async function removerRegistroFinanceiro(req, context = {}) {
   }
 
   return { status: 200, data: { ok: true } };
+}
+
+function financeiroAtomicError(error) {
+  if (error.code === 'P0002') return { status: 404, data: { error: 'Registro de origem nao encontrado.' } };
+  if (error.code === '42501') return { status: 403, data: { error: 'Acesso nao autorizado.' } };
+  if (['42883','PGRST202'].includes(error.code)) return { status: 503, data: { error: 'Atualize a migration de operacoes financeiras atomicas.' } };
+  if (error.code === '22023') return { status: 400, data: { error: 'Operacao financeira invalida.' } };
+  return { status: 500, data: { error: 'Nao foi possivel concluir a operacao financeira. Nenhuma alteracao foi confirmada.' } };
 }

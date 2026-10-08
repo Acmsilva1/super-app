@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { setSecurityHeaders } from './lib/securityHeaders.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,7 +21,7 @@ function loadEnvFile(fileName) {
   }
 }
 
-const PUBLIC_ROOT_FILES = new Set(['index.html', 'sw.js', 'manifest.json', 'app-version.json']);
+const PUBLIC_ROOT_FILES = new Set(['index.html', 'offline.html', 'sw.js', 'manifest.json', 'app-version.json']);
 const PUBLIC_DIRS = ['styles', 'features', 'components', 'backgrounds'];
 const NO_CACHE_FILES = new Set(['index.html', 'sw.js', 'app-version.json']);
 const IMMUTABLE_FILES = new Set(['icon-192.png', 'icon-512.png']);
@@ -52,6 +53,7 @@ function isBasicAuthExempt(reqPath) {
 }
 
 function basicAuth({ user, password }) {
+  const attempts = new Map();
   return (req, res, next) => {
     if (isBasicAuthExempt(req.path)) return next();
     const match = String(req.headers.authorization || '').match(/^Basic\s+(.+)$/i);
@@ -60,7 +62,18 @@ function basicAuth({ user, password }) {
       const sep = decoded.indexOf(':');
       const okUser = sep >= 0 && safeEqual(decoded.slice(0, sep), user);
       const okPass = sep >= 0 && safeEqual(decoded.slice(sep + 1), password);
-      if (okUser && okPass) return next();
+      if (okUser && okPass) { req.fixedAuthVerified = true; return next(); }
+    }
+    const now = Date.now();
+    const key = req.socket.remoteAddress || 'unknown';
+    if (attempts.size >= 1000) for (const [ip,entry] of attempts) if (entry.until <= now) attempts.delete(ip);
+    const previous = attempts.get(key);
+    if (!previous && attempts.size >= 1000) return res.status(429).send('Muitas tentativas. Aguarde um minuto.');
+    const entry = previous && previous.until > now ? previous : { count: 0, until: now + 60000 };
+    entry.count += 1; attempts.set(key,entry);
+    if (entry.count > 20) {
+      res.setHeader('Retry-After',String(Math.max(1,Math.ceil((entry.until-now)/1000))));
+      return res.status(429).send('Muitas tentativas. Aguarde um minuto.');
     }
     res.setHeader('WWW-Authenticate', 'Basic realm="SUPERAPP", charset="UTF-8"');
     return res.status(401).send('Acesso restrito');
@@ -71,6 +84,7 @@ export function createApp() {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 'loopback');
+  app.use((_req,res,next) => { setSecurityHeaders(res); next(); });
 
   if (process.env.BASIC_AUTH_USER && process.env.BASIC_AUTH_PASSWORD) {
     app.use(basicAuth({ user: process.env.BASIC_AUTH_USER, password: process.env.BASIC_AUTH_PASSWORD }));
