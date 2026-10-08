@@ -96,7 +96,7 @@ async function loadAlertData(config, today) {
       .select('perfil_id,data_local,meta_doses,realizado_doses')
       .eq('data_local', today),
     supabase.from('tb_saude_dietas')
-      .select('id,perfil_id,titulo,refeicoes,meta_calorias,updated_at')
+      .select('id,perfil_id,titulo,refeicoes,updated_at')
       .order('id', { ascending: true }),
     supabase.from('tb_saude_alertas_agenda')
       .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id'),
@@ -142,29 +142,6 @@ function waterProfileReport(profile, goal, log, date, time) {
   };
 }
 
-function calorieSummary(diet, foods = []) {
-  const meals = Array.isArray(diet?.refeicoes) ? diet.refeicoes : [];
-  const items = meals.flatMap((meal) => Array.isArray(meal?.itens) ? meal.itens : []);
-  const itemNutrition = items.map((item) => nutritionForDietItem(item, foods));
-  const target = Number(diet?.meta_calorias);
-  const hasTarget = Number.isInteger(target) && target > 0;
-  const hasAllCalories = items.length > 0 && itemNutrition.every((item) => item.kcal !== null);
-  if (!hasTarget || !hasAllCalories) {
-    return {
-      meta_diaria_kcal: hasTarget ? target : null,
-      total_planejado_kcal: null,
-      situacao: !hasTarget ? 'meta_nao_informada' : 'calorias_incompletas',
-    };
-  }
-  const total = Math.round(itemNutrition.reduce((sum, item) => sum + item.kcal, 0) * 10) / 10;
-  return {
-    meta_diaria_kcal: target,
-    total_planejado_kcal: total,
-    diferenca_kcal: total - target,
-    situacao: total < target ? 'abaixo_da_meta' : total === target ? 'meta_atingida' : 'acima_da_meta',
-  };
-}
-
 function dietProfileReport(profile, diet, meal, date, time, foods = []) {
   const meals = Array.isArray(diet?.refeicoes) ? diet.refeicoes : [];
   const selectedMeal = meals.find((entry) => entry?.tipo === meal.tipo);
@@ -189,8 +166,6 @@ function dietProfileReport(profile, diet, meal, date, time, foods = []) {
       };
     }),
     nutricao_refeicao: enrichDietNutrition({ refeicoes: selectedMeal ? [selectedMeal] : [] }, foods).nutricao_total,
-    calorias_planejadas: calorieSummary(diet, foods),
-    macronutrientes_planejados: diet ? enrichDietNutrition(diet, foods).nutricao_total : null,
   };
 }
 
@@ -246,19 +221,6 @@ function formatDietAlert(report) {
     lines.push('ℹ️ Ainda faltam dados de alguns alimentos para calcular o total desta refeição. Confira o cadastro e as quantidades no app.');
   }
 
-  const calories = report.calorias_planejadas || {};
-  const totals = report.macronutrientes_planejados;
-  if (totals?.completo) lines.push(`📊 Para o dia inteiro, sua dieta prevê ${displayNutrition(totals.proteina)} g de proteínas, ${displayNutrition(totals.carboidrato)} g de carboidratos e ${displayNutrition(totals.gordura)} g de gorduras.`);
-  if (calories.situacao === 'meta_nao_informada') {
-    lines.push('🎯 Meta calórica ainda não informada; o aviso da refeição funciona normalmente.');
-  } else if (calories.situacao === 'calorias_incompletas') {
-    lines.push(`🔥 Meta: ${calories.meta_diaria_kcal} kcal. Confira o alimento no catálogo e informe uma quantidade calculável.`);
-  } else {
-    lines.push(`🔥 Seu plano diário soma ${displayNutrition(calories.total_planejado_kcal)} kcal, para uma meta de ${displayNutrition(calories.meta_diaria_kcal)} kcal.`);
-    if (calories.situacao === 'meta_atingida') lines.push('✅ O plano está na meta calórica.');
-    else if (calories.situacao === 'abaixo_da_meta') lines.push(`ℹ️ ${Math.abs(calories.diferenca_kcal)} kcal abaixo da meta.`);
-    else if (calories.situacao === 'acima_da_meta') lines.push(`ℹ️ ${calories.diferenca_kcal} kcal acima da meta.`);
-  }
   return lines.join('\n');
 }
 
