@@ -10,6 +10,7 @@ import { DIET_NUTRITION_STYLES, renderDietFoodDetails, renderDietNutritionTotal 
 import { DEFAULT_ALERT_SCHEDULE, WATER_ALERT_END, WATER_ALERT_START } from './service/alertScheduleConfig.js';
 import {
   deleteLocalWaterGoal,
+  deleteLocalWaterProfile,
   ensureLocalWaterProfileLinkedToHealth,
   isLocalWaterStorageMode,
   loadLocalWater,
@@ -1064,6 +1065,7 @@ function renderProfileForm(state) {
         </div>
         <form data-saude-profile-form>
           <div class="saude-profile-form__grid">
+            ${state.profilesAdminView && !state.profileEditingId ? `<div class="saude-field-group"><label for="profile-owner">Conta do usuário</label><select id="profile-owner" name="user_id" class="saude-field"><option value="">Minha conta</option>${(state.profileOwners || []).map((user) => `<option value="${escapeHtml(user.id)}"${draft.user_id === user.id ? ' selected' : ''}>${escapeHtml(user.name || user.username || user.email)}</option>`).join('')}</select></div>` : ''}
             <div class="saude-field-group"><label for="profile-nome">Nome</label><input id="profile-nome" name="nome" class="saude-field" required maxlength="120" autocomplete="off" value="${escapeHtml(draft.nome)}" placeholder="Ex.: André"></div>
             <div class="saude-field-group"><label for="profile-sexo">Sexo</label><select id="profile-sexo" name="sexo" class="saude-field" required><option value="">Selecione</option>${[['feminino', 'Feminino'], ['masculino', 'Masculino'], ['outro', 'Outro'], ['nao_informado', 'Prefere não informar']].map(([value, label]) => `<option value="${value}"${draft.sexo === value ? ' selected' : ''}>${label}</option>`).join('')}</select></div>
             <div class="saude-field-group"><label for="profile-data-nascimento">Data de nascimento</label><input id="profile-data-nascimento" name="data_nascimento" class="saude-field" type="date" min="1900-01-01" max="${new Date().toISOString().slice(0, 10)}" required value="${escapeHtml(draft.data_nascimento)}"></div>
@@ -1411,6 +1413,10 @@ function renderProfileHub(profile, state) {
         <span class="fin-nav-row__label">Editar perfil</span>
         <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
       </button></li>
+      <li><button type="button" class="fin-nav-row" data-saude-action="delete-profile" data-saude-id="${id}"${state.busy ? ' disabled' : ''}>
+        <i class="fas fa-trash fin-nav-row__icon" aria-hidden="true"></i>
+        <span class="fin-nav-row__label">Excluir perfil</span>
+      </button></li>
     </ul>`;
 }
 
@@ -1543,6 +1549,7 @@ async function loadProfiles(container, state) {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || 'O endpoint de perfis não respondeu corretamente.');
     state.profiles = Array.isArray(data.rows) ? data.rows : [];
+    state.profilesAdminView = Boolean(data.admin_view);
     if (isLocalWaterStorageMode() && state.profiles.length) {
       migrateLocalWaterDataToHealthProfiles(state.profiles);
     }
@@ -2076,6 +2083,27 @@ export async function renderSaudeContent(container) {
       return;
     }
     if (action === 'add-profile') {
+      if (state.busy) return;
+      if (state.profilesAdminView && isLocalWaterStorageMode() && !state.profileOwners) {
+        state.profileOwners = [...new Map(state.profiles.filter((profile) => profile.created_by)
+          .map((profile) => [profile.created_by, { id: profile.created_by, name: profile.nome }])).values()];
+      }
+      if (state.profilesAdminView && !state.profileOwners) {
+        state.busy = true;
+        renderActiveSaudeView(container, state);
+        try {
+          const response = await fetch('/api/admin/usuarios', { cache: 'no-store' });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || 'Não foi possível carregar as contas.');
+          state.profileOwners = Array.isArray(data.users) ? data.users : [];
+        } catch (error) {
+          state.notice = { type: 'error', text: error.message };
+          state.busy = false;
+          renderActiveSaudeView(container, state);
+          return;
+        }
+        state.busy = false;
+      }
       state.profileEditorOpen = true;
       state.profileEditingId = null;
       state.profileDraft = blankProfileDraft();
@@ -2091,6 +2119,50 @@ export async function renderSaudeContent(container) {
       state.profileDraft = blankProfileDraft();
       if (state.view === 'profile-detail') renderProfileDetail(container, state);
       else renderProfiles(container, state);
+      return;
+    }
+    if (action === 'delete-profile') {
+      if (state.busy) return;
+      const id = Number(actionElement.dataset.saudeId);
+      const profile = state.profiles.find((item) => Number(item.id) === id);
+      if (!profile) return;
+      const confirmed = await requestSaudeConfirmation(container, {
+        title: 'Excluir perfil?',
+        message: `O perfil ${profile.nome}, suas medidas, dietas, metas e histórico de água e agendamentos serão excluídos permanentemente. A conta do usuário será mantida. Você poderá criar um novo perfil depois.`,
+      });
+      if (!confirmed || state.busy) return;
+      state.busy = true;
+      renderActiveSaudeView(container, state);
+      try {
+        await requestProfiles('DELETE', { id });
+        if (isLocalWaterStorageMode() && loadLocalWater().profiles.some((item) => String(item.id) === String(id))) {
+          deleteLocalWaterProfile({ profile_id: String(id) });
+        }
+        removeWaterCelebration(container);
+        state.profiles = state.profiles.filter((item) => Number(item.id) !== id);
+        state.diets = state.diets.filter((item) => Number(item.perfil_id) !== id);
+        state.selectedProfileId = null;
+        state.waterProfileId = null;
+        state.waterConfig = null;
+        state.waterToday = null;
+        state.waterHistory = [];
+        delete state.waterHistoryByProfile[String(id)];
+        state.waterProfiles = state.waterProfiles.filter((item) => String(item.id) !== String(id));
+        state.profileEditorOpen = false;
+        state.measurementEditorOpen = false;
+        state.weightEditorOpen = false;
+        state.waterModal = null;
+        state.dietEditorOpen = false;
+        state.dietModal = null;
+        state.view = 'profiles';
+        rememberSaudeCheckpoint({ view: 'profiles', selectedProfileId: null, profileScreen: null });
+        state.notice = { type: 'success', text: 'Perfil excluído. Você pode criar um novo perfil.' };
+      } catch (error) {
+        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível excluir o perfil.' };
+      } finally {
+        state.busy = false;
+        renderActiveSaudeView(container, state);
+      }
       return;
     }
     if (action === 'edit-profile') {
@@ -2538,6 +2610,7 @@ export async function renderSaudeContent(container) {
         return value === '' ? null : Number(value.replace(',', '.'));
       };
       state.profileDraft = {
+        ...(state.profilesAdminView && !state.profileEditingId ? { user_id: String(values.get('user_id') || '') } : {}),
         nome: String(values.get('nome') || '').trim(),
         sexo: String(values.get('sexo') || ''),
         data_nascimento: String(values.get('data_nascimento') || ''),
@@ -2815,6 +2888,7 @@ export async function renderSaudeContent(container) {
     if (!response.ok) throw new Error('O endpoint de Saúde não respondeu corretamente.');
     const data = await response.json().catch(() => ({}));
     state.profiles = Array.isArray(data.rows) ? data.rows : [];
+    state.profilesAdminView = Boolean(data.admin_view);
     try {
       await ensureFoodCatalog(state);
     } catch {

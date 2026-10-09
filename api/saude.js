@@ -394,7 +394,49 @@ async function requireSaudeProfileForWater(userId, profileId, isAdmin = false) {
   return { profile: data, storage: 'supabase' };
 }
 
-async function deleteWaterGoal(profileId, userId) {
+async function mutationOwner(userId, profileId, isAdmin, measurementId = null) {
+  if (measurementId) {
+    if (isOfflineMode()) {
+      const measurement = offlineProfileMeasurements.find((row) => Number(row.id) === measurementId);
+      if (!measurement) return { notFound: true };
+      profileId = measurement.perfil_id;
+    } else {
+      const { supabase } = await import('../lib/supabase.js');
+      const { data, error } = await supabase.from(TABELA_PERFIL_MEDIDAS)
+        .select('perfil_id').eq('id', measurementId).maybeSingle();
+      if (error) return { error };
+      if (!data) return { notFound: true };
+      profileId = data.perfil_id;
+    }
+  }
+  const result = await requireSaudeProfileForWater(userId, profileId, isAdmin);
+  if (result.error || result.notFound || result.invalid) return result;
+  return { userId: result.profile.created_by };
+}
+
+async function deleteProfile(id, userId, isAdmin) {
+  const owner = await mutationOwner(userId, id, isAdmin);
+  if (!owner.userId) return owner;
+  if (isOfflineMode()) {
+    offlineProfiles = offlineProfiles.filter((row) => Number(row.id) !== id);
+    offlineProfileMeasurements = offlineProfileMeasurements.filter((row) => Number(row.perfil_id) !== id);
+    offlineDiets = offlineDiets.filter((row) => Number(row.perfil_id) !== id);
+    offlineWaterLogs = offlineWaterLogs.filter((row) => Number(row.perfil_id) !== id);
+    offlineWaterGoals.delete(`${owner.userId}:${id}`);
+    offlineAlertSchedules.delete(`${owner.userId}:${id}`);
+    return { storage: 'memory' };
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  // As FKs removem medidas, dietas, água e agenda na mesma transação.
+  const { data, error } = await supabase.from(TABELA_PERFIS)
+    .delete().eq('id', id).eq('created_by', owner.userId).select('id').maybeSingle();
+  return error ? { error } : data ? { storage: 'supabase' } : { notFound: true };
+}
+
+async function deleteWaterGoal(profileId, userId, isAdmin = false) {
+  const owner = await mutationOwner(userId, profileId, isAdmin);
+  if (!owner.userId) return owner;
+  userId = owner.userId;
   if (isOfflineMode()) {
     const key = `${userId}:${profileId}`;
     if (!offlineWaterGoals.has(key)) return { notFound: true };
@@ -501,7 +543,10 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
   return historyError ? { error: historyError } : waterResult(config, todayRow, history, 'supabase', profiles, profileId);
 }
 
-async function saveWaterGoal(payload, userId) {
+async function saveWaterGoal(payload, userId, isAdmin = false) {
+  const owner = await mutationOwner(userId, payload.profile_id, isAdmin);
+  if (!owner.userId) return owner;
+  userId = owner.userId;
   const today = dateInSaoPaulo(new Date());
   const profileResult = await requireSaudeProfileForWater(userId, payload.profile_id);
   if (profileResult.error) return profileResult;
@@ -533,7 +578,10 @@ async function saveWaterGoal(payload, userId) {
   return loadWater(userId, profileId);
 }
 
-async function updateWaterProgress(payload, userId) {
+async function updateWaterProgress(payload, userId, isAdmin = false) {
+  const owner = await mutationOwner(userId, payload.profile_id, isAdmin);
+  if (!owner.userId) return owner;
+  userId = owner.userId;
   const today = dateInSaoPaulo(new Date());
   const profileResult = await requireSaudeProfileForWater(userId, payload.profile_id);
   if (profileResult.error) return profileResult;
@@ -548,6 +596,9 @@ async function updateWaterProgress(payload, userId) {
     return loadWater(userId, profileId);
   }
 
+  const loaded = await loadWater(userId, profileId, { includeProfiles: false });
+  if (loaded.error) return loaded;
+  if (!loaded.config || !loaded.today) return { notFound: true };
   const { supabase } = await import('../lib/supabase.js');
   const { data: current, error: currentError } = await supabase.from(TABELA_AGUA_LOGS)
     .select('id,meta_doses').eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).maybeSingle();
@@ -629,10 +680,10 @@ async function saveAlertSchedule(profileId, payload, userId, isAdmin = false) {
 }
 
 async function loadProfiles(userId, includeAllUsers = false) {
-  if (isOfflineMode()) return { rows: withProfileHistory(offlineProfiles, offlineProfileMeasurements), storage: 'memory' };
+  if (isOfflineMode()) return { rows: withProfileHistory(offlineProfiles.filter((row) => includeAllUsers || row.created_by === userId), offlineProfileMeasurements), storage: 'memory' };
   const { supabase } = await import('../lib/supabase.js');
   let profilesQuery = supabase.from(TABELA_PERFIS)
-    .select('id,nome,sexo,data_nascimento,data_medicao,peso_kg,altura_cm,created_at,updated_at')
+    .select('id,nome,sexo,data_nascimento,data_medicao,peso_kg,altura_cm,created_by,created_at,updated_at')
     .order('created_at', { ascending: true });
   if (!includeAllUsers) profilesQuery = profilesQuery.eq('created_by', userId);
   const { data: profiles, error } = await profilesQuery;
@@ -666,7 +717,10 @@ async function createProfile(payload, userId) {
   return { row: loaded.rows.find((profile) => Number(profile.id) === Number(data.id)), storage: 'supabase' };
 }
 
-async function updateProfile(id, payload, userId) {
+async function updateProfile(id, payload, userId, isAdmin = false) {
+  const owner = await mutationOwner(userId, id, isAdmin);
+  if (!owner.userId) return owner;
+  userId = owner.userId;
   if (isOfflineMode()) {
     const index = offlineProfiles.findIndex((profile) => Number(profile.id) === id);
     if (index < 0) return { notFound: true };
@@ -694,7 +748,10 @@ async function updateProfile(id, payload, userId) {
   return { row: loaded.rows.find((profile) => Number(profile.id) === id), storage: 'supabase' };
 }
 
-async function updateProfileMeasurement(id, payload, userId) {
+async function updateProfileMeasurement(id, payload, userId, isAdmin = false) {
+  const owner = await mutationOwner(userId, null, isAdmin, id);
+  if (!owner.userId) return owner;
+  userId = owner.userId;
   const timestamp = `${payload.data_medicao}T12:00:00-03:00`;
   const measurementPayload = Object.fromEntries(PROFILE_MEASURE_FIELDS.map((field) => [field, payload[field]]));
 
@@ -738,7 +795,10 @@ async function updateProfileMeasurement(id, payload, userId) {
   return { row: loaded.rows.find((profile) => Number(profile.id) === Number(current.perfil_id)), storage: 'supabase' };
 }
 
-async function createWeightMeasurement(payload, userId) {
+async function createWeightMeasurement(payload, userId, isAdmin = false) {
+  const owner = await mutationOwner(userId, payload.perfil_id, isAdmin);
+  if (!owner.userId) return owner;
+  userId = owner.userId;
   const timestamp = new Date().toISOString();
   if (isOfflineMode()) {
     const profileIndex = offlineProfiles.findIndex((profile) => Number(profile.id) === payload.perfil_id);
@@ -775,7 +835,10 @@ async function createWeightMeasurement(payload, userId) {
   return { row: loaded.rows.find((item) => Number(item.id) === Number(profile.id)), storage: 'supabase' };
 }
 
-async function deleteProfileMeasurement(id, userId) {
+async function deleteProfileMeasurement(id, userId, isAdmin = false) {
+  const owner = await mutationOwner(userId, null, isAdmin, id);
+  if (!owner.userId) return owner;
+  userId = owner.userId;
   if (isOfflineMode()) {
     const current = offlineProfileMeasurements.find((measurement) => Number(measurement.id) === id);
     if (!current) return { notFound: true };
@@ -816,7 +879,7 @@ async function deleteProfileMeasurement(id, userId) {
 
   if (Number(latestBefore?.[0]?.id) === id) {
     const { data: replacements, error: replacementError } = await supabase.from(TABELA_PERFIL_MEDIDAS)
-      .select('peso_kg,altura_cm,cintura_cm,quadril_cm,peito_cm,braco_cm,coxa_cm,registrado_em')
+      .select('peso_kg,altura_cm,registrado_em')
       .eq('perfil_id', current.perfil_id).eq('created_by', userId).order('id', { ascending: false }).limit(1);
     if (replacementError) return { error: replacementError };
     const replacement = replacements?.[0];
@@ -837,7 +900,7 @@ async function loadDiets(userId, profileId = null, isAdmin = false) {
   const foods = await loadFoods();
   if (foods.error) return foods;
   if (isOfflineMode()) {
-    let rows = offlineDiets.map((diet) => structuredClone(diet));
+    let rows = offlineDiets.filter((diet) => isAdmin || !diet.created_by || diet.created_by === userId).map((diet) => structuredClone(diet));
     if (profileId) {
       rows = rows.filter((diet) => Number(diet.perfil_id) === Number(profileId));
     }
@@ -859,7 +922,10 @@ async function loadDiets(userId, profileId = null, isAdmin = false) {
   return error ? { error } : { rows: (data || []).map((row) => enrichDietNutrition(row, foods.rows)), storage: 'supabase' };
 }
 
-async function createDiet(payload, userId) {
+async function createDiet(payload, userId, isAdmin = false) {
+  const owner = await mutationOwner(userId, payload.perfil_id, isAdmin);
+  if (!owner.userId) return owner;
+  userId = owner.userId;
   if (payload.perfil_id) {
     const ownedProfile = await requireSaudeProfileForWater(userId, payload.perfil_id);
     if (ownedProfile.error) return { error: ownedProfile.error };
@@ -882,8 +948,8 @@ async function createDiet(payload, userId) {
 }
 
 async function updateDiet(id, payload, userId, isAdmin = false) {
-  if (payload.perfil_id && !isAdmin) {
-    const ownedProfile = await requireSaudeProfileForWater(userId, payload.perfil_id);
+  if (payload.perfil_id) {
+    const ownedProfile = await requireSaudeProfileForWater(userId, payload.perfil_id, isAdmin);
     if (ownedProfile.error) return { error: ownedProfile.error };
     if (ownedProfile.notFound || ownedProfile.invalid) return { notFound: true };
   }
@@ -1079,6 +1145,12 @@ async function createFood(payload) {
 }
 
 async function saveDietWithNutrition(id, payload, body, auth) {
+  let actorId = auth.user.id;
+  if (!id && payload.perfil_id) {
+    const owner = await mutationOwner(actorId, payload.perfil_id, auth.isAdmin);
+    if (!owner.userId) return owner;
+    actorId = owner.userId;
+  }
   const loaded = await loadFoods();
   if (loaded.error) return loaded;
   const foods = loaded.rows;
@@ -1096,7 +1168,7 @@ async function saveDietWithNutrition(id, payload, body, auth) {
     }
   }
   if (!body.novo_alimento) {
-    const result = id ? await updateDiet(id, payload, auth.user.id, auth.isAdmin) : await createDiet(payload, auth.user.id);
+    const result = id ? await updateDiet(id, payload, auth.user.id, auth.isAdmin) : await createDiet(payload, actorId);
     return result.row ? { ...result, row: enrichDietNutrition(result.row, foods) } : result;
   }
   if (!auth.isAdmin) return { forbidden: true };
@@ -1117,21 +1189,21 @@ async function saveDietWithNutrition(id, payload, body, auth) {
     return { invalid: 'Informe o peso por unidade do novo alimento ou use gramas na quantidade da dieta.' };
   }
   if (isOfflineMode()) {
-    const profile = offlineProfiles.find((entry) => Number(entry.id) === Number(payload.perfil_id) && (id && auth.isAdmin || entry.created_by === auth.user.id));
+    const profile = offlineProfiles.find((entry) => Number(entry.id) === Number(payload.perfil_id) && (auth.isAdmin || entry.created_by === auth.user.id));
     const existing = id ? offlineDiets.find((entry) => Number(entry.id) === id && (auth.isAdmin || entry.created_by === auth.user.id)) : null;
     if (!profile || id && !existing) return { notFound: true };
     const existingFood = foods.find((entry) => entry.item.trim().toLowerCase() === foodPayload.item.toLowerCase());
     const order = Math.max(0, ...offlineFoods.map((entry) => Number(entry.source_order))) + 1;
     const newFood = existingFood || foodApiRow({ id: order, source_order: order, ...foodPayload });
     meal.itens[index] = { ...meal.itens[index], nome: newFood.item, alimento_id: Number(newFood.id) };
-    const result = id ? await updateDiet(id, payload, auth.user.id, auth.isAdmin) : await createDiet(payload, auth.user.id);
+    const result = id ? await updateDiet(id, payload, auth.user.id, auth.isAdmin) : await createDiet(payload, actorId);
     if (!result.row) return result;
     if (!existingFood) offlineFoods.push({ id: order, source_order: order, ...foodPayload });
     return { ...result, food: newFood, row: enrichDietNutrition(result.row, [...foods, newFood]) };
   }
   const { supabase } = await import('../lib/supabase.js');
   const { data, error } = await supabase.rpc('save_saude_dieta_with_food', {
-    p_id: id, p_actor: auth.user.id, p_admin: auth.isAdmin,
+    p_id: id, p_actor: actorId, p_admin: auth.isAdmin,
     p_diet: { ...payload, slug: slugify(payload.titulo) },
     p_food: foodPayload, p_meal: destination.refeicao, p_index: index,
   });
@@ -1274,6 +1346,21 @@ export default async function handler(req, res) {
     return json(res, 400, { error: 'Recurso invalido.' });
   }
 
+  if (auth.isAdmin && !isOfflineMode() && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return json(res, 503, { error: 'A administração de Saúde requer SUPABASE_SERVICE_ROLE_KEY no servidor.' });
+  }
+
+  if (req.query?.resource === RESOURCE_PERFIS && req.method === 'DELETE') {
+    const body = readBody(req);
+    if (!body) return json(res, 400, { error: 'JSON invalido.' });
+    const id = parseId(body.id ?? req.query?.id);
+    if (!id) return json(res, 400, { error: 'ID invalido.' });
+    const result = await deleteProfile(id, auth.user.id, auth.isAdmin);
+    if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.notFound) return json(res, 404, { error: 'Perfil nao encontrado.' });
+    return json(res, 200, { ok: true, ...result });
+  }
+
   if (req.query?.resource === RESOURCE_ALERTAS_AGENDA && req.method === 'POST') {
     const body = readBody(req);
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
@@ -1322,7 +1409,7 @@ export default async function handler(req, res) {
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
     const validation = validateWaterGoalPayload(body);
     if (validation.error) return json(res, 400, { error: validation.error });
-    const result = await saveWaterGoal(validation.data, auth.user.id);
+    const result = await saveWaterGoal(validation.data, auth.user.id, auth.isAdmin);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Perfil de saude nao encontrado.' });
     if (result.conflict) return json(res, 409, { error: 'A meta nao pode ser menor que a quantidade ja realizada hoje.' });
@@ -1334,7 +1421,7 @@ export default async function handler(req, res) {
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
     const validation = validateWaterProgressPayload(body);
     if (validation.error) return json(res, 400, { error: validation.error });
-    const result = await updateWaterProgress(validation.data, auth.user.id);
+    const result = await updateWaterProgress(validation.data, auth.user.id, auth.isAdmin);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Crie uma meta de agua antes de registrar o consumo.' });
     if (result.conflict) return json(res, 409, { error: 'A quantidade realizada nao pode ultrapassar a meta do dia.' });
@@ -1347,7 +1434,7 @@ export default async function handler(req, res) {
     if (body.action !== 'delete-goal') return json(res, 400, { error: 'Acao invalida.' });
     const profileId = parseId(body.profile_id ?? req.query?.profile_id);
     if (!profileId) return json(res, 400, { error: 'Perfil invalido.' });
-    const result = await deleteWaterGoal(profileId, auth.user.id);
+    const result = await deleteWaterGoal(profileId, auth.user.id, auth.isAdmin);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Meta de agua nao encontrada.' });
     return json(res, 200, result);
@@ -1359,13 +1446,24 @@ export default async function handler(req, res) {
     const validation = validateProfilePayload(body);
     if (validation.error) return json(res, 400, { error: validation.error });
     if (req.method === 'POST') {
-      const result = await createProfile(validation.data, auth.user.id);
+      let ownerId = auth.user.id;
+      if (body.user_id && body.user_id !== auth.user.id) {
+        if (!auth.isAdmin) return json(res, 403, { error: 'Somente o administrador pode criar um perfil para outra conta.' });
+        if (typeof body.user_id !== 'string' || body.user_id.length > 128) return json(res, 400, { error: 'Conta invalida.' });
+        if (!isOfflineMode()) {
+          const { supabase } = await import('../lib/supabase.js');
+          const { data, error } = await supabase.auth.admin.getUserById(body.user_id);
+          if (error || !data?.user) return json(res, 400, { error: 'Conta nao encontrada.' });
+        }
+        ownerId = body.user_id;
+      }
+      const result = await createProfile(validation.data, ownerId);
       if (result.error) return json(res, 500, { error: result.error.message });
       return json(res, 201, result);
     }
     const id = parseId(body.id ?? req.query?.id);
     if (!id) return json(res, 400, { error: 'ID invalido.' });
-    const result = await updateProfile(id, validation.data, auth.user.id);
+    const result = await updateProfile(id, validation.data, auth.user.id, auth.isAdmin);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Perfil nao encontrado.' });
     return json(res, 200, result);
@@ -1376,7 +1474,7 @@ export default async function handler(req, res) {
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
     const validation = validateNewWeightPayload(body);
     if (validation.error) return json(res, 400, { error: validation.error });
-    const result = await createWeightMeasurement(validation.data, auth.user.id);
+    const result = await createWeightMeasurement(validation.data, auth.user.id, auth.isAdmin);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Perfil nao encontrado.' });
     return json(res, 201, result);
@@ -1389,7 +1487,7 @@ export default async function handler(req, res) {
     if (!id) return json(res, 400, { error: 'ID invalido.' });
     const validation = validateProfileMeasurementPayload(body);
     if (validation.error) return json(res, 400, { error: validation.error });
-    const result = await updateProfileMeasurement(id, validation.data, auth.user.id);
+    const result = await updateProfileMeasurement(id, validation.data, auth.user.id, auth.isAdmin);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Medicao nao encontrada.' });
     return json(res, 200, result);
@@ -1400,7 +1498,7 @@ export default async function handler(req, res) {
     if (!body) return json(res, 400, { error: 'JSON invalido.' });
     const id = parseId(body.id ?? req.query?.id);
     if (!id) return json(res, 400, { error: 'ID invalido.' });
-    const result = await deleteProfileMeasurement(id, auth.user.id);
+    const result = await deleteProfileMeasurement(id, auth.user.id, auth.isAdmin);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Medicao nao encontrada.' });
     return json(res, 200, { ok: true, ...result });
