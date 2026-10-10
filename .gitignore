@@ -103,3 +103,6 @@ __pycache__/
 SKILLS.md
 AGENTS copy.md
 checkpoint.txt
+
+# Prévia independente do Simulador (o app usa simuladorUi.js)
+/features/financeiro/prototipo.html

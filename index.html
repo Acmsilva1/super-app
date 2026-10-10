@@ -9180,6 +9180,10 @@
                     if (!mesAno && financeCheckpoint.mesAno) mesAno = financeCheckpoint.mesAno;
                     const screenFromDom = contentEl.getAttribute('data-finance-screen');
                     contentEl.setAttribute('data-finance-screen', this.normalizeFinanceScreen(screenFromDom || financeCheckpoint.screen));
+                    if (contentEl.getAttribute('data-finance-screen') === 'simulador') {
+                        await this.renderFinanceSimulador(contentEl);
+                        return;
+                    }
                 }
                 try {
                     if (appId === 'financeiro') {
@@ -9235,7 +9239,7 @@
 
             normalizeFinanceScreen(screen) {
                 const value = String(screen || '').toLowerCase();
-                return ['hub', 'fixas', 'extrato', 'receita', 'poupanca'].includes(value) ? value : 'hub';
+                return ['hub', 'fixas', 'extrato', 'receita', 'poupanca', 'simulador'].includes(value) ? value : 'hub';
             }
 
             financeSectionsForScreen(screen) {
@@ -9254,6 +9258,10 @@
                 });
                 el.scrollTop = 0;
                 this.rememberWindowScroll('financeiro', 0);
+                if (next === 'simulador') {
+                    await this.renderFinanceSimulador(el);
+                    return;
+                }
                 const loaded = el._financeiroLoadedSections || new Set();
                 const missing = this.financeSectionsForScreen(next).some((section) => !loaded.has(section));
                 if (missing || !el._financeiroData) {
@@ -9262,6 +9270,21 @@
                     return;
                 }
                 this.renderFinanceiroContent(el, el._financeiroData);
+            }
+
+            async renderFinanceSimulador(el) {
+                el.innerHTML = '<div class="app-loading">Carregando simulador...</div>';
+                try {
+                    const mod = await import('./features/financeiro/simuladorUi.js');
+                    if (el.getAttribute('data-finance-screen') !== 'simulador') return;
+                    await mod.renderSimulador(el, { onBack: () => this.navigateFinanceScreen(el, 'hub') });
+                } catch (error) {
+                    el.innerHTML = '<div class="app-error">Não foi possível abrir o simulador.</div>';
+                    const retry = document.createElement('button');
+                    retry.textContent = 'Tentar novamente';
+                    retry.onclick = () => this.renderFinanceSimulador(el);
+                    el.append(retry);
+                }
             }
 
             getFinanceiroAuthUserId() {
@@ -9620,6 +9643,10 @@
             }
 
             renderFinanceiroContent(el, data) {
+                if (el.getAttribute('data-finance-screen') === 'simulador') {
+                    this.renderFinanceSimulador(el);
+                    return;
+                }
                 if (el._mesCheckInterval) clearInterval(el._mesCheckInterval);
                 const screen = this.normalizeFinanceScreen(el.getAttribute('data-finance-screen'));
                 el.setAttribute('data-finance-screen', screen);
@@ -9804,6 +9831,7 @@
                             ${navRow('extrato', 'fa-receipt', 'Extrato diário')}
                             ${navRow('receita', 'fa-arrow-trend-up', 'Receitas')}
                             ${navRow('poupanca', 'fa-piggy-bank', 'Poupança')}
+                            ${navRow('simulador', 'fa-calculator', 'Simulador')}
                         </ul>
                         <p class="fin-section-label">Resumo de ${escapeHtml(this.formatMesAnoLabel(mesAno))}</p>
                         <ul class="fin-list">
