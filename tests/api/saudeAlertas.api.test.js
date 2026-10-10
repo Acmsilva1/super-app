@@ -31,5 +31,18 @@ describe('Agendamento de todas as dietas', () => {
     const loaded = await request(app).get(`/api/saude?resource=alertas-agenda&profile_id=${profileId}`);
     expect(loaded.status).toBe(200);
     expect(loaded.body.row).toMatchObject({ agua_intervalo_horas: 4, agua_inicio:'08:17', agua_fim:'20:17', dieta_ativa: true, dieta_id: null, dieta_horarios:[{tipo:'almoco',titulo:'Almoço',horario:'12:17'}] });
+    const water = await request(app).post('/api/saude?resource=alertas-agenda').send({
+      profile_id: profileId, section: 'agua', agua_ativo: true, agua_intervalo_horas: 2, agua_inicio: '09:00', agua_fim: '21:00',
+      dieta_ativa: false, dieta_horarios: [],
+    });
+    expect(water.status).toBe(200);
+    expect(water.body.row).toMatchObject({ agua_intervalo_horas: 2, dieta_ativa: true, dieta_horarios: loaded.body.row.dieta_horarios });
+    const diet = await request(app).post('/api/saude?resource=alertas-agenda').send({
+      profile_id: profileId, section: 'dieta', dieta_ativa: true, dieta_id: null,
+      dieta_horarios: [{ tipo: 'jantar', horario: '19:15' }], agua_inicio: 'inválido',
+    });
+    expect(diet.status).toBe(200);
+    expect(diet.body.row).toMatchObject({ agua_inicio: '09:00', agua_fim: '21:00', agua_intervalo_horas: 2,
+      dieta_horarios: [{tipo:'jantar',titulo:'Jantar',horario:'19:15'}] });
   });
 });

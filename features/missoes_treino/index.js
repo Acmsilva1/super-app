@@ -1,3 +1,4 @@
+import { showAppConfirmation } from '../../lib/uiConfirmation.js';
 import { MockTreinoStore } from './mock.example.js';
 
 function isLocalDevHost(locationLike = globalThis.window?.location) {
@@ -1050,6 +1051,7 @@ class MissoesTreinoApp {
     const config = typeof messageOrConfig === 'string'
       ? { message: messageOrConfig, type }
       : (messageOrConfig || {});
+    if (config.type !== 'error' && type !== 'error') { showAppConfirmation(config.message || config.title || 'Ação concluída.'); return; }
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     this.toasts.push({
       id,

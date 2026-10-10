@@ -1,3 +1,4 @@
+import { showAppConfirmation } from '../../lib/uiConfirmation.js';
 import {
   filtrarTabelaNutricional,
   opcoesTabelaNutricional,
@@ -7,7 +8,7 @@ import { calcularImc, calcularLarguraGraficoPeso, classificarImc, criarCurvaSuav
 import { countDietItems, createEmptyDietMeals, DIET_MEALS, normalizeDietMeals } from './service/dietasService.js';
 import { dietQuantity, matchFoodForDietItem, nutritionForDietItem } from './service/alimentosService.js';
 import { DIET_NUTRITION_STYLES, renderDietFoodDetails, renderDietNutritionTotal } from './dietNutritionView.js';
-import { DEFAULT_ALERT_SCHEDULE } from './service/alertScheduleConfig.js';
+import { DEFAULT_ALERT_SCHEDULE, alertScheduleSection, alertScheduleChanged } from './service/alertScheduleConfig.js';
 import {
   deleteLocalWaterGoal,
   deleteLocalWaterProfile,
@@ -293,6 +294,7 @@ const SAUDE_STYLES = `
     .saude-alert-panel__header h3 { margin: 0; font-size: 1.05rem; }
     .saude-alert-panel__header p, .saude-alert-help { margin: .25rem 0 0; color: var(--saude-texto-secundario); font-size: .82rem; line-height: 1.45; }
     .saude-alert-panel__icon { width: 2.8rem; height: 2.8rem; display: grid; place-items: center; flex: 0 0 auto; border-radius: .85rem; background: rgba(74, 164, 85, .2); color: var(--saude-lima); font-size: 1.1rem; }
+    [data-save-alert-schedule][hidden] { display: none !important; }
     .saude-alert-group { min-width: 0; margin: .85rem 0; padding: .85rem; border: 1px solid rgba(148, 163, 184, .18); border-radius: .8rem; }
     .saude-alert-group legend { padding: 0 .35rem; font-weight: 700; }
     .saude-alert-group legend label { display: flex; align-items: center; gap: .5rem; cursor: pointer; }
@@ -474,7 +476,7 @@ function renderFooterItem(label, value, valueClass = '') {
 }
 
 function renderNotice(state) {
-  if (!state.notice) return '';
+  if (!state.notice || state.notice.type === 'success') return '';
   return `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>`;
 }
 
@@ -565,17 +567,7 @@ function requestSaudeConfirmation(container, {
 }
 
 function showSaudeSuccess(container, message) {
-  container.querySelector('[data-saude-success-toast]')?.remove();
-  const toast = document.createElement('div');
-  toast.className = 'saude-success-toast';
-  toast.dataset.saudeSuccessToast = '';
-  toast.setAttribute('role', 'status');
-  toast.setAttribute('aria-live', 'polite');
-  toast.innerHTML = `<div class="saude-success-toast__icon"><i class="fas fa-check" aria-hidden="true"></i></div><div><strong>Ação concluída</strong><p>${escapeHtml(message)}</p></div><button type="button" class="saude-success-toast__close" aria-label="Fechar mensagem"><i class="fas fa-xmark" aria-hidden="true"></i></button>`;
-  const remove = () => toast.remove();
-  toast.querySelector('.saude-success-toast__close')?.addEventListener('click', remove);
-  (container.querySelector('.saude-root') || container).append(toast);
-  setTimeout(remove, 3600);
+  showAppConfirmation(message);
 }
 
 function renderLoading(container, message = 'Carregando módulo...') {
@@ -772,7 +764,7 @@ function renderTabelaNutricional(container, state) {
         </div>
         ${state.foodCatalogCanEdit ? `<button type="button" class="saude-btn saude-btn--primary saude-btn--insert" data-saude-action="insert"${state.busy ? ' disabled' : ''}><i class="fas fa-plus" aria-hidden="true"></i><span>Adicionar novo</span></button>` : ''}
       </div>
-      ${state.notice ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status"><i class="fas ${state.notice.type === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-check'}" aria-hidden="true"></i><span>${escapeHtml(state.notice.text)}</span></div>` : ''}
+      ${state.notice && state.notice.type !== 'success' ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status"><i class="fas ${state.notice.type === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-check'}" aria-hidden="true"></i><span>${escapeHtml(state.notice.text)}</span></div>` : ''}
       ${renderEditor(state, options)}
       <div class="saude-filters">
         <div class="saude-field-group">
@@ -1010,7 +1002,7 @@ function renderDietas(container, state) {
       <div class="saude-page-header"><button type="button" class="saude-btn" data-saude-action="home" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button><div><h2 id="dietas-title">Dietas</h2><p>Planos alimentares organizados por perfil e refeição.</p></div></div>
       <button type="button" class="saude-btn saude-btn--primary saude-btn--insert" data-saude-action="add-diet"${hasProfiles ? '' : ' disabled title="Crie um perfil primeiro"'}><i class="fas fa-plus"></i><span>Adicionar dieta</span></button>
     </div>
-    ${state.notice ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>` : ''}
+    ${state.notice && state.notice.type !== 'success' ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>` : ''}
     ${renderDietForm(state)}
     ${content}${renderDietOverlay(state)}
   </section>`);
@@ -1453,15 +1445,29 @@ function renderProfileHub(profile, state) {
 }
 
 function captureAlertScheduleForm(container, state) {
-  const form = container.querySelector('[data-alert-schedule-form]');
-  if (!form) return;
-  const values = new FormData(form);
-  const times = values.getAll('dieta_horario');
-  state.alertSchedule = { ...state.alertSchedule, agua_ativo: values.has('agua_ativo'), agua_inicio: String(values.get('agua_inicio') || ''), agua_fim: String(values.get('agua_fim') || ''), dieta_ativa: values.has('dieta_ativa'), agua_intervalo_horas: Number(values.get('agua_intervalo_horas')), dieta_horarios: values.getAll('dieta_refeicao').map((tipo,index) => ({ tipo, horario: times[index] })) };
+  for (const form of container.querySelectorAll('[data-alert-schedule-form]')) {
+    const values = new FormData(form);
+    if (form.dataset.alertScheduleForm === 'agua') {
+      state.alertSchedule = { ...state.alertSchedule,
+        agua_ativo: values.has('agua_ativo'), agua_inicio: String(values.get('agua_inicio') || ''),
+        agua_fim: String(values.get('agua_fim') || ''), agua_intervalo_horas: Number(values.get('agua_intervalo_horas')) };
+    } else {
+      const times = values.getAll('dieta_horario');
+      state.alertSchedule = { ...state.alertSchedule, dieta_ativa: values.has('dieta_ativa'),
+        dieta_horarios: values.getAll('dieta_refeicao').map((tipo,index) => ({ tipo, horario: times[index] })) };
+    }
+  }
+}
+
+function syncAlertScheduleButtons(container, state) {
+  for (const form of container.querySelectorAll('[data-alert-schedule-form]')) {
+    form.querySelector('[data-save-alert-schedule]').hidden = !alertScheduleChanged(state.alertSchedule, state.alertScheduleSaved, form.dataset.alertScheduleForm);
+  }
 }
 
 function renderProfileAlertSchedules(profile, state) {
   const schedule = state.alertSchedule || DEFAULT_ALERT_SCHEDULE;
+  const saveButton = section => `<div class="saude-editor__actions"><button data-save-alert-schedule class="saude-btn saude-btn--primary" type="submit"${alertScheduleChanged(schedule, state.alertScheduleSaved, section) ? '' : ' hidden'}${state.busy || state.alertScheduleLoading ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar alertas de ${section === 'agua' ? 'água' : 'dieta'}</button></div>`;
   const diets = dietsForProfile(state, profile.id);
   const dietList = diets.map((diet) => `<li class="saude-diet-alert-row"><span>${escapeHtml(diet.titulo)}</span>${renderDietAlertSwitch(diet, state)}</li>`).join('');
   const loading = state.alertScheduleLoading
@@ -1470,20 +1476,23 @@ function renderProfileAlertSchedules(profile, state) {
   return `${renderNotice(state)}<section class="saude-alert-panel" aria-labelledby="saude-alert-title">
     <header class="saude-alert-panel__header"><span class="saude-alert-panel__icon"><i class="fas fa-bell"></i></span><div><h3 id="saude-alert-title">Agendadores deste perfil</h3><p>Configure quando este perfil recebe os avisos diários no Telegram.</p></div></header>
     ${loading}
-    <form data-alert-schedule-form data-profile-id="${escapeHtml(profile.id)}">
+    <form data-alert-schedule-form="agua" data-profile-id="${escapeHtml(profile.id)}">
       <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
         <legend><label><input type="checkbox" name="agua_ativo"${schedule.agua_ativo ? ' checked' : ''}> Alertas de água</label></legend>
         <div class="saude-alert-time-row"><label>Horário de início<input type="time" class="saude-field" name="agua_inicio" value="${escapeHtml(schedule.agua_inicio)}" required></label><label>Horário de fim<input type="time" class="saude-field" name="agua_fim" value="${escapeHtml(schedule.agua_fim)}" required></label></div><p class="saude-alert-help">Repete a partir do início, dentro desta janela no mesmo dia. Horário de Brasília.</p>
         <label class="saude-alert-meal-row"><span>Intervalo entre alertas</span><select class="saude-field" name="agua_intervalo_horas">${Array.from({ length: 12 }, (_, index) => index + 1).map((hours) => `<option value="${hours}"${Number(schedule.agua_intervalo_horas) === hours ? ' selected' : ''}>A cada ${hours} ${hours === 1 ? 'hora' : 'horas'}</option>`).join('')}</select></label>
+        ${saveButton('agua')}
       </fieldset>
+    </form>
+    <form data-alert-schedule-form="dieta" data-profile-id="${escapeHtml(profile.id)}">
       <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
         <legend><label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa ? ' checked' : ''}> Alertas de dietas deste perfil</label></legend>
         <div class="saude-alert-times">${schedule.dieta_horarios.map((entry,index) => `<div class="saude-alert-time-row"><label>Refeição<select class="saude-field" name="dieta_refeicao">${DIET_MEALS.map(meal => `<option value="${meal.tipo}"${entry.tipo === meal.tipo ? ' selected' : ''}>${meal.titulo}</option>`).join('')}</select></label><label>Horário<input class="saude-field" type="time" name="dieta_horario" value="${escapeHtml(entry.horario)}" required></label><button type="button" class="saude-icon-btn" data-saude-action="remove-diet-alert-time" data-time-index="${index}" aria-label="Remover horário ${index+1}"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button type="button" class="saude-btn" data-saude-action="add-diet-alert-time"${schedule.dieta_horarios.length >= 12 ? ' disabled' : ''}><i class="fas fa-plus"></i> Adicionar horário</button><p class="saude-alert-help">Horário de Brasília. O bot usa estes horários após salvar.</p>
         <ul>${dietList || '<li>Nenhuma dieta cadastrada neste perfil.</li>'}</ul>
         <p class="saude-alert-help">Escolha abaixo quais dietas deseja receber. Desligar “Alertas de dietas deste perfil” pausa todos os envios.</p>
+        ${saveButton('dieta')}
       </fieldset>
       <p class="saude-alert-help">Os horários usam Brasília diariamente. A dieta pode ser avisada mesmo sem calorias preenchidas.</p>
-      <div class="saude-editor__actions"><button class="saude-btn saude-btn--primary" type="submit"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar agendadores</button></div>
     </form>
   </section>`;
 }
@@ -1892,10 +1901,20 @@ export async function renderSaudeContent(container) {
     waterDraft: { nome: '', meta_doses: 8 },
     waterCelebrationTimer: null,
     waterDoseSyncing: false,
-    alertSchedule: { ...DEFAULT_ALERT_SCHEDULE },
+    alertSchedule: structuredClone(DEFAULT_ALERT_SCHEDULE),
+    alertScheduleSaved: structuredClone(DEFAULT_ALERT_SCHEDULE),
     alertScheduleStorage: null,
     alertScheduleLoading: false,
   };
+
+  let notice = null;
+  Object.defineProperty(state, 'notice', {
+    get: () => notice,
+    set: (value) => {
+      notice = value;
+      if (value?.type === 'success') showAppConfirmation(value.text);
+    },
+  });
 
   const onClick = async (event) => {
     if (state.busy) return;
@@ -2050,9 +2069,7 @@ export async function renderSaudeContent(container) {
           if (!Array.isArray(allDietsData.rows)) throw new Error('A resposta das dietas deste perfil é inválida.');
           state.diets = allDietsData.rows;
           state.alertSchedule = result.row;
-          if (!state.alertSchedule.dieta_id) {
-            state.alertSchedule.dieta_id = (state.diets || [])[0]?.id || null;
-          }
+          state.alertScheduleSaved = structuredClone(result.row);
           state.alertScheduleStorage = result.storage;
         } catch (error) {
           state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar os agendadores.' };
@@ -2102,6 +2119,7 @@ export async function renderSaudeContent(container) {
       if (isMarking) animateWaterDose(container, actionElement, false);
       try {
         applyWaterData(state, await requestWater('PATCH', { profile_id: state.waterProfileId, realizado_doses }));
+        showAppConfirmation(isMarking ? 'Dose registrada.' : 'Dose desmarcada.');
         syncWaterTrackerDom(container, state, { skipWaterDrop: true });
         const completedNow = isMarking && realizado_doses === state.waterToday.meta_doses;
         if (completedNow) showWaterCelebration(container, state);
@@ -2293,7 +2311,6 @@ export async function renderSaudeContent(container) {
         state.busy = false;
         renderActiveSaudeView(container, state);
       }
-      if (deleted) showSaudeSuccess(container, 'Medição excluída com sucesso.');
       return;
     }
     if (action === 'select-diet-profile') {
@@ -2495,7 +2512,6 @@ export async function renderSaudeContent(container) {
         state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível excluir a dieta.' };
       }
       renderActiveSaudeView(container, state);
-      if (deleted) showSaudeSuccess(container, 'Dieta excluída com sucesso.');
       return;
     }
     if (action === 'insert') {
@@ -2556,7 +2572,6 @@ export async function renderSaudeContent(container) {
         state.busy = false;
         renderTabelaNutricional(container, state);
       }
-      if (deleted) showSaudeSuccess(container, 'Alimento excluído com sucesso.');
       return;
     }
 
@@ -2573,26 +2588,20 @@ export async function renderSaudeContent(container) {
     if (alertScheduleForm) {
       event.preventDefault();
       if (state.busy || !alertScheduleForm.reportValidity()) return;
-      const values = new FormData(alertScheduleForm);
-      const dietTimes = values.getAll('dieta_horario');
-      const payload = {
-        dieta_horarios: values.getAll('dieta_refeicao').map((tipo,index) => ({ tipo, horario: dietTimes[index] })),
-        profile_id: Number(alertScheduleForm.dataset.profileId),
-        agua_ativo: values.has('agua_ativo'),
-        agua_inicio: String(values.get('agua_inicio') || ''),
-        agua_fim: String(values.get('agua_fim') || ''),
-        agua_intervalo_horas: Number(values.get('agua_intervalo_horas')),
-        dieta_ativa: values.has('dieta_ativa'),
-        dieta_id: null,
-      };
+      captureAlertScheduleForm(container, state);
+      const section = alertScheduleForm.dataset.alertScheduleForm;
+      if (!alertScheduleChanged(state.alertSchedule, state.alertScheduleSaved, section)) return;
+      const payload = { profile_id: Number(alertScheduleForm.dataset.profileId), section,
+        ...alertScheduleSection(state.alertSchedule, section) };
       state.busy = true;
       state.notice = null;
       renderProfileDetail(container, state);
       try {
         const result = await requestAlertSchedule('POST', payload);
-        state.alertSchedule = result.row;
+        state.alertScheduleSaved = structuredClone(result.row);
+        state.alertSchedule = { ...state.alertSchedule, ...alertScheduleSection(result.row, section) };
         state.alertScheduleStorage = result.storage;
-        state.notice = { type: 'success', text: 'Agendadores salvos. O bot usará os novos horários nas próximas execuções.' };
+        state.notice = { type: 'success', text: section === 'agua' ? 'Alertas de água salvos.' : 'Alertas de dieta salvos.' };
       } catch (error) {
         state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel salvar os agendadores.' };
       } finally {
@@ -2810,7 +2819,6 @@ export async function renderSaudeContent(container) {
       } finally {
         state.busy = false;
         renderActiveSaudeView(container, state);
-        if (!state.dietModal) showSaudeSuccess(container, state.notice.text);
       }
       return;
     }
@@ -2919,6 +2927,11 @@ export async function renderSaudeContent(container) {
   };
 
   const onFilter = (event) => {
+    if (event.target.closest('[data-alert-schedule-form]')) {
+      captureAlertScheduleForm(container, state);
+      syncAlertScheduleButtons(container, state);
+      return;
+    }
     if (event.type === 'change' && event.target.matches('[data-diet-food-select]')) {
       captureDietItemFields(event.target.closest('form'), state);
       state.dietItemError = null;
@@ -3020,7 +3033,7 @@ export async function renderSaudeContent(container) {
           try {
             const result = await requestAlertSchedule('GET', { profile_id: checkpointProfileId });
             state.alertSchedule = result.row;
-            state.alertSchedule.dieta_id ||= dietsForProfile(state, checkpointProfileId)[0]?.id || null;
+          state.alertScheduleSaved = structuredClone(result.row);
             state.alertScheduleStorage = result.storage;
           } catch (error) {
             state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar os agendadores.' };

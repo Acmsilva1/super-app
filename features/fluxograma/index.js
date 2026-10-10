@@ -1,3 +1,4 @@
+import { showAppConfirmation } from '../../lib/uiConfirmation.js';
 ﻿/* index.js - Orchestration for Fluxograma */
 
 import {
@@ -1356,6 +1357,7 @@ function centerView() {
 
 let statusTimer = null;
 function showStatus(msg, type) {
+    if (type === "success") { el("statusMessage")?.classList.remove("active"); showAppConfirmation(msg); return; }
     const s = el("statusMessage"); if (statusTimer) clearTimeout(statusTimer);
     s.textContent = msg; s.className = `status ${type}`; requestAnimationFrame(() => s.classList.add("active"));
     statusTimer = setTimeout(() => s.classList.remove("active"), 3200);

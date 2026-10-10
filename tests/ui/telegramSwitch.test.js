@@ -5,12 +5,13 @@ const methods=html.slice(html.indexOf('            setAdminTelegramWebhookState(
 const controller=()=>new Function(`return new class {${methods}};`)();
 afterEach(()=>vi.unstubAllGlobals());
 function setup(enabled){
+  vi.stubGlobal('showAppConfirmation',vi.fn());
   const label={textContent:''},button={disabled:false,state:String(enabled),getAttribute(){return this.state;},setAttribute(key,value){this.state=value;},querySelector(){return label;}},message={textContent:''};
   vi.stubGlobal('document',{getElementById:id=>id==='adminTelegramWebhook'?button:message});return {button,label,message};
 }
 it('atualiza o switch somente após confirmação do servidor',async()=>{
   const {button,label}=setup(false);vi.stubGlobal('fetch',vi.fn(async()=>({ok:true,json:async()=>({ok:true,enabled:true,simulated:true})})));
-  await controller().configureAdminTelegramWebhook();expect(button.state).toBe('true');expect(label.textContent).toBe('Ligado');expect(JSON.parse(fetch.mock.calls[0][1].body).enabled).toBe(true);
+  await controller().configureAdminTelegramWebhook();expect(showAppConfirmation).toHaveBeenCalled();expect(button.state).toBe('true');expect(label.textContent).toBe('Ligado');expect(JSON.parse(fetch.mock.calls[0][1].body).enabled).toBe(true);
 });
 it('mantém o estado anterior quando o servidor recusa a alteração',async()=>{
   const {button,label,message}=setup(true);vi.stubGlobal('fetch',vi.fn(async()=>({ok:false,json:async()=>({error:'Falha na conexão'})})));

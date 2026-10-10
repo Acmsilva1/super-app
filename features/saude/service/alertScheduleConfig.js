@@ -67,3 +67,16 @@ export function validateAlertSchedule(payload) {
   if (payload.dieta_ativa && !times.data.length) return { error: 'Adicione um horário antes de ligar os alertas de dieta.' };
   return { data: { agua_inicio, agua_fim, dieta_horarios: times.data, agua_ativo: payload.agua_ativo, agua_intervalo_horas: interval, dieta_ativa: payload.dieta_ativa, dieta_id: dietId } };
 }
+
+export const ALERT_SCHEDULE_FIELDS = {
+  agua: ['agua_ativo', 'agua_intervalo_horas', 'agua_inicio', 'agua_fim'],
+  dieta: ['dieta_ativa', 'dieta_id', 'dieta_horarios'],
+};
+
+export function alertScheduleSection(schedule, section) {
+  return Object.fromEntries(ALERT_SCHEDULE_FIELDS[section].map(key => [key, key === 'dieta_horarios' && Array.isArray(schedule[key]) ? schedule[key].map(entry => ({ tipo: entry?.tipo, horario: entry?.horario })) : schedule[key]]));
+}
+
+export function alertScheduleChanged(draft, saved, section) {
+  return JSON.stringify(alertScheduleSection(draft, section)) !== JSON.stringify(alertScheduleSection(saved, section));
+}

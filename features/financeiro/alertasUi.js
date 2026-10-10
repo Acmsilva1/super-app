@@ -1,3 +1,4 @@
+import { showAppConfirmation } from '../../lib/uiConfirmation.js';
 import { validateAlert, nextOccurrences } from './service/alertSchedule.js';
 const endpoint = '/api/financeiro?recurso=alertas';
 const types = {diario:'Gastos do dia · débito/Pix',fixas:'Despesas fixas · pagas e pendentes',mensal:'Receitas, despesas e saldo do mês',mensagem:'Mensagem personalizada'};
@@ -32,7 +33,7 @@ export async function renderFinanceAlerts(host) {
   async function mutate(method,payload) {
     if(busy)return;busy=true;add.disabled=true;form.querySelector('[type=submit]').disabled=true;
     list.querySelectorAll('button').forEach(b=>b.disabled=true);
-    try { await api(method,payload);form.hidden=true;await load();notice.textContent='Alteração salva.'+(host.dataset.demo==='true'?' Apenas em memória neste modo local.':''); }
+    try { await api(method,payload);form.hidden=true;await load();notice.textContent='';showAppConfirmation(host.dataset.demo==='true'?'Alteração salva no modo local.':'Alteração salva.'); }
     catch(error){notice.textContent=error.message;}
     finally {busy=false;add.disabled=false;form.querySelector('[type=submit]').disabled=false;list.querySelectorAll('button').forEach(b=>b.disabled=false);}
   }

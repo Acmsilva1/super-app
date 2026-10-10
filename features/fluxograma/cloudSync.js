@@ -1,3 +1,4 @@
+import { showAppConfirmation } from '../../lib/uiConfirmation.js';
 ﻿import {
     state,
     getGraphPayload,
@@ -202,7 +203,8 @@ async function performCloudSave() {
             if (out.id) localStorage.setItem(LS_REMOTE_ID, out.id);
         }
         const t = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-        setAutosaveStatus("Salvo na nuvem às " + t);
+        setAutosaveStatus("");
+        showAppConfirmation("Projeto salvo na nuvem.");
     } catch (e) {
         setAutosaveStatus("Nuvem: " + (e.message || String(e)), true);
     } finally {
@@ -347,6 +349,7 @@ export async function initFluxogramaApp(mod) {
                 saveToLocalStorage();
             }
             await renderHub();
+            showAppConfirmation("Alteração salva.");
         } catch (e) {
             if (errEl) errEl.textContent = e.message || String(e);
         }
@@ -366,6 +369,7 @@ export async function initFluxogramaApp(mod) {
             await fetchJson("/api/fluxograma?id=" + encodeURIComponent(pid), { method: "DELETE" });
             if (localStorage.getItem(LS_REMOTE_ID) === pid) localStorage.removeItem(LS_REMOTE_ID);
             await renderHub();
+            showAppConfirmation("Alteração salva.");
         } catch (e) {
             if (errEl) errEl.textContent = e.message || String(e);
         }

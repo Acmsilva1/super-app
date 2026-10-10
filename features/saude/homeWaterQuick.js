@@ -1,3 +1,4 @@
+import { showAppConfirmation } from '../../lib/uiConfirmation.js';
 import {
   isLocalWaterStorageMode,
   loadLocalWater,
@@ -311,6 +312,7 @@ export async function openHomeWaterQuickModal(options = {}) {
     try {
       await reloadWaterState(state);
       writeLastProfileId(state.profileId);
+      showAppConfirmation('Meta diária salva.');
     } catch (error) {
       state.error = error instanceof Error ? error.message : 'Não foi possível carregar o consumo de água.';
       state.config = null;
@@ -390,6 +392,7 @@ export async function openHomeWaterQuickModal(options = {}) {
       try {
         const data = await requestWater('PATCH', { profile_id: state.profileId, realizado_doses });
         applyWaterState(state, data);
+        showAppConfirmation('Consumo de água atualizado.');
         writeLastProfileId(state.profileId);
         state.error = null;
         if (!completedNow) {
@@ -439,6 +442,7 @@ export async function openHomeWaterQuickModal(options = {}) {
       const data = await requestWater('POST', payload);
       applyWaterState(state, data);
       writeLastProfileId(state.profileId);
+      showAppConfirmation('Meta diária salva.');
     } catch (error) {
       state.error = error instanceof Error ? error.message : 'Não foi possível salvar a meta.';
     } finally {

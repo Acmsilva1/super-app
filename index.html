@@ -7121,6 +7121,7 @@
     </nav>
 
     <script>
+        const showAppConfirmation = (message) => import('/lib/uiConfirmation.js').then(ui => ui.showAppConfirmation(message));
         // ============================================
         // SUPERAPP - Sistema de Gerenciamento de Apps
         // ============================================
@@ -7402,6 +7403,7 @@
                     });
                     if (error) return this.setMessage(this.formatAuthError(error), 'error');
                     this.setMessage('Link enviado. Confira seu email para trocar a senha.');
+                    showAppConfirmation('Link de recuperação enviado.');
                 });
 
                 document.getElementById('resetPasswordForm')?.addEventListener('submit', async (event) => {
@@ -7415,6 +7417,7 @@
                     const { error } = await this.client.auth.updateUser({ password });
                     if (error) return this.setMessage(this.formatAuthError(error), 'error');
                     this.setMessage('Senha atualizada. Entrando...');
+                    showAppConfirmation('Senha atualizada.');
                     window.location.replace(window.location.pathname);
                 });
 
@@ -8028,6 +8031,7 @@
                     if (!response.ok || !payload.ok || payload.enabled !== enabled) throw new Error(payload.error || 'Não foi possível confirmar a alteração.');
                     this.setAdminTelegramWebhookState(payload.enabled);
                     message.textContent = payload.simulated ? 'Alteração simulada no modo local.' : enabled ? 'Recebimento ligado. Envie descrição e valor ao bot; confirme o resumo antes de salvar.' : 'Recebimento de compras desligado.';
+                    showAppConfirmation(message.textContent); message.textContent = '';
                 } catch (error) {
                     this.setAdminTelegramWebhookState(previous);
                     message.textContent = error.message || 'Não foi possível alterar o recebimento.';
@@ -8050,6 +8054,7 @@
                     message.textContent = payload.simulated
                         ? '✅ Teste simulado no modo mock. Nenhuma mensagem enviada ao Telegram.'
                         : `✅ Telegram confirmou ${payload.sent} mensagem(ns): água, todas as dietas e Financeiro (débito/Pix e despesas fixas). Confira o chat do bot.`;
+                    showAppConfirmation(payload.simulated ? 'Teste concluído no modo local.' : `Teste enviado: ${payload.sent} mensagens.`); message.textContent = '';
                 } catch (error) {
                     message.textContent = error.message || 'Falha no teste. Confira o Telegram antes de repetir.';
                 } finally {
@@ -8121,6 +8126,7 @@
                     await this.loadAdminUsers();
                     if (payload.temporary_password) this.showAdminTempSecret(payload.temporary_password);
                     message.textContent = 'Usuário criado com a senha definida. Libere os módulos abaixo e entregue as credenciais com segurança.';
+                    showAppConfirmation(message.textContent); message.textContent = '';
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao criar usuário.';
                 } finally {
@@ -8167,6 +8173,7 @@
                     if (!response.ok) throw new Error(payload.error || 'Falha ao alterar a senha.');
                     this.hideAdminPasswordForm();
                     message.textContent = payload.simulated ? 'Troca simulada. O login mock continua fictício.' : 'Senha alterada. Use a nova senha no próximo login.';
+                    showAppConfirmation(message.textContent); message.textContent = '';
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao alterar a senha.';
                 } finally {
@@ -8200,6 +8207,7 @@
                     await this.loadAdminUsers();
                     this.showAdminTempSecret(payload.temporary_password);
                     message.textContent = 'Senha redefinida. Entregue a nova senha com segurança.';
+                    showAppConfirmation(message.textContent); message.textContent = '';
                 } catch (error) {
                     button.dataset.confirm = '';
                     button.textContent = 'Redefinir';
@@ -8219,6 +8227,7 @@
                     const payload = await response.json();
                     if (!response.ok) throw new Error(payload.error || 'Falha ao salvar permissao.');
                     message.textContent = 'Permissão atualizada.';
+                    showAppConfirmation(message.textContent); message.textContent = '';
                 } catch (error) {
                     input.checked = priorValue;
                     message.textContent = error.message || 'Falha ao salvar permissao.';
@@ -8244,6 +8253,7 @@
                     button.nextElementSibling.textContent = nextBlocked ? 'Bloqueado' : 'Ativo';
                     button.setAttribute('aria-label', nextBlocked ? 'Reativar usuário' : 'Bloquear usuário');
                     message.textContent = nextBlocked ? 'Conta bloqueada.' : 'Conta reativada.';
+                    showAppConfirmation(message.textContent); message.textContent = '';
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao atualizar status da conta.';
                 } finally {
@@ -8392,7 +8402,7 @@
                     event.stopPropagation();
                 }
                 try {
-                    const mod = await import('./features/saude/homeWaterQuick.js?v=2026-10-03-water-intent-v2');
+                    const mod = await import('./features/saude/homeWaterQuick.js?v=2026-10-10-separate-alerts-v1');
                     await mod.openHomeWaterQuickModal({
                         launchSaude: (intent) => this.openSaudeAt(intent),
                     });
@@ -8408,7 +8418,7 @@
                     event.stopPropagation();
                 }
                 try {
-                    const mod = await import('./features/saude/homeDietQuick.js?v=2026-10-10-water-window-v1');
+                    const mod = await import('./features/saude/homeDietQuick.js?v=2026-10-10-separate-alerts-v1');
                     await mod.openHomeDietQuickModal({
                         launchSaude: (intent) => this.openSaudeAt(intent),
                     });
@@ -8905,7 +8915,7 @@
                 }
                 if (appId === 'saude') {
                     try {
-                        const mod = await import('./features/saude/index.js?v=2026-10-10-water-window-v1');
+                        const mod = await import('./features/saude/index.js?v=2026-10-10-separate-alerts-v1');
                         await mod.renderSaudeContent(contentEl);
                         this.resetModuleWindowScroll(appId, contentEl);
                     } catch (err) {
@@ -9075,6 +9085,7 @@
             }
 
             showFinanceiroSyncStatus(message, state = 'pending') {
+                if (state === 'success') { clearTimeout(this._financeiroSyncStatusTimer); document.getElementById('financeiroSyncStatus')?.remove(); showAppConfirmation(message); return; }
                 let statusEl = document.getElementById('financeiroSyncStatus');
                 if (!statusEl) {
                     statusEl = document.createElement('div');
@@ -10818,6 +10829,7 @@
                     } else {
                         await this.refreshListaComprasContent(el);
                     }
+                    showAppConfirmation('Item adicionado.');
                     return true;
                 } catch (e) {
                     alert(e.message);
@@ -10838,6 +10850,7 @@
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao renomear item'));
                     if (row) row.item = item;
                     input.value = item;
+                    showAppConfirmation('Item atualizado.');
                 } catch (e) {
                     alert(e.message);
                     input.value = original;
@@ -10853,6 +10866,7 @@
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, comprado }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
+                    showAppConfirmation(comprado ? 'Item marcado.' : 'Item desmarcado.');
                     if (comprado && row) {
                         this.showUndoToast(`"${row.item || 'Item'}" marcado`, {
                             onUndo: () => this.submitListaSetComprado(id, false, el),
@@ -10886,6 +10900,7 @@
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: removed.id }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir item'));
+                    showAppConfirmation('Item excluído.');
                 } catch (e) {
                     alert(e.message);
                     if (el?.isConnected) {
@@ -10901,6 +10916,7 @@
                     const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset_checks: true }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     await this.refreshListaComprasContent(el);
+                    showAppConfirmation('Lista atualizada.');
                 } catch (e) { alert(e.message); }
             }
             async submitListaDeleteAll(el) {
@@ -10910,6 +10926,7 @@
                     const res = await fetch('/api/lista-compras', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ delete_all: true }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     await this.refreshListaComprasContent(el);
+                    showAppConfirmation('Lista atualizada.');
                 } catch (e) { alert(e.message); }
             }
 

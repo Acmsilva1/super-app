@@ -52,16 +52,14 @@ describe('UI mobile do módulo Saúde', () => {
 
   it('mostra uma confirmação visual de sucesso após concluir exclusões', () => {
     expect(source).toContain('function showSaudeSuccess(');
-    expect(source).toContain("toast.setAttribute('role', 'status')");
-    expect(source).toContain("toast.setAttribute('aria-live', 'polite')");
-    expect(source).toContain('data-saude-success-toast');
-    expect(source).toContain('Ação concluída');
+    expect(source).toContain('showAppConfirmation(message)');
+    expect(source).toContain("if (value?.type === 'success') showAppConfirmation(value.text)");
     expect(source).toContain('Acompanhamento de água excluído com sucesso.');
     expect(source).toContain('Medição excluída com sucesso.');
     expect(source).toContain('Alimento removido da refeição.');
     expect(source).toContain('Dieta excluída com sucesso.');
-    expect(source).toContain('Alimento excluído com sucesso.');
-    expect(source).toContain('setTimeout(remove, 3600)');
+    expect(source).toContain('Item excluído com sucesso.');
+    expect(source).toContain("state.notice.type !== 'success'");
   });
 
   it('oferece perfis familiares com formulario, IMC e linha do tempo responsiva', () => {

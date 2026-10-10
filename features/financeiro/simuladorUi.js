@@ -1,3 +1,4 @@
+import { showAppConfirmation } from '../../lib/uiConfirmation.js';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const pct = value => value == null ? 'Não se aplica' : `${Number(value).toLocaleString('pt-BR')}%`;
@@ -91,7 +92,8 @@ export async function renderSimulador(el, { onBack = () => {} } = {}) {
       const parametros = Object.fromEntries(new FormData(form));
       currencyFields.forEach(key => { parametros[key] = parseMoneyInput(parametros[key]); });
       const data = await request({ acao, id, parametros }); if (!alive()) return;
-      show(data.resultado); status.textContent = acao === 'simular' ? '' : 'Simulação salva.';
+      show(data.resultado); status.textContent = '';
+      showAppConfirmation(acao === 'simular' ? 'Simulação concluída.' : 'Simulação salva.');
       if (acao !== 'simular') { await refreshSaved(); root.querySelector('.sim-saved').open = true; }
     } catch (error) { if (alive()) status.textContent = error.message; }
     finally { busy = false; if (alive()) { root.querySelectorAll('button').forEach(b => { b.disabled = false; }); save.disabled = !result || !persistence; } }

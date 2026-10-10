@@ -1,3 +1,4 @@
+import { ALERT_SCHEDULE_FIELDS, alertScheduleSection } from '../features/saude/service/alertScheduleConfig.js';
 import { requireUser } from '../lib/auth.js';
 import { TABELAS_NUTRICIONAIS } from '../features/saude/data/tabelasNutricionais.js';
 import { ALIMENTOS_NUTRICIONAIS } from '../features/saude/data/alimentosNutricionais.js';
@@ -662,7 +663,15 @@ async function loadAlertSchedule(profileId, userId, isAdmin = false) {
 }
 
 async function saveAlertSchedule(profileId, payload, userId, isAdmin = false) {
-  const validation = validateAlertSchedule(payload);
+  if (payload.section && !Object.hasOwn(ALERT_SCHEDULE_FIELDS, payload.section)) return { validationError: 'Seção de alertas inválida.' };
+  let current;
+  if (payload.section) {
+    current = await loadAlertSchedule(profileId, userId, isAdmin);
+    if (current.error || current.notFound || current.invalid) return current;
+  }
+  const validation = validateAlertSchedule(payload.section
+    ? { ...current.row, ...alertScheduleSection(payload, payload.section) }
+    : payload);
   if (validation.error) return { validationError: validation.error };
   const owned = await requireSaudeProfileForWater(userId, profileId, isAdmin);
   if (owned.error || owned.notFound || owned.invalid) return owned;
@@ -683,10 +692,12 @@ async function saveAlertSchedule(profileId, payload, userId, isAdmin = false) {
       if (!diet) return { dietNotFound: true };
     }
   }
-  const row = { perfil_id: profileId, created_by: scheduleOwnerId, ...validation.data };
+  const row = { perfil_id: profileId, created_by: scheduleOwnerId,
+    ...(payload.section ? alertScheduleSection(validation.data, payload.section) : validation.data) };
+  const mergedRow = { ...current?.row, ...row };
   if (isOfflineMode()) {
-    offlineAlertSchedules.set(`${scheduleOwnerId}:${profileId}`, row);
-    return { row: normalizeAlertSchedule(row), storage: 'memory' };
+    offlineAlertSchedules.set(`${scheduleOwnerId}:${profileId}`, mergedRow);
+    return { row: normalizeAlertSchedule(mergedRow), storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
   const { data, error, status, statusText } = await supabase.from(TABELA_ALERTAS_AGENDA)
