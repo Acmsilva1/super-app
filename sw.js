@@ -2,7 +2,7 @@
  * Service Worker - SUPERAPP PWA
  * Incrementar CACHE_VERSION a cada deploy/commit para invalidar cache e forcar atualizacao.
  */
-const CACHE_VERSION = 'app-1.2.0-202610090149';
+const CACHE_VERSION = 'app-1.3.0-202610101811';
 const CACHE_NAME = 'superapp-' + CACHE_VERSION;
 
 const ESSENTIAL_ASSETS = [

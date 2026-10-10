@@ -7081,11 +7081,8 @@
                         <i class="fas fa-download"></i>
                         <span class="header-btn-label">Baixar app</span>
                     </button>
-                    <button class="header-btn header-btn--home" id="headerHomeBtn" type="button" title="Tela inicial" aria-label="Voltar para a tela inicial">
-                        <i class="fas fa-house" aria-hidden="true"></i>
-                    </button>
-                    <button class="header-btn" id="profileOpenBtn" title="Meu perfil" aria-label="Abrir meu perfil" style="display:none">
-                        <i class="fas fa-user-circle"></i><span class="header-btn-label">Meu perfil</span>
+                    <button class="header-btn" id="profileOpenBtn" title="Administração" aria-label="Abrir administração" style="display:none">
+                        <i class="fas fa-user-circle"></i><span class="header-btn-label">Administração</span>
                     </button>
                     <button class="auth-logout" id="authLogoutBtn" title="Sair" aria-label="Sair">
                         <i class="fas fa-right-from-bracket"></i>
@@ -7732,7 +7729,6 @@
                     const nav = document.querySelector('nav');
                     nav.classList.toggle('nav-open');
                 });
-                document.getElementById('headerHomeBtn')?.addEventListener('click', () => this.returnHome());
                 document.querySelectorAll('nav a').forEach(link => {
                     link.addEventListener('click', () => {
                         if (window.innerWidth <= 768) document.querySelector('nav').classList.remove('nav-open');
@@ -7780,14 +7776,8 @@
                 modal.setAttribute('aria-labelledby', 'profileAdminTitle');
                 modal.innerHTML = `
                     <section class="auth-legal-card profile-admin-card">
-                        <header class="profile-admin-header"><div><h3 id="profileAdminTitle">Meu perfil</h3><p id="profileAdminEmail"></p></div><button type="button" id="profileAdminClose" class="auth-legal-close" aria-label="Fechar">Fechar</button></header>
-                        <div class="profile-admin-tabs" role="tablist" aria-label="Opções do perfil">
-                            <button type="button" role="tab" aria-selected="true" data-profile-tab="overview" class="is-active">Meu perfil</button>
-                            <button type="button" role="tab" aria-selected="false" data-profile-tab="admin" id="adminUsersToggle" hidden>Administração</button>
-                        </div>
-                        <div id="profileAdminOverview" role="tabpanel"><p>Conta conectada ao SUPERAPP.</p><p>Use a opção Administração para acompanhar cadastros e controlar os acessos aos módulos.</p></div>
-                        <div id="profileAdminPane" role="tabpanel" hidden>
-                            <div class="profile-admin-toolbar"><div><h4>Usuários cadastrados</h4><p>Gerencie contas e permissões por módulo.</p><p>Módulos ainda sem isolamento de dados permanecem restritos ao administrador.</p></div><button type="button" class="auth-secondary" id="adminUsersRefresh">Atualizar lista</button></div>
+                        <header class="profile-admin-header"><div><h3 id="profileAdminTitle">Administração do SUPERAPP</h3><p id="profileAdminEmail"></p></div><button type="button" id="profileAdminClose" class="auth-legal-close" aria-label="Fechar">Fechar</button></header>
+                        <div id="profileAdminPane">
                             <form id="adminCreateUserForm" class="profile-admin-create" hidden>
                                 <h4>Criar usuário</h4>
                                 <label class="profile-admin-field"><span>Nome</span><input name="name" type="text" placeholder="Nome completo" required maxlength="120"></label>
@@ -7808,16 +7798,10 @@
                             <div id="adminTempSecret" class="profile-admin-temp-secret" hidden><strong>Senha temporária (exibida uma vez):</strong> <code id="adminTempSecretValue"></code><button type="button" id="adminTempSecretClose">Ocultar</button></div>
                             <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
                             <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
-                            <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia o teste de água, todas as dietas cadastradas e os dois resumos reais do Financeiro: débito/Pix do dia e despesas fixas do mês.</p></div><button type="button" class="auth-secondary" id="adminTelegramTest">Testar Telegram</button></div>
+                            <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia o teste de água, todas as dietas cadastradas e os dois resumos reais do Financeiro: débito/Pix do dia e despesas fixas do mês.</p></div><button type="button" class="profile-telegram-test" id="adminTelegramTest">Testar Telegram</button></div>
                             <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
-                            <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie descrição e valor por texto ou áudio no chat privado do bot. Sempre débito, com confirmação antes de salvar. Se os botões não aparecerem, envie /pendente para recuperar a última compra.</p></div><button type="button" class="auth-secondary" id="adminTelegramWebhook">Ativar compras pelo Telegram</button></div>
+                            <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie descrição e valor por texto ou áudio no chat privado do bot. Sempre débito, com confirmação antes de salvar. Se os botões não aparecerem, envie /pendente para recuperar a última compra.</p></div><button type="button" class="profile-telegram-switch" id="adminTelegramWebhook" role="switch" aria-checked="false" aria-label="Compras pelo Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span data-switch-label>Consultando…</span></button></div>
                             <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
-                            <section class="profile-admin-monitor">
-                                <div class="profile-admin-toolbar"><div><h4>Acompanhamento do módulo Saúde</h4><p>Veja os perfis, dados atuais e o histórico de criações, alterações e exclusões do usuário selecionado.</p></div><button type="button" class="auth-secondary" id="adminHealthRefresh">Atualizar Saúde</button></div>
-                                <label class="profile-admin-field"><span>Usuário com acesso a Saúde</span><select id="adminHealthUser"><option value="">Carregando usuários...</option></select></label>
-                                <p id="adminHealthMessage" role="status" class="profile-admin-message"></p>
-                                <div id="adminHealthContent"></div>
-                            </section>
                         </div>
                     </section>`;
                 document.body.appendChild(modal);
@@ -7854,20 +7838,7 @@
                     .profile-admin-card button:focus-visible,.profile-admin-card input:focus-visible{
                         outline:2px solid var(--pa-accent);outline-offset:2px;
                     }
-                    .profile-admin-tabs{display:flex;gap:.35rem;margin:0;padding:0 1.6rem;border-bottom:1px solid var(--pa-border);background:var(--pa-panel)}
-                    .profile-admin-tabs button{
-                        border:0;border-bottom:3px solid transparent;padding:.9rem 1rem;
-                        background:transparent;color:var(--pa-muted);font:700 .92rem 'Space Grotesk',sans-serif;cursor:pointer;
-                    }
-                    .profile-admin-tabs button.is-active{border-color:var(--pa-accent);color:var(--pa-ink)}
-                    .profile-admin-tabs button:hover{color:var(--pa-ink)}
-                    #profileAdminOverview,#profileAdminPane{padding:1.35rem 1.6rem 1.6rem}
-                    #profileAdminOverview{
-                        margin:1.35rem 1.6rem 1.6rem;padding:1.1rem 1.2rem;
-                        border:1px solid var(--pa-border);border-radius:1rem;background:var(--pa-panel);
-                    }
-                    #profileAdminOverview[hidden],#profileAdminPane[hidden][hidden]{display:none}
-                    #profileAdminOverview p{margin:.25rem 0}
+                    #profileAdminPane{padding:1.35rem 1.6rem 1.6rem}
                     .profile-admin-toolbar,.profile-admin-create{
                         border:1px solid var(--pa-border);border-radius:1rem;
                         background:var(--pa-panel);padding:1.1rem 1.2rem;
@@ -7879,6 +7850,16 @@
                         background:var(--pa-input);color:var(--pa-ink);padding:.65rem .9rem;
                         font:700 .85rem 'Space Grotesk',sans-serif;cursor:pointer;
                     }
+                    .profile-admin-card .profile-telegram-test {flex:none;min-height:44px;border:0;border-radius:10px;background:#327746;color:#fff;padding:12px 18px;font:700 .88rem Arial,sans-serif;cursor:pointer;box-shadow:0 3px 8px #20463c24;}
+                    .profile-admin-card .profile-telegram-test:hover {background:#20463c;}
+                    .profile-admin-card .profile-telegram-test:disabled {opacity:.6;cursor:wait;}
+                    .profile-admin-card .profile-telegram-switch {display:flex;align-items:center;gap:10px;flex:none;min-height:44px;padding:8px 10px;background:transparent;border:1px solid var(--pa-border);border-radius:10px;color:var(--pa-ink);font:700 .88rem Arial,sans-serif;cursor:pointer;}
+                    .profile-telegram-switch__track {display:flex;align-items:center;width:46px;height:26px;padding:3px;border-radius:20px;background:#64748b;box-sizing:border-box;transition:background .15s;}
+                    .profile-telegram-switch__track span {width:20px;height:20px;border-radius:50%;background:white;transition:transform .15s;box-shadow:0 1px 3px #0003;}
+                    .profile-telegram-switch[aria-checked="true"] .profile-telegram-switch__track {background:#327746;}
+                    .profile-telegram-switch[aria-checked="true"] .profile-telegram-switch__track span {transform:translateX(20px);}
+                    .profile-telegram-switch:disabled {opacity:.6;cursor:wait;}
+                    .profile-telegram-test:focus-visible,.profile-telegram-switch:focus-visible {outline:3px solid #95c11f;outline-offset:3px;}
                     .profile-admin-create{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:end;gap:.7rem;margin:1rem 0 0}
                     .profile-admin-create[hidden],.profile-admin-temp-secret[hidden]{display:none}
                     .profile-admin-create h4{grid-column:1/-1}
@@ -7919,13 +7900,6 @@
                     .profile-admin-status:disabled{cursor:default;opacity:.75}
                     .profile-admin-status[data-blocked=true]{color:#dc4755}
                     .profile-admin-restricted{color:var(--pa-muted);font-size:.78rem}
-                    .profile-admin-monitor{display:grid;gap:.75rem;margin-top:1.5rem}
-                    .profile-admin-monitor select{width:100%;padding:.72rem .8rem;border:1px solid var(--pa-border);border-radius:.7rem;background:var(--pa-input);color:var(--pa-ink);font:inherit}
-                    .profile-admin-monitor-card,.profile-admin-activity{margin:.55rem 0;padding:.9rem 1rem;border:1px solid var(--pa-border);border-radius:.8rem;background:var(--pa-panel);color:var(--pa-ink)}
-                    .profile-admin-monitor-card h5{margin:0 0 .35rem;color:var(--pa-ink);font-size:.95rem}
-                    .profile-admin-monitor h4{margin:1.1rem 0 .45rem;color:var(--pa-ink)}
-                    .profile-admin-monitor details summary{cursor:pointer;font-weight:750;overflow-wrap:anywhere}
-                    .profile-admin-monitor pre{max-height:22rem;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:.8rem;border-radius:.6rem;background:var(--pa-head);color:var(--pa-ink);font: .76rem/1.5 ui-monospace,Consolas,monospace}
                     .profile-admin-activity summary{display:grid;grid-template-columns:minmax(130px,auto) minmax(150px,auto) 1fr;gap:.7rem;align-items:center}
                     .profile-admin-activity-diff{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}
                     .profile-alerts-form{display:grid;gap:1rem;margin-top:.8rem}
@@ -7949,9 +7923,7 @@
                         .profile-admin-modal{padding:.5rem}
                         .profile-admin-card{max-height:calc(100dvh - 1rem)}
                         .profile-admin-header{padding:1rem;align-items:flex-start}
-                        .profile-admin-tabs{padding:0 1rem}
-                        #profileAdminOverview,#profileAdminPane{padding:1rem}
-                        #profileAdminOverview{margin:1rem}
+                        #profileAdminPane{padding:1rem}
                         .profile-admin-toolbar{align-items:stretch;flex-direction:column}
                         .profile-admin-create{grid-template-columns:1fr}
                         .profile-admin-table{display:block;min-width:0}
@@ -7969,13 +7941,13 @@
                 `;
                 document.head.appendChild(modalStyle);
                 const profileButton = document.getElementById('profileOpenBtn');
-                profileButton.style.display = 'inline-flex';
                 profileButton.addEventListener('click', async () => {
                     const { data } = await SuperAppAuth.client.auth.getSession();
                     const user = data?.session?.user;
                     document.getElementById('profileAdminEmail').textContent = user?.email || 'Conta local';
                     modal.hidden = false;
-                    document.querySelector('[data-profile-tab="overview"]')?.click();
+                    await this.loadAdminUsers();
+                    await this.loadAdminTelegramWebhookStatus();
                 });
                 const closeProfile = () => {
                     modal.hidden = true;
@@ -7987,31 +7959,6 @@
                 modal.addEventListener('click', (event) => { if (event.target === modal) closeProfile(); });
                 document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closeProfile(); });
 
-                const adminTab = document.getElementById('adminUsersToggle');
-                modal.querySelectorAll('[data-profile-tab]').forEach((tab) => tab.addEventListener('click', async () => {
-                    const selectedTab = tab.dataset.profileTab;
-                    const isAdminTab = selectedTab === 'admin';
-                    if (!isAdminTab) {
-                        this.hideAdminPasswordForm();
-                        this.hideAdminTempSecret();
-                        document.getElementById('adminCreateUserForm').reset();
-                    }
-                    modal.querySelectorAll('[data-profile-tab]').forEach((item) => {
-                        item.classList.toggle('is-active', item === tab);
-                        item.setAttribute('aria-selected', item === tab ? 'true' : 'false');
-                    });
-                    document.getElementById('profileAdminOverview').hidden = selectedTab !== 'overview';
-                    document.getElementById('profileAdminPane').hidden = !isAdminTab;
-                    document.getElementById('profileAdminTitle').textContent = isAdminTab ? 'Administração do SUPERAPP' : 'Meu perfil';
-                    if (isAdminTab) await this.loadAdminUsers();
-                }));
-                document.getElementById('adminUsersRefresh')?.addEventListener('click', () => this.loadAdminUsers());
-                document.getElementById('adminHealthRefresh')?.addEventListener('click', () => this.loadAdminHealthMonitor());
-                document.getElementById('adminHealthUser')?.addEventListener('change', () => this.loadAdminHealthMonitor());
-                document.getElementById('adminHealthContent')?.addEventListener('click', (event) => {
-                    const button = event.target.closest('[data-admin-health-more]');
-                    if (button) this.loadMoreAdminHealthActivity(button);
-                });
                 document.getElementById('adminTelegramTest')?.addEventListener('click', () => this.testAdminTelegram());
                 document.getElementById('adminTelegramWebhook')?.addEventListener('click', () => this.configureAdminTelegramWebhook());
                 if (true) {
@@ -8037,31 +7984,54 @@
                 try {
                     const response = await fetch('/api/admin/usuarios', { method: 'HEAD' });
                     if (response.ok) {
-                        adminTab.hidden = false;
+                        profileButton.style.display = 'inline-flex';
                     }
                 } catch (_error) {}
+            }
+            setAdminTelegramWebhookState(enabled) {
+                const button = document.getElementById('adminTelegramWebhook');
+                button.setAttribute('aria-checked', enabled ? 'true' : 'false');
+                button.querySelector('[data-switch-label]').textContent = enabled ? 'Ligado' : 'Desligado';
+            }
+            async loadAdminTelegramWebhookStatus() {
+                const button = document.getElementById('adminTelegramWebhook');
+                const message = document.getElementById('adminTelegramWebhookMessage');
+                if (!button || !message) return;
+                button.disabled = true;
+                try {
+                    const response = await fetch('/api/admin/usuarios?resource=telegram_webhook', { cache: 'no-store' });
+                    const payload = await response.json();
+                    if (!response.ok || !payload.ok || typeof payload.enabled !== 'boolean') throw new Error(payload.error || 'Não foi possível consultar o estado.');
+                    this.setAdminTelegramWebhookState(payload.enabled);
+                    button.disabled = false;
+                    message.textContent = payload.simulated ? 'Modo local: controle simulado, sem alterar o bot.' : '';
+                } catch (error) {
+                    button.querySelector('[data-switch-label]').textContent = 'Indisponível';
+                    message.textContent = error.message;
+                }
             }
             async configureAdminTelegramWebhook() {
                 const button = document.getElementById('adminTelegramWebhook');
                 const message = document.getElementById('adminTelegramWebhookMessage');
                 if (!button || !message || button.disabled) return;
+                const previous = button.getAttribute('aria-checked') === 'true';
+                const enabled = !previous;
                 button.disabled = true;
-                button.textContent = 'Ativando…';
-                message.textContent = 'Registrando o recebimento no Telegram…';
+                button.querySelector('[data-switch-label]').textContent = 'Salvando…';
+                message.textContent = enabled ? 'Ativando recebimento de compras…' : 'Desativando recebimento de compras…';
                 try {
                     const response = await fetch('/api/admin/usuarios', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'configure_telegram_webhook' }),
+                        body: JSON.stringify({ action: 'configure_telegram_webhook', enabled }),
                     });
                     const payload = await response.json();
-                    if (!response.ok || !payload.ok) throw new Error(payload.error || 'Não foi possível ativar.');
-                    message.textContent = '✅ Recebimento cadastrado. Envie: Supermercado, 30,50. Ou áudio: almoço, quinze reais. O lançamento será no débito. Confira o resumo antes de confirmar uma compra real.';
+                    if (!response.ok || !payload.ok || payload.enabled !== enabled) throw new Error(payload.error || 'Não foi possível confirmar a alteração.');
+                    this.setAdminTelegramWebhookState(payload.enabled);
+                    message.textContent = payload.simulated ? 'Alteração simulada no modo local.' : enabled ? 'Recebimento ligado. Envie descrição e valor ao bot; confirme o resumo antes de salvar.' : 'Recebimento de compras desligado.';
                 } catch (error) {
-                    message.textContent = error.message || 'Falha ao ativar o recebimento.';
-                } finally {
-                    button.disabled = false;
-                    button.textContent = 'Ativar compras pelo Telegram';
-                }
+                    this.setAdminTelegramWebhookState(previous);
+                    message.textContent = error.message || 'Não foi possível alterar o recebimento.';
+                } finally { button.disabled = false; }
             }
             async testAdminTelegram() {
                 const button = document.getElementById('adminTelegramTest');
@@ -8112,106 +8082,8 @@
                             ${(payload.restricted_apps || []).map((app) => `<td data-label="${escapeHtml(app.title)}"><span class="profile-admin-restricted" aria-label="Restrito ao administrador" title="Acesso multiusuário indisponível até o isolamento dos dados">Admin</span></td>`).join('')}
                         </tr>`).join('')}</tbody>
                     </table>`;
-                    const monitor = document.getElementById('adminHealthUser');
-                    if (monitor) {
-                        const eligible = payload.users.filter((user) => user.is_admin || user.permissions.includes('saude') || user.has_saude_data);
-                        const selected = monitor.value;
-                        monitor.innerHTML = eligible.length
-                            ? `<option value="all">Todos os usuários de Saúde (${eligible.length})</option>${eligible.map((user) => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name || user.email || user.id)}${user.email && user.name ? ` · ${escapeHtml(user.email)}` : ''}</option>`).join('')}`
-                            : '<option value="">Nenhum usuário com acesso a Saúde</option>';
-                        if (selected && (selected === 'all' || eligible.some((user) => user.id === selected))) monitor.value = selected;
-                        else if (eligible.length) monitor.value = 'all';
-                        if (monitor.value) await this.loadAdminHealthMonitor();
-                    }
                 } catch (error) {
                     message.textContent = error.message || 'Falha ao carregar usuários.';
-                }
-            }
-            async loadAdminHealthMonitor() {
-                const select = document.getElementById('adminHealthUser');
-                const message = document.getElementById('adminHealthMessage');
-                const content = document.getElementById('adminHealthContent');
-                if (!select || !message || !content) return;
-                const userId = select.value;
-                if (!userId) {
-                    message.textContent = 'Selecione um usuário com acesso ao módulo Saúde.';
-                    content.innerHTML = '';
-                    return;
-                }
-                message.textContent = 'Carregando dados e histórico de Saúde...';
-                content.innerHTML = '';
-                try {
-                    const response = await fetch(`/api/admin/usuarios?resource=saude_monitor&user_id=${encodeURIComponent(userId)}`, { cache: 'no-store' });
-                    const payload = await response.json();
-                    if (!response.ok) throw new Error(payload.error || 'Falha ao carregar os dados de Saúde.');
-                    const userLabelById = new Map([...select.options]
-                        .filter((option) => option.value && option.value !== 'all')
-                        .map((option) => [option.value, option.textContent.trim()]));
-                    const profileName = new Map((payload.profiles || []).map((profile) => [String(profile.id), profile.nome]));
-                    const dateTime = (value) => value ? new Date(value).toLocaleString('pt-BR') : '—';
-                    const pretty = (value) => escapeHtml(JSON.stringify(value, null, 2));
-                    const profileCards = (payload.profiles || []).map((profile) => {
-                        const measures = (payload.measurements || []).filter((row) => Number(row.perfil_id) === Number(profile.id));
-                        const water = (payload.water_profiles || []).filter((row) => row.created_by === profile.created_by && (payload.water_goals || []).some((goal) => Number(goal.perfil_id) === Number(row.id)));
-                        return `<article class="profile-admin-monitor-card"><h5>${escapeHtml(profile.nome)}</h5><p>Conta: ${escapeHtml(userLabelById.get(profile.created_by) || profile.created_by)}</p><p>${escapeHtml(profile.sexo)} · Nascimento: ${escapeHtml(profile.data_nascimento)} · ${escapeHtml(profile.peso_kg)} kg · ${escapeHtml(profile.altura_cm)} cm</p><p>Perfil criado: ${escapeHtml(dateTime(profile.created_at))} · Atualizado: ${escapeHtml(dateTime(profile.updated_at))}</p><p>${measures.length} registro(s) de medidas · ${water.length} perfil(is) de água</p><details><summary>Dados completos do perfil</summary><pre>${pretty(profile)}</pre></details><details><summary>Histórico de medidas (${measures.length})</summary><pre>${pretty(measures)}</pre></details></article>`;
-                    }).join('');
-                    const eventRows = (payload.activity || []).map((event) => this.renderAdminHealthEvent(event, profileName, userLabelById)).join('');
-                    const dietCards = (payload.diets || []).map((diet) => `<details class="profile-admin-monitor-card"><summary>${escapeHtml(diet.titulo)} · ${escapeHtml(profileName.get(String(diet.perfil_id)) || 'Perfil')} · ${escapeHtml(userLabelById.get(diet.created_by) || diet.created_by || '')} · atualizada ${escapeHtml(dateTime(diet.updated_at))}</summary><pre>${pretty(diet)}</pre></details>`).join('');
-                    const waterSummary = (payload.water_profiles || []).map((profile) => {
-                        const goal = (payload.water_goals || []).find((row) => Number(row.perfil_id) === Number(profile.id));
-                        const logs = (payload.water_logs || []).filter((row) => Number(row.perfil_id) === Number(profile.id));
-                        return `<article class="profile-admin-monitor-card"><h5>Água · ${escapeHtml(profile.nome)}</h5><p>Conta: ${escapeHtml(userLabelById.get(profile.created_by) || profile.created_by)}</p><p>Meta: ${goal ? `${escapeHtml(goal.meta_doses)} doses (${escapeHtml(goal.nome)})` : 'não configurada'} · ${logs.length} dia(s) no histórico</p>${logs.length ? `<pre>${pretty(logs)}</pre>` : ''}</article>`;
-                    }).join('');
-                    const scheduleCards = (payload.alert_schedules || []).map((schedule) => `<details class="profile-admin-monitor-card"><summary>Alertas · ${escapeHtml(profileName.get(String(schedule.perfil_id)) || schedule.perfil_id)} · ${escapeHtml(userLabelById.get(schedule.created_by) || schedule.created_by)}</summary><pre>${pretty(schedule)}</pre></details>`).join('');
-                    const deliveryCards = (payload.alert_deliveries || []).map((delivery) => `<article class="profile-admin-monitor-card"><strong>${escapeHtml(delivery.status)}</strong><p>${escapeHtml(dateTime(delivery.created_at))} · confirmação Telegram: ${escapeHtml(delivery.telegram_message_id || 'sem confirmação')}</p><p>Motivo: ${escapeHtml(delivery.last_error || '—')}</p><p>${escapeHtml(delivery.dedupe_key)}</p></article>`).join('');
-                    const runCards = (payload.alert_runs || []).map((run) => `<article class="profile-admin-monitor-card"><strong>${escapeHtml(run.status)}</strong><p>${escapeHtml(dateTime(run.created_at))} · ${escapeHtml(run.error_code || 'sem erro reportado')} · ${escapeHtml(run.alerts_sent ?? '—')} alerta(s) enviado(s)</p></article>`).join('');
-                    const alertHistoryNote = payload.alert_delivery_history_ready
-                        ? (deliveryCards || '<p>Nenhuma tentativa registrada para esta conta. Isso normalmente aponta para o workflow não ter disparado, alertas desativados, ou nenhum horário/perfil elegível.</p>')
-                        : '<p>O histórico de entregas ainda não está instalado no banco.</p>';
-                    const activityNote = payload.activity_ready
-                        ? (eventRows || '<p>Nenhum evento de atividade registrado ainda.</p>')
-                        : '<p>Aplique a migration 20261006_saude_admin_activity_audit.sql para iniciar o histórico permanente. Perfis e dados atuais já estão disponíveis.</p>';
-                    const runHistoryNote = payload.alert_run_history_ready
-                        ? (runCards || '<p>Nenhuma chamada autenticada do workflow registrada nos últimos 30 dias.</p>')
-                        : '<p>O monitoramento de execuções começa após aplicar a migration de auditoria.</p>';
-                    const moreButton = payload.next_activity_cursor
-                        ? `<button type="button" class="auth-secondary" data-admin-health-more data-before-time="${escapeHtml(payload.next_activity_cursor.time)}" data-before-id="${escapeHtml(payload.next_activity_cursor.id)}">Carregar eventos anteriores</button>`
-                        : '';
-                    content.innerHTML = `<h4>Perfis atuais (${payload.profiles.length})</h4>${profileCards || '<p>Nenhum perfil de Saúde cadastrado.</p>'}<h4>Dietas (${payload.diets.length})</h4>${dietCards || '<p>Nenhuma dieta cadastrada.</p>'}<h4>Consumo de água</h4>${waterSummary || '<p>Nenhum perfil de água cadastrado.</p>'}<h4>Agenda de alertas</h4>${scheduleCards || '<p>Nenhuma agenda configurada.</p>'}<h4>Execuções do agendador (${payload.alert_runs.length})</h4>${runHistoryNote}<h4>Entregas do Telegram para o proprietário (${payload.alert_deliveries.length})</h4>${alertHistoryNote}<h4>Atividade recente</h4><div id="adminHealthActivity">${activityNote}</div>${moreButton}`;
-                    message.textContent = `${payload.profiles.length} perfil(is) de Saúde encontrados em ${payload.monitored_user_ids.length} conta(s). ${payload.activity.length} evento(s) recente(s).`;
-                } catch (error) {
-                    message.textContent = error.message || 'Falha ao carregar os dados de Saúde.';
-                }
-            }
-            renderAdminHealthEvent(event, profileNames = new Map(), userNames = new Map()) {
-                const row = event.new_data || event.old_data || {};
-                const profileId = row.perfil_id || row.id;
-                const title = profileNames.get(String(profileId)) || row.nome || row.titulo || row.data_local || row.perfil_id || 'Registro';
-                const action = { INSERT: 'Criou', UPDATE: 'Alterou', DELETE: 'Excluiu' }[event.operation] || event.operation;
-                return `<details class="profile-admin-activity"><summary><span>${escapeHtml(event.occurred_at ? new Date(event.occurred_at).toLocaleString('pt-BR') : '—')}</span><strong>${escapeHtml(action)} · ${escapeHtml(String(event.table_name || '').replace(/^tb_saude_/, ''))}</strong><span>${escapeHtml(title)} · ${escapeHtml(userNames.get(event.owner_user_id) || event.owner_user_id || '')}</span></summary><div class="profile-admin-activity-diff"><div><b>Antes</b><pre>${escapeHtml(JSON.stringify(event.old_data, null, 2))}</pre></div><div><b>Depois</b><pre>${escapeHtml(JSON.stringify(event.new_data, null, 2))}</pre></div></div></details>`;
-            }
-            async loadMoreAdminHealthActivity(button) {
-                button.disabled = true;
-                button.textContent = 'Carregando...';
-                try {
-                    const params = new URLSearchParams({
-                        resource: 'saude_monitor', history_only: '1',
-                        user_id: document.getElementById('adminHealthUser')?.value || '',
-                        before_time: button.dataset.beforeTime || '', before_id: button.dataset.beforeId || '',
-                    });
-                    const response = await fetch(`/api/admin/usuarios?${params}`, { cache: 'no-store' });
-                    const payload = await response.json();
-                    if (!response.ok) throw new Error(payload.error || 'Falha ao carregar eventos anteriores.');
-                    document.getElementById('adminHealthActivity')?.insertAdjacentHTML('beforeend', (payload.activity || []).map((event) => this.renderAdminHealthEvent(event)).join(''));
-                    if (payload.next_activity_cursor) {
-                        button.dataset.beforeTime = payload.next_activity_cursor.time;
-                        button.dataset.beforeId = payload.next_activity_cursor.id;
-                        button.disabled = false;
-                        button.textContent = 'Carregar eventos anteriores';
-                    } else button.remove();
-                } catch (error) {
-                    button.disabled = false;
-                    button.textContent = error.message || 'Tentar carregar eventos anteriores';
                 }
             }
             showAdminTempSecret(password) {

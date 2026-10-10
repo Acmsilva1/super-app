@@ -9,6 +9,7 @@ export function createLocalMockHandler(apps){
   ];
   let projects=[{id:1,nome:'Fluxograma Mock',dados:{nodes:[],edges:[]},created_at:new Date().toISOString(),updated_at:new Date().toISOString()}];
   let nextProject=2;
+  let webhookEnabled=false;
   return(req,res,next)=>{
     if(process.env.OFFLINE_DEV!=='true'||process.env.LOCAL_DATA_MODE!=='mock')return next();
     const endpoint=req.path.replace(/^\/api\//,'').replace(/\/$/,'');
@@ -16,9 +17,14 @@ export function createLocalMockHandler(apps){
     if(endpoint==='admin/usuarios'){
       res.setHeader('Cache-Control','no-store');
       if(req.method==='HEAD')return res.status(204).end();
+      if(req.method==='GET' && req.query.resource==='telegram_webhook')return send(res,200,{ok:true,enabled:webhookEnabled,simulated:true});
       if(req.method==='GET')return send(res,200,{apps:apps.map(({id,title})=>({id,title})),restricted_apps:[],users});
       const body=req.body||{};
       if(req.method==='POST'){
+        if(body.action==='configure_telegram_webhook'){
+          if(typeof body.enabled!=='boolean')return send(res,400,{error:'Estado inválido.'});
+          webhookEnabled=body.enabled;return send(res,200,{ok:true,enabled:webhookEnabled,simulated:true});
+        }
         if(body.action==='test_telegram')return send(res,200,{ok:true,simulated:true,sent:0});
         if(!String(body.name||'').trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.email||'')))return send(res,400,{error:'Nome ou email inválido.'});
         if(body.password!==undefined&&(typeof body.password!=='string'||body.password.length<8||body.password.length>128))return send(res,400,{error:'A senha deve ter entre 8 e 128 caracteres.'});
