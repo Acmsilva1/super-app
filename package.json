@@ -8,7 +8,7 @@
     "start": "node server.js",
     "version:sync": "node scripts/sync-app-version.cjs",
     "predev": "node scripts/sync-app-version.cjs",
-    "build": "node scripts/sync-app-version.cjs && echo Build complete",
+    "build": "node scripts/check-function-budget.cjs && node scripts/sync-app-version.cjs && echo Build complete",
     "test": "npm run test:ux && vitest run --pool threads",
     "test:ux": "node scripts/ux-component-analyst.cjs --path index.html --path api --path features --path lib",
     "doc:validate": "node \"C:/projetos e aplicativos/documentacao/scripts/doc-cli.cjs\" validate",

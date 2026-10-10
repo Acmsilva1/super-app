@@ -3,11 +3,19 @@ import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
 import {describe,it,expect} from 'vitest';
 import {CONTENT_SECURITY_POLICY} from '../../lib/securityHeaders.js';
+import budget from '../../scripts/check-function-budget.cjs';
 describe('Carregamento da API e shell',()=>{
+  it('mantém Functions no limite Hobby e auxiliares fora de api',()=>{
+    expect(budget.functionEntries(process.cwd()).length).toBeLessThanOrEqual(12);
+    expect(fs.existsSync('api/financeiro-simulador.js')).toBe(false);
+    expect(fs.existsSync('api/_financeiroShared.js')).toBe(false);
+    const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
+    expect(config.rewrites).toContainEqual({source:'/api/financeiro-simulador',destination:'/api/financeiro?recurso=simulador'});
+  });
   it('todos os modulos API carregam em processo isolado sem chamar handlers',()=>{
     const script="import fs from 'node:fs';import {pathToFileURL} from 'node:url';const files=fs.readdirSync('api',{recursive:true}).filter(f=>f.endsWith('.js'));for(const file of files)await import(pathToFileURL(process.cwd()+'/api/'+file));console.log(files.length);";
     const result=execFileSync(process.execPath,['--input-type=module','-e',script],{cwd:process.cwd(),env:{...process.env,OFFLINE_DEV:'true',NODE_ENV:'test'},encoding:'utf8'});
-    expect(Number(result.trim())).toBeGreaterThanOrEqual(12);
+    expect(Number(result.trim())).toBe(fs.readdirSync('api', { recursive: true }).filter(f => f.endsWith('.js')).length);
   });
   it('scripts inline possuem sintaxe valida sem executar o navegador',()=>{
     const html=fs.readFileSync('index.html','utf8');

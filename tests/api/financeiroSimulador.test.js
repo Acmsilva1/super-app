@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { requireUser, from } = vi.hoisted(() => ({ requireUser: vi.fn(), from: vi.fn() }));
 vi.mock('../../lib/auth.js', () => ({ requireUser }));
 vi.mock('../../lib/supabase.js', () => ({ supabase: { from } }));
-import handler from '../../api/financeiro-simulador.js';
+import handler from '../../api/financeiro.js';
 const parametros = { nome: 'Carro', preco: 20000, entrada: 0, parcelas: 60, parcela: 1000, historico: '6', horizonte: 6 };
 async function call(method, body = {}) {
   const res = { code: 0, body: null, setHeader: vi.fn(), status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
-  await handler({ method, body }, res); return res;
+  await handler({ method, body, query: { recurso: 'simulador' } }, res); return res;
 }
 beforeEach(() => { vi.clearAllMocks(); process.env.OFFLINE_DEV = 'true'; requireUser.mockResolvedValue({ ok: true, user: { id: crypto.randomUUID() } }); });
 describe('API do simulador', () => {

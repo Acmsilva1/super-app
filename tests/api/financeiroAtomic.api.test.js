@@ -1,7 +1,7 @@
 import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
 const mocks=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn()}));
 vi.mock('../../lib/supabase.js',()=>({supabase:mocks}));
-import {atualizarRegistroFinanceiro,criarRegistroFinanceiro} from '../../api/_financeiroShared.js';
+import {atualizarRegistroFinanceiro,criarRegistroFinanceiro} from '../../lib/financeiroShared.js';
 beforeEach(()=>{vi.clearAllMocks();});
 const context={userId:'00000000-0000-4000-8000-000000000001'};
 const body={id:9,tipo_registro:'gasto_variado',original_tipo_registro:'despesa_fixa',descricao:'Teste',valor:15,metodo_pagamento:'debito_pix',categoria:'Outros',data_lancamento:'2026-10-07'};

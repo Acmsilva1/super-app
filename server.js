@@ -103,7 +103,8 @@ export function createApp() {
 
   app.all('/api/*', async (req, res) => {
     const requestedEndpoint = String(req.path || '').replace(/^\/api\//, '').replace(/\/$/, '');
-    const endpoint = CONSOLIDATED_ROUTES.has(requestedEndpoint) ? 'apps' : requestedEndpoint;
+    const endpoint = requestedEndpoint === 'financeiro-simulador' ? 'financeiro' : CONSOLIDATED_ROUTES.has(requestedEndpoint) ? 'apps' : requestedEndpoint;
+    if (requestedEndpoint === 'financeiro-simulador') req.query = { ...req.query, recurso: 'simulador' };
     if (CONSOLIDATED_ROUTES.has(requestedEndpoint)) {
       req.query = { ...req.query, route: requestedEndpoint };
     }

@@ -24,7 +24,7 @@ export async function renderSimulador(el, { onBack = () => {} } = {}) {
   let records = [], persistence = false, result = null, busy = false;
   const alive = () => el.contains(root);
   const request = async (body) => {
-    const response = await fetch('/api/financeiro-simulador', body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' } : { cache: 'no-store' });
+    const response = await fetch('/api/financeiro?recurso=simulador', body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' } : { cache: 'no-store' });
     const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Não foi possível concluir.'); return data;
   };
   const refreshSaved = async () => {

@@ -5,6 +5,10 @@
   "framework": null,
   "rewrites": [
     {
+      "source": "/api/financeiro-simulador",
+      "destination": "/api/financeiro?recurso=simulador"
+    },
+    {
       "source": "/api/auth-config",
       "destination": "/api/apps?route=auth-config"
     },

@@ -16,7 +16,8 @@ export async function createDevApp({real=false,seed=true}={}){
   app.all('/api/*',async(req,res)=>{
     const route=req.path.replace(/^\/api\//,'').replace(/\/$/,'');
     const consolidated=new Set(['auth-config','statistics','roadmap']);
-    const endpoint=consolidated.has(route)?'apps':route;
+    const endpoint=route==='financeiro-simulador'?'financeiro':consolidated.has(route)?'apps':route;
+    if(route==='financeiro-simulador')req.query={...req.query,recurso:'simulador'};
     if(consolidated.has(route))req.query={...req.query,route};
     if(!/^[a-z0-9-]+(\/[a-z0-9-]+)*$/i.test(endpoint))return res.status(404).json({error:'Rota não encontrada.'});
     const moduleFile=path.join(root,'api',`${endpoint}.js`);

@@ -4,7 +4,7 @@ import {
   criarRegistroFinanceiro,
   atualizarRegistroFinanceiro,
   removerRegistroFinanceiro,
-} from './_financeiroShared.js';
+} from '../lib/financeiroShared.js';
 import { requireUser } from '../lib/auth.js';
 
 function json(res, status, data) {
@@ -46,6 +46,10 @@ async function handleOfflineMutation(req) {
 
 export default async function handler(req, res) {
   try {
+    if (req.query?.recurso === 'simulador') {
+      const { default: simulador } = await import('../lib/financeiroSimulador.js');
+      return await simulador(req, res);
+    }
     if (req.method === 'GET' && req.query?.health === '1') {
       return json(res, 200, { ok: true, service: 'financeiro' });
     }

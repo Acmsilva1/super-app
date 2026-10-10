@@ -1,4 +1,4 @@
-import { obterFinanceiroMes } from './_financeiroShared.js';
+import { obterFinanceiroMes } from '../lib/financeiroShared.js';
 import { requireUser } from '../lib/auth.js';
 import { supabase } from '../lib/supabase.js';
 
