@@ -3,7 +3,7 @@ import { TABELAS_NUTRICIONAIS } from '../features/saude/data/tabelasNutricionais
 import { ALIMENTOS_NUTRICIONAIS } from '../features/saude/data/alimentosNutricionais.js';
 import { opcoesTabelaNutricional } from '../features/saude/service/tabelaNutricionalService.js';
 import { calcularImc } from '../features/saude/service/perfilSaudeService.js';
-import { DIET_MEALS } from '../features/saude/service/dietasService.js';
+import { DIET_MEALS, DIET_WEEK } from '../features/saude/service/dietasService.js';
 import { normalizeAlertSchedule, validateAlertSchedule } from '../features/saude/service/alertScheduleConfig.js';
 import { enrichDietNutrition, foodUnitWeight, matchFoodForDietItem, nutritionForDietItem } from '../features/saude/service/alimentosService.js';
 
@@ -155,7 +155,25 @@ function slugify(value) {
     .slice(0, 120);
 }
 
-function validateDietPayload(body, isCreate = false) {
+function validateDietPayload(body, isCreate = false, allowEmpty = false) {
+  if (body?.semanal !== undefined && typeof body.semanal !== 'boolean') return { error: 'Tipo de dieta inválido.' };
+  if (body?.semanal) {
+    if (!Array.isArray(body.semana) || body.semana.length !== 7) return { error: 'A dieta semanal precisa dos sete dias, de segunda a domingo.' };
+    const semana = [];
+    let base;
+    let total = 0;
+    for (const [index, day] of body.semana.entries()) {
+      if (!Array.isArray(day?.refeicoes)) return { error: `Informe as refeições de ${DIET_WEEK[index]}.` };
+      const validated = validateDietPayload({ ...body, semanal: false, refeicoes: day.refeicoes }, isCreate, true);
+      if (validated.error) return validated;
+      base = validated.data;
+      total += base.refeicoes.reduce((sum, meal) => sum + meal.itens.length, 0);
+      semana.push({ titulo: DIET_WEEK[index], refeicoes: base.refeicoes });
+    }
+    if (!total) return { error: 'Adicione pelo menos um alimento à semana.' };
+    return { data: { ...base, semanal: true, semana, refeicoes: [], duracao_dias: 7,
+      dias: semana.map((day, index) => ({ numero: index + 1, titulo: day.titulo, jejum_horas: 0, quantidade_refeicoes: day.refeicoes.filter(meal => meal.itens.length).length, carboidrato: '', conteudo: '' })) } };
+  }
   const titulo = String(body?.titulo || '').trim();
   const objetivo = String(body?.objetivo || 'Plano alimentar').trim();
   const descricao = String(body?.descricao || '').trim();
@@ -220,7 +238,7 @@ function validateDietPayload(body, isCreate = false) {
       itemCount += normalizedItems.length;
       normalizedMeals.push({ ...mealDefinition, itens: normalizedItems });
     }
-    if (itemCount === 0) return { error: 'Adicione pelo menos um alimento à dieta.' };
+    if (itemCount === 0 && !allowEmpty) return { error: 'Adicione pelo menos um alimento à dieta.' };
 
     const activeMealCount = normalizedMeals.filter((meal) => meal.itens.length > 0).length;
     return {
@@ -234,6 +252,7 @@ function validateDietPayload(body, isCreate = false) {
         ritual_diario: '',
         dias: [{ numero: 1, titulo: 'Plano alimentar', jejum_horas: 0, quantidade_refeicoes: activeMealCount, carboidrato: '', conteudo: '' }],
         refeicoes: normalizedMeals,
+        semanal: false, semana: [],
         meta_calorias,
         observacoes,
       },
@@ -635,7 +654,7 @@ async function loadAlertSchedule(profileId, userId, isAdmin = false) {
   }
   const { supabase } = await import('../lib/supabase.js');
   let query = supabase.from(TABELA_ALERTAS_AGENDA)
-    .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id,updated_at').eq('perfil_id', profileId);
+    .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id,dieta_horarios,updated_at').eq('perfil_id', profileId);
   if (!isAdmin) query = query.eq('created_by', userId);
   const { data, error } = await query.maybeSingle();
   if (error) return { error };
@@ -672,7 +691,7 @@ async function saveAlertSchedule(profileId, payload, userId, isAdmin = false) {
   const { supabase } = await import('../lib/supabase.js');
   const { data, error, status, statusText } = await supabase.from(TABELA_ALERTAS_AGENDA)
     .upsert(row, { onConflict: 'perfil_id' })
-    .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id,updated_at')
+    .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id,dieta_horarios,updated_at')
     .single();
   return error
     ? { error, status, statusText }
@@ -909,7 +928,7 @@ async function loadDiets(userId, profileId = null, isAdmin = false) {
   const { supabase } = await import('../lib/supabase.js');
   let query = supabase
     .from(TABELA_DIETAS)
-    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,meta_calorias,perfil_id,source_file,created_at,updated_at')
+    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,semanal,semana,alerta_ativo,observacoes,meta_calorias,perfil_id,source_file,created_at,updated_at')
     .order('created_at', { ascending: false });
   if (profileId) {
     query = query.eq('perfil_id', profileId);
@@ -922,6 +941,20 @@ async function loadDiets(userId, profileId = null, isAdmin = false) {
   return error ? { error } : { rows: (data || []).map((row) => enrichDietNutrition(row, foods.rows)), storage: 'supabase' };
 }
 
+async function setDietAlert(id, enabled, userId, isAdmin) {
+  if (isOfflineMode()) {
+    const row = offlineDiets.find(diet => Number(diet.id) === id && (isAdmin || diet.created_by === userId));
+    if (!row) return { notFound: true };
+    row.alerta_ativo = enabled;
+    return { row: { id: row.id, alerta_ativo: enabled }, storage: 'memory' };
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  let query = supabase.from(TABELA_DIETAS).update({ alerta_ativo: enabled }).eq('id', id);
+  if (!isAdmin) query = query.eq('created_by', userId);
+  const { data, error } = await query.select('id,alerta_ativo').maybeSingle();
+  return error ? { error } : data ? { row: data, storage: 'supabase' } : { notFound: true };
+}
+
 async function createDiet(payload, userId, isAdmin = false) {
   const owner = await mutationOwner(userId, payload.perfil_id, isAdmin);
   if (!owner.userId) return owner;
@@ -931,6 +964,7 @@ async function createDiet(payload, userId, isAdmin = false) {
     if (ownedProfile.error) return { error: ownedProfile.error };
     if (ownedProfile.notFound || ownedProfile.invalid) return { notFound: true };
   }
+  payload = { ...payload, alerta_ativo: false };
   const slug = slugify(payload.titulo);
   if (isOfflineMode()) {
     const id = Math.max(0, ...offlineDiets.map((diet) => Number(diet.id) || 0)) + 1;
@@ -942,7 +976,7 @@ async function createDiet(payload, userId, isAdmin = false) {
   const { data, error } = await supabase
     .from(TABELA_DIETAS)
     .insert({ slug, ...payload, source_file: 'Cadastro manual', created_by: userId })
-    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,meta_calorias,perfil_id,source_file,created_at,updated_at')
+    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,semanal,semana,alerta_ativo,observacoes,meta_calorias,perfil_id,source_file,created_at,updated_at')
     .single();
   return error ? { error } : { row: data, storage: 'supabase' };
 }
@@ -966,7 +1000,7 @@ async function updateDiet(id, payload, userId, isAdmin = false) {
     .eq('id', id);
   if (!isAdmin) query = query.eq('created_by', userId);
   const { data, error } = await query
-    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,observacoes,meta_calorias,perfil_id,source_file,created_at,updated_at')
+    .select('id,slug,titulo,objetivo,duracao_dias,descricao,orientacoes_gerais,ritual_diario,dias,refeicoes,semanal,semana,alerta_ativo,observacoes,meta_calorias,perfil_id,source_file,created_at,updated_at')
     .maybeSingle();
   if (error) return { error };
   return data ? { row: data, storage: 'supabase' } : { notFound: true };
@@ -1154,14 +1188,15 @@ async function saveDietWithNutrition(id, payload, body, auth) {
   const loaded = await loadFoods();
   if (loaded.error) return loaded;
   const foods = loaded.rows;
-  for (const meal of payload.refeicoes || []) {
+  const mealGroups = payload.semanal ? payload.semana.map(day => day.refeicoes) : [payload.refeicoes || []];
+  for (const [dayIndex, meals] of mealGroups.entries()) for (const meal of meals) {
     for (const [index, item] of meal.itens.entries()) {
       const food = matchFoodForDietItem(item, foods);
       if (item.alimento_id && !foods.some((entry) => Number(entry.id) === Number(item.alimento_id))) {
         return { invalid: 'O alimento selecionado não está mais no catálogo. Selecione novamente.' };
       }
       if (food) { item.alimento_id = Number(food.id); item.nome = food.item; }
-      const customDestination = body.novo_alimento && body.novo_alimento_destino?.refeicao === meal.tipo && body.novo_alimento_destino?.indice === index;
+      const customDestination = body.novo_alimento && body.novo_alimento_destino?.refeicao === meal.tipo && body.novo_alimento_destino?.indice === index && (!payload.semanal || body.novo_alimento_destino?.dia === dayIndex);
       if (item.quantidade_valor != null && !customDestination && (!food || nutritionForDietItem(item, foods).proteina == null)) {
         return { invalid: 'Selecione um alimento com peso por unidade cadastrado ou informe a quantidade em gramas.' };
       }
@@ -1175,7 +1210,8 @@ async function saveDietWithNutrition(id, payload, body, auth) {
   const validation = validateFoodPayload(body.novo_alimento);
   if (validation.error) return { invalid: validation.error };
   const destination = body.novo_alimento_destino;
-  const meal = payload.refeicoes?.find((entry) => entry.tipo === destination?.refeicao);
+  const targetMeals = payload.semanal ? payload.semana[destination?.dia]?.refeicoes : payload.refeicoes;
+  const meal = targetMeals?.find((entry) => entry.tipo === destination?.refeicao);
   const index = destination?.indice;
   if (!meal || !Number.isInteger(index) || index < 0 || index >= meal.itens.length) return { invalid: 'Destino do novo alimento inválido.' };
   const foodPayload = validation.data;
@@ -1204,7 +1240,7 @@ async function saveDietWithNutrition(id, payload, body, auth) {
   const { supabase } = await import('../lib/supabase.js');
   const { data, error } = await supabase.rpc('save_saude_dieta_with_food', {
     p_id: id, p_actor: actorId, p_admin: auth.isAdmin,
-    p_diet: { ...payload, slug: slugify(payload.titulo) },
+    p_diet: { ...payload, refeicoes: targetMeals, dia_edicao: destination.dia, slug: slugify(payload.titulo) },
     p_food: foodPayload, p_meal: destination.refeicao, p_index: index,
   });
   if (error) return { error: { ...error, message: ['PGRST202', '42883'].includes(error.code)
@@ -1502,6 +1538,16 @@ export default async function handler(req, res) {
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Medicao nao encontrada.' });
     return json(res, 200, { ok: true, ...result });
+  }
+
+  if (req.query?.resource === RESOURCE_DIETAS && req.method === 'PATCH' && readBody(req)?.action === 'alerta') {
+    const body = readBody(req);
+    const id = parseId(body.id);
+    if (!id || typeof body.alerta_ativo !== 'boolean') return json(res, 400, { error: 'Informe a dieta e o estado do alerta.' });
+    const result = await setDietAlert(id, body.alerta_ativo, auth.user.id, auth.isAdmin);
+    if (result.error) return json(res, 500, { error: result.error.message });
+    if (result.notFound) return json(res, 404, { error: 'Dieta não encontrada.' });
+    return json(res, 200, result);
   }
 
   if (req.query?.resource === RESOURCE_DIETAS && (req.method === 'POST' || req.method === 'PATCH')) {

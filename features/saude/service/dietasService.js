@@ -34,3 +34,20 @@ export function normalizeDietMeals(value) {
 export function countDietItems(value) {
   return normalizeDietMeals(value).reduce((total, meal) => total + meal.itens.length, 0);
 }
+
+export const DIET_WEEK = Object.freeze(['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']);
+
+export function dietDayIndex(date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) throw new Error('Data local inválida.');
+  return (new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7;
+}
+
+export function dietForDate(diet, date) {
+  if (!diet?.semanal) return diet;
+  const index = dietDayIndex(date);
+  return { ...diet, semanal: false, refeicoes: normalizeDietMeals(diet.semana?.[index]?.refeicoes), dia_semana: DIET_WEEK[index], nutricao_total: diet.semana?.[index]?.nutricao_total };
+}
+
+export function todayDietDate(now = new Date()) {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}

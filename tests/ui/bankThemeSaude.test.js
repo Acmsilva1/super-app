@@ -17,9 +17,9 @@ describe('bank-theme — janela do Saúde (Vercel)', () => {
     );
   });
 
-  it('mantém o cabeçalho mobile e oferece retorno à home como na versão VPS', () => {
+  it('mantém o cabeçalho mobile e retorno pelos módulos sem botão de início redundante', () => {
     expect(indexHtml).toMatch(/body\.view-apps > header\s*\{\s*position: sticky;\s*top: 0;/);
-    expect(indexHtml).toContain('id="headerHomeBtn"');
+    expect(indexHtml).not.toContain('id="headerHomeBtn"');
     expect(indexHtml).toContain('aria-label="Voltar para a tela inicial"');
     expect(indexHtml).not.toContain('syncShellForOpenModules');
   });

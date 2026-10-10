@@ -1,4 +1,4 @@
-import { countDietItems, normalizeDietMeals } from './service/dietasService.js';
+import { countDietItems, normalizeDietMeals, dietForDate, todayDietDate } from './service/dietasService.js';
 import { DIET_NUTRITION_STYLES, renderDietFoodDetails, renderDietNutritionTotal } from './dietNutritionView.js';
 
 const STYLE_ID = 'home-diet-quick-styles-v1';
@@ -161,14 +161,15 @@ function renderDietList(state) {
       </select>
     </div>
     <div class="home-diet-quick-list">
-      ${state.diets.map((diet) => `<button type="button" class="home-diet-quick-card" data-diet-id="${escapeHtml(diet.id)}"><span><strong>${escapeHtml(diet.titulo)}</strong><span>${countDietItems(diet.refeicoes)} itens</span></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>`).join('')}
+      ${state.diets.map((diet) => `<button type="button" class="home-diet-quick-card" data-diet-id="${escapeHtml(diet.id)}"><span><strong>${escapeHtml(diet.titulo)}</strong><span>${diet.semanal ? 'Semanal · 7 dias' : `${countDietItems(diet.refeicoes)} itens`}</span></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>`).join('')}
     </div>`;
 }
 
 function renderDietDetail(state) {
   const diet = state.diets.find((item) => Number(item.id) === Number(state.dietId));
   if (!diet) return '<p class="home-diet-quick-notice home-diet-quick-notice--error">A dieta selecionada não está disponível.</p>';
-  const meals = normalizeDietMeals(diet.refeicoes).filter((meal) => meal.itens.length);
+  const displayedDiet = dietForDate(diet, todayDietDate());
+  const meals = normalizeDietMeals(displayedDiet.refeicoes).filter((meal) => meal.itens.length);
   const content = meals.length
     ? `<div class="home-diet-quick-meals">${meals.map((meal) => `<section class="home-diet-quick-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="home-diet-quick-item">${renderDietFoodDetails(item)}</div>`).join('')}</section>`).join('')}</div>`
     : '<p class="home-diet-quick-notice">Esta dieta ainda não possui alimentos cadastrados.</p>';
@@ -176,7 +177,7 @@ function renderDietDetail(state) {
   const calorieSummary = Number.isInteger(calorieGoal) && calorieGoal > 0
     ? `<p class="home-diet-quick-observation"><strong>Meta diária:</strong> ${escapeHtml(calorieGoal)} kcal</p>`
     : '';
-  return `${content}${renderDietNutritionTotal(diet) || calorieSummary}${diet.observacoes ? `<p class="home-diet-quick-observation"><strong>Observações:</strong><br>${escapeHtml(diet.observacoes)}</p>` : ''}<div class="home-diet-quick-actions">${state.diets.length > 1 ? '<button type="button" class="home-diet-quick-btn" data-action="back-to-diets">Outras dietas</button>' : '<button type="button" class="home-diet-quick-btn" data-action="change-profile">Trocar perfil</button>'}${typeof state.launchSaude === 'function' ? '<button type="button" class="home-diet-quick-btn home-diet-quick-btn--primary" data-action="open-saude">Editar em Saúde</button>' : ''}</div>`;
+  return `${displayedDiet.dia_semana ? `<p class="home-diet-quick-notice">${escapeHtml(displayedDiet.dia_semana)}</p>` : ''}${content}${renderDietNutritionTotal(displayedDiet) || calorieSummary}${diet.observacoes ? `<p class="home-diet-quick-observation"><strong>Observações:</strong><br>${escapeHtml(diet.observacoes)}</p>` : ''}<div class="home-diet-quick-actions">${state.diets.length > 1 ? '<button type="button" class="home-diet-quick-btn" data-action="back-to-diets">Outras dietas</button>' : '<button type="button" class="home-diet-quick-btn" data-action="change-profile">Trocar perfil</button>'}${typeof state.launchSaude === 'function' ? '<button type="button" class="home-diet-quick-btn home-diet-quick-btn--primary" data-action="open-saude">Editar em Saúde</button>' : ''}</div>`;
 }
 
 function paintModal(overlay, state) {

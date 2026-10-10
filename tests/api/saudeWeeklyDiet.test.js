@@ -1,0 +1,34 @@
+import express from 'express';
+import request from 'supertest';
+import { expect, it, vi } from 'vitest';
+vi.mock('../../lib/auth.js', () => ({ requireUser: async () => ({ ok: true, isAdmin: true, user: { id: 'f88a6351-317d-425b-afcd-9430c8a34f53' } }) }));
+import handler from '../../api/saude.js';
+import { DIET_WEEK, createEmptyDietMeals } from '../../features/saude/service/dietasService.js';
+const app = express(); app.use(express.json()); app.all('/api/saude', handler);
+it('salva, consulta e edita a semana sem replicar alimentos; valida sete dias e o catálogo', async () => {
+ const profile = await request(app).post('/api/saude?resource=perfis').send({ nome:'Semanal',sexo:'masculino',data_nascimento:'1990-01-01',data_medicao:'2026-10-10',peso_kg:80,altura_cm:180 });
+ expect(profile.status).toBe(201);
+ const semana=DIET_WEEK.map(titulo=>({titulo,refeicoes:createEmptyDietMeals()}));
+ semana[0].refeicoes[0].itens.push({nome:'Banana',quantidade:'100 g'});
+ const body={perfil_id:profile.body.row.id,titulo:'Semana teste',semanal:true,semana,refeicoes:[]};
+ const saved=await request(app).post('/api/saude?resource=dietas').send(body);expect(saved.status).toBe(201);
+ expect(saved.body.row.alerta_ativo).toBe(false);
+ const toggled=await request(app).patch('/api/saude?resource=dietas').send({id:saved.body.row.id,action:'alerta',alerta_ativo:true});expect(toggled.status).toBe(200);
+ expect((await request(app).patch('/api/saude?resource=dietas').send({id:saved.body.row.id,action:'alerta',alerta_ativo:'true'})).status).toBe(400);
+ expect(saved.body.row.semanal).toBe(true);expect(saved.body.row.duracao_dias).toBe(7);
+ expect(saved.body.row.semana[0].refeicoes[0].itens[0].nome).toBe('Banana');
+ expect(saved.body.row.semana[1].refeicoes[0].itens).toEqual([]);
+ const listed=await request(app).get(`/api/saude?resource=dietas&profile_id=${body.perfil_id}`);expect(listed.body.rows[0].semana).toEqual(saved.body.row.semana);expect(listed.body.rows[0].alerta_ativo).toBe(true);
+ semana[6].refeicoes[2].itens.push({nome:'Ovo inteiro',quantidade:'1 unidade'});
+ const updated=await request(app).patch('/api/saude?resource=dietas').send({...body,id:saved.body.row.id});expect(updated.status).toBe(200);expect(updated.body.row.alerta_ativo).toBe(true);expect(updated.body.row.semana[6].refeicoes[2].itens).toHaveLength(1);
+ expect((await request(app).post('/api/saude?resource=dietas').send({...body,semana:semana.slice(0,6)})).status).toBe(400);
+ semana[6].refeicoes[2].itens[0].alimento_id=999999;
+ expect((await request(app).post('/api/saude?resource=dietas').send(body)).status).toBe(400);
+});
+it('cadastra alimento novo diretamente no dia selecionado',async()=>{
+ const profile=await request(app).post('/api/saude?resource=perfis').send({nome:'Novo alimento',sexo:'masculino',data_nascimento:'1990-01-01',data_medicao:'2026-10-10',peso_kg:80,altura_cm:180});
+ const semana=DIET_WEEK.map(titulo=>({titulo,refeicoes:createEmptyDietMeals()}));
+ semana[3].refeicoes[2].itens.push({nome:'Alimento semanal novo',quantidade_valor:100,quantidade_unidade:'g'});
+ const result=await request(app).post('/api/saude?resource=dietas').send({perfil_id:profile.body.row.id,titulo:'Outros semanal',semanal:true,semana,refeicoes:[],novo_alimento:{item:'Alimento semanal novo',categoria:'Outros',porcao:'100 g',peso_referencia_g:100,kcal_100g:100,proteina_100g:10,carboidrato_100g:10,gordura_100g:2},novo_alimento_destino:{dia:3,refeicao:'almoco',indice:0}});
+ expect(result.status).toBe(201);expect(result.body.row.semana[3].refeicoes[2].itens[0].alimento_id).toBe(result.body.food.id);expect(result.body.row.semana[3].nutricao_total.kcal).toBe(100);
+});

@@ -93,6 +93,7 @@ export function nutritionForDietItem(item, foods = []) {
 }
 
 export function enrichDietNutrition(diet, foods = []) {
+  if (diet.semanal) return { ...diet, semana: (diet.semana || []).map(day => enrichDietNutrition({ ...day, semanal: false }, foods)), refeicoes: [] };
   const refeicoes = (diet.refeicoes || []).map((meal) => ({ ...meal, itens: (meal.itens || []).map((item) => {
     const food = matchFoodForDietItem(item, foods);
     return { ...item, alimento_id: food?.id ?? item.alimento_id ?? null,

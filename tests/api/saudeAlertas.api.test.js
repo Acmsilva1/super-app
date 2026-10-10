@@ -17,7 +17,7 @@ describe('Agendamento de todas as dietas', () => {
     });
     expect(profile.status).toBe(201);
     const profileId = profile.body.row.id;
-    const schedule = { profile_id: profileId, agua_ativo: false, agua_intervalo_horas: 3, dieta_ativa: true, dieta_id: null };
+    const schedule = { profile_id: profileId, agua_ativo: false, agua_intervalo_horas: 3, dieta_ativa: true, dieta_id: null, dieta_horarios:[{tipo:'almoco',horario:'12:17'}] };
     const saved = await request(app).post('/api/saude?resource=alertas-agenda').send(schedule);
     expect(saved.status).toBe(200);
     expect(saved.body.row).toMatchObject({ dieta_ativa: true, dieta_id: null });
@@ -30,6 +30,6 @@ describe('Agendamento de todas as dietas', () => {
     auth.isAdmin = false;
     const loaded = await request(app).get(`/api/saude?resource=alertas-agenda&profile_id=${profileId}`);
     expect(loaded.status).toBe(200);
-    expect(loaded.body.row).toMatchObject({ agua_intervalo_horas: 4, dieta_ativa: true, dieta_id: null });
+    expect(loaded.body.row).toMatchObject({ agua_intervalo_horas: 4, dieta_ativa: true, dieta_id: null, dieta_horarios:[{tipo:'almoco',titulo:'Almoço',horario:'12:17'}] });
   });
 });

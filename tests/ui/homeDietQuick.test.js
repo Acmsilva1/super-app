@@ -30,7 +30,7 @@ describe('atalho de Dietas na tela inicial', () => {
     expect(indexSource.indexOf('id="homeDietFab"')).toBeLessThan(indexSource.indexOf('id="homeWaterFab"'));
     expect(indexSource).toContain('.home-diet-fab');
     expect(indexSource).toContain("this.quickOpenDiet(e)");
-    expect(indexSource).toContain("import('./features/saude/homeDietQuick.js?v=2026-10-03-diet-intent-v2')");
+    expect(indexSource).toMatch(/import\('\.\/features\/saude\/homeDietQuick\.js\?v=[^']+'\)/);
   });
 
   it('direciona os detalhes de Dieta e Água para a tela do perfil selecionado', () => {

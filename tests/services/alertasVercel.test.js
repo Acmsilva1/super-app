@@ -107,3 +107,13 @@ describe('Vercel alerts', () => {
     }
   });
 });
+
+it('envia em minuto personalizado por perfil e ignora o antigo horário fixo',async()=>{
+ vi.stubEnv('SAUDE_ALERTS_ENABLED','true');vi.stubEnv('SAUDE_ALERTS_OWNER_USER_ID','f88a6351-317d-425b-afcd-9430c8a34f53');vi.stubEnv('ALERTS_API_URL','https://example.invalid/api/telegram-alert');vi.stubEnv('ALERTS_API_TOKEN','x'.repeat(32));
+ state.rows.tb_saude_dietas=[{id:1,perfil_id:1,titulo:'Meu horário',alerta_ativo:true,refeicoes:[{tipo:'almoco',itens:[{nome:'Frango',quantidade:'100 g'}]}]},{id:2,perfil_id:2,titulo:'Outro perfil',alerta_ativo:true,refeicoes:[]}];
+ state.rows.tb_saude_alertas_agenda=[{perfil_id:1,agua_ativo:false,dieta_ativa:true,dieta_horarios:[{tipo:'almoco',horario:'12:17'}]},{perfil_id:2,agua_ativo:false,dieta_ativa:true,dieta_horarios:[{tipo:'almoco',horario:'13:00'}]}];
+ const transport=vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,telegram_message_id:1})});vi.stubGlobal('fetch',transport);
+ await runSaudeAlertSlot(new Date('2026-10-05T15:22:00Z'));
+ expect(transport).toHaveBeenCalledOnce();const message=JSON.parse(transport.mock.calls[0][1].body);expect(message.message).toContain('12:17');expect(message.message).toContain('Meu horário');expect(message.message).not.toContain('Outro perfil');
+ transport.mockClear();await runSaudeAlertSlot(new Date('2026-10-05T14:05:00Z'));expect(transport).not.toHaveBeenCalled();
+});

@@ -209,6 +209,12 @@ const SAUDE_STYLES = `
     .saude-meal-item__actions .saude-icon-btn { width: 2.15rem; height: 2.15rem; }
     .saude-meal-empty { margin: .7rem 0 0; color: var(--saude-texto-secundario); font-size: .76rem; }
     .saude-diet-modal { width: min(100%, 48rem); max-height: min(90dvh, 52rem); overflow: auto; padding: 1.1rem; border: 1px solid rgba(74, 164, 85, .42); border-radius: 1.1rem; background: radial-gradient(circle at 15% 0%, rgba(50, 119, 70, .16), transparent 18rem), #0f172a; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); }
+    .saude-diet-alert-switch{display:inline-flex;align-items:center;gap:.6rem;min-height:44px;padding:.45rem .8rem;border:1px solid var(--saude-frame);border-radius:.7rem;background:transparent;color:inherit;font:inherit;font-size:.8rem;cursor:pointer;margin:.35rem .7rem}
+    .saude-diet-alert-switch:focus-visible{outline:2px solid var(--saude-lima);outline-offset:2px}.saude-diet-alert-switch:disabled{opacity:.55;cursor:wait}
+    .saude-diet-alert-track{width:36px;height:22px;position:relative;border-radius:20px;background:#64748b;flex-shrink:0}.saude-diet-alert-track::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:white;transition:transform .15s}
+    .saude-diet-alert-switch[aria-checked="true"] .saude-diet-alert-track{background:#327746}.saude-diet-alert-switch[aria-checked="true"] .saude-diet-alert-track::after{transform:translateX(14px)}
+    .saude-alert-time-row{display:flex;align-items:end;flex-wrap:wrap;gap:.5rem;margin:.75rem 0}.saude-alert-time-row label{flex:1;min-width:110px;font-size:.8rem}.saude-alert-time-row label:first-child{flex:2}.saude-alert-time-row .saude-field{width:100%}
+    .saude-diet-alert-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.4rem}
     .saude-diet-week-nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:1rem 0;padding:.65rem;border:1px solid rgba(74,164,85,.4);border-radius:.8rem;background:rgba(50,119,70,.12)}
     .saude-diet-week-nav div{text-align:center}.saude-diet-week-nav small{display:block;margin-top:.25rem;color:var(--saude-texto-secundario)}
     .saude-diet-type-options{display:grid;gap:.8rem}.saude-diet-type-options button{display:flex;flex-direction:column;align-items:flex-start;padding:1rem;white-space:normal;text-align:left}.saude-diet-type-options span{font-weight:400;margin-top:.3rem}
@@ -658,14 +664,19 @@ function dietsForProfile(state, profileId) {
   return (state.diets || []).filter((diet) => Number(diet.perfil_id) === Number(profileId));
 }
 
+function renderDietAlertSwitch(diet, state) {
+  const enabled = diet.alerta_ativo !== false;
+  return `<button type="button" role="switch" aria-checked="${enabled}" aria-label="Alerta de ${escapeHtml(diet.titulo)}" class="saude-diet-alert-switch" data-saude-action="toggle-diet-alert" data-saude-id="${escapeHtml(diet.id)}"${state.busy ? ' disabled' : ''}><span class="saude-diet-alert-track" aria-hidden="true"></span><span>Alerta ${enabled ? 'Ligado' : 'Desligado'}</span></button>`;
+}
+
 function renderProfileDietSection(profile, state) {
   const rows = dietsForProfile(state, profile.id);
   const items = rows.length
     ? rows.map((diet) => `<li><button type="button" class="fin-nav-row saude-diet-row" data-saude-action="view-diet" data-saude-id="${escapeHtml(diet.id)}" aria-label="Abrir ${escapeHtml(diet.titulo)}">
         <i class="fas fa-utensils fin-nav-row__icon" aria-hidden="true"></i>
-        <span class="fin-entry__main"><span class="fin-entry__title">${escapeHtml(diet.titulo)}</span><span class="fin-entry__meta">${diet.semanal ? 'Semanal · 7 dias · Prévia local' : `${countDietItems(diet.refeicoes)} itens`}</span></span>
+        <span class="fin-entry__main"><span class="fin-entry__title">${escapeHtml(diet.titulo)}</span><span class="fin-entry__meta">${diet.semanal ? 'Semanal · 7 dias' : `${countDietItems(diet.refeicoes)} itens`}</span></span>
         <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
-      </button></li>`).join('')
+      </button>${renderDietAlertSwitch(diet, state)}</li>`).join('')
     : '<li class="fin-empty">Nenhuma dieta cadastrada para este perfil.</li>';
   return `${renderNotice(state)}
     <p class="fin-section-label">Planos de ${escapeHtml(profile.nome)} · ${rows.length}</p>
@@ -802,14 +813,6 @@ function renderDietDayNav(diet, state) {
   return `<div class="saude-diet-week-nav"><button type="button" class="saude-icon-btn" data-saude-action="diet-day-prev" aria-label="Dia anterior"><i class="fas fa-chevron-left"></i></button><div aria-live="polite"><strong>${DIET_WEEK[state.dietDay || 0]}</strong><small>${(state.dietDay || 0) + 1} de 7 · Dieta semanal</small></div><button type="button" class="saude-icon-btn" data-saude-action="diet-day-next" aria-label="Próximo dia"><i class="fas fa-chevron-right"></i></button></div>`;
 }
 
-function saveWeeklyPreview(state, payload) {
-  syncDietWeek(state);
-  const row = { ...payload, semana: structuredClone(state.dietDraft.semana), id: state.dietEditingId || -Date.now(), semanal: true };
-  row.semana[state.dietDay || 0].refeicoes = normalizeDietMeals(payload.refeicoes);
-  state.weeklyPreviews = [...(state.weeklyPreviews || []).filter(diet => diet.id !== row.id), row];
-  return { row };
-}
-
 function blankDietDraft(profileId = null) {
   return {
     perfil_id: profileId ? Number(profileId) : null,
@@ -887,7 +890,7 @@ function renderDietForm(state) {
         </div>
         <form class="saude-diet-form" data-saude-diet-form style="margin:0;padding:0;background:transparent;border:0;box-shadow:none;">
           <div class="saude-diet-form__grid">${profileField}</div>
-          ${renderDietDayNav(draft, state)}${draft.semanal ? '<p class="saude-diet-copy">Prévia local: alterações ficam nesta sessão. Cadastre os alimentos de cada dia.</p>' : ''}<div class="saude-meal-builder">${normalizeDietMeals(draft.refeicoes).map((meal) => renderDietMealEditor(meal, state.foodRows)).join('')}</div>${renderDietNutritionTotal(draft, state.foodRows)}<p class="saude-diet-copy">Cada alimento é salvo na dieta ao confirmar o item.</p>
+          ${renderDietDayNav(draft, state)}${draft.semanal ? '<p class="saude-diet-copy">Cadastre os alimentos de cada dia, sem replicação automática.</p>' : ''}<div class="saude-meal-builder">${normalizeDietMeals(draft.refeicoes).map((meal) => renderDietMealEditor(meal, state.foodRows)).join('')}</div>${renderDietNutritionTotal({ ...draft, semanal: false }, state.foodRows)}<p class="saude-diet-copy">Cada alimento é salvo na dieta ao confirmar o item.</p>
           <div class="saude-field-group" style="margin-top:.8rem"><label for="diet-meta-calorias">Meta calórica diária (kcal)</label><input id="diet-meta-calorias" name="meta_calorias" class="saude-field" type="number" min="500" max="10000" step="1" value="${escapeHtml(draft.meta_calorias)}" placeholder="Ex.: 2000"><small>O alerta compara a soma planejada dos alimentos com esta meta.</small></div>
           <div class="saude-field-group" style="margin-top:.8rem"><label for="diet-observacoes">Observações</label><textarea id="diet-observacoes" name="observacoes" class="saude-field" maxlength="4000" rows="2">${escapeHtml(draft.observacoes)}</textarea></div>
           <div class="saude-editor__actions">
@@ -946,12 +949,12 @@ function renderDietOverlay(state) {
   if (!diet) return '';
   const profile = (state.profiles || []).find((p) => Number(p.id) === Number(diet.perfil_id));
   const showProfileName = state.view !== 'profile-detail' && profile;
-  const displayedDiet = diet.semanal ? { ...diet, refeicoes: diet.semana[state.dietDay || 0].refeicoes } : diet;
+  const displayedDiet = diet.semanal ? { ...diet, semanal: false, refeicoes: diet.semana[state.dietDay || 0].refeicoes } : diet;
   const meals = normalizeDietMeals(displayedDiet.refeicoes).filter((meal) => meal.itens.length > 0);
   const mealContent = meals.length
     ? `<div class="saude-diet-detail-meals">${meals.map((meal) => `<section class="saude-diet-detail-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="saude-diet-detail-item">${renderDietFoodDetails(item, state.foodRows)}</div>`).join('')}</section>`).join('')}</div>`
     : '<div class="saude-empty"><i class="fas fa-bowl-food"></i>Nenhum item cadastrado nesta dieta.</div>';
-  return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-detail-title"><div class="saude-diet-modal__header"><div><h3 id="diet-detail-title">${escapeHtml(diet.titulo)}</h3>${showProfileName ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;"><i class="fas fa-user"></i> ${escapeHtml(profile.nome)}</p>` : ''}${diet.meta_calorias ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;">Meta diária: ${escapeHtml(diet.meta_calorias)} kcal</p>` : ''}</div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${renderDietDayNav(diet, state)}${mealContent}${renderDietNutritionTotal(displayedDiet, state.foodRows)}${diet.observacoes ? `<div class="saude-diet-section"><h4>Observações</h4><p class="saude-diet-copy">${escapeHtml(diet.observacoes)}</p></div>` : ''}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--danger" data-saude-action="delete-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-trash"></i> Excluir</button><button type="button" class="saude-btn" data-saude-action="edit-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-pencil"></i> Editar</button><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-modal">Fechar</button></div></section></div>`;
+  return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-detail-title"><div class="saude-diet-modal__header"><div><h3 id="diet-detail-title">${escapeHtml(diet.titulo)}</h3>${showProfileName ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;"><i class="fas fa-user"></i> ${escapeHtml(profile.nome)}</p>` : ''}${diet.meta_calorias ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;">Meta diária: ${escapeHtml(diet.meta_calorias)} kcal</p>` : ''}</div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${renderDietAlertSwitch(diet, state)}${renderDietDayNav(diet, state)}${mealContent}${renderDietNutritionTotal(displayedDiet, state.foodRows)}${diet.observacoes ? `<div class="saude-diet-section"><h4>Observações</h4><p class="saude-diet-copy">${escapeHtml(diet.observacoes)}</p></div>` : ''}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--danger" data-saude-action="delete-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-trash"></i> Excluir</button><button type="button" class="saude-btn" data-saude-action="edit-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-pencil"></i> Editar</button><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-modal">Fechar</button></div></section></div>`;
 }
 
 function renderDietas(container, state) {
@@ -1032,7 +1035,7 @@ async function loadDietas(container, state) {
     const profilesData = await profilesResponse.json().catch(() => ({}));
     if (!dietsResponse.ok) throw new Error(dietsData.error || 'O endpoint de dietas não respondeu corretamente.');
     if (!profilesResponse.ok) throw new Error(profilesData.error || 'O endpoint de perfis não respondeu corretamente.');
-    state.diets = [...(Array.isArray(dietsData.rows) ? dietsData.rows : []), ...(state.weeklyPreviews || [])];
+    state.diets = [...(Array.isArray(dietsData.rows) ? dietsData.rows : [])];
     state.profiles = Array.isArray(profilesData.rows) ? profilesData.rows : [];
     if (state.profiles.length > 0) {
       if (!state.dietSelectedProfileId || !state.profiles.some((p) => Number(p.id) === Number(state.dietSelectedProfileId))) {
@@ -1449,10 +1452,18 @@ function renderProfileHub(profile, state) {
     </ul>`;
 }
 
+function captureAlertScheduleForm(container, state) {
+  const form = container.querySelector('[data-alert-schedule-form]');
+  if (!form) return;
+  const values = new FormData(form);
+  const times = values.getAll('dieta_horario');
+  state.alertSchedule = { ...state.alertSchedule, agua_ativo: values.has('agua_ativo'), dieta_ativa: values.has('dieta_ativa'), agua_intervalo_horas: Number(values.get('agua_intervalo_horas')), dieta_horarios: values.getAll('dieta_refeicao').map((tipo,index) => ({ tipo, horario: times[index] })) };
+}
+
 function renderProfileAlertSchedules(profile, state) {
   const schedule = state.alertSchedule || DEFAULT_ALERT_SCHEDULE;
   const diets = dietsForProfile(state, profile.id);
-  const dietList = diets.map((diet) => `<li>${escapeHtml(diet.titulo)}</li>`).join('');
+  const dietList = diets.map((diet) => `<li class="saude-diet-alert-row"><span>${escapeHtml(diet.titulo)}</span>${renderDietAlertSwitch(diet, state)}</li>`).join('');
   const loading = state.alertScheduleLoading
     ? '<p class="saude-alert-help" role="status">Carregando agendamentos salvos...</p>'
     : '';
@@ -1466,12 +1477,12 @@ function renderProfileAlertSchedules(profile, state) {
         <label class="saude-alert-meal-row"><span>Intervalo entre alertas</span><select class="saude-field" name="agua_intervalo_horas">${Array.from({ length: 12 }, (_, index) => index + 1).map((hours) => `<option value="${hours}"${Number(schedule.agua_intervalo_horas) === hours ? ' selected' : ''}>A cada ${hours} ${hours === 1 ? 'hora' : 'horas'}</option>`).join('')}</select></label>
       </fieldset>
       <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
-        <legend><label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa ? ' checked' : ''}> Alertas de todas as dietas</label></legend>
-        <p class="saude-alert-help">Os horários são fixos: 07h, 11h, 15h e 19h.</p>
+        <legend><label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa ? ' checked' : ''}> Alertas de dietas deste perfil</label></legend>
+        <div class="saude-alert-times">${schedule.dieta_horarios.map((entry,index) => `<div class="saude-alert-time-row"><label>Refeição<select class="saude-field" name="dieta_refeicao">${DIET_MEALS.map(meal => `<option value="${meal.tipo}"${entry.tipo === meal.tipo ? ' selected' : ''}>${meal.titulo}</option>`).join('')}</select></label><label>Horário<input class="saude-field" type="time" name="dieta_horario" value="${escapeHtml(entry.horario)}" required></label><button type="button" class="saude-icon-btn" data-saude-action="remove-diet-alert-time" data-time-index="${index}" aria-label="Remover horário ${index+1}"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button type="button" class="saude-btn" data-saude-action="add-diet-alert-time"${schedule.dieta_horarios.length >= 12 ? ' disabled' : ''}><i class="fas fa-plus"></i> Adicionar horário</button><p class="saude-alert-help">Horário de Brasília. O bot usa estes horários após salvar.</p>
         <ul>${dietList || '<li>Nenhuma dieta cadastrada neste perfil.</li>'}</ul>
-        <p class="saude-alert-help">O bot reúne todas as dietas dos perfis com alertas ativos na mensagem de cada refeição.</p>
+        <p class="saude-alert-help">Escolha abaixo quais dietas deseja receber. Desligar “Alertas de dietas deste perfil” pausa todos os envios.</p>
       </fieldset>
-      <p class="saude-alert-help">Água começa às ${WATER_ALERT_START}, mantendo 30 minutos de intervalo das refeições. Os horários usam Brasília diariamente. A dieta pode ser avisada mesmo sem calorias preenchidas.</p>
+      <p class="saude-alert-help">Água começa às ${WATER_ALERT_START}. Os horários usam Brasília diariamente. A dieta pode ser avisada mesmo sem calorias preenchidas.</p>
       <div class="saude-editor__actions"><button class="saude-btn saude-btn--primary" type="submit"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar agendadores</button></div>
     </form>
   </section>`;
@@ -2342,6 +2353,34 @@ export async function renderSaudeContent(container) {
       renderActiveSaudeView(container, state);
       return;
     }
+    if (action === 'add-diet-alert-time' || action === 'remove-diet-alert-time') {
+      if (state.busy) return;
+      captureAlertScheduleForm(container, state);
+      if (action === 'add-diet-alert-time' && state.alertSchedule.dieta_horarios.length < 12) state.alertSchedule.dieta_horarios.push({ tipo: 'cafe_da_manha', horario: '' });
+      else if (action === 'remove-diet-alert-time') state.alertSchedule.dieta_horarios.splice(Number(actionElement.dataset.timeIndex), 1);
+      renderProfileDetail(container, state);
+      return;
+    }
+    if (action === 'toggle-diet-alert') {
+      if (state.busy) return;
+      captureAlertScheduleForm(container, state);
+      const diet = state.diets.find(row => Number(row.id) === Number(actionElement.dataset.saudeId));
+      if (!diet) return;
+      state.busy = true;
+      state.notice = null;
+      renderActiveSaudeView(container, state);
+      try {
+        const result = await requestDiets('PATCH', { id: diet.id, action: 'alerta', alerta_ativo: diet.alerta_ativo === false });
+        diet.alerta_ativo = result.row.alerta_ativo;
+        state.notice = { type: 'success', text: `Alerta de ${diet.titulo} ${diet.alerta_ativo ? 'ligado' : 'desligado'}.` };
+      } catch (error) {
+        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível salvar o alerta.' };
+      } finally {
+        state.busy = false;
+        renderActiveSaudeView(container, state);
+      }
+      return;
+    }
     if (action === 'view-diet') {
       const diet = state.diets.find((item) => Number(item.id) === Number(actionElement.dataset.saudeId));
       if (diet) {
@@ -2444,8 +2483,7 @@ export async function renderSaudeContent(container) {
       if (!confirmed) return;
       let deleted = false;
       try {
-        if (diet.semanal) state.weeklyPreviews = (state.weeklyPreviews || []).filter(row => row.id !== id);
-        else await requestDiets('DELETE', { id });
+        await requestDiets('DELETE', { id });
         state.diets = state.diets.filter((item) => Number(item.id) !== id);
         state.dietModal = null;
         state.dietSelectedId = null;
@@ -2536,7 +2574,9 @@ export async function renderSaudeContent(container) {
       event.preventDefault();
       if (state.busy || !alertScheduleForm.reportValidity()) return;
       const values = new FormData(alertScheduleForm);
+      const dietTimes = values.getAll('dieta_horario');
       const payload = {
+        dieta_horarios: values.getAll('dieta_refeicao').map((tipo,index) => ({ tipo, horario: dietTimes[index] })),
         profile_id: Number(alertScheduleForm.dataset.profileId),
         agua_ativo: values.has('agua_ativo'),
         agua_intervalo_horas: Number(values.get('agua_intervalo_horas')),
@@ -2550,7 +2590,7 @@ export async function renderSaudeContent(container) {
         const result = await requestAlertSchedule('POST', payload);
         state.alertSchedule = result.row;
         state.alertScheduleStorage = result.storage;
-        state.notice = { type: 'success', text: 'Agendadores salvos para este perfil.' };
+        state.notice = { type: 'success', text: 'Agendadores salvos. O bot usará os novos horários nas próximas execuções.' };
       } catch (error) {
         state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel salvar os agendadores.' };
       } finally {
@@ -2714,11 +2754,6 @@ export async function renderSaudeContent(container) {
       captureDietFormFields(container, state);
       const draft = state.dietItemDraft;
       const custom = draft.selected_food === '__other__';
-      if (custom && state.dietDraft.semanal) {
-        state.dietItemError = 'Nesta prévia semanal, selecione um alimento existente no catálogo.';
-        renderActiveSaudeView(container, state);
-        return;
-      }
       const food = custom ? { ...draft.novo_alimento, id: null } : state.foodRows.find((entry) => String(entry.id) === draft.selected_food);
       const item = {
         nome: custom ? food?.item : food?.item,
@@ -2748,15 +2783,18 @@ export async function renderSaudeContent(container) {
       renderActiveSaudeView(container, state);
       try {
         const editingId = state.dietEditingId;
+        syncDietWeek(state);
+        if (state.dietDraft.semanal) state.dietDraft.semana[state.dietDay || 0].refeicoes = refeicoes;
         const payload = {
           ...(editingId ? { id: editingId } : {}), ...state.dietDraft, refeicoes,
-          ...(custom ? { novo_alimento: draft.novo_alimento, novo_alimento_destino: { refeicao: mealType, indice: itemIndex } } : {}),
+          ...(custom ? { novo_alimento: draft.novo_alimento, novo_alimento_destino: { refeicao: mealType, indice: itemIndex, ...(state.dietDraft.semanal ? { dia: state.dietDay || 0 } : {}) } } : {}),
         };
-        const result = state.dietDraft.semanal ? saveWeeklyPreview(state, payload) : await requestDiets(editingId ? 'PATCH' : 'POST', payload);
+        const result = await requestDiets(editingId ? 'PATCH' : 'POST', payload);
         state.diets = editingId ? state.diets.map((diet) => Number(diet.id) === editingId ? result.row : diet) : [result.row, ...state.diets];
         state.dietEditingId = Number(result.row.id);
         state.dietSelectedId = Number(result.row.id);
         state.dietDraft = dietDraftFromDiet(result.row);
+        if (result.row.semanal) state.dietDraft.refeicoes = normalizeDietMeals(result.row.semana[state.dietDay || 0].refeicoes);
         if (result.food) {
           state.foodRows = [...state.foodRows.filter((entry) => Number(entry.id) !== Number(result.food.id)), result.food];
           state.rows = [...state.foodRows];
@@ -2806,7 +2844,7 @@ export async function renderSaudeContent(container) {
       try {
         const editingId = state.dietEditingId;
         const payload = { ...(editingId ? { id: editingId } : {}), ...state.dietDraft };
-        const result = state.dietDraft.semanal ? saveWeeklyPreview(state, payload) : await requestDiets(editingId ? 'PATCH' : 'POST', payload);
+        const result = await requestDiets(editingId ? 'PATCH' : 'POST', payload);
         state.diets = editingId
           ? state.diets.map((diet) => Number(diet.id) === editingId ? result.row : diet)
           : [result.row, ...state.diets];

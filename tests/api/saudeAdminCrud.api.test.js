@@ -32,6 +32,11 @@ describe('Administração dos perfis de Saúde', () => {
     const diet = await request(app).post('/api/saude?resource=dietas').send({ ...dietPayload, perfil_id: id });
     expect(diet.status).toBe(201);
     expect(diet.body.row.created_by).toBe('owner-a');
+    auth.userId = 'other-user'; auth.isAdmin = false;
+    expect((await request(app).patch('/api/saude?resource=dietas').send({id:diet.body.row.id,action:'alerta',alerta_ativo:true})).status).toBe(404);
+    auth.userId = 'admin'; auth.isAdmin = true;
+    expect((await request(app).patch('/api/saude?resource=dietas').send({id:diet.body.row.id,action:'alerta',alerta_ativo:true})).status).toBe(200);
+
     expect((await request(app).patch('/api/saude?resource=dietas').send({ ...dietPayload, perfil_id: id, id: diet.body.row.id, titulo: 'Ajustado' })).status).toBe(200);
 
     auth.userId = 'owner-a';
