@@ -3,6 +3,17 @@ const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency'
 const pct = value => value == null ? 'Não se aplica' : `${Number(value).toLocaleString('pt-BR')}%`;
 const month = value => new Date(`${value}-01T12:00:00Z`).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 const signed = value => `<span class="${value < 0 ? 'sim-neg' : 'sim-positive'}">${money(value)}</span>`;
+const currencyFields = ['preco', 'entrada', 'parcela'];
+export const formatMoneyValue = value => Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export function maskMoneyInput(value) {
+  const digits = String(value).replace(/\D/g, '');
+  return digits ? formatMoneyValue(Number(digits) / 100) : '';
+}
+export function parseMoneyInput(value) {
+  if (value === '') return 0;
+  if (!/^\d{1,3}(?:\.\d{3})*,\d{2}$/.test(String(value))) throw new Error('Informe os valores monetários no formato brasileiro.');
+  return Number(String(value).replace(/\./g, '').replace(',', '.'));
+}
 export async function renderSimulador(el, { onBack = () => {} } = {}) {
   if (!document.querySelector('[data-simulador-style]')) {
     const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = '/features/financeiro/simulador.css'; style.dataset.simuladorStyle = '1'; document.head.append(style);
@@ -11,9 +22,9 @@ export async function renderSimulador(el, { onBack = () => {} } = {}) {
     <header class="sim-head"><div><span class="sim-label">Financeiro</span><h2>Essa parcela cabe no seu orçamento?</h2></div><button type="button" data-sim-back>Voltar</button></header>
     <div data-sim-banner></div>
     <div class="sim-layout"><aside><form class="sim-card sim-form"><h3>Simular compra</h3>
-      <label>Nome da meta<input name="nome" value="Comprar um carro" maxlength="120" required></label>
-      <div class="sim-row"><label>Preço à vista (R$)<input name="preco" type="number" min="0.01" max="1000000000" step="0.01" value="20000" required></label><label>Entrada (R$)<input name="entrada" type="number" min="0" step="0.01" value="0" required></label></div>
-      <div class="sim-row"><label>Parcelas<input name="parcelas" type="number" min="1" max="600" value="60" required></label><label>Parcela (R$)<input name="parcela" type="number" min="0.01" max="1000000000" step="0.01" value="1000" required></label></div>
+      <label>Nome da meta<input name="nome" maxlength="120" required></label>
+      <div class="sim-row"><label>Preço à vista (R$)<input name="preco" type="text" inputmode="numeric" maxlength="18" required></label><label>Entrada (R$)<input name="entrada" type="text" inputmode="numeric" maxlength="18"></label></div>
+      <div class="sim-row"><label>Parcelas<input name="parcelas" type="number" inputmode="numeric" min="1" max="600" required></label><label>Parcela (R$)<input name="parcela" type="text" inputmode="numeric" maxlength="18" required></label></div>
       <div class="sim-row"><label>Histórico<select name="historico"><option value="6">6 meses</option><option value="12">12 meses</option><option value="all">Todo</option></select></label><label>Projeção<select name="horizonte"><option value="6">6 meses</option><option value="12">12 meses</option></select></label></div>
       <p class="sim-note">Parcelas mensais a partir do próximo mês.</p>
       <div class="sim-actions"><button class="sim-primary" type="submit">Simular</button><button type="button" data-sim-save disabled>Salvar meta</button></div>
@@ -41,7 +52,10 @@ export async function renderSimulador(el, { onBack = () => {} } = {}) {
   };
   const show = r => {
     result = r; save.disabled = !persistence || busy;
-    Object.entries(r.proposal).forEach(([key, value]) => { if (form.elements.namedItem(key)) form.elements.namedItem(key).value = value; });
+    Object.entries(r.proposal).forEach(([key, value]) => {
+      const field = form.elements.namedItem(key);
+      if (field) field.value = currencyFields.includes(key) ? (key === 'entrada' && value === 0 ? '' : formatMoneyValue(value)) : value;
+    });
     const s = r.resumo, purchase = r.compra;
     const purchaseHtml = `<h3>Custo da compra</h3><p>Total: <strong>${money(purchase.total)}</strong> · acréscimo: ${money(purchase.acrescimo)} (${pct(purchase.percentual)}).</p><p class="sim-note">Taxa mensal implícita estimada: ${pct(purchase.taxaMensal)}. Não equivale ao CET nem inclui custos adicionais. ${r.proposal.parcelas} parcelas no total.</p>`;
     if (!s) { root.querySelector('[data-sim-result]').innerHTML = `<section class="sim-card"><p>${esc(r.avisos[0])}</p><details class="sim-details"><summary>Ver custo da compra</summary>${purchaseHtml}</details></section>`; return; }
@@ -70,6 +84,7 @@ export async function renderSimulador(el, { onBack = () => {} } = {}) {
     busy = true; root.querySelectorAll('button').forEach(b => { b.disabled = true; }); status.textContent = 'Consultando histórico e calculando…';
     try {
       const parametros = Object.fromEntries(new FormData(form));
+      currencyFields.forEach(key => { parametros[key] = parseMoneyInput(parametros[key]); });
       const data = await request({ acao, id, parametros }); if (!alive()) return;
       show(data.resultado); status.textContent = acao === 'simular' ? '' : 'Simulação salva.';
       if (acao !== 'simular') { await refreshSaved(); root.querySelector('.sim-saved').open = true; }
@@ -77,7 +92,17 @@ export async function renderSimulador(el, { onBack = () => {} } = {}) {
     finally { busy = false; if (alive()) { root.querySelectorAll('button').forEach(b => { b.disabled = false; }); save.disabled = !result || !persistence; } }
   };
   form.addEventListener('submit', e => { e.preventDefault(); execute('simular'); });
-  form.addEventListener('input', () => { result = null; save.disabled = true; status.textContent = 'Condições alteradas. Analise novamente antes de salvar.'; });
+  form.addEventListener('input', event => {
+    const field = event.target;
+    if (currencyFields.includes(field.name)) {
+      const digitsAfter = field.value.slice(field.selectionStart ?? field.value.length).replace(/\D/g, '').length;
+      field.value = maskMoneyInput(field.value);
+      let caret = field.value.length, remaining = digitsAfter;
+      while (caret > 0 && remaining > 0) { caret--; if (/\d/.test(field.value[caret])) remaining--; }
+      field.setSelectionRange(caret, caret);
+    }
+    result = null; save.disabled = true; status.textContent = 'Condições alteradas. Analise novamente antes de salvar.';
+  });
   form.addEventListener('change', () => { result = null; save.disabled = true; });
   root.addEventListener('click', e => {
     const button = e.target.closest('button'); if (!button || button.disabled || busy) return;
@@ -86,7 +111,6 @@ export async function renderSimulador(el, { onBack = () => {} } = {}) {
     if (button.dataset.simRepeat) execute('repetir', button.dataset.simRepeat);
     if (button.dataset.simView) {
       const record = records.find(r => r.id === button.dataset.simView); if (!record) return;
-      Object.entries(record.parametros).forEach(([key, value]) => { if (form.elements.namedItem(key)) form.elements.namedItem(key).value = value; });
       show(record.resultado); status.textContent = 'Resultado salvo. Use Repetir simulação para atualizar a base.';
     }
   });
