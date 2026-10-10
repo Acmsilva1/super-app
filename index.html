@@ -9840,7 +9840,8 @@
                             <li class="fin-kv"><span class="fin-kv__label">Gastos PIX / débito</span><span class="fin-kv__value is-neg">${money(variadasVal)}</span></li>
                             <li class="fin-kv"><span class="fin-kv__label">Poupança acumulada</span><span class="fin-kv__value">${money(poupancaTotal)}</span></li>
                             <li class="fin-kv fin-kv--total"><span class="fin-kv__label">Saldo do mês</span><span class="fin-kv__value ${saldoVal < 0 ? 'is-neg' : 'is-pos'}">${money(saldoVal)}</span></li>
-                        </ul>`;
+                        </ul>
+                        <section data-finance-trend-host aria-label="Evolução financeira"><p class="fin-empty">Carregando evolução financeira…</p></section>`;
                 } else if (screen === 'fixas') {
                     const importHtml = despesasFixas.length === 0 ? `
                         <div class="fin-callout" role="region" aria-label="Preencher despesas fixas">
@@ -9935,6 +9936,20 @@
                         ${footerHtml ? `<div class="fin-footer"><div class="fin-footer__inner">${footerHtml}</div></div>` : ''}
                     </div>
                 `;
+
+                if (screen === 'hub') {
+                    const trendHost = el.querySelector('[data-finance-trend-host]');
+                    import('./features/financeiro/tendenciaUi.js').then(({ renderFinanceTrend }) => {
+                        if (!trendHost.isConnected) return;
+                        return renderFinanceTrend(trendHost, {
+                            currentData: data,
+                            year: el._financeTrendYear,
+                            onYearChange: (year) => { el._financeTrendYear = year; },
+                        });
+                    }).catch(() => {
+                        if (trendHost.isConnected) trendHost.textContent = 'Não foi possível abrir o gráfico.';
+                    });
+                }
 
                 const shell = el.querySelector('.fin-bank');
                 const footer = el.querySelector('.fin-footer');

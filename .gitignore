@@ -106,3 +106,4 @@ checkpoint.txt
 
 # Prévia independente do Simulador (o app usa simuladorUi.js)
 /features/financeiro/prototipo.html
+/features/financeiro/prototipo-tendencia.html
