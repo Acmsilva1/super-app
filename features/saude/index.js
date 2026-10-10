@@ -209,6 +209,9 @@ const SAUDE_STYLES = `
     .saude-meal-item__actions .saude-icon-btn { width: 2.15rem; height: 2.15rem; }
     .saude-meal-empty { margin: .7rem 0 0; color: var(--saude-texto-secundario); font-size: .76rem; }
     .saude-diet-modal { width: min(100%, 48rem); max-height: min(90dvh, 52rem); overflow: auto; padding: 1.1rem; border: 1px solid rgba(74, 164, 85, .42); border-radius: 1.1rem; background: radial-gradient(circle at 15% 0%, rgba(50, 119, 70, .16), transparent 18rem), #0f172a; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); }
+    .saude-diet-week-nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:1rem 0;padding:.65rem;border:1px solid rgba(74,164,85,.4);border-radius:.8rem;background:rgba(50,119,70,.12)}
+    .saude-diet-week-nav div{text-align:center}.saude-diet-week-nav small{display:block;margin-top:.25rem;color:var(--saude-texto-secundario)}
+    .saude-diet-type-options{display:grid;gap:.8rem}.saude-diet-type-options button{display:flex;flex-direction:column;align-items:flex-start;padding:1rem;white-space:normal;text-align:left}.saude-diet-type-options span{font-weight:400;margin-top:.3rem}
     .saude-diet-modal--item { width: min(100%, 31rem); }
     .saude-diet-modal__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
     .saude-diet-modal__header h3 { margin: 0; }
@@ -660,7 +663,7 @@ function renderProfileDietSection(profile, state) {
   const items = rows.length
     ? rows.map((diet) => `<li><button type="button" class="fin-nav-row saude-diet-row" data-saude-action="view-diet" data-saude-id="${escapeHtml(diet.id)}" aria-label="Abrir ${escapeHtml(diet.titulo)}">
         <i class="fas fa-utensils fin-nav-row__icon" aria-hidden="true"></i>
-        <span class="fin-entry__main"><span class="fin-entry__title">${escapeHtml(diet.titulo)}</span><span class="fin-entry__meta">${countDietItems(diet.refeicoes)} itens</span></span>
+        <span class="fin-entry__main"><span class="fin-entry__title">${escapeHtml(diet.titulo)}</span><span class="fin-entry__meta">${diet.semanal ? 'Semanal · 7 dias · Prévia local' : `${countDietItems(diet.refeicoes)} itens`}</span></span>
         <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
       </button></li>`).join('')
     : '<li class="fin-empty">Nenhuma dieta cadastrada para este perfil.</li>';
@@ -784,6 +787,29 @@ function renderTabelaNutricional(container, state) {
   `);
 }
 
+const DIET_WEEK = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+
+function dietItemCount(diet) {
+  return diet.semanal ? diet.semana.reduce((sum, day) => sum + countDietItems(day.refeicoes), 0) : countDietItems(diet.refeicoes);
+}
+
+function syncDietWeek(state) {
+  if (state.dietDraft?.semanal) state.dietDraft.semana[state.dietDay || 0].refeicoes = normalizeDietMeals(state.dietDraft.refeicoes);
+}
+
+function renderDietDayNav(diet, state) {
+  if (!diet.semanal) return '';
+  return `<div class="saude-diet-week-nav"><button type="button" class="saude-icon-btn" data-saude-action="diet-day-prev" aria-label="Dia anterior"><i class="fas fa-chevron-left"></i></button><div aria-live="polite"><strong>${DIET_WEEK[state.dietDay || 0]}</strong><small>${(state.dietDay || 0) + 1} de 7 · Dieta semanal</small></div><button type="button" class="saude-icon-btn" data-saude-action="diet-day-next" aria-label="Próximo dia"><i class="fas fa-chevron-right"></i></button></div>`;
+}
+
+function saveWeeklyPreview(state, payload) {
+  syncDietWeek(state);
+  const row = { ...payload, semana: structuredClone(state.dietDraft.semana), id: state.dietEditingId || -Date.now(), semanal: true };
+  row.semana[state.dietDay || 0].refeicoes = normalizeDietMeals(payload.refeicoes);
+  state.weeklyPreviews = [...(state.weeklyPreviews || []).filter(diet => diet.id !== row.id), row];
+  return { row };
+}
+
 function blankDietDraft(profileId = null) {
   return {
     perfil_id: profileId ? Number(profileId) : null,
@@ -796,6 +822,7 @@ function blankDietDraft(profileId = null) {
 
 function dietDraftFromDiet(diet) {
   return {
+    ...(diet?.semanal ? { semanal: true, semana: structuredClone(diet.semana) } : {}),
     perfil_id: diet?.perfil_id ? Number(diet.perfil_id) : null,
     titulo: String(diet?.titulo || ''),
     meta_calorias: diet?.meta_calorias == null ? '' : String(diet.meta_calorias),
@@ -826,6 +853,7 @@ function renderDietMealEditor(meal, foods = []) {
 }
 
 function renderDietForm(state) {
+  if (state.dietTypeChoice) return `<div class="saude-modal-backdrop"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-type-title"><div class="saude-diet-modal__header"><div><h3 id="diet-type-title">Criar dieta</h3><p>Como deseja organizar os alimentos?</p></div><button type="button" class="saude-icon-btn" data-saude-action="cancel-diet-editor" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div><div class="saude-diet-type-options"><button type="button" class="saude-btn" data-saude-action="diet-type-single"><strong>Dieta única</strong><span>Um plano, sem replicação.</span></button><button type="button" class="saude-btn" data-saude-action="diet-type-week"><strong>Dieta semanal</strong><span>Alimentos separados de segunda a domingo.</span></button></div></section></div>`;
   if (!state.dietEditorOpen) return '';
   const profiles = state.profiles || [];
   const inProfileDetail = state.view === 'profile-detail';
@@ -859,7 +887,7 @@ function renderDietForm(state) {
         </div>
         <form class="saude-diet-form" data-saude-diet-form style="margin:0;padding:0;background:transparent;border:0;box-shadow:none;">
           <div class="saude-diet-form__grid">${profileField}</div>
-          <div class="saude-meal-builder">${normalizeDietMeals(draft.refeicoes).map((meal) => renderDietMealEditor(meal, state.foodRows)).join('')}</div>${renderDietNutritionTotal(draft, state.foodRows)}<p class="saude-diet-copy">Cada alimento é salvo na dieta ao confirmar o item.</p>
+          ${renderDietDayNav(draft, state)}${draft.semanal ? '<p class="saude-diet-copy">Prévia local: alterações ficam nesta sessão. Cadastre os alimentos de cada dia.</p>' : ''}<div class="saude-meal-builder">${normalizeDietMeals(draft.refeicoes).map((meal) => renderDietMealEditor(meal, state.foodRows)).join('')}</div>${renderDietNutritionTotal(draft, state.foodRows)}<p class="saude-diet-copy">Cada alimento é salvo na dieta ao confirmar o item.</p>
           <div class="saude-field-group" style="margin-top:.8rem"><label for="diet-meta-calorias">Meta calórica diária (kcal)</label><input id="diet-meta-calorias" name="meta_calorias" class="saude-field" type="number" min="500" max="10000" step="1" value="${escapeHtml(draft.meta_calorias)}" placeholder="Ex.: 2000"><small>O alerta compara a soma planejada dos alimentos com esta meta.</small></div>
           <div class="saude-field-group" style="margin-top:.8rem"><label for="diet-observacoes">Observações</label><textarea id="diet-observacoes" name="observacoes" class="saude-field" maxlength="4000" rows="2">${escapeHtml(draft.observacoes)}</textarea></div>
           <div class="saude-editor__actions">
@@ -918,11 +946,12 @@ function renderDietOverlay(state) {
   if (!diet) return '';
   const profile = (state.profiles || []).find((p) => Number(p.id) === Number(diet.perfil_id));
   const showProfileName = state.view !== 'profile-detail' && profile;
-  const meals = normalizeDietMeals(diet.refeicoes).filter((meal) => meal.itens.length > 0);
+  const displayedDiet = diet.semanal ? { ...diet, refeicoes: diet.semana[state.dietDay || 0].refeicoes } : diet;
+  const meals = normalizeDietMeals(displayedDiet.refeicoes).filter((meal) => meal.itens.length > 0);
   const mealContent = meals.length
     ? `<div class="saude-diet-detail-meals">${meals.map((meal) => `<section class="saude-diet-detail-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="saude-diet-detail-item">${renderDietFoodDetails(item, state.foodRows)}</div>`).join('')}</section>`).join('')}</div>`
     : '<div class="saude-empty"><i class="fas fa-bowl-food"></i>Nenhum item cadastrado nesta dieta.</div>';
-  return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-detail-title"><div class="saude-diet-modal__header"><div><h3 id="diet-detail-title">${escapeHtml(diet.titulo)}</h3>${showProfileName ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;"><i class="fas fa-user"></i> ${escapeHtml(profile.nome)}</p>` : ''}${diet.meta_calorias ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;">Meta diária: ${escapeHtml(diet.meta_calorias)} kcal</p>` : ''}</div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${mealContent}${renderDietNutritionTotal(diet, state.foodRows)}${diet.observacoes ? `<div class="saude-diet-section"><h4>Observações</h4><p class="saude-diet-copy">${escapeHtml(diet.observacoes)}</p></div>` : ''}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--danger" data-saude-action="delete-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-trash"></i> Excluir</button><button type="button" class="saude-btn" data-saude-action="edit-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-pencil"></i> Editar</button><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-modal">Fechar</button></div></section></div>`;
+  return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-detail-title"><div class="saude-diet-modal__header"><div><h3 id="diet-detail-title">${escapeHtml(diet.titulo)}</h3>${showProfileName ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;"><i class="fas fa-user"></i> ${escapeHtml(profile.nome)}</p>` : ''}${diet.meta_calorias ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;">Meta diária: ${escapeHtml(diet.meta_calorias)} kcal</p>` : ''}</div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${renderDietDayNav(diet, state)}${mealContent}${renderDietNutritionTotal(displayedDiet, state.foodRows)}${diet.observacoes ? `<div class="saude-diet-section"><h4>Observações</h4><p class="saude-diet-copy">${escapeHtml(diet.observacoes)}</p></div>` : ''}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--danger" data-saude-action="delete-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-trash"></i> Excluir</button><button type="button" class="saude-btn" data-saude-action="edit-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-pencil"></i> Editar</button><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-modal">Fechar</button></div></section></div>`;
 }
 
 function renderDietas(container, state) {
@@ -1003,7 +1032,7 @@ async function loadDietas(container, state) {
     const profilesData = await profilesResponse.json().catch(() => ({}));
     if (!dietsResponse.ok) throw new Error(dietsData.error || 'O endpoint de dietas não respondeu corretamente.');
     if (!profilesResponse.ok) throw new Error(profilesData.error || 'O endpoint de perfis não respondeu corretamente.');
-    state.diets = Array.isArray(dietsData.rows) ? dietsData.rows : [];
+    state.diets = [...(Array.isArray(dietsData.rows) ? dietsData.rows : []), ...(state.weeklyPreviews || [])];
     state.profiles = Array.isArray(profilesData.rows) ? profilesData.rows : [];
     if (state.profiles.length > 0) {
       if (!state.dietSelectedProfileId || !state.profiles.some((p) => Number(p.id) === Number(state.dietSelectedProfileId))) {
@@ -1478,7 +1507,7 @@ function renderProfileDetail(container, state) {
     addButton = renderAddButton('adjust-weight', 'Registrar peso', ` data-saude-id="${id}"`);
   } else if (screen === 'dietas') {
     const diets = dietsForProfile(state, profile.id);
-    const totalItems = diets.reduce((total, diet) => total + countDietItems(diet.refeicoes), 0);
+    const totalItems = diets.reduce((total, diet) => total + dietItemCount(diet), 0);
     title = 'Dietas';
     back = backToHub;
     body = renderProfileDietSection(profile, state);
@@ -2276,7 +2305,9 @@ export async function renderSaudeContent(container) {
         return;
       }
       state.dietSelectedProfileId = Number(profileId);
-      state.dietEditorOpen = true;
+      state.dietTypeChoice = true;
+      state.dietEditorOpen = false;
+      state.dietDay = 0;
       state.dietEditingId = null;
       state.dietDraft = blankDietDraft(profileId);
       state.dietModal = null;
@@ -2285,7 +2316,26 @@ export async function renderSaudeContent(container) {
       requestAnimationFrame(() => container.querySelector('#diet-titulo')?.focus());
       return;
     }
+    if (action === 'diet-type-single' || action === 'diet-type-week') {
+      state.dietTypeChoice = false;
+      state.dietEditorOpen = true;
+      if (action === 'diet-type-week') {
+        state.dietDraft.semanal = true;
+        state.dietDraft.semana = DIET_WEEK.map(titulo => ({ titulo, refeicoes: createEmptyDietMeals() }));
+      }
+      renderActiveSaudeView(container, state);
+      return;
+    }
+    if (action === 'diet-day-prev' || action === 'diet-day-next') {
+      captureDietFormFields(container, state);
+      syncDietWeek(state);
+      state.dietDay = ((state.dietDay || 0) + (action === 'diet-day-next' ? 1 : 6)) % 7;
+      if (state.dietEditorOpen && state.dietDraft.semanal) state.dietDraft.refeicoes = normalizeDietMeals(state.dietDraft.semana[state.dietDay].refeicoes);
+      renderActiveSaudeView(container, state);
+      return;
+    }
     if (action === 'cancel-diet-editor') {
+      state.dietTypeChoice = false;
       state.dietEditorOpen = false;
       state.dietEditingId = null;
       state.dietModal = null;
@@ -2296,6 +2346,7 @@ export async function renderSaudeContent(container) {
       const diet = state.diets.find((item) => Number(item.id) === Number(actionElement.dataset.saudeId));
       if (diet) {
         state.dietSelectedId = Number(diet.id);
+        state.dietDay = 0;
         state.dietModal = 'detail';
         renderActiveSaudeView(container, state);
       }
@@ -2372,7 +2423,9 @@ export async function renderSaudeContent(container) {
       if (!diet) return;
       state.dietEditorOpen = true;
       state.dietEditingId = Number(diet.id);
+      state.dietDay = 0;
       state.dietDraft = dietDraftFromDiet(diet);
+      if (diet.semanal) state.dietDraft.refeicoes = normalizeDietMeals(diet.semana[0].refeicoes);
       if (diet.perfil_id) state.dietSelectedProfileId = Number(diet.perfil_id);
       state.dietModal = null;
       state.notice = null;
@@ -2391,7 +2444,8 @@ export async function renderSaudeContent(container) {
       if (!confirmed) return;
       let deleted = false;
       try {
-        await requestDiets('DELETE', { id });
+        if (diet.semanal) state.weeklyPreviews = (state.weeklyPreviews || []).filter(row => row.id !== id);
+        else await requestDiets('DELETE', { id });
         state.diets = state.diets.filter((item) => Number(item.id) !== id);
         state.dietModal = null;
         state.dietSelectedId = null;
@@ -2660,6 +2714,11 @@ export async function renderSaudeContent(container) {
       captureDietFormFields(container, state);
       const draft = state.dietItemDraft;
       const custom = draft.selected_food === '__other__';
+      if (custom && state.dietDraft.semanal) {
+        state.dietItemError = 'Nesta prévia semanal, selecione um alimento existente no catálogo.';
+        renderActiveSaudeView(container, state);
+        return;
+      }
       const food = custom ? { ...draft.novo_alimento, id: null } : state.foodRows.find((entry) => String(entry.id) === draft.selected_food);
       const item = {
         nome: custom ? food?.item : food?.item,
@@ -2689,10 +2748,11 @@ export async function renderSaudeContent(container) {
       renderActiveSaudeView(container, state);
       try {
         const editingId = state.dietEditingId;
-        const result = await requestDiets(editingId ? 'PATCH' : 'POST', {
+        const payload = {
           ...(editingId ? { id: editingId } : {}), ...state.dietDraft, refeicoes,
           ...(custom ? { novo_alimento: draft.novo_alimento, novo_alimento_destino: { refeicao: mealType, indice: itemIndex } } : {}),
-        });
+        };
+        const result = state.dietDraft.semanal ? saveWeeklyPreview(state, payload) : await requestDiets(editingId ? 'PATCH' : 'POST', payload);
         state.diets = editingId ? state.diets.map((diet) => Number(diet.id) === editingId ? result.row : diet) : [result.row, ...state.diets];
         state.dietEditingId = Number(result.row.id);
         state.dietSelectedId = Number(result.row.id);
@@ -2726,14 +2786,16 @@ export async function renderSaudeContent(container) {
         renderActiveSaudeView(container, state);
         return;
       }
+      syncDietWeek(state);
       state.dietDraft = {
+        ...state.dietDraft,
         perfil_id: perfilId,
         titulo: String(values.get('titulo') || '').trim(),
         meta_calorias: String(values.get('meta_calorias') || '').trim(),
         observacoes: String(values.get('observacoes') || '').trim(),
         refeicoes: normalizeDietMeals(state.dietDraft.refeicoes),
       };
-      if (countDietItems(state.dietDraft.refeicoes) === 0) {
+      if ((state.dietDraft.semanal ? state.dietDraft.semana.reduce((sum, day) => sum + countDietItems(day.refeicoes), 0) : countDietItems(state.dietDraft.refeicoes)) === 0) {
         state.notice = { type: 'error', text: 'Adicione pelo menos um alimento antes de salvar a dieta.' };
         renderActiveSaudeView(container, state);
         return;
@@ -2743,7 +2805,8 @@ export async function renderSaudeContent(container) {
       renderActiveSaudeView(container, state);
       try {
         const editingId = state.dietEditingId;
-        const result = await requestDiets(editingId ? 'PATCH' : 'POST', { ...(editingId ? { id: editingId } : {}), ...state.dietDraft });
+        const payload = { ...(editingId ? { id: editingId } : {}), ...state.dietDraft };
+        const result = state.dietDraft.semanal ? saveWeeklyPreview(state, payload) : await requestDiets(editingId ? 'PATCH' : 'POST', payload);
         state.diets = editingId
           ? state.diets.map((diet) => Number(diet.id) === editingId ? result.row : diet)
           : [result.row, ...state.diets];

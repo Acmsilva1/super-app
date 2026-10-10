@@ -8905,7 +8905,7 @@
                 }
                 if (appId === 'saude') {
                     try {
-                        const mod = await import('./features/saude/index.js?v=2026-10-03-saude-bank-v6');
+                        const mod = await import('./features/saude/index.js?v=2026-10-10-diet-week-preview');
                         await mod.renderSaudeContent(contentEl);
                         this.resetModuleWindowScroll(appId, contentEl);
                     } catch (err) {
