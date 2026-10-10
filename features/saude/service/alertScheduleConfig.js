@@ -26,6 +26,8 @@ export function validateDietAlertTimes(value) {
 export const DEFAULT_ALERT_SCHEDULE = {
   agua_ativo: true,
   agua_intervalo_horas: 3,
+  agua_inicio: WATER_ALERT_START,
+  agua_fim: WATER_ALERT_END,
   dieta_ativa: true,
   dieta_id: null,
   dieta_horarios: DIET_ALERT_MEALS.map(entry => ({ ...entry })),
@@ -34,6 +36,8 @@ export const DEFAULT_ALERT_SCHEDULE = {
 export function normalizeAlertSchedule(row = null) {
   return {
     agua_ativo: row?.agua_ativo !== false,
+    agua_inicio: row?.agua_inicio ?? WATER_ALERT_START,
+    agua_fim: row?.agua_fim ?? WATER_ALERT_END,
     agua_intervalo_horas: WATER_ALERT_INTERVALS.includes(Number(row?.agua_intervalo_horas))
       ? Number(row.agua_intervalo_horas)
       : DEFAULT_ALERT_SCHEDULE.agua_intervalo_horas,
@@ -50,6 +54,10 @@ export function validateAlertSchedule(payload) {
   if (typeof payload.agua_ativo !== 'boolean' || typeof payload.dieta_ativa !== 'boolean') {
     return { error: 'Informe se cada alerta esta ativo.' };
   }
+  const agua_inicio = payload.agua_inicio ?? WATER_ALERT_START;
+  const agua_fim = payload.agua_fim ?? WATER_ALERT_END;
+  const validTime = value => typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+  if (!validTime(agua_inicio) || !validTime(agua_fim) || agua_fim <= agua_inicio) return { error: 'Informe início e fim válidos; o fim deve ser depois do início, no mesmo dia.' };
   const interval = Number(payload.agua_intervalo_horas);
   if (!WATER_ALERT_INTERVALS.includes(interval)) return { error: 'Escolha um intervalo inteiro entre 1 e 12 horas.' };
   const dietId = payload.dieta_id == null || payload.dieta_id === '' ? null : Number(payload.dieta_id);
@@ -57,5 +65,5 @@ export function validateAlertSchedule(payload) {
   const times = validateDietAlertTimes(payload.dieta_horarios ?? DEFAULT_ALERT_SCHEDULE.dieta_horarios);
   if (times.error) return times;
   if (payload.dieta_ativa && !times.data.length) return { error: 'Adicione um horário antes de ligar os alertas de dieta.' };
-  return { data: { dieta_horarios: times.data, agua_ativo: payload.agua_ativo, agua_intervalo_horas: interval, dieta_ativa: payload.dieta_ativa, dieta_id: dietId } };
+  return { data: { agua_inicio, agua_fim, dieta_horarios: times.data, agua_ativo: payload.agua_ativo, agua_intervalo_horas: interval, dieta_ativa: payload.dieta_ativa, dieta_id: dietId } };
 }

@@ -117,3 +117,11 @@ it('envia em minuto personalizado por perfil e ignora o antigo horário fixo',as
  expect(transport).toHaveBeenCalledOnce();const message=JSON.parse(transport.mock.calls[0][1].body);expect(message.message).toContain('12:17');expect(message.message).toContain('Meu horário');expect(message.message).not.toContain('Outro perfil');
  transport.mockClear();await runSaudeAlertSlot(new Date('2026-10-05T14:05:00Z'));expect(transport).not.toHaveBeenCalled();
 });
+
+it('água começa no minuto configurado, repete pelo intervalo e termina na janela',async()=>{
+ vi.stubEnv('SAUDE_ALERTS_ENABLED','true');vi.stubEnv('SAUDE_ALERTS_OWNER_USER_ID','f88a6351-317d-425b-afcd-9430c8a34f53');vi.stubEnv('ALERTS_API_URL','https://example.invalid/api/telegram-alert');vi.stubEnv('ALERTS_API_TOKEN','x'.repeat(32));
+ state.rows.tb_saude_alertas_agenda=[{perfil_id:1,agua_ativo:true,agua_inicio:'08:17',agua_fim:'14:17',agua_intervalo_horas:3,dieta_ativa:false}];
+ const transport=vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,telegram_message_id:1})});vi.stubGlobal('fetch',transport);
+ for(const time of ['11:22','14:22','17:22']){transport.mockClear();await runSaudeAlertSlot(new Date(`2026-10-05T${time}:00Z`));expect(transport).toHaveBeenCalledOnce();}
+ for(const time of ['10:37','18:22']){transport.mockClear();await runSaudeAlertSlot(new Date(`2026-10-05T${time}:00Z`));expect(transport).not.toHaveBeenCalled();}
+});

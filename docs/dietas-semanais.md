@@ -19,3 +19,7 @@ Aplicar também `20261010_add_saude_dieta_alerta_ativo.sql` antes do deploy. Die
 Aplicar `20261010_add_saude_dieta_horarios.sql` antes desta versão. Os Agendadores do perfil permitem até 12 avisos, cada um com refeição e horário de Brasília. Horários repetidos para a mesma refeição são recusados. As configurações atuais mantêm 07h/11h/15h/19h como padrão até serem alteradas. Salvar persiste a agenda; o scheduler consulta o banco a cada execução, sem reiniciar o bot ou alterar o cron.
 
 O acionador existente consulta a cada cinco minutos e pode sofrer atrasos do provedor. O bot busca horários devidos na última hora e evita repetição pelas chaves de entrega persistidas. Alterações salvas não disparam retroativamente os horários anteriores ao salvamento. Água mantém seu intervalo e janela atuais. A pausa geral e o on/off individual das dietas continuam sendo respeitados.
+
+## Janela da água — V.1.7.0
+
+Aplicar `20261010_add_saude_agua_janela.sql` antes do deploy. Início e fim ficam salvos por perfil, com padrão anterior de 07:30 a 22:30. A janela deve começar e terminar no mesmo dia, com fim após início. O bot envia no início e nos intervalos de horas a partir dele, até o limite final; não força um aviso no fim se o intervalo não coincidir. O início aceita minutos livres. O acionador periódico e a recuperação da última hora também atendem a água, respeitando a janela, a pausa do perfil e a deduplicação persistida. Salvar atualiza a configuração lida nas próximas execuções.

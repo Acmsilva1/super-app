@@ -1,6 +1,6 @@
 import { DIET_MEALS, dietForDate } from './dietasService.js';
 import { enrichDietNutrition, nutritionForDietItem } from './alimentosService.js';
-import { DEFAULT_ALERT_SCHEDULE, normalizeAlertSchedule, WATER_ALERT_END, WATER_ALERT_START } from './alertScheduleConfig.js';
+import { DEFAULT_ALERT_SCHEDULE, normalizeAlertSchedule } from './alertScheduleConfig.js';
 
 const TIME_ZONE = 'America/Sao_Paulo';
 const SAFE_DELIVERY_ERRORS = new Set([
@@ -99,7 +99,7 @@ async function loadAlertData(config, today) {
       .select('id,perfil_id,titulo,refeicoes,semanal,semana,alerta_ativo,updated_at')
       .order('id', { ascending: true }),
     supabase.from('tb_saude_alertas_agenda')
-      .select('perfil_id,agua_ativo,agua_intervalo_horas,dieta_ativa,dieta_id,dieta_horarios,updated_at'),
+      .select('perfil_id,agua_ativo,agua_intervalo_horas,agua_inicio,agua_fim,dieta_ativa,dieta_id,dieta_horarios,updated_at'),
     supabase.from('tb_saude_alimentos')
       .select('id,item,porcao_equivalente,peso_referencia_g,peso_unidade_g,kcal_100g,proteina_100g,carboidrato_100g,gordura_100g')
       .order('source_order', { ascending: true }),
@@ -120,7 +120,7 @@ async function loadAlertData(config, today) {
   const logs = new Map((logsResult.data || []).map((row) => [String(row.perfil_id), row]));
   const diets = dietsResult.data || [];
   const schedules = new Map((scheduleTableMissing ? [] : (schedulesResult.data || []))
-    .map((row) => [String(row.perfil_id), normalizeAlertSchedule(row)]));
+    .map((row) => [String(row.perfil_id), { ...normalizeAlertSchedule(row), updated_at: row.updated_at }]));
   return { profiles, goals, logs, diets, schedules, foods: foodsTableMissing ? [] : (availableFoods.data || []) };
 }
 
@@ -267,7 +267,7 @@ export async function previewAllDietAlerts(now = new Date()) {
   });
 }
 
-async function dispatchCurrentSlot(config, value, data, { waterAllowed = true } = {}) {
+async function dispatchCurrentSlot(config, value, data) {
   const { date, time } = saoPauloClock(value);
   const failures = [];
   let alertsSent = 0;
@@ -278,9 +278,9 @@ async function dispatchCurrentSlot(config, value, data, { waterAllowed = true } 
       const profileKey = String(profile.id);
       const schedule = data.schedules.get(profileKey) || defaults;
       const minuteOfDay = Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
-      const waterStart = Number(WATER_ALERT_START.slice(0, 2)) * 60 + Number(WATER_ALERT_START.slice(3, 5));
-      const waterEnd = Number(WATER_ALERT_END.slice(0, 2)) * 60 + Number(WATER_ALERT_END.slice(3, 5));
-      if (waterAllowed && schedule.agua_ativo && minuteOfDay >= waterStart && minuteOfDay <= waterEnd
+      const waterStart = Number(schedule.agua_inicio.slice(0, 2)) * 60 + Number(schedule.agua_inicio.slice(3, 5));
+      const waterEnd = Number(schedule.agua_fim.slice(0, 2)) * 60 + Number(schedule.agua_fim.slice(3, 5));
+      if ((!data.schedules.get(profileKey)?.updated_at || new Date(data.schedules.get(profileKey).updated_at).getTime() <= value.getTime()) && schedule.agua_ativo && minuteOfDay >= waterStart && minuteOfDay <= waterEnd
         && (minuteOfDay - waterStart) % (schedule.agua_intervalo_horas * 60) === 0) {
         try {
           alertsSent += await dispatchWaterForProfile({ ...config, ownerId: profile.created_by || config.ownerId }, data, profile, date, time);
@@ -324,7 +324,6 @@ export async function runSaudeAlertSlot(now = new Date(), {deadline = Date.now()
   const { data: roles, error } = await config.client.from('app_user_roles').select('role').eq('user_id', config.ownerId);
   if (error || !roles?.some(row => ['owner', 'admin'].includes(row.role))) throw new Error('alerts_owner_invalid');
   const start = new Date(Math.floor(now.getTime() / 60000) * 60000);
-  const waterStart = Math.floor(now.getTime() / 1800000) * 1800000;
   const failures = [];
   let alertsSent = 0;
   const dates = new Map();
@@ -334,7 +333,7 @@ export async function runSaudeAlertSlot(now = new Date(), {deadline = Date.now()
     const { date } = saoPauloClock(slot);
     try {
       if (!dates.has(date)) dates.set(date, await loadAlertData(config, date));
-      const result = await dispatchCurrentSlot(config, slot, dates.get(date), { waterAllowed: [waterStart, waterStart - 1800000].includes(slot.getTime()) });
+      const result = await dispatchCurrentSlot(config, slot, dates.get(date));
       alertsSent += result.alertsSent;
       failures.push(...result.failures);
     } catch (error) { failures.push(error); if (!dates.has(date)) break; }

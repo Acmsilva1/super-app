@@ -7,7 +7,7 @@ import { calcularImc, calcularLarguraGraficoPeso, classificarImc, criarCurvaSuav
 import { countDietItems, createEmptyDietMeals, DIET_MEALS, normalizeDietMeals } from './service/dietasService.js';
 import { dietQuantity, matchFoodForDietItem, nutritionForDietItem } from './service/alimentosService.js';
 import { DIET_NUTRITION_STYLES, renderDietFoodDetails, renderDietNutritionTotal } from './dietNutritionView.js';
-import { DEFAULT_ALERT_SCHEDULE, WATER_ALERT_END, WATER_ALERT_START } from './service/alertScheduleConfig.js';
+import { DEFAULT_ALERT_SCHEDULE } from './service/alertScheduleConfig.js';
 import {
   deleteLocalWaterGoal,
   deleteLocalWaterProfile,
@@ -1457,7 +1457,7 @@ function captureAlertScheduleForm(container, state) {
   if (!form) return;
   const values = new FormData(form);
   const times = values.getAll('dieta_horario');
-  state.alertSchedule = { ...state.alertSchedule, agua_ativo: values.has('agua_ativo'), dieta_ativa: values.has('dieta_ativa'), agua_intervalo_horas: Number(values.get('agua_intervalo_horas')), dieta_horarios: values.getAll('dieta_refeicao').map((tipo,index) => ({ tipo, horario: times[index] })) };
+  state.alertSchedule = { ...state.alertSchedule, agua_ativo: values.has('agua_ativo'), agua_inicio: String(values.get('agua_inicio') || ''), agua_fim: String(values.get('agua_fim') || ''), dieta_ativa: values.has('dieta_ativa'), agua_intervalo_horas: Number(values.get('agua_intervalo_horas')), dieta_horarios: values.getAll('dieta_refeicao').map((tipo,index) => ({ tipo, horario: times[index] })) };
 }
 
 function renderProfileAlertSchedules(profile, state) {
@@ -1473,7 +1473,7 @@ function renderProfileAlertSchedules(profile, state) {
     <form data-alert-schedule-form data-profile-id="${escapeHtml(profile.id)}">
       <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
         <legend><label><input type="checkbox" name="agua_ativo"${schedule.agua_ativo ? ' checked' : ''}> Alertas de água</label></legend>
-        <p class="saude-alert-help">Começa às ${WATER_ALERT_START} e repete até ${WATER_ALERT_END}.</p>
+        <div class="saude-alert-time-row"><label>Horário de início<input type="time" class="saude-field" name="agua_inicio" value="${escapeHtml(schedule.agua_inicio)}" required></label><label>Horário de fim<input type="time" class="saude-field" name="agua_fim" value="${escapeHtml(schedule.agua_fim)}" required></label></div><p class="saude-alert-help">Repete a partir do início, dentro desta janela no mesmo dia. Horário de Brasília.</p>
         <label class="saude-alert-meal-row"><span>Intervalo entre alertas</span><select class="saude-field" name="agua_intervalo_horas">${Array.from({ length: 12 }, (_, index) => index + 1).map((hours) => `<option value="${hours}"${Number(schedule.agua_intervalo_horas) === hours ? ' selected' : ''}>A cada ${hours} ${hours === 1 ? 'hora' : 'horas'}</option>`).join('')}</select></label>
       </fieldset>
       <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
@@ -1482,7 +1482,7 @@ function renderProfileAlertSchedules(profile, state) {
         <ul>${dietList || '<li>Nenhuma dieta cadastrada neste perfil.</li>'}</ul>
         <p class="saude-alert-help">Escolha abaixo quais dietas deseja receber. Desligar “Alertas de dietas deste perfil” pausa todos os envios.</p>
       </fieldset>
-      <p class="saude-alert-help">Água começa às ${WATER_ALERT_START}. Os horários usam Brasília diariamente. A dieta pode ser avisada mesmo sem calorias preenchidas.</p>
+      <p class="saude-alert-help">Os horários usam Brasília diariamente. A dieta pode ser avisada mesmo sem calorias preenchidas.</p>
       <div class="saude-editor__actions"><button class="saude-btn saude-btn--primary" type="submit"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar agendadores</button></div>
     </form>
   </section>`;
@@ -2579,6 +2579,8 @@ export async function renderSaudeContent(container) {
         dieta_horarios: values.getAll('dieta_refeicao').map((tipo,index) => ({ tipo, horario: dietTimes[index] })),
         profile_id: Number(alertScheduleForm.dataset.profileId),
         agua_ativo: values.has('agua_ativo'),
+        agua_inicio: String(values.get('agua_inicio') || ''),
+        agua_fim: String(values.get('agua_fim') || ''),
         agua_intervalo_horas: Number(values.get('agua_intervalo_horas')),
         dieta_ativa: values.has('dieta_ativa'),
         dieta_id: null,
