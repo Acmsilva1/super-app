@@ -1,0 +1,15 @@
+.fin-alerts{background:#fff;color:#20463c;border:1px solid #d1d3d4;border-radius:14px;padding:16px;margin:16px 0;}
+.fin-alerts-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.fin-bank .fin-alerts h3{color:#20463c;font-size:16px;margin:0;}
+.fin-alerts-note,.fin-alerts-list p{font-size:12px;color:#4b6e61;margin:8px 0;}
+.fin-alerts-list{list-style:none;margin:12px 0;padding:0;}
+.fin-alerts-list li{padding:12px 0;border-top:1px solid #d1d3d4;overflow-wrap:anywhere;}
+.fin-alerts-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.fin-alerts-form{display:grid;gap:12px;padding-top:12px;border-top:1px solid #d1d3d4;}
+.fin-alerts-form[hidden]{display:none;}
+.fin-alerts-form label{display:grid;gap:5px;font-size:13px;}
+html[data-theme] .fin-alerts-form :is(input:not([type=checkbox]),select,textarea){box-sizing:border-box;width:100%;max-width:100%;color:#20463c;background:#fff;border:1px solid #a4c2b3;border-radius:8px;padding:10px;font:inherit;color-scheme:light;}
+html[data-theme] .fin-alerts-form option{color:#20463c;background:#fff;}
+.fin-alerts-form .fin-alerts-active{display:flex;align-items:center;gap:8px;}
+.fin-alerts-form input[type=checkbox]{width:18px;height:18px;}
+.fin-alerts :focus-visible{outline:2px solid #327746;outline-offset:2px;}

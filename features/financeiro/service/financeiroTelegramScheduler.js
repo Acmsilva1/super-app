@@ -1,3 +1,4 @@
+import { latestOccurrence } from './alertSchedule.js';
 const TIME_ZONE = 'America/Sao_Paulo';
 
 function saoPauloClock(value = new Date()) {
@@ -38,7 +39,7 @@ async function readConfig(deadline) {
   return { ownerId, url, token, deadline, client: getAlertServiceClient({deadline}) };
 }
 
-async function sendDailySummary(config, date, slot, message) {
+async function sendDailySummary(config, date, slot, message, title = null) {
   if (config.deadline && Date.now()+22000 > config.deadline) throw new Error('alerts_time_budget');
   const dedupeKey = `financeiro:resumo-diario:${date}:${slot}`;
   const { error: claimError } = await config.client.from('tb_saude_alertas_envios').insert({
@@ -53,7 +54,7 @@ async function sendDailySummary(config, date, slot, message) {
     const response = await fetch(config.url, {
       method: 'POST', headers, redirect: 'error',
       body: JSON.stringify({ source: 'superapp-node', event_type: 'financeiro.daily_summary', severity: 'info',
-        title: `Resumo financeiro - ${date.split('-').reverse().join('/')}`, message,
+        title: title || `Resumo financeiro - ${date.split('-').reverse().join('/')}`, message,
         dedupe_key: dedupeKey, occurred_at: new Date().toISOString() }),
       signal: AbortSignal.timeout(Math.max(1,Math.min(20000,(config.deadline || Date.now()+21000)-Date.now()-1000))),
     });
@@ -83,10 +84,17 @@ async function loadSummary(config, date, slot) {
   const sum = (rows, key) => rows.reduce((total, row) => total + (Number(row[key]) || 0), 0);
   if (slot === 'debitos-pix-13h' || slot === 'debitos-pix-20h') {
     const { start: dayStart, end: dayEnd } = dateRange(date);
-    const { data, error } = await client.from('tb_financas')
-      .select('valor,metodo_pagamento,data_lancamento,created_at,tipo')
-      .or(`data_lancamento.eq.${date},and(data_lancamento.is.null,created_at.gte.${dayStart},created_at.lt.${dayEnd})`);
-    if (error) throw new Error(`financeiro_alerts_data_${error.code || 'unavailable'}`);
+    const data = [];
+    for (let page=0;page<100;page++) {
+      const result = await client.from('tb_financas')
+        .select('id,valor,metodo_pagamento,data_lancamento,created_at,tipo').eq('user_id',config.ownerId)
+        .or(`data_lancamento.eq.${date},and(data_lancamento.is.null,created_at.gte.${dayStart},created_at.lt.${dayEnd})`)
+        .order('id').range(page*1000,page*1000+999);
+      if (result.error) throw new Error(`financeiro_alerts_data_${result.error.code || 'unavailable'}`);
+      data.push(...(result.data || []));
+      if ((result.data || []).length<1000) break;
+      if (page===99) throw new Error('financeiro_alerts_data_limit');
+    }
     const total = (data || []).filter((row) => String(row.tipo || 'despesa').toLowerCase() !== 'receita'
       && /debito|pix/i.test(String(row.metodo_pagamento || '')))
       .reduce((amount, row) => amount + (Number(row.valor) || 0), 0);
@@ -95,7 +103,7 @@ async function loadSummary(config, date, slot) {
 
   const month = date.slice(0, 7);
   const { data, error } = await client.from('vw_financeiro_resumo_mensal')
-    .select('fixas_pagas,fixas_pendentes').eq('mes_ano', month);
+    .select('fixas_pagas,fixas_pendentes').eq('user_id',config.ownerId).eq('mes_ano', month);
   if (error) throw new Error(`financeiro_alerts_data_${error.code || 'unavailable'}`);
   const rows = data || [];
   return [
@@ -108,7 +116,8 @@ async function loadSummary(config, date, slot) {
 export async function previewFinanceiroDailySummaries(now = new Date()) {
   const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
   const { date } = saoPauloClock(now);
-  const config = { client: getAlertServiceClient() };
+  const config = { client: getAlertServiceClient(), ownerId: process.env.SAUDE_ALERTS_OWNER_USER_ID };
+  if (!config.ownerId) throw new Error('financeiro_alerts_owner_invalid');
   const [daily, fixed] = await Promise.all([
     loadSummary(config, date, 'debitos-pix-20h'),
     loadSummary(config, date, 'despesas-fixas-21h'),
@@ -119,7 +128,7 @@ export async function previewFinanceiroDailySummaries(now = new Date()) {
   ];
 }
 
-export async function runFinanceiroDailySummary(now = new Date(), {deadline = Date.now()+45000} = {}) {
+async function runLegacyFinanceiroSummary(now = new Date(), {deadline = Date.now()+45000} = {}) {
   const { date, time } = saoPauloClock(now);
   // The workflow polls every five minutes; persistent keys prevent duplicate summaries.
   const hour = time.slice(0, 2);
@@ -134,4 +143,55 @@ export async function runFinanceiroDailySummary(now = new Date(), {deadline = Da
   const message = await loadSummary(config, date, slot);
   const sent = await sendDailySummary(config, date, slot, message);
   return { processed: true, alerts_sent: Number(sent), date, slot };
+}
+
+export async function runFinanceiroDailySummary(now = new Date(), {deadline = Date.now()+45000} = {}) {
+  const config = await readConfig(deadline);
+  if (!config) return { skipped:true,reason:'disabled_or_missing_config' };
+  const {data:rows,error} = await config.client.from('tb_financeiro_alertas')
+    .select('id,nome,tipo,mensagem,cron,ativo,created_at').eq('user_id',config.ownerId).eq('ativo',true).order('id').limit(51);
+  // Compatibilidade durante o rollout: a migration habilita as regras persistidas.
+  if (['42P01','PGRST205'].includes(error?.code)) return runLegacyFinanceiroSummary(now,{deadline});
+  if (error || (rows || []).length>50) throw new Error('financeiro_alerts_schedule_unavailable');
+  let sent=0,processed=0;
+  for (const row of rows || []) {
+    if (Date.now()+22000>deadline) break;
+    const occurrence=latestOccurrence(row.cron,now,row.created_at);
+    if (!occurrence) continue;
+    const slot=`custom:${row.id}:${occurrence.time}`;
+    const {data:existing,error:readError}=await config.client.from('tb_saude_alertas_envios').select('dedupe_key')
+      .eq('created_by',config.ownerId).eq('dedupe_key',`financeiro:resumo-diario:${occurrence.date}:${slot}`).maybeSingle();
+    if (readError) throw new Error('financeiro_alerts_delivery_history_unavailable');
+    if (existing) continue;
+    let summary='';
+    if (row.tipo==='diario') summary=await loadSummary(config,occurrence.date,'debitos-pix-20h');
+    else if (row.tipo==='fixas') summary=await loadSummary(config,occurrence.date,'despesas-fixas-21h');
+    else if (row.tipo==='mensal') summary=await loadMonthlySummary(config,occurrence.date);
+    else if (row.tipo!=='mensagem') throw new Error('financeiro_alerts_type_invalid');
+    const message=[row.mensagem,summary].filter(Boolean).join('\n\n');
+    sent+=Number(await sendDailySummary(config,occurrence.date,slot,message,row.nome));processed++;
+  }
+  return {processed:true,alerts_sent:sent,scheduled:rows?.length || 0,attempted:processed};
+}
+async function loadMonthlySummary(config,date) {
+  const month=date.slice(0,7), start=`${month}-01T00:00:00-03:00`;
+  const [year,number]=month.split('-').map(Number);
+  const endMonth=new Date(Date.UTC(year,number,1)).toISOString().slice(0,7);
+  const end=`${endMonth}-01T00:00:00-03:00`;
+  const read=async(table,fields,filter)=>{
+    const rows=[];
+    for(let page=0;page<100;page++) {
+      const {data,error}=await filter(config.client.from(table).select(fields).eq('user_id',config.ownerId)).order('id').range(page*1000,page*1000+999);
+      if(error) throw new Error('financeiro_alerts_month_unavailable');
+      rows.push(...(data || []));if((data || []).length<1000)return rows;
+    }
+    throw new Error('financeiro_alerts_month_limit');
+  };
+  const [financas,fixas]=await Promise.all([
+    read('tb_financas','id,valor,tipo,metodo_pagamento',query=>query.or(`and(data_lancamento.gte.${month}-01,data_lancamento.lt.${endMonth}-01),and(data_lancamento.is.null,created_at.gte.${start},created_at.lt.${end})`)),
+    read('tb_despesas_fixas','id,valor',query=>query.gte('created_at',start).lt('created_at',end)),
+  ]);
+  const income=financas.filter(r=>r.tipo==='receita').reduce((s,r)=>s+Number(r.valor || 0),0);
+  const expenses=fixas.reduce((s,r)=>s+Number(r.valor || 0),0)+financas.filter(r=>r.tipo!=='receita' && /debito|pix/i.test(String(r.metodo_pagamento || ''))).reduce((s,r)=>s+Number(r.valor || 0),0);
+  return `Receitas do mês: ${money(income)}\nDespesas (fixas + extrato): ${money(expenses)}\nSaldo: ${money(income-expenses)}`;
 }

@@ -46,6 +46,10 @@ async function handleOfflineMutation(req) {
 
 export default async function handler(req, res) {
   try {
+    if (req.query?.recurso === 'alertas') {
+      const { default: alertas } = await import('../lib/financeiroAlertas.js');
+      return await alertas(req, res);
+    }
     if (req.query?.recurso === 'simulador') {
       const { default: simulador } = await import('../lib/financeiroSimulador.js');
       return await simulador(req, res);

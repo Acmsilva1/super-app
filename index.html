@@ -7784,7 +7784,6 @@
                         <div class="profile-admin-tabs" role="tablist" aria-label="Opções do perfil">
                             <button type="button" role="tab" aria-selected="true" data-profile-tab="overview" class="is-active">Meu perfil</button>
                             <button type="button" role="tab" aria-selected="false" data-profile-tab="admin" id="adminUsersToggle" hidden>Administração</button>
-                            <button type="button" role="tab" aria-selected="false" data-profile-tab="alerts" id="adminAlertsToggle" hidden>Alertas</button>
                         </div>
                         <div id="profileAdminOverview" role="tabpanel"><p>Conta conectada ao SUPERAPP.</p><p>Use a opção Administração para acompanhar cadastros e controlar os acessos aos módulos.</p></div>
                         <div id="profileAdminPane" role="tabpanel" hidden>
@@ -7809,28 +7808,16 @@
                             <div id="adminTempSecret" class="profile-admin-temp-secret" hidden><strong>Senha temporária (exibida uma vez):</strong> <code id="adminTempSecretValue"></code><button type="button" id="adminTempSecretClose">Ocultar</button></div>
                             <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
                             <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
+                            <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia o teste de água, todas as dietas cadastradas e os dois resumos reais do Financeiro: débito/Pix do dia e despesas fixas do mês.</p></div><button type="button" class="auth-secondary" id="adminTelegramTest">Testar Telegram</button></div>
+                            <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
+                            <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie descrição e valor por texto ou áudio no chat privado do bot. Sempre débito, com confirmação antes de salvar. Se os botões não aparecerem, envie /pendente para recuperar a última compra.</p></div><button type="button" class="auth-secondary" id="adminTelegramWebhook">Ativar compras pelo Telegram</button></div>
+                            <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                             <section class="profile-admin-monitor">
                                 <div class="profile-admin-toolbar"><div><h4>Acompanhamento do módulo Saúde</h4><p>Veja os perfis, dados atuais e o histórico de criações, alterações e exclusões do usuário selecionado.</p></div><button type="button" class="auth-secondary" id="adminHealthRefresh">Atualizar Saúde</button></div>
                                 <label class="profile-admin-field"><span>Usuário com acesso a Saúde</span><select id="adminHealthUser"><option value="">Carregando usuários...</option></select></label>
                                 <p id="adminHealthMessage" role="status" class="profile-admin-message"></p>
                                 <div id="adminHealthContent"></div>
                             </section>
-                        </div>
-                        <div id="profileAdminAlertsPane" role="tabpanel" hidden>
-                            <div class="profile-admin-toolbar"><div><h4>Alertas pessoais</h4><p>Configure os avisos do Telegram para cada perfil da sua conta.</p></div><button type="button" class="auth-secondary" id="adminAlertsRefresh">Atualizar</button></div>
-                            <p id="adminAlertsMessage" role="status" class="profile-admin-message"></p>
-                            <section class="profile-alerts-group" aria-labelledby="adminFinanceiroAlertsTitle">
-                                <h4 id="adminFinanceiroAlertsTitle">💰 Alertas do Financeiro</h4>
-                                <ul class="profile-alerts-times"><li>13:00 · Débito/Pix do dia</li><li>20:00 · Débito/Pix do dia</li><li>21:00 · Despesas fixas do mês</li></ul>
-                                <p>Às 13h e 20h: total gasto hoje em débito/Pix. Às 21h: total pago e pendente das despesas fixas do mês.</p>
-                                <p>Horário de Brasília. Os disparos estão previstos por volta de 13h02, 20h02 e 21h02 e podem sofrer atraso.</p>
-                                <p>O botão Testar Telegram abaixo envia os dois formatos com os valores atuais do Financeiro.</p>
-                            </section>
-                            <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia o teste de água, todas as dietas cadastradas e os dois resumos reais do Financeiro: débito/Pix do dia e despesas fixas do mês.</p></div><button type="button" class="auth-secondary" id="adminTelegramTest">Testar Telegram</button></div>
-                            <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
-                            <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie descrição e valor por texto ou áudio no chat privado do bot. Sempre débito, com confirmação antes de salvar. Se os botões não aparecerem, envie /pendente para recuperar a última compra.</p></div><button type="button" class="auth-secondary" id="adminTelegramWebhook">Ativar compras pelo Telegram</button></div>
-                            <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
-                            <div id="adminAlertsContent"></div>
                         </div>
                     </section>`;
                 document.body.appendChild(modal);
@@ -7874,12 +7861,12 @@
                     }
                     .profile-admin-tabs button.is-active{border-color:var(--pa-accent);color:var(--pa-ink)}
                     .profile-admin-tabs button:hover{color:var(--pa-ink)}
-                    #profileAdminOverview,#profileAdminPane,#profileAdminAlertsPane{padding:1.35rem 1.6rem 1.6rem}
+                    #profileAdminOverview,#profileAdminPane{padding:1.35rem 1.6rem 1.6rem}
                     #profileAdminOverview{
                         margin:1.35rem 1.6rem 1.6rem;padding:1.1rem 1.2rem;
                         border:1px solid var(--pa-border);border-radius:1rem;background:var(--pa-panel);
                     }
-                    #profileAdminOverview[hidden],#profileAdminPane[hidden],#profileAdminAlertsPane[hidden]{display:none}
+                    #profileAdminOverview[hidden],#profileAdminPane[hidden][hidden]{display:none}
                     #profileAdminOverview p{margin:.25rem 0}
                     .profile-admin-toolbar,.profile-admin-create{
                         border:1px solid var(--pa-border);border-radius:1rem;
@@ -7963,7 +7950,7 @@
                         .profile-admin-card{max-height:calc(100dvh - 1rem)}
                         .profile-admin-header{padding:1rem;align-items:flex-start}
                         .profile-admin-tabs{padding:0 1rem}
-                        #profileAdminOverview,#profileAdminPane,#profileAdminAlertsPane{padding:1rem}
+                        #profileAdminOverview,#profileAdminPane{padding:1rem}
                         #profileAdminOverview{margin:1rem}
                         .profile-admin-toolbar{align-items:stretch;flex-direction:column}
                         .profile-admin-create{grid-template-columns:1fr}
@@ -8009,17 +7996,14 @@
                         this.hideAdminTempSecret();
                         document.getElementById('adminCreateUserForm').reset();
                     }
-                    const isAlertsTab = selectedTab === 'alerts';
                     modal.querySelectorAll('[data-profile-tab]').forEach((item) => {
                         item.classList.toggle('is-active', item === tab);
                         item.setAttribute('aria-selected', item === tab ? 'true' : 'false');
                     });
                     document.getElementById('profileAdminOverview').hidden = selectedTab !== 'overview';
                     document.getElementById('profileAdminPane').hidden = !isAdminTab;
-                    document.getElementById('profileAdminAlertsPane').hidden = !isAlertsTab;
-                    document.getElementById('profileAdminTitle').textContent = isAdminTab || isAlertsTab ? 'Administração do SUPERAPP' : 'Meu perfil';
+                    document.getElementById('profileAdminTitle').textContent = isAdminTab ? 'Administração do SUPERAPP' : 'Meu perfil';
                     if (isAdminTab) await this.loadAdminUsers();
-                    if (isAlertsTab) await this.loadAdminAlerts();
                 }));
                 document.getElementById('adminUsersRefresh')?.addEventListener('click', () => this.loadAdminUsers());
                 document.getElementById('adminHealthRefresh')?.addEventListener('click', () => this.loadAdminHealthMonitor());
@@ -8028,15 +8012,8 @@
                     const button = event.target.closest('[data-admin-health-more]');
                     if (button) this.loadMoreAdminHealthActivity(button);
                 });
-                document.getElementById('adminAlertsRefresh')?.addEventListener('click', () => this.loadAdminAlerts());
                 document.getElementById('adminTelegramTest')?.addEventListener('click', () => this.testAdminTelegram());
                 document.getElementById('adminTelegramWebhook')?.addEventListener('click', () => this.configureAdminTelegramWebhook());
-                document.getElementById('adminAlertsContent')?.addEventListener('change', (event) => {
-                    if (event.target.matches('[data-alert-profile]')) this.loadAdminAlerts(event.target.value);
-                });
-                document.getElementById('adminAlertsContent')?.addEventListener('submit', (event) => {
-                    if (event.target.matches('[data-admin-alert-form]')) this.saveAdminAlerts(event);
-                });
                 if (true) {
                     const createForm = document.getElementById('adminCreateUserForm');
                     createForm.hidden = false;
@@ -8061,110 +8038,8 @@
                     const response = await fetch('/api/admin/usuarios', { method: 'HEAD' });
                     if (response.ok) {
                         adminTab.hidden = false;
-                        document.getElementById('adminAlertsToggle').hidden = false;
                     }
                 } catch (_error) {}
-            }
-            async loadAdminAlerts(requestedProfileId = '') {
-                const message = document.getElementById('adminAlertsMessage');
-                const content = document.getElementById('adminAlertsContent');
-                if (!message || !content) return;
-                message.textContent = 'Carregando perfis e agendamentos...';
-                content.innerHTML = '';
-                const fetchPayload = async (url, options) => {
-                    const response = await fetch(url, options);
-                    const payload = await response.json();
-                    if (!response.ok) throw new Error(payload.error || 'Não foi possível carregar os alertas.');
-                    return payload;
-                };
-                try {
-                    const profilePayload = await fetchPayload('/api/saude?resource=perfis');
-                    const profiles = Array.isArray(profilePayload.rows) ? profilePayload.rows : [];
-                    if (!profiles.length) {
-                        message.textContent = 'Cadastre um perfil em Saúde para configurar alertas.';
-                        return;
-                    }
-                    const previousProfileId = requestedProfileId || content.dataset.profileId || profiles[0].id;
-                    const profile = profiles.find((item) => String(item.id) === String(previousProfileId)) || profiles[0];
-                    const profileId = Number(profile.id);
-                    const [schedulePayload, dietPayload] = await Promise.all([
-                        fetchPayload(`/api/saude?resource=alertas-agenda&profile_id=${encodeURIComponent(profileId)}`),
-                        fetchPayload('/api/saude?resource=dietas'),
-                    ]);
-                    const schedule = schedulePayload.row || { agua_ativo: true, agua_intervalo_horas: 3, dieta_ativa: true, dieta_id: null };
-                    const diets = Array.isArray(dietPayload.rows) ? dietPayload.rows : [];
-                    const dietsForProfile = (id) => diets.filter((diet) => String(diet.perfil_id) === String(id));
-                    const escape = (value) => escapeHtml(String(value ?? ''));
-                    content.dataset.profileId = String(profileId);
-                    content.innerHTML = `
-                        <label class="profile-admin-field profile-alerts-profile"><span>Perfil de saúde</span>
-                            <select data-alert-profile>${profiles.map((item) => `<option value="${escape(item.id)}"${Number(item.id) === profileId ? ' selected' : ''}>${escape(item.nome || `Perfil ${item.id}`)} · ${dietsForProfile(item.id).length} dieta(s)</option>`).join('')}</select>
-                        </label>
-                        <form class="profile-alerts-form" data-admin-alert-form>
-                            <input type="hidden" name="profile_id" value="${escape(profileId)}">
-                            <fieldset class="profile-alerts-group">
-                                <legend>💧 Alerta de água</legend>
-                                <label><input type="checkbox" name="agua_ativo"${schedule.agua_ativo ? ' checked' : ''}> Ativar lembretes de água</label>
-                                <label class="profile-admin-field"><span>Repetir a cada</span><select name="agua_intervalo_horas">${Array.from({ length: 12 }, (_, index) => index + 1).map((hours) => `<option value="${hours}"${Number(schedule.agua_intervalo_horas) === hours ? ' selected' : ''}>${hours} ${hours === 1 ? 'hora' : 'horas'}</option>`).join('')}</select></label>
-                                <p>Os avisos começam às 07:30 e seguem o intervalo escolhido até 22:30.</p>
-                            </fieldset>
-                            <fieldset class="profile-alerts-group">
-                                <legend>🥗 Alerta de dieta</legend>
-                                <label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa ? ' checked' : ''}> Ativar lembretes de todas as dietas de ${escape(profile.nome || 'este perfil')}</label>
-                                <div><strong>Dietas cadastradas que o bot consulta</strong><ul>${diets.length ? diets.map((diet) => `<li>${escape(diet.titulo || diet.nome || `Dieta ${diet.id}`)} — ${escape(profiles.find((item) => String(item.id) === String(diet.perfil_id))?.nome || 'Perfil não vinculado')}</li>`).join('') : '<li>Nenhuma dieta cadastrada.</li>'}</ul></div>
-                                <p>O aviso reúne todas as dietas dos perfis com lembretes ativos, com o cardápio da refeição. Mensagens longas continuam em partes.</p>
-                                <p>Horários fixos dos avisos:</p><ul class="profile-alerts-times"><li>07:00 · Café da manhã</li><li>11:00 · Almoço</li><li>15:00 · Café da tarde</li><li>19:00 · Jantar</li></ul>
-                            </fieldset>
-                            <div class="profile-alerts-save-row"><button class="profile-alerts-save" type="submit"${!diets.length ? ' title="A dieta pode ser deixada desativada até cadastrar uma dieta"' : ''}>💾 Salvar alertas</button><span class="profile-alerts-save-status" data-alert-save-status role="status" aria-live="polite"></span></div>
-                        </form>`;
-                    message.textContent = `${diets.length} dieta(s) cadastrada(s) no total; ${dietsForProfile(profileId).length} neste perfil. Os avisos incluem todas as dietas dos perfis com lembretes ativos.`;
-                } catch (error) {
-                    message.textContent = error.message || 'Falha ao carregar os alertas.';
-                }
-            }
-            async saveAdminAlerts(event) {
-                event.preventDefault();
-                // O submit e delegado no contêiner; o formulário submetido é event.target.
-                const form = event.target.closest('[data-admin-alert-form]');
-                if (!form) return;
-                const button = form.querySelector('[type="submit"]');
-                if (!button || button.disabled) return;
-                const message = document.getElementById('adminAlertsMessage');
-                const saveStatus = form.querySelector('[data-alert-save-status]');
-                const values = new FormData(form);
-                button.disabled = true;
-                button.textContent = '⏳ Salvando...';
-                if (saveStatus) saveStatus.textContent = '';
-                message.textContent = 'Salvando configurações...';
-                try {
-                    const response = await fetch('/api/saude?resource=alertas-agenda', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            profile_id: Number(values.get('profile_id')),
-                            agua_ativo: values.has('agua_ativo'),
-                            agua_intervalo_horas: Number(values.get('agua_intervalo_horas')),
-                            dieta_ativa: values.has('dieta_ativa'),
-                            dieta_id: null,
-                        }),
-                    });
-                    const payload = await response.json();
-                    if (!response.ok) throw new Error(payload.error || 'Não foi possível salvar os alertas.');
-                    button.textContent = '✅ Salvo';
-                    if (saveStatus) {
-                        saveStatus.textContent = 'Alterações aplicadas.';
-                        delete saveStatus.dataset.state;
-                    }
-                    message.textContent = '✅ Alertas salvos para este perfil.';
-                } catch (error) {
-                    button.textContent = '↻ Tentar novamente';
-                    if (saveStatus) {
-                        saveStatus.dataset.state = 'error';
-                        saveStatus.textContent = error.message || 'Não salvou. Revise os dados e tente novamente.';
-                    }
-                    message.textContent = error.message || 'Falha ao salvar os alertas.';
-                } finally {
-                    button.disabled = false;
-                }
             }
             async configureAdminTelegramWebhook() {
                 const button = document.getElementById('adminTelegramWebhook');
@@ -9841,7 +9716,8 @@
                             <li class="fin-kv"><span class="fin-kv__label">Poupança acumulada</span><span class="fin-kv__value">${money(poupancaTotal)}</span></li>
                             <li class="fin-kv fin-kv--total"><span class="fin-kv__label">Saldo do mês</span><span class="fin-kv__value ${saldoVal < 0 ? 'is-neg' : 'is-pos'}">${money(saldoVal)}</span></li>
                         </ul>
-                        <section data-finance-trend-host aria-label="Evolução financeira"><p class="fin-empty">Carregando evolução financeira…</p></section>`;
+                        <section data-finance-trend-host aria-label="Evolução financeira"><p class="fin-empty">Carregando evolução financeira…</p></section>
+                        <section data-finance-alerts-host aria-label="Alertas do Financeiro"><p class="fin-empty">Carregando alertas…</p></section>`;
                 } else if (screen === 'fixas') {
                     const importHtml = despesasFixas.length === 0 ? `
                         <div class="fin-callout" role="region" aria-label="Preencher despesas fixas">
@@ -9938,6 +9814,12 @@
                 `;
 
                 if (screen === 'hub') {
+                    const alertsHost = el.querySelector('[data-finance-alerts-host]');
+                    import('./features/financeiro/alertasUi.js').then(({ renderFinanceAlerts }) => {
+                        if (alertsHost.isConnected) return renderFinanceAlerts(alertsHost);
+                    }).catch(() => {
+                        if (alertsHost.isConnected) alertsHost.textContent = 'Não foi possível abrir os alertas.';
+                    });
                     const trendHost = el.querySelector('[data-finance-trend-host]');
                     import('./features/financeiro/tendenciaUi.js').then(({ renderFinanceTrend }) => {
                         if (!trendHost.isConnected) return;
