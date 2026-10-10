@@ -15,11 +15,15 @@ export function parseMoneyInput(value) {
   return Number(String(value).replace(/\./g, '').replace(',', '.'));
 }
 export async function renderSimulador(el, { onBack = () => {} } = {}) {
+  if (!document.querySelector('link[href*="/styles/bank-theme.css"]')) {
+    const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = '/styles/bank-theme.css'; document.head.append(style);
+  }
   if (!document.querySelector('[data-simulador-style]')) {
     const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = '/features/financeiro/simulador.css'; style.dataset.simuladorStyle = '1'; document.head.append(style);
   }
-  el.innerHTML = `<section class="sim-shell">
-    <header class="sim-head"><div><span class="sim-label">Financeiro</span><h2>Essa parcela cabe no seu orçamento?</h2></div><button type="button" data-sim-back>Voltar</button></header>
+  el.innerHTML = `<section class="finance-module-shell fin-bank">
+    <header class="fin-topbar"><div class="fin-topbar__inner"><button type="button" class="fin-back" data-sim-back aria-label="Voltar"><svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5m7-7-7 7 7 7"/></svg></button><h2 class="fin-topbar__title">Simulador</h2></div></header>
+    <div class="sim-shell">
     <div data-sim-banner></div>
     <div class="sim-layout"><aside><form class="sim-card sim-form"><h3>Simular compra</h3>
       <label>Nome da meta<input name="nome" maxlength="120" required></label>
@@ -30,9 +34,10 @@ export async function renderSimulador(el, { onBack = () => {} } = {}) {
       <div class="sim-actions"><button class="sim-primary" type="submit">Simular</button><button type="button" data-sim-save disabled>Salvar meta</button></div>
     </form><details class="sim-card sim-saved"><summary>Metas salvas</summary><div data-sim-saved>Carregando…</div></details></aside>
     <main><div class="sim-status" role="status" aria-live="polite"></div><div data-sim-result><section class="sim-card sim-empty"><h3>Veja quanto sobraria por mês</h3><p>Preencha a compra e clique em Simular.</p></section></div></main></div>
-  </section>`;
+  </div></section>`;
   const root = el.querySelector('.sim-shell'), form = root.querySelector('form'), save = root.querySelector('[data-sim-save]'), status = root.querySelector('.sim-status');
   let records = [], persistence = false, result = null, busy = false;
+  el.querySelector('[data-sim-back]').addEventListener('click', onBack);
   const alive = () => el.contains(root);
   const request = async (body) => {
     const response = await fetch('/api/financeiro?recurso=simulador', body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' } : { cache: 'no-store' });
