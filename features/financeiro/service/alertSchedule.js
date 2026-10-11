@@ -1,5 +1,12 @@
 export const FINANCIAL_ALERT_SECTIONS = { geral: 'Geral', diario: 'Extrato diário', fixas: 'Despesas fixas', receitas: 'Receitas', poupanca: 'Poupança', simulador: 'Simulador' };
-export const FINANCIAL_ALERT_INTRO = 'Bora dar um giro na grana? 💸';
+export const FINANCIAL_ALERT_INTROS = {
+  geral: 'Sua visão financeira completa, em um só resumo.',
+  diario: 'Confira os gastos do dia e acompanhe suas movimentações.',
+  fixas: 'Mantenha suas contas em dia: veja o que foi pago e o que está pendente.',
+  receitas: 'Acompanhe as entradas do mês e a evolução das suas receitas.',
+  poupanca: 'Veja o saldo da sua poupança e acompanhe sua meta.',
+  simulador: 'Confira suas metas e as últimas simulações salvas.',
+};
 export const FINANCIAL_ALERT_DESCRIPTIONS = {
   geral: 'Receitas, despesas e saldo do mês, gastos de hoje com débito/Pix, despesas fixas, poupança e metas do simulador.',
   diario: 'Gastos de hoje com débito/Pix.',

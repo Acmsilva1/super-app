@@ -1,5 +1,5 @@
 import { showAppConfirmation } from '../../lib/uiConfirmation.js';
-import { validateAlert, alertOccurrences, parseCron, FINANCIAL_ALERT_SECTIONS, FINANCIAL_ALERT_INTRO, FINANCIAL_ALERT_DESCRIPTIONS } from './service/alertSchedule.js';
+import { validateAlert, alertOccurrences, parseCron, FINANCIAL_ALERT_SECTIONS, FINANCIAL_ALERT_INTROS, FINANCIAL_ALERT_DESCRIPTIONS } from './service/alertSchedule.js';
 const endpoint = '/api/financeiro?recurso=alertas';
 
 export async function renderFinanceAlerts(host) {
@@ -9,7 +9,7 @@ export async function renderFinanceAlerts(host) {
   }
   host.className = 'fin-alerts';
   host.innerHTML = `<div class="fin-alerts-head"><h3>Alertas do Financeiro</h3><button type="button" class="fin-btn fin-btn--ghost" data-add>Novo alerta</button></div>
-    <p class="fin-alerts-note">Sua grana no radar 💸 Escolha o módulo e os horários; o bot manda o resumo.</p>
+    <p class="fin-alerts-note">Acompanhe suas finanças. Escolha o módulo e os horários para receber o resumo automático.</p>
     <p data-notice role="status" aria-live="polite">Carregando alertas…</p><div data-new-editor></div><ul class="fin-alerts-list"></ul>
     <form hidden class="fin-alerts-form">
       <label>O que você quer acompanhar?<select name="tipo" required><option value="">Selecione um módulo</option>${Object.entries(FINANCIAL_ALERT_SECTIONS).map(([value,label]) => `<option value="${value}">${value === 'geral' ? 'Geral · resumo de tudo' : label}</option>`).join('')}</select></label>
@@ -43,7 +43,7 @@ export async function renderFinanceAlerts(host) {
   function updatePreview() {
     const section = form.elements.tipo.value;
     host.querySelector('[data-message-preview]').textContent = Object.hasOwn(FINANCIAL_ALERT_SECTIONS, section)
-      ? `${FINANCIAL_ALERT_INTRO}\nResumo · ${FINANCIAL_ALERT_SECTIONS[section]}\n${FINANCIAL_ALERT_DESCRIPTIONS[section]} Os valores são atualizados na hora do envio.`
+      ? `${FINANCIAL_ALERT_INTROS[section]}\nResumo · ${FINANCIAL_ALERT_SECTIONS[section]}\n${FINANCIAL_ALERT_DESCRIPTIONS[section]} Os valores são atualizados na hora do envio.`
       : 'Escolha um módulo para ver o que vai chegar no Telegram.';
     try {
       const payload = validateAlert({tipo:form.elements.tipo.value,horarios:times(),ativo:form.elements.ativo.checked});

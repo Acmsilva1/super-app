@@ -1,4 +1,4 @@
-import { alertOccurrences, FINANCIAL_ALERT_INTRO, FINANCIAL_ALERT_SECTIONS } from './alertSchedule.js';
+import { alertOccurrences, FINANCIAL_ALERT_INTROS, FINANCIAL_ALERT_SECTIONS } from './alertSchedule.js';
 const TIME_ZONE = 'America/Sao_Paulo';
 
 function saoPauloClock(value = new Date()) {
@@ -165,7 +165,7 @@ export async function runFinanceiroDailySummary(now = new Date(), {deadline = Da
     if (existing) continue;
     const summary = row.tipo === 'mensagem' ? '' : await loadSectionSummary(config,occurrence.date,row.tipo);
     const introduction = row.horarios == null ? row.mensagem
-      : `${FINANCIAL_ALERT_INTRO}\nResumo · ${FINANCIAL_ALERT_SECTIONS[row.tipo]}`;
+      : `${FINANCIAL_ALERT_INTROS[row.tipo]}\nResumo · ${FINANCIAL_ALERT_SECTIONS[row.tipo]}`;
     const message=[introduction,summary].filter(Boolean).join('\n\n');
     sent+=Number(await sendDailySummary(config,occurrence.date,slot,message,row.nome));processed++;
     }

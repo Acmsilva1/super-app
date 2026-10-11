@@ -2,7 +2,7 @@
 
 Na Visão geral, abaixo do gráfico, crie um alerta escolhendo a seção e um ou mais horários do dia. Não é necessário escrever nome, mensagem ou expressão cron.
 
-O formulário mostra o conteúdo de cada resumo. A mensagem padrão começa com “Bora dar um giro na grana? 💸”, identifica o módulo e apresenta os valores atualizados no momento do envio. Em Geral, o bot reúne todos os módulos em uma mensagem.
+O formulário mostra o conteúdo de cada resumo. Cada módulo tem uma abertura própria, compartilhada entre a prévia e o bot, seguida pela identificação do módulo e pelos dados consultados no momento do envio. Em Geral, a mensagem começa com “Sua visão financeira completa, em um só resumo.” e reúne todos os módulos.
 
 - Extrato diário: gastos do dia com débito/Pix.
 - Despesas fixas: valores pagos e pendentes do mês.

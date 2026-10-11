@@ -62,20 +62,20 @@ it('Geral reúne todas as seções e usa a mensagem padrão com escopo do propri
   const message=JSON.parse(fetch.mock.calls[0][1].body).message.replaceAll('\u00a0',' ');
   for(const text of ['Resumo geral','Receitas do mês: R$ 15.000,00','Gastos de hoje','Despesas fixas','Poupança acumulada: R$ 3.000,00','Simulador: 1 meta(s)','Carro'])expect(message).toContain(text);
   expect(message).not.toContain('texto antigo');
-  expect(message).toMatch(/^Bora dar um giro na grana\? 💸\nResumo · Geral/);
+  expect(message).toMatch(/^Sua visão financeira completa, em um só resumo\.\nResumo · Geral/);
   for(const query of state.queries.filter(q=>q.table!=='tb_saude_alertas_envios'))expect(query.filters).toContainEqual(['user_id','f88a6351-317d-425b-afcd-9430c8a34f53']);
 });
 it.each([
-  ['diario','Extrato diário','Gastos de hoje'],
-  ['fixas','Despesas fixas','Despesas fixas deste mês'],
-  ['receitas','Receitas','Receitas do mês'],
-  ['poupanca','Poupança','Poupança acumulada'],
-  ['simulador','Simulador','Simulador: 1 meta(s)'],
-])('envia apenas a seção %s',async(tipo,label,content)=>{
+  ['diario','Extrato diário','Gastos de hoje','Confira os gastos do dia e acompanhe suas movimentações.'],
+  ['fixas','Despesas fixas','Despesas fixas deste mês','Mantenha suas contas em dia: veja o que foi pago e o que está pendente.'],
+  ['receitas','Receitas','Receitas do mês','Acompanhe as entradas do mês e a evolução das suas receitas.'],
+  ['poupanca','Poupança','Poupança acumulada','Veja o saldo da sua poupança e acompanhe sua meta.'],
+  ['simulador','Simulador','Simulador: 1 meta(s)','Confira suas metas e as últimas simulações salvas.'],
+])('envia apenas a seção %s',async(tipo,label,content,intro)=>{
   state.rules[0]={...state.rules[0],tipo,horarios:['13:00'],mensagem:''};
   expect((await runFinanceiroDailySummary(new Date('2026-10-09T16:12:00Z'))).alerts_sent).toBe(1);
   const message=JSON.parse(fetch.mock.calls[0][1].body).message;
-  expect(message).toContain(`Bora dar um giro na grana? 💸\nResumo · ${label}`);
+  expect(message.startsWith(`${intro}\nResumo · ${label}`)).toBe(true);
   expect(message).toContain(content);
   expect(message).not.toContain('Resumo geral');
   const tables={diario:['tb_financas'],fixas:['vw_financeiro_resumo_mensal'],receitas:['tb_financas'],poupanca:['vw_financeiro_poupanca_resumo'],simulador:['tb_financeiro_simulacoes']};
