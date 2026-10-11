@@ -21,6 +21,8 @@ O cadastro recusa substituir outro endereço de webhook já existente. Mensagens
 
 ### Áudio pela Groq
 
+Valores coloquiais também são aceitos: “café quinze e trinta” ou “gastei quinze e trinta no café” geram R$ 15,30. Não é preciso falar “vírgula”. Números inteiros por extenso mantêm seu significado: “vinte e cinco” é R$ 25,00; para R$ 20,05, diga “vinte reais e cinco centavos”. O valor sempre aparece para confirmação antes de salvar.
+
 Configurar `GROQ_API_KEY` como segredo na Vercel Production e fazer deploy. Não exige nova migration nem novo webhook se já estiver ativo. O servidor usa `whisper-large-v3` no endpoint de transcrição, com idioma português. Mantendo a conta Groq no Free, aplicam-se suas cotas; o app não muda plano nem usa outro fornecedor como fallback.
 
 Enviar uma mensagem de voz do Telegram, até 60 segundos e 5 MB, com uma única compra. Exemplos: “Comprei um café por dez reais e vinte centavos”, “Gastei trinta reais no supermercado”, “Supermercado no valor de trinta reais e cinquenta centavos”. Não é necessário ditar vírgulas. Também aceita “café dez reais e vinte”, os formatos anteriores e valores numéricos na transcrição. “Dez vírgula dois” equivale a 10,20; “dez reais e dois centavos” equivale a 10,02. O arquivo OGG/OGA é baixado do Telegram pelo servidor, limitado também durante a leitura, e enviado como arquivo à Groq. A URL de download contendo o token do bot nunca é compartilhada com a Groq.
