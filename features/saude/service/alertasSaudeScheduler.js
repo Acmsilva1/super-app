@@ -99,7 +99,7 @@ async function loadAlertData(config, today) {
       .select('id,perfil_id,titulo,refeicoes,semanal,semana,alerta_ativo,updated_at')
       .order('id', { ascending: true }),
     supabase.from('tb_saude_alertas_agenda')
-      .select('perfil_id,agua_ativo,agua_intervalo_horas,agua_inicio,agua_fim,dieta_ativa,dieta_id,dieta_horarios,updated_at'),
+      .select('perfil_id,agua_ativo,agua_intervalo_horas,agua_inicio,agua_fim,dieta_ativa,dieta_id,dieta_horarios,updated_at,agua_updated_at,dieta_updated_at'),
     supabase.from('tb_saude_alimentos')
       .select('id,item,porcao_equivalente,peso_referencia_g,peso_unidade_g,kcal_100g,proteina_100g,carboidrato_100g,gordura_100g')
       .order('source_order', { ascending: true }),
@@ -120,7 +120,7 @@ async function loadAlertData(config, today) {
   const logs = new Map((logsResult.data || []).map((row) => [String(row.perfil_id), row]));
   const diets = dietsResult.data || [];
   const schedules = new Map((scheduleTableMissing ? [] : (schedulesResult.data || []))
-    .map((row) => [String(row.perfil_id), { ...normalizeAlertSchedule(row), updated_at: row.updated_at }]));
+    .map((row) => [String(row.perfil_id), { ...normalizeAlertSchedule(row), updated_at: row.updated_at, agua_updated_at: row.agua_updated_at, dieta_updated_at: row.dieta_updated_at }]));
   return { profiles, goals, logs, diets, schedules, foods: foodsTableMissing ? [] : (availableFoods.data || []) };
 }
 
@@ -280,7 +280,8 @@ async function dispatchCurrentSlot(config, value, data) {
       const minuteOfDay = Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
       const waterStart = Number(schedule.agua_inicio.slice(0, 2)) * 60 + Number(schedule.agua_inicio.slice(3, 5));
       const waterEnd = Number(schedule.agua_fim.slice(0, 2)) * 60 + Number(schedule.agua_fim.slice(3, 5));
-      if ((!data.schedules.get(profileKey)?.updated_at || new Date(data.schedules.get(profileKey).updated_at).getTime() <= value.getTime()) && schedule.agua_ativo && minuteOfDay >= waterStart && minuteOfDay <= waterEnd
+      const waterUpdatedAt = schedule.agua_updated_at ?? schedule.updated_at;
+      if ((!waterUpdatedAt || new Date(waterUpdatedAt).getTime() <= value.getTime()) && schedule.agua_ativo && minuteOfDay >= waterStart && minuteOfDay <= waterEnd
         && (minuteOfDay - waterStart) % (schedule.agua_intervalo_horas * 60) === 0) {
         try {
           alertsSent += await dispatchWaterForProfile({ ...config, ownerId: profile.created_by || config.ownerId }, data, profile, date, time);
@@ -292,7 +293,8 @@ async function dispatchCurrentSlot(config, value, data) {
     const dueTypes = new Set();
     const scheduleFor = diet => normalizeAlertSchedule(data.schedules.get(String(diet.perfil_id)));
     const configuredBeforeSlot = diet => {
-      const updatedAt = data.schedules.get(String(diet.perfil_id))?.updated_at;
+      const schedule = data.schedules.get(String(diet.perfil_id));
+      const updatedAt = schedule?.dieta_updated_at ?? schedule?.updated_at;
       return !updatedAt || new Date(updatedAt).getTime() <= value.getTime();
     };
     for (const diet of data.diets) if (configuredBeforeSlot(diet) && diet.alerta_ativo !== false && scheduleFor(diet).dieta_ativa) {

@@ -38,3 +38,13 @@ it('consulta persistida aplica owner e avisa quando falta a migration',async()=>
   const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),order:vi.fn().mockReturnThis(),limit:vi.fn().mockResolvedValue({error:{code:'42P01'}})};from.mockReturnValue(query);
   const result=await call('GET');expect(query.eq).toHaveBeenCalledWith('user_id','owner');expect(result.body.persistencia).toBe(false);
 });
+
+it('persiste seleção e horários sem exigir nome, texto ou cron manual',async()=>{
+  const result=await call('POST',{tipo:'geral',horarios:['20:30','09:15'],ativo:true,mensagem:'não utilizar'});
+  expect(result.code).toBe(201);
+  const row=(await call('GET')).body.rows[0];
+  expect(row).toMatchObject({tipo:'geral',nome:'Resumo · Geral',horarios:['09:15','20:30'],mensagem:''});
+  expect((await call('PATCH',{...row,tipo:'receitas',horarios:['08:30']})).code).toBe(200);
+  expect((await call('GET')).body.rows[0]).toMatchObject({tipo:'receitas',horarios:['08:30']});
+  expect((await call('POST',{tipo:'mensagem',horarios:['09:15'],ativo:true})).code).toBe(400);
+});

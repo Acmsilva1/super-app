@@ -1,5 +1,5 @@
 import { describe,it,expect } from 'vitest';
-import { parseCron,cronMatches,latestOccurrence,nextOccurrences,validateAlert } from '../../features/financeiro/service/alertSchedule.js';
+import { parseCron,cronMatches,latestOccurrence,nextOccurrences,validateAlert,validateAlertTimes,alertOccurrences } from '../../features/financeiro/service/alertSchedule.js';
 describe('cron financeiro em Brasília',()=>{
   it('interpreta horas locais, listas e dias úteis',()=>{
     const cron=parseCron('0 9,13 * * 1-5');
@@ -29,4 +29,18 @@ describe('cron financeiro em Brasília',()=>{
     expect(()=>validateAlert({nome:'teste',tipo:'mensagem',cron:'0 9 * * *',ativo:true,mensagem:''})).toThrow();
     expect(validateAlert({nome:'teste',tipo:'mensagem',cron:'0 9 * * *',ativo:false,mensagem:'Olá',user_id:'outro'})).not.toHaveProperty('user_id');
   });
+});
+
+it('normaliza seção e horários exatos sem combinar horas e minutos',()=>{
+  const rule=validateAlert({tipo:'geral',horarios:['20:30','09:15'],ativo:true,mensagem:'ignorar',nome:'ignorar'});
+  expect(rule).toMatchObject({nome:'Resumo · Geral',mensagem:'',horarios:['09:15','20:30']});
+  expect(alertOccurrences(rule,new Date('2026-10-10T03:00:00Z'),{future:true,count:3})).toEqual(['2026-10-10T12:15:00.000Z','2026-10-10T23:30:00.000Z','2026-10-11T12:15:00.000Z']);
+  for(const horarios of [[],['09:00','09:00'],['23:59','00:01'],['9:00'],['24:00'],['12:60'],Array(13).fill('09:00')]) expect(()=>validateAlertTimes(horarios)).toThrow();
+});
+it('recupera todos os horários recentes e respeita edição e virada do dia',()=>{
+  const rule={horarios:['09:00','09:05'],created_at:'2026-10-01T00:00:00Z'};
+  const now=new Date('2026-10-10T12:12:00Z');
+  expect(alertOccurrences(rule,now).map(row=>row.time)).toEqual(['09:00','09:05']);
+  expect(alertOccurrences({...rule,updated_at:'2026-10-10T12:03:00Z'},now).map(row=>row.time)).toEqual(['09:05']);
+  expect(alertOccurrences({horarios:['23:55','00:05']},new Date('2026-10-11T03:12:00Z')).map(row=>[row.date,row.time])).toEqual([['2026-10-10','23:55'],['2026-10-11','00:05']]);
 });

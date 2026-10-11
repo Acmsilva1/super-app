@@ -20,6 +20,26 @@ vi.mock('../../lib/alertServiceClient.js', () => ({
 }));
 import { buildDietAlertMessages, runSaudeAlertSlot } from '../../features/saude/service/alertasSaudeScheduler.js';
 
+it('alterar água não cancela a recuperação de uma dieta anterior', async () => {
+  state.rows.tb_saude_dietas = [{id:1,perfil_id:1,titulo:'Almoço',alerta_ativo:true}];
+  state.rows.tb_saude_alertas_agenda = [{perfil_id:1,agua_ativo:false,dieta_ativa:true,
+    dieta_horarios:[{tipo:'almoco',horario:'12:00'}],
+    updated_at:'2026-10-10T15:05:00Z', agua_updated_at:'2026-10-10T15:05:00Z', dieta_updated_at:'2026-10-10T10:00:00Z'}];
+  const fetchMock = vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,telegram_message_id:7})});
+  vi.stubGlobal('fetch',fetchMock);
+  await runSaudeAlertSlot(new Date('2026-10-10T15:15:00Z'));
+  expect(fetchMock).toHaveBeenCalledOnce();
+});
+
+it('alterar dieta não cancela a recuperação de água anterior', async () => {
+  state.rows.tb_saude_alertas_agenda = [{perfil_id:1,agua_ativo:true,agua_inicio:'12:00',agua_fim:'18:00',agua_intervalo_horas:3,dieta_ativa:false,
+    updated_at:'2026-10-10T15:05:00Z', dieta_updated_at:'2026-10-10T15:05:00Z', agua_updated_at:'2026-10-10T10:00:00Z'}];
+  const fetchMock = vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,telegram_message_id:7})});
+  vi.stubGlobal('fetch',fetchMock);
+  await runSaudeAlertSlot(new Date('2026-10-10T15:15:00Z'));
+  expect(fetchMock).toHaveBeenCalledOnce();
+});
+
 beforeEach(() => {
   vi.unstubAllEnvs(); vi.unstubAllGlobals();
   state.inserts=[]; state.updates=[]; state.duplicate=false;

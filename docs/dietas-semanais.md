@@ -23,3 +23,16 @@ O acionador existente consulta a cada cinco minutos e pode sofrer atrasos do pro
 ## Janela da água — V.1.7.0
 
 Aplicar `20261010_add_saude_agua_janela.sql` antes do deploy. Início e fim ficam salvos por perfil, com padrão anterior de 07:30 a 22:30. A janela deve começar e terminar no mesmo dia, com fim após início. O bot envia no início e nos intervalos de horas a partir dele, até o limite final; não força um aviso no fim se o intervalo não coincidir. O início aceita minutos livres. O acionador periódico e a recuperação da última hora também atendem a água, respeitando a janela, a pausa do perfil e a deduplicação persistida. Salvar atualiza a configuração lida nas próximas execuções.
+
+
+## V.1.8.2 — revisão dos agendadores
+
+A revisão reproduziu a interferência entre água e dieta na recuperação de avisos atrasados.
+A agenda passa a registrar `agua_updated_at` e `dieta_updated_at` independentemente.
+O banco atualiza somente a data da seção que mudou; salvar os mesmos valores preserva as datas.
+O bot usa a data da respectiva seção para impedir envios anteriores à configuração salva.
+
+Antes de publicar esta versão, aplicar `migration/20261010_fix_saude_alertas_section_timestamps.sql`,
+após as migrations de horários de dieta e da janela de água. A migration preserva os horários e
+inicializa as novas datas com o `updated_at` existente. O rollback correspondente requer também
+reverter o código. Não houve aplicação em banco real nem envio real ao Telegram na validação.

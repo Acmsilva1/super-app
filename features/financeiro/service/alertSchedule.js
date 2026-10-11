@@ -1,4 +1,23 @@
-export const ALERT_TYPES = ['diario', 'fixas', 'mensal', 'mensagem'];
+export const FINANCIAL_ALERT_SECTIONS = { geral: 'Geral', diario: 'Extrato diário', fixas: 'Despesas fixas', receitas: 'Receitas', poupanca: 'Poupança', simulador: 'Simulador' };
+export const FINANCIAL_ALERT_INTRO = 'Bora dar um giro na grana? 💸';
+export const FINANCIAL_ALERT_DESCRIPTIONS = {
+  geral: 'Receitas, despesas e saldo do mês, gastos de hoje com débito/Pix, despesas fixas, poupança e metas do simulador.',
+  diario: 'Gastos de hoje com débito/Pix.',
+  fixas: 'Despesas fixas pagas e pendentes deste mês.',
+  receitas: 'Total de receitas recebidas neste mês.',
+  poupanca: 'Saldo acumulado e meta de poupança.',
+  simulador: 'Metas salvas e data da última simulação.',
+};
+export const ALERT_TYPES = [...Object.keys(FINANCIAL_ALERT_SECTIONS), 'mensal', 'mensagem'];
+export function validateAlertTimes(times) {
+  if (!Array.isArray(times) || !times.length || times.length > 12 || times.some(time => typeof time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time))) throw new Error('Informe de 1 a 12 horários válidos.');
+  const sorted = [...times].sort();
+  if (new Set(sorted).size !== sorted.length) throw new Error('Não repita horários.');
+  const minutes = sorted.map(time => Number(time.slice(0,2))*60+Number(time.slice(3)));
+  if (minutes.length > 1 && minutes.some((minute,index) => (minutes[(index+1)%minutes.length]-minute+1440)%1440 < 5)) throw new Error('Deixe pelo menos 5 minutos entre os horários.');
+  return sorted;
+}
+
 export function parseCron(expression) {
   if (String(expression || '').length > 120) throw new Error('Use uma expressão cron de até 120 caracteres.');
   const fields = String(expression || '').trim().split(/\s+/);
@@ -21,6 +40,13 @@ export function parseCron(expression) {
   return { fields, sets };
 }
 export function validateAlert(input) {
+  if (input.horarios != null) {
+    if (!Object.hasOwn(FINANCIAL_ALERT_SECTIONS, input.tipo)) throw new Error('Selecione uma seção do Financeiro.');
+    if (typeof input.ativo !== 'boolean') throw new Error('Estado do alerta inválido.');
+    const horarios = validateAlertTimes(input.horarios), [hour,minute] = horarios[0].split(':').map(Number);
+    return { nome: `Resumo · ${FINANCIAL_ALERT_SECTIONS[input.tipo]}`, tipo: input.tipo, mensagem: '',
+      cron: `${minute} ${hour} * * *`, horarios, ativo: input.ativo, timezone: 'America/Sao_Paulo' };
+  }
   const nome = String(input.nome || '').trim(), mensagem = String(input.mensagem || '').trim();
   const cron = String(input.cron || '').trim().replace(/\s+/g,' ');
   if (!nome || nome.length > 120) throw new Error('Informe um nome de até 120 caracteres.');
@@ -68,4 +94,24 @@ export function nextOccurrences(cron, now = new Date(), count = 3) {
     }
   }
   return results;
+}
+
+export function alertOccurrences(row, now = new Date(), { future = false, count = 3 } = {}) {
+  if (row.horarios == null) {
+    if (future) return nextOccurrences(row.cron, now, count);
+    const occurrence = latestOccurrence(row.cron, now, row.updated_at || row.created_at);
+    return occurrence ? [occurrence] : [];
+  }
+  const times = validateAlertTimes(row.horarios), clock = localClock(now);
+  const midnight = new Date(`${clock.date}T00:00:00-03:00`).getTime();
+  const results = [], updated = new Date(row.updated_at || row.created_at || 0).getTime();
+  for (let day = future ? 0 : -1; day <= (future ? 4 : 0); day++) {
+    for (const time of times) {
+      const instant = midnight + day*86400000 + (Number(time.slice(0,2))*60+Number(time.slice(3)))*60000;
+      if (future ? instant > now.getTime() : instant <= now.getTime() && instant > now.getTime()-3600000 && instant >= updated) {
+        results.push(future ? new Date(instant).toISOString() : { ...localClock(new Date(instant)), instant: new Date(instant).toISOString() });
+      }
+    }
+  }
+  return future ? results.slice(0,count) : results;
 }

@@ -7,6 +7,8 @@ vi.mock('../../lib/alertServiceClient.js',()=>({getAlertServiceClient:()=>({from
     let result={data:null,error:null};
     if(table==='tb_financeiro_alertas')result.data=state.rules;
     else if(table==='tb_financas')result.data=[{tipo:'receita',valor:15000},{tipo:'despesa',valor:200,metodo_pagamento:'pix'},{tipo:'despesa',valor:1000,metodo_pagamento:'credito'}];
+    else if(table==='vw_financeiro_poupanca_resumo')result.data=[{total_acumulado:3000,nome_meta:'Reserva',valor_meta:10000}];
+    else if(table==='tb_financeiro_simulacoes')result.data=[{id:'new',meta_id:'car',nome:'Carro',created_at:'2026-10-08T00:00:00Z'},{id:'old',meta_id:'car',nome:'Carro',created_at:'2026-10-01T00:00:00Z'}];
     else if(table==='tb_despesas_fixas')result.data=[{valor:5000}];
     else if(table==='vw_financeiro_resumo_mensal')result.data=[{fixas_pagas:4000,fixas_pendentes:1000}];
     else if(operation==='insert') {
@@ -52,4 +54,37 @@ it('calcula resumo mensal com fixas e extrato, isolados por proprietário',async
   const body=JSON.parse(fetch.mock.calls[0][1].body);const message=body.message.replaceAll('\u00a0',' ');
   expect(message).toContain('Receitas do mês: R$ 15.000,00');expect(message).toContain('Despesas (fixas + extrato): R$ 5.200,00');expect(message).toContain('Saldo: R$ 9.800,00');
   for(const query of state.queries.filter(q=>['tb_financas','tb_despesas_fixas'].includes(q.table)))expect(query.filters).toContainEqual(['user_id','f88a6351-317d-425b-afcd-9430c8a34f53']);
+});
+
+it('Geral reúne todas as seções e usa a mensagem padrão com escopo do proprietário',async()=>{
+  state.rules[0]={...state.rules[0],tipo:'geral',horarios:['13:00'],mensagem:'texto antigo não permitido'};
+  await runFinanceiroDailySummary(new Date('2026-10-09T16:12:00Z'));
+  const message=JSON.parse(fetch.mock.calls[0][1].body).message.replaceAll('\u00a0',' ');
+  for(const text of ['Resumo geral','Receitas do mês: R$ 15.000,00','Gastos de hoje','Despesas fixas','Poupança acumulada: R$ 3.000,00','Simulador: 1 meta(s)','Carro'])expect(message).toContain(text);
+  expect(message).not.toContain('texto antigo');
+  expect(message).toMatch(/^Bora dar um giro na grana\? 💸\nResumo · Geral/);
+  for(const query of state.queries.filter(q=>q.table!=='tb_saude_alertas_envios'))expect(query.filters).toContainEqual(['user_id','f88a6351-317d-425b-afcd-9430c8a34f53']);
+});
+it.each([
+  ['diario','Extrato diário','Gastos de hoje'],
+  ['fixas','Despesas fixas','Despesas fixas deste mês'],
+  ['receitas','Receitas','Receitas do mês'],
+  ['poupanca','Poupança','Poupança acumulada'],
+  ['simulador','Simulador','Simulador: 1 meta(s)'],
+])('envia apenas a seção %s',async(tipo,label,content)=>{
+  state.rules[0]={...state.rules[0],tipo,horarios:['13:00'],mensagem:''};
+  expect((await runFinanceiroDailySummary(new Date('2026-10-09T16:12:00Z'))).alerts_sent).toBe(1);
+  const message=JSON.parse(fetch.mock.calls[0][1].body).message;
+  expect(message).toContain(`Bora dar um giro na grana? 💸\nResumo · ${label}`);
+  expect(message).toContain(content);
+  expect(message).not.toContain('Resumo geral');
+  const tables={diario:['tb_financas'],fixas:['vw_financeiro_resumo_mensal'],receitas:['tb_financas'],poupanca:['vw_financeiro_poupanca_resumo'],simulador:['tb_financeiro_simulacoes']};
+  expect([...new Set(state.queries.filter(q=>!['tb_saude_alertas_envios','tb_financeiro_alertas'].includes(q.table)).map(q=>q.table))]).toEqual(tables[tipo]);
+});
+it('envia horários próximos separadamente e não os repete no próximo polling',async()=>{
+  state.rules[0]={...state.rules[0],tipo:'diario',horarios:['13:00','13:05'],mensagem:''};
+  const now=new Date('2026-10-09T16:12:00Z');
+  expect((await runFinanceiroDailySummary(now)).alerts_sent).toBe(2);
+  expect(new Set(fetch.mock.calls.map(call=>JSON.parse(call[1].body).dedupe_key)).size).toBe(2);
+  expect((await runFinanceiroDailySummary(now)).alerts_sent).toBe(0);
 });

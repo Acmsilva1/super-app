@@ -1,82 +1,111 @@
 import { showAppConfirmation } from '../../lib/uiConfirmation.js';
-import { validateAlert, nextOccurrences } from './service/alertSchedule.js';
+import { validateAlert, alertOccurrences, parseCron, FINANCIAL_ALERT_SECTIONS, FINANCIAL_ALERT_INTRO, FINANCIAL_ALERT_DESCRIPTIONS } from './service/alertSchedule.js';
 const endpoint = '/api/financeiro?recurso=alertas';
-const types = {diario:'Gastos do dia · débito/Pix',fixas:'Despesas fixas · pagas e pendentes',mensal:'Receitas, despesas e saldo do mês',mensagem:'Mensagem personalizada'};
+
 export async function renderFinanceAlerts(host) {
   if (!document.querySelector('link[data-finance-alerts]')) {
-    const link=document.createElement('link');link.rel='stylesheet';link.href='/features/financeiro/alertas.css';link.dataset.financeAlerts='true';document.head.append(link);
+    const link = document.createElement('link');
+    link.rel = 'stylesheet'; link.href = '/features/financeiro/alertas.css'; link.dataset.financeAlerts = 'true'; document.head.append(link);
   }
-  host.className='fin-alerts';
-  host.innerHTML=`<div class="fin-alerts-head"><h3>Alertas do Financeiro</h3><button type="button" class="fin-btn fin-btn--ghost" data-add>Novo alerta</button></div>
-    <p class="fin-alerts-note">Agendamentos do seu bot · horário de Brasília</p>
+  host.className = 'fin-alerts';
+  host.innerHTML = `<div class="fin-alerts-head"><h3>Alertas do Financeiro</h3><button type="button" class="fin-btn fin-btn--ghost" data-add>Novo alerta</button></div>
+    <p class="fin-alerts-note">Sua grana no radar 💸 Escolha o módulo e os horários; o bot manda o resumo.</p>
     <p data-notice role="status" aria-live="polite">Carregando alertas…</p><ul class="fin-alerts-list"></ul>
     <form hidden class="fin-alerts-form">
-      <label>Nome do alerta<input name="nome" required maxlength="120" placeholder="Ex.: resumo no fim do dia"></label>
-      <label>Conteúdo<select name="tipo">${Object.entries(types).map(([value,label])=>`<option value="${value}">${label}</option>`).join('')}</select></label>
-      <label>Mensagem <span>(opcional para resumos)</span><textarea name="mensagem" rows="2" maxlength="1500" placeholder="Seu texto para o bot"></textarea></label>
-      <label>Frequência<select data-preset><option value="0 20 * * *">Todos os dias às 20h</option><option value="0 9 * * 1-5">Dias úteis às 9h</option><option value="0 9 * * 1">Toda segunda às 9h</option><option value="0 9 1 * *">Dia 1 às 9h</option><option value="custom">Cron personalizado</option></select></label>
-      <label>Expressão cron<input name="cron" required maxlength="120" value="0 20 * * *" spellcheck="false"></label>
-      <p class="fin-alerts-note">Minuto · hora · dia do mês · mês · dia da semana (0 = domingo). Ex.: 0 13,20 * * *.</p>
+      <label>O que você quer acompanhar?<select name="tipo" required><option value="">Selecione um módulo</option>${Object.entries(FINANCIAL_ALERT_SECTIONS).map(([value,label]) => `<option value="${value}">${value === 'geral' ? 'Geral · resumo de tudo' : label}</option>`).join('')}</select></label>
+      <div><span class="fin-alerts-label">Horários do dia</span><div data-times class="fin-alerts-times"></div><button class="fin-btn fin-btn--ghost" type="button" data-add-time>Adicionar horário</button></div>
+      <p class="fin-alerts-note">Todos os dias, no horário de Brasília. Geral reúne extrato, despesas fixas, receitas, poupança e metas do simulador.</p>
+      <div class="fin-alerts-message"><strong>Mensagem padrão do bot</strong><p data-message-preview role="status" aria-live="polite"></p></div>
       <p data-preview role="status" aria-live="polite"></p>
       <label class="fin-alerts-active"><input type="checkbox" name="ativo" checked> Ativo</label>
       <div class="fin-alerts-actions"><button class="fin-btn" type="submit">Salvar alerta</button><button class="fin-btn fin-btn--ghost" type="button" data-cancel>Cancelar</button></div>
     </form>
-    <p class="fin-alerts-note">Execução verificada pelo servidor a cada 5 minutos, sujeita a atrasos. Agendamentos salvos continuam com o app fechado.</p>`;
-  const form=host.querySelector('form'), list=host.querySelector('ul'), notice=host.querySelector('[data-notice]'), preview=host.querySelector('[data-preview]');
-  const add=host.querySelector('[data-add]');let rows=[],editing=null,busy=false;
-  const fmt=iso=>new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(iso));
-  async function api(method='GET',body) {
-    const response=await fetch(endpoint,{method,cache:'no-store',...(body?{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});
-    const data=await response.json();if(!response.ok)throw new Error(data.error || 'Não foi possível concluir a operação.');return data;
-  }
-  function button(text,handler) { const b=document.createElement('button');b.type='button';b.className='fin-btn fin-btn--ghost';b.textContent=text;b.addEventListener('click',handler);return b; }
-  async function mutate(method,payload) {
-    if(busy)return;busy=true;add.disabled=true;form.querySelector('[type=submit]').disabled=true;
-    list.querySelectorAll('button').forEach(b=>b.disabled=true);
-    try { await api(method,payload);form.hidden=true;await load();notice.textContent='';showAppConfirmation(host.dataset.demo==='true'?'Alteração salva no modo local.':'Alteração salva.'); }
-    catch(error){notice.textContent=error.message;}
-    finally {busy=false;add.disabled=false;form.querySelector('[type=submit]').disabled=false;list.querySelectorAll('button').forEach(b=>b.disabled=false);}
+    <p class="fin-alerts-note">O bot verifica os agendamentos periodicamente; pode haver atraso no envio. Funciona com o app fechado.</p>`;
+  const form = host.querySelector('form'), list = host.querySelector('ul'), notice = host.querySelector('[data-notice]'), preview = host.querySelector('[data-preview]');
+  const add = host.querySelector('[data-add]'), timesHost = host.querySelector('[data-times]');
+  let rows = [], editing = null, busy = false;
+  const fmt = iso => new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(iso));
+  const times = () => [...timesHost.querySelectorAll('input')].map(input => input.value);
+  function button(text, handler) {
+    const result = document.createElement('button'); result.type = 'button'; result.className = 'fin-btn fin-btn--ghost'; result.textContent = text; result.addEventListener('click', handler); return result;
   }
   function updatePreview() {
+    const section = form.elements.tipo.value;
+    host.querySelector('[data-message-preview]').textContent = Object.hasOwn(FINANCIAL_ALERT_SECTIONS, section)
+      ? `${FINANCIAL_ALERT_INTRO}\nResumo · ${FINANCIAL_ALERT_SECTIONS[section]}\n${FINANCIAL_ALERT_DESCRIPTIONS[section]} Os valores são atualizados na hora do envio.`
+      : 'Escolha um módulo para ver o que vai chegar no Telegram.';
     try {
-      const dates=nextOccurrences(form.elements.cron.value);
-      preview.textContent=dates.length?'Próximos horários: '+dates.map(fmt).join(' · '):'Nenhuma ocorrência nos próximos cinco anos.';
-    } catch(error) {preview.textContent=error.message;}
+      const payload = validateAlert({tipo:form.elements.tipo.value,horarios:times(),ativo:form.elements.ativo.checked});
+      preview.textContent = 'Próximos envios: ' + alertOccurrences(payload,new Date(),{future:true}).map(fmt).join(' · ');
+    } catch { preview.textContent = 'Selecione o módulo e preencha os horários desejados.'; }
   }
-  function open(row=null) {
-    editing=row?.id || null;form.reset();form.hidden=false;
-    for(const key of ['nome','tipo','mensagem','cron']) if(row)form.elements[key].value=row[key];
-    if(row)form.elements.ativo.checked=row.ativo;
-    const preset=host.querySelector('[data-preset]');
-    preset.value=[...preset.options].some(o=>o.value===form.elements.cron.value)?form.elements.cron.value:'custom';
-    updatePreview();form.elements.nome.focus();
+  function renderTimes(values) {
+    timesHost.replaceChildren();
+    values.forEach((value,index) => {
+      const row = document.createElement('div'); row.className = 'fin-alerts-time';
+      const label = document.createElement('label'); label.textContent = `Horário ${index+1}`;
+      const input = document.createElement('input'); input.type = 'time'; input.required = true; input.name = 'horario'; input.value = value; input.addEventListener('input',updatePreview); label.append(input);
+      const remove = button('Remover',() => { const remaining = times().filter((_,i) => i !== index); renderTimes(remaining.length ? remaining : ['']); updatePreview(); });
+      remove.setAttribute('aria-label',`Remover horário ${index+1}`); row.append(label,remove); timesHost.append(row);
+    });
+    host.querySelector('[data-add-time]').disabled = values.length >= 12;
+  }
+  async function api(method = 'GET',body) {
+    const response = await fetch(endpoint,{method,cache:'no-store',...(body?{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});
+    const data = await response.json(); if(!response.ok) throw new Error(data.error || 'Não foi possível concluir a operação.'); return data;
+  }
+  async function mutate(method,payload) {
+    if(busy) return;
+    busy = true; add.disabled = true; form.querySelectorAll('button').forEach(button => button.disabled = true); list.querySelectorAll('button').forEach(button => button.disabled = true);
+    try { await api(method,payload); form.hidden = true; await load(); showAppConfirmation(host.dataset.demo === 'true' ? 'Alerta salvo no modo local.' : 'Alerta atualizado.'); }
+    catch(error) { notice.textContent = error.message; }
+    finally { busy = false; add.disabled = false; form.querySelectorAll('button').forEach(button => button.disabled = false); list.querySelectorAll('button').forEach(button => button.disabled = false); }
+  }
+  function open(row = null) {
+    editing = row?.id || null; form.reset(); form.hidden = false; notice.textContent = '';
+    form.elements.tipo.value = row ? (Object.hasOwn(FINANCIAL_ALERT_SECTIONS,row.tipo) ? row.tipo : 'geral') : '';
+    form.elements.ativo.checked = row?.ativo ?? true;
+    let values = row?.horarios || [''];
+    if(row && row.horarios == null) {
+      try { const parsed = parseCron(row.cron); values = [...parsed.sets[1]].sort((a,b)=>a-b).flatMap(hour => [...parsed.sets[0]].sort((a,b)=>a-b).map(minute => `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`)).slice(0,12); } catch { values = ['']; }
+      notice.textContent = 'Ao salvar, este alerta passa a enviar um resumo padrão todos os dias nos horários escolhidos.';
+    }
+    renderTimes(values); updatePreview(); form.elements.tipo.focus();
   }
   async function load() {
     try {
-      const data=await api();if(!host.isConnected)return;
-      rows=data.rows || [];host.dataset.demo=String(Boolean(data.demo));
-      notice.textContent=data.aviso || (!data.configurado?'Agendador desativado: confira a configuração do bot no servidor.':'');
-      add.disabled=data.persistencia===false && !data.demo;
-      list.replaceChildren();
-      if(!rows.length){const li=document.createElement('li');li.textContent='Nenhum alerta criado.';list.append(li);}
+      const data = await api(); if(!host.isConnected) return;
+      rows = data.rows || []; host.dataset.demo = String(Boolean(data.demo));
+      notice.textContent = data.aviso || (!data.configurado ? 'Agendador desativado: confira a configuração do bot no servidor.' : '');
+      add.disabled = data.persistencia === false && !data.demo; list.replaceChildren();
+      if(!rows.length) { const empty = document.createElement('li'); empty.textContent = 'Nenhum alerta criado.'; list.append(empty); }
       for(const row of rows) {
-        const li=document.createElement('li'),title=document.createElement('strong'),desc=document.createElement('p'),next=document.createElement('p'),actions=document.createElement('div');
-        title.textContent=row.nome;desc.textContent=`${row.ativo?'Ativo':'Pausado'} · ${types[row.tipo]} · ${row.cron}`;
-        try {const dates=nextOccurrences(row.cron,new Date(),1);next.textContent=row.ativo&&dates.length?'Próximo: '+fmt(dates[0]):'';}catch{next.textContent='Revise a expressão cron.';}
-        actions.className='fin-alerts-actions';
-        actions.append(button('Editar',()=>open(row)),button(row.ativo?'Pausar':'Ativar',()=>mutate('PATCH',{...row,ativo:!row.ativo})),button('Excluir',()=>{
-          actions.replaceChildren();const prompt=document.createElement('span');prompt.textContent='Excluir este alerta?';actions.append(prompt,button('Confirmar exclusão',()=>mutate('DELETE',{id:row.id})),button('Cancelar',load));
-        }));li.append(title,desc,next,actions);list.append(li);
+        const item = document.createElement('li'), title = document.createElement('strong'), desc = document.createElement('p'), next = document.createElement('p'), actions = document.createElement('div');
+        title.textContent = FINANCIAL_ALERT_SECTIONS[row.tipo] || row.nome;
+        const header = document.createElement('div'); header.className = 'fin-alerts-row-head';
+        const toggle = button('',() => mutate('PATCH',{...row,ativo:!row.ativo}));
+        toggle.className = 'fin-alerts-switch';
+        toggle.setAttribute('role','switch'); toggle.setAttribute('aria-checked',String(row.ativo));
+        toggle.setAttribute('aria-label',`Alerta de ${title.textContent}`);
+        const track = document.createElement('span'); track.className = 'fin-alerts-switch-track'; track.setAttribute('aria-hidden','true');
+        const state = document.createElement('span'); state.textContent = `Alerta ${row.ativo ? 'Ligado' : 'Desligado'}`;
+        toggle.append(track,state); header.append(title,toggle);
+        desc.textContent = `${row.ativo ? 'Ativo' : 'Pausado'} · ${row.horarios ? 'Todos os dias às ' + row.horarios.join(' · ') : 'Agendamento anterior'}`;
+        try { const dates = alertOccurrences(row,new Date(),{future:true,count:1}); next.textContent = row.ativo && dates.length ? 'Próximo: ' + fmt(dates[0]) : ''; } catch { next.textContent = 'Revise os horários deste alerta.'; }
+        actions.className = 'fin-alerts-actions';
+        actions.append(button('Editar',() => open(row)),button('Excluir',() => {
+          actions.replaceChildren(); const prompt = document.createElement('span'); prompt.textContent = 'Excluir este alerta?'; actions.append(prompt,button('Confirmar exclusão',() => mutate('DELETE',{id:row.id})),button('Cancelar',load));
+        })); item.append(header,desc,next,actions); list.append(item);
       }
-    } catch(error) {notice.textContent=error.message;add.disabled=true;notice.append(button('Tentar novamente',load));}
+    } catch(error) { notice.textContent = error.message; add.disabled = true; notice.append(button('Tentar novamente',load)); }
   }
-  add.addEventListener('click',()=>open());host.querySelector('[data-cancel]').addEventListener('click',()=>form.hidden=true);
-  form.elements.cron.addEventListener('input',()=>{host.querySelector('[data-preset]').value='custom';updatePreview();});
-  host.querySelector('[data-preset]').addEventListener('change',event=>{if(event.target.value!=='custom'){form.elements.cron.value=event.target.value;updatePreview();}});
-  form.addEventListener('submit',event=>{
-    event.preventDefault();
-    try {const payload=validateAlert({nome:form.elements.nome.value,tipo:form.elements.tipo.value,mensagem:form.elements.mensagem.value,cron:form.elements.cron.value,ativo:form.elements.ativo.checked});mutate(editing?'PATCH':'POST',{...payload,...(editing?{id:editing}:{})});}
-    catch(error){notice.textContent=error.message;}
+  add.addEventListener('click',() => open()); host.querySelector('[data-cancel]').addEventListener('click',() => form.hidden = true);
+  host.querySelector('[data-add-time]').addEventListener('click',() => { if(times().length < 12) { renderTimes([...times(),'']); updatePreview(); } });
+  form.elements.tipo.addEventListener('change',updatePreview);
+  form.addEventListener('submit',event => {
+    event.preventDefault(); if(busy || !form.reportValidity()) return;
+    try { const payload = validateAlert({tipo:form.elements.tipo.value,horarios:times(),ativo:form.elements.ativo.checked}); mutate(editing ? 'PATCH' : 'POST',{...payload,...(editing ? {id:editing} : {})}); }
+    catch(error) { notice.textContent = error.message; }
   });
   await load();
 }
