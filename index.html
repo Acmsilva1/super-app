@@ -7803,7 +7803,7 @@
                             <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
                             <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia o teste de água, todas as dietas cadastradas e os dois resumos reais do Financeiro: débito/Pix do dia e despesas fixas do mês.</p></div><button type="button" class="profile-telegram-test" id="adminTelegramTest">Testar Telegram</button></div>
                             <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
-                            <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie descrição e valor por texto ou áudio no chat privado do bot. Sempre débito, com confirmação antes de salvar. Se os botões não aparecerem, envie /pendente para recuperar a última compra.</p></div><button type="button" class="profile-telegram-switch" id="adminTelegramWebhook" role="switch" aria-checked="false" aria-label="Compras pelo Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span data-switch-label>Consultando…</span></button></div>
+                            <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie somente texto no formato padaria,4,25. Cada linha é um lançamento; confirme o resumo antes de salvar. Sempre débito. Use /pendente para recuperar a última confirmação.</p></div><button type="button" class="profile-telegram-switch" id="adminTelegramWebhook" role="switch" aria-checked="false" aria-label="Compras pelo Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span data-switch-label>Consultando…</span></button></div>
                             <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                         </div>
                     </section>`;
@@ -8030,7 +8030,7 @@
                     const payload = await response.json();
                     if (!response.ok || !payload.ok || payload.enabled !== enabled) throw new Error(payload.error || 'Não foi possível confirmar a alteração.');
                     this.setAdminTelegramWebhookState(payload.enabled);
-                    message.textContent = payload.simulated ? 'Alteração simulada no modo local.' : enabled ? 'Recebimento ligado. Envie descrição e valor ao bot; confirme o resumo antes de salvar.' : 'Recebimento de compras desligado.';
+                    message.textContent = payload.simulated ? 'Alteração simulada no modo local.' : enabled ? 'Recebimento ligado. Envie padaria,4,25, com um lançamento por linha; confirme o resumo antes de salvar.' : 'Recebimento de compras desligado.';
                     showAppConfirmation(message.textContent); message.textContent = '';
                 } catch (error) {
                     this.setAdminTelegramWebhookState(previous);

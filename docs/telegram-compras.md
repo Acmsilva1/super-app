@@ -1,42 +1,34 @@
-# Compras pelo Telegram
+# Compras pelo Telegram — somente texto
 
-Texto: descrição e valor, nessa ordem, separados por vírgula. Áudio: transcrição pela Groq e extração por regras; pagamento sempre débito, data de hoje e categoria Outros. Compras entram em `tb_financas` no usuário administrativo definido por `SAUDE_ALERTS_OWNER_USER_ID`. Não grava contas fixas ou compras no crédito. Não altera o cron de alertas. O método interno `debito_pix` corresponde ao agrupamento já usado pelo Financeiro; não altera o contrato do banco.
+Envie uma compra por linha, sempre no formato `descrição,reais,centavos`. O primeiro campo é a descrição; os dois campos numéricos formam um único valor monetário. Use exatamente dois dígitos nos centavos, sem símbolo de moeda ou separador de milhar.
 
-Exemplos: `Almoço, 15` e `Supermercado, 30,50`. Não usar separador de milhar no valor nem vírgula na descrição. Formatos anteriores com três campos ou cabeçalhos não são mais aceitos. Não incluir crédito ou parcelas.
+```text
+padaria,4,25
+mercado,15,30
+almoço,20,00
+```
 
-O bot envia resumo e botões Confirmar/Cancelar. A confirmação expira após 15 minutos. O banco confirma e insere numa única transação, impedindo duplicação por clique ou reentrega. Somente o chat privado positivo configurado em `TELEGRAM_CHAT_ID` e seu titular podem usar. Grupos e mensagens encaminhadas são rejeitados.
+O exemplo prepara três lançamentos de R$ 4,25, R$ 15,30 e R$ 20,00. Linhas vazias são ignoradas. Limites: 20 lançamentos por mensagem e 4096 caracteres. Se uma linha estiver inválida, o bot informa seu número e não prepara nenhuma compra da mensagem. Corrija e reenvie o texto completo.
 
-## Ativação manual
+O bot mostra descrição e valor de cada linha, total, data de hoje, pagamento Débito e categoria Outros. Um único botão **Confirmar todos** salva o lote inteiro; **Cancelar** descarta todas as linhas. Uma compra continua usando **Confirmar**. A confirmação expira em 15 minutos. Nada entra em `tb_financas` antes da confirmação.
 
-1. Aplicar `migration/20261006_telegram_compras.sql` no Supabase. RLS sem acesso anon/authenticated; somente service role.
-2. As variáveis existentes `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SAUDE_ALERTS_OWNER_USER_ID` e Supabase service role precisam estar na Vercel Production. O servidor deriva um segredo exclusivo para o webhook com HMAC a partir do token do bot. Opcionalmente definir `TELEGRAM_WEBHOOK_SECRET` próprio, de 32 a 256 caracteres, somente letras, números, `_` ou `-`; não reutilizar CRON_SECRET.
-3. Fazer commit/push e deploy. Token do bot, chat ID e proprietário já existentes são reutilizados.
-4. Registrar o webhook **depois** do deploy: abrir perfil administrador → Alertas → **Ativar compras pelo Telegram**. A API administrativa verifica a autorização exclusiva do administrador, a identidade do proprietário e a existência da tabela antes de chamar setWebhook. Nenhum token ou segredo vai ao navegador; não exige terminal local. O domínio vem de `VERCEL_PROJECT_PRODUCTION_URL`, ou do domínio de `ALERTS_API_URL` já configurado.
-5. A rota deve estar acessível ao Telegram sem Deployment Protection, mas continua exigindo o cabeçalho secreto do webhook. Não desligar a proteção de todo o projeto para isso.
-6. Testar uma compra pequena, conferir o resumo, confirmar e verificar o lançamento no app. Essa operação grava dado real; ainda não foi executada pelo agente.
+O modo de voz foi removido. Áudios recebem orientação para enviar texto; não são baixados nem enviados a fornecedores de transcrição. `GROQ_API_KEY` não é mais utilizada pelo bot. Valores por extenso, crédito, parcelas e outras datas devem ser registrados no app. O agrupamento interno `debito_pix` foi preservado.
 
-O cadastro recusa substituir outro endereço de webhook já existente. Mensagens de compra com mais de 15 minutos são ignoradas; os callbacks continuam usando a validade do rascunho. setWebhook impede getUpdates enquanto ativo. Se o token ou segredo forem alterados, fazer deploy e clicar no botão novamente para atualizar o cadastro. O sucesso do cadastro não comprova entrega: ainda é necessário enviar uma mensagem e verificar a resposta.
+## Banco e publicação
 
-## Limitações e recuperação
+1. Se ainda não existir a tabela, aplicar `migration/20261006_telegram_compras.sql`.
+2. Aplicar `migration/20261011_telegram_compras_multiplas.sql` **antes de publicar** o novo código. A função de confirmação aceita rascunhos individuais antigos e lotes novos. Bloqueia o rascunho durante a confirmação e grava todas as linhas em uma transação. Falhas desfazem o lote inteiro; repetir o clique não duplica lançamentos.
+3. Publicar o código na Vercel. Se o webhook já estiver cadastrado para a mesma URL, não é necessário recriá-lo. Caso ainda não esteja, habilitar Compras pelo Telegram no perfil administrador após publicar.
+4. Validar no chat privado configurado, conferir o resumo e confirmar. Essa verificação real não foi executada pelo agente.
 
-### Áudio pela Groq
+Continuam necessárias as configurações de servidor `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SAUDE_ALERTS_OWNER_USER_ID` e Supabase service role. O segredo do webhook pode ser derivado por HMAC do token ou definido em `TELEGRAM_WEBHOOK_SECRET`; não reutilizar `CRON_SECRET`. Credenciais ficam somente no servidor.
 
-Valores coloquiais também são aceitos: “café quinze e trinta” ou “gastei quinze e trinta no café” geram R$ 15,30. Não é preciso falar “vírgula”. Números inteiros por extenso mantêm seu significado: “vinte e cinco” é R$ 25,00; para R$ 20,05, diga “vinte reais e cinco centavos”. O valor sempre aparece para confirmação antes de salvar.
+Somente o chat privado autorizado e seu titular podem criar ou confirmar rascunhos. Grupos, bots e mensagens encaminhadas são rejeitados. A tabela `tb_telegram_compras` mantém RLS e não permite acesso direto por anon/authenticated; somente service role acessa a tabela e a função. Não registrar mensagens ou payloads em logs. Os lançamentos pertencem à conta definida em `SAUDE_ALERTS_OWNER_USER_ID`.
 
-Configurar `GROQ_API_KEY` como segredo na Vercel Production e fazer deploy. Não exige nova migration nem novo webhook se já estiver ativo. O servidor usa `whisper-large-v3` no endpoint de transcrição, com idioma português. Mantendo a conta Groq no Free, aplicam-se suas cotas; o app não muda plano nem usa outro fornecedor como fallback.
+## Recuperação e rollback
 
-Enviar uma mensagem de voz do Telegram, até 60 segundos e 5 MB, com uma única compra. Exemplos: “Comprei um café por dez reais e vinte centavos”, “Gastei trinta reais no supermercado”, “Supermercado no valor de trinta reais e cinquenta centavos”. Não é necessário ditar vírgulas. Também aceita “café dez reais e vinte”, os formatos anteriores e valores numéricos na transcrição. “Dez vírgula dois” equivale a 10,20; “dez reais e dois centavos” equivale a 10,02. O arquivo OGG/OGA é baixado do Telegram pelo servidor, limitado também durante a leitura, e enviado como arquivo à Groq. A URL de download contendo o token do bot nunca é compartilhada com a Groq.
+`/pendente` recupera o último rascunho individual ou lote válido dos últimos 15 minutos, com os mesmos botões. Se o envio ficar sem confirmação, confira o Financeiro antes de tentar novamente. Lançamentos confirmados podem ser editados ou excluídos no app.
 
-O bot exibe o texto transcrito e o resumo; conferir especialmente o valor antes de confirmar. Formatos ambíguos ou valores não reconhecidos são rejeitados. Não aceita crédito, parcelas ou datas passadas pelo áudio. Não é um interpretador irrestrito de linguagem natural. Números por extenso seguem uma gramática limitada; frases fora dela devem ser reenviadas por texto. Áudio não é armazenado no banco nem em arquivo local; a tabela de rascunhos guarda somente os campos do lançamento. O áudio é processado por Telegram/Groq; isso não constitui garantia sobre a retenção do fornecedor.
+Rollback: republicar o código anterior e aplicar `migration/rollback/20261011_telegram_compras_multiplas.sql`. O rollback recusa voltar enquanto houver lotes pendentes válidos; confirme, cancele ou aguarde a expiração antes. Histórico e lançamentos confirmados são preservados.
 
-Erro de cota, chave ausente/inválida ou falha de transcrição gera orientação pelo bot, sem salvar compra. Reentregas com rascunho já existente não são transcritas novamente; falhas antes da criação do rascunho podem consumir outra chamada se a mensagem for reenviada. Validação de sintaxe local não comprova precisão da transcrição ou execução real; teste com o chat após publicar.
-
-Referência: [transcrição e formatos Groq](https://console.groq.com/docs/speech-to-text).
-
-Se o resumo não chegar por falha de rede, reenviar a compra como nova mensagem; não há gravação sem botão de confirmação. Se houver erro após confirmar, conferir o app antes de tentar novamente; repetir o mesmo botão não cria segunda compra. A confirmação é vinculada ao chat, remetente e proprietário.
-
-Sem desfazer pelo bot nesta versão; editar/excluir no Financeiro. Histórico de rascunhos fica em tabela privada de apoio e não é exposto na API. Não registrar corpo das mensagens em logs. A definição de retenção automática fica para evolução posterior.
-
-Rollback: remover o webhook do Telegram, retirar a rota no deploy e usar `migration/rollback_20261006_telegram_compras.sql`, que mantém a tabela e o histórico. Não desfaz compras já confirmadas.
-
-Referência: [API oficial do Telegram](https://core.telegram.org/bots/api#setwebhook).
+Esta alteração não modifica o cron dos alertas. Os testes locais usam mocks de transporte e PostgreSQL em memória; não comprovam execução na Vercel nem entrega real no Telegram.
