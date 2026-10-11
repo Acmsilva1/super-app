@@ -621,24 +621,46 @@ function renderActiveSaudeView(container, state) {
 
 async function syncWaterWithHealthProfile(state, healthProfile) {
   if (!healthProfile) return;
+  if (state.waterLoadedProfileId === Number(healthProfile.id) && state.waterLoadedDate === todayIsoDate()) return;
   const profileKey = String(healthProfile.id);
   state.waterProfileId = profileKey;
   if (isLocalWaterStorageMode()) {
     ensureLocalWaterProfileLinkedToHealth(healthProfile);
     applyWaterData(state, loadLocalWater(undefined, undefined, profileKey, { strict: true, healthProfile }));
+    state.waterLoadedProfileId = Number(healthProfile.id);
+    state.waterLoadedDate = todayIsoDate();
     return;
   }
   applyWaterData(state, await requestWater('GET', { profile_id: profileKey, preserve_profiles: true }));
+  state.waterLoadedProfileId = Number(healthProfile.id);
+  state.waterLoadedDate = todayIsoDate();
 }
 
 async function syncDietsForHealthProfile(state, healthProfile) {
   if (!healthProfile) return;
   const profileId = Number(healthProfile.id);
   state.dietSelectedProfileId = profileId;
-  const response = await fetch('/api/saude?resource=dietas', { cache: 'no-store' });
+  const response = await fetch(`/api/saude?resource=dietas&profile_id=${profileId}`, { cache: 'no-store' });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'Não foi possível carregar as dietas.');
+  if (state.disposed || Number(state.selectedProfileId) !== profileId) return;
   state.diets = Array.isArray(data.rows) ? data.rows : [];
+  state.dietsLoadedProfileId = profileId;
+}
+
+async function loadSelectedProfileScreen(state, profile, screen) {
+  if (screen === 'dietas') {
+    await Promise.all([syncDietsForHealthProfile(state, profile), ensureFoodCatalog(state)]);
+  } else if (screen === 'alertas') {
+    const [result] = await Promise.all([
+      requestAlertSchedule('GET', { profile_id: profile.id }),
+      syncDietsForHealthProfile(state, profile),
+    ]);
+    if (state.disposed || Number(state.selectedProfileId) !== Number(profile.id)) return;
+    state.alertSchedule = result.row;
+    state.alertScheduleSaved = structuredClone(result.row);
+    state.alertScheduleStorage = result.storage;
+  }
 }
 
 async function ensureFoodCatalog(state) {
@@ -1281,34 +1303,6 @@ function cacheWaterHistoryForProfile(state, profileId, data) {
   };
 }
 
-async function fetchWaterSnapshotForProfile(profile) {
-  const profileKey = String(profile.id);
-  if (isLocalWaterStorageMode()) {
-    return loadLocalWater(undefined, undefined, profileKey, { strict: true, healthProfile: profile });
-  }
-  return requestWater('GET', { profile_id: profileKey, preserve_profiles: true });
-}
-
-async function hydrateWaterHistoriesForProfiles(state) {
-  if (!state.profiles.length) {
-    state.waterHistoryByProfile = {};
-    return;
-  }
-  state.waterHistoryByProfile = state.waterHistoryByProfile || {};
-  const snapshots = await Promise.all(state.profiles.map(async (profile) => {
-    try {
-      const data = await fetchWaterSnapshotForProfile(profile);
-      return [String(profile.id), data];
-    } catch {
-      return [String(profile.id), null];
-    }
-  }));
-  snapshots.forEach(([profileId, data]) => {
-    if (data) cacheWaterHistoryForProfile(state, profileId, data);
-    else state.waterHistoryByProfile[profileId] = { config: null, rows: [] };
-  });
-}
-
 const PROFILE_SCREENS = ['hub', 'peso', 'dietas', 'alertas'];
 
 function normalizeProfileScreen(screen) {
@@ -1339,7 +1333,7 @@ function renderProfiles(container, state) {
         <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
       </button></li>`;
     }).join('')
-    : '<li class="fin-empty">Nenhum perfil cadastrado.</li>';
+    : `<li class="fin-empty"${state.profilesLoading ? ' role="status"' : ''}>${state.profilesLoading ? 'Carregando perfis…' : 'Nenhum perfil cadastrado.'}</li>`;
   const activeWaterGoals = profiles.filter((profile) => state.waterHistoryByProfile?.[String(profile.id)]?.config).length;
 
   renderShell(container, `<section class="saude-page" aria-labelledby="profiles-title">
@@ -1347,15 +1341,15 @@ function renderProfiles(container, state) {
     <ul class="fin-list" aria-label="Outros recursos de saúde"><li><button type="button" class="fin-nav-row" data-saude-action="open-alimentos">
       <i class="fas fa-apple-whole fin-nav-row__icon" aria-hidden="true"></i><span class="fin-nav-row__label">Alimentos</span><span class="saude-nav-meta">Tabela nutricional</span><i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
     </button></li></ul>
-    <p class="fin-section-label">Perfis · ${profiles.length}</p>
+    <p class="fin-section-label">Perfis${state.profilesLoading ? '' : ` · ${profiles.length}`}</p>
     <ul class="fin-list" aria-label="Perfis de saúde">${rows}</ul>
-    ${profiles.length ? '' : '<button type="button" class="fin-btn fin-btn--block" data-saude-action="add-profile"><i class="fas fa-plus" aria-hidden="true"></i> Criar primeiro perfil</button>'}
+    ${profiles.length || state.profilesLoading ? '' : '<button type="button" class="fin-btn fin-btn--block" data-saude-action="add-profile"><i class="fas fa-plus" aria-hidden="true"></i> Criar primeiro perfil</button>'}
     ${renderProfileForm(state)}
     ${renderMeasurementForm(state)}
   </section>`, {
     title: 'Minha Saúde',
     titleId: 'profiles-title',
-    footer: `<div class="fin-footer__row">${renderFooterItem('Perfis cadastrados', String(profiles.length))}${renderFooterItem('Metas de água ativas', String(activeWaterGoals))}</div>`,
+    footer: `<div class="fin-footer__row">${renderFooterItem('Perfis cadastrados', state.profilesLoading ? '—' : String(profiles.length))}${renderFooterItem('Metas de água ativas', Object.keys(state.waterHistoryByProfile || {}).length === profiles.length ? String(activeWaterGoals) : '—')}</div>`,
     addButton: renderAddButton('add-profile', 'Novo perfil'),
   });
 }
@@ -1385,10 +1379,12 @@ function renderProfileHub(profile, state) {
   const water = waterSummary(state);
   const diets = dietsForProfile(state, profile.id);
   const historyCount = Array.isArray(profile.historico) ? profile.historico.length : 0;
-  const waterStatus = water.waterToday
+  const waterLoaded = String(state.waterProfileId) === String(profile.id) && state.waterLoadedProfileId === Number(profile.id);
+  const waterStatus = state.waterLoading ? 'Carregando acompanhamento…' : !waterLoaded ? 'Abrir acompanhamento'
+    : water.waterToday
     ? `${water.done} de ${water.meta} doses hoje`
     : (water.waterConfig ? `Meta: ${water.meta} doses diárias` : 'Definir meta de doses diárias');
-  const waterActions = water.waterConfig
+  const waterActions = !waterLoaded ? '' : water.waterConfig
     ? `<button type="button" class="fin-icon-btn" data-saude-action="edit-water-goal" data-water-profile-id="${id}" aria-label="Editar meta de água" title="Editar meta"><i class="fas fa-pencil"></i></button><button type="button" class="fin-icon-btn" data-saude-action="delete-water-goal" data-water-profile-id="${id}" aria-label="Excluir acompanhamento de água" title="Excluir"><i class="fas fa-trash"></i></button>`
     : `<button type="button" class="fin-icon-btn" data-saude-action="create-water-goal" data-water-profile-id="${id}" aria-label="Criar meta de água" title="Criar meta"><i class="fas fa-plus"></i></button>`;
   const navRow = (screen, icon, label, meta) => `<li><button type="button" class="fin-nav-row" data-saude-action="profile-screen" data-screen="${screen}">
@@ -1430,7 +1426,7 @@ function renderProfileHub(profile, state) {
         <span class="fin-entry__actions">${waterActions}</span>
       </li>
       ${navRow('peso', 'fa-weight-scale', 'Peso e IMC', `${historyCount} ${historyCount === 1 ? 'registro' : 'registros'}`)}
-      ${navRow('dietas', 'fa-utensils', 'Dietas', String(diets.length))}
+      ${navRow('dietas', 'fa-utensils', 'Dietas', state.dietsLoadedProfileId === Number(profile.id) ? String(diets.length) : 'Abrir')}
       ${navRow('alertas', 'fa-bell', 'Agendadores', 'Configurar')}
       <li><button type="button" class="fin-nav-row" data-saude-action="edit-profile" data-saude-id="${id}">
         <i class="fas fa-pencil fin-nav-row__icon" aria-hidden="true"></i>
@@ -1552,6 +1548,11 @@ function renderProfileDetail(container, state) {
     footer = `<div class="fin-footer__row saude-footer-row--3">${renderFooterItem('Peso', `${formatarNumeroSaude(profile.peso_kg)} kg`)}${renderFooterItem('IMC', formatarNumeroSaude(imc, 2))}<div class="fin-footer__item"><span class="fin-footer__label">Água hoje</span><span class="fin-footer__value" data-water-footer-value>${water.waterToday ? `${water.done}/${water.meta}` : '—'}</span></div></div>`;
   }
 
+  if (state.profileScreenLoading) {
+    body = '<p class="fin-empty" role="status">Carregando dados desta seção…</p>';
+    footer = '';
+    addButton = '';
+  }
   renderShell(container, `<section class="saude-page saude-profile-detail" data-profile-screen="${screen}" aria-labelledby="profile-detail-title">
     ${body}
     ${renderProfileModals(state)}
@@ -1606,10 +1607,10 @@ async function loadProfiles(container, state) {
     if (!response.ok) throw new Error(data.error || 'O endpoint de perfis não respondeu corretamente.');
     state.profiles = Array.isArray(data.rows) ? data.rows : [];
     state.profilesAdminView = Boolean(data.admin_view);
+    state.profilesLoading = false;
     if (isLocalWaterStorageMode() && state.profiles.length) {
       migrateLocalWaterDataToHealthProfiles(state.profiles);
     }
-    await hydrateWaterHistoriesForProfiles(state);
     renderProfiles(container, state);
   } catch (error) {
     renderError(container, error instanceof Error ? error.message : 'Não foi possível carregar os perfis.');
@@ -1883,6 +1884,10 @@ export async function renderSaudeContent(container) {
     foodCatalogLoaded: false,
     foodCatalogCanEdit: false,
     profiles: [],
+    profilesLoading: true,
+    profileScreenLoading: false,
+    profileRequestVersion: 0,
+    disposed: false,
     profileScreen: 'hub',
     weightChartKey: null,
     profileEditorOpen: false,
@@ -2045,47 +2050,41 @@ export async function renderSaudeContent(container) {
       state.measurementEditorOpen = false;
       state.waterModal = null;
       state.notice = null;
-      renderLoading(container, 'Carregando perfil...');
-      try {
-        await Promise.all([
-          syncWaterWithHealthProfile(state, healthProfile),
-          syncDietsForHealthProfile(state, healthProfile),
-        ]);
-        rememberSaudeCheckpoint({ view: 'profile-detail', selectedProfileId: profileId, profileScreen: 'hub' });
-        renderProfileDetail(container, state);
-        container.closest('.window-content')?.scrollTo?.({ top: 0 });
-      } catch (error) {
-        renderError(container, error instanceof Error ? error.message : 'Não foi possível abrir o perfil.');
-      }
+      state.profileRequestVersion++;
+      state.profileScreenLoading = false;
+      state.waterConfig = null;
+      state.waterToday = null;
+      state.waterHistory = [];
+      state.waterLoadedProfileId = null;
+      rememberSaudeCheckpoint({ view: 'profile-detail', selectedProfileId: profileId, profileScreen: 'hub' });
+      renderProfileDetail(container, state);
+      container.closest('.window-content')?.scrollTo?.({ top: 0 });
       return;
     }
     if (action === 'profile-screen' && state.view === 'profile-detail') {
       state.profileScreen = normalizeProfileScreen(actionElement.dataset.screen);
+      const screen = state.profileScreen;
+      const version = ++state.profileRequestVersion;
+      const profile = currentHealthProfile(state);
       state.notice = null;
+      state.profileScreenLoading = ['dietas', 'alertas'].includes(screen);
+      state.alertScheduleLoading = screen === 'alertas';
+      state.alertScheduleError = false;
       rememberSaudeCheckpoint({ view: 'profile-detail', selectedProfileId: state.selectedProfileId, profileScreen: state.profileScreen });
       renderProfileDetail(container, state);
-      if (state.profileScreen === 'alertas') {
-        state.alertScheduleLoading = true;
-        state.alertScheduleError = false;
-        renderProfileDetail(container, state);
+      if (state.profileScreenLoading) {
         try {
-          const [result, allDietsRes] = await Promise.all([
-            requestAlertSchedule('GET', { profile_id: state.selectedProfileId }),
-            fetch(`/api/saude?resource=dietas&profile_id=${state.selectedProfileId}`, { cache: 'no-store' }),
-          ]);
-          const allDietsData = await allDietsRes.json().catch(() => ({}));
-          if (!allDietsRes.ok) throw new Error(allDietsData.error || 'Não foi possível carregar as dietas deste perfil.');
-          if (!Array.isArray(allDietsData.rows)) throw new Error('A resposta das dietas deste perfil é inválida.');
-          state.diets = allDietsData.rows;
-          state.alertSchedule = result.row;
-          state.alertScheduleSaved = structuredClone(result.row);
-          state.alertScheduleStorage = result.storage;
+          await loadSelectedProfileScreen(state, profile, screen);
         } catch (error) {
+          if (state.disposed || version !== state.profileRequestVersion) return;
           state.alertScheduleError = true;
-          state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar os agendadores.' };
+          state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível carregar esta seção.' };
         } finally {
-          state.alertScheduleLoading = false;
-          renderProfileDetail(container, state);
+          if (!state.disposed && version === state.profileRequestVersion && state.view === 'profile-detail') {
+            state.profileScreenLoading = false;
+            state.alertScheduleLoading = false;
+            renderProfileDetail(container, state);
+          }
         }
       }
       container.closest('.window-content')?.scrollTo?.({ top: 0 });
@@ -2095,6 +2094,20 @@ export async function renderSaudeContent(container) {
       const profileKey = waterProfileKeyFromAction(actionElement, state);
       const previousWaterProfileId = state.waterProfileId;
       const healthProfile = healthProfileByWaterKey(state, profileKey) || currentHealthProfile(state);
+      if (healthProfile) {
+        state.busy = true;
+        state.waterLoading = true;
+        renderActiveSaudeView(container, state);
+        try {
+          await syncWaterWithHealthProfile(state, healthProfile);
+        } catch (error) {
+          state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível carregar o consumo de água.' };
+          state.waterLoading = false;
+          if (!state.disposed) renderActiveSaudeView(container, state);
+          return;
+        } finally { state.busy = false; state.waterLoading = false; }
+        if (state.disposed) return;
+      }
       if (healthProfile) {
         state.waterProfileId = String(healthProfile.id);
         if (isLocalWaterStorageMode()) {
@@ -2978,7 +2991,7 @@ export async function renderSaudeContent(container) {
   };
   window.addEventListener('resize', onViewportChange);
   const waterDayTimer = setInterval(async () => {
-    if (state.busy || state.waterDate === todayIsoDate()) return;
+    if (state.busy || !state.waterLoadedProfileId || state.waterDate === todayIsoDate()) return;
     if (state.view === 'profile-detail') {
       const healthProfile = currentHealthProfile(state);
       if (!healthProfile) return;
@@ -2990,6 +3003,8 @@ export async function renderSaudeContent(container) {
     }
   }, 60000);
   container._cleanup = () => {
+    state.disposed = true;
+    state.profileRequestVersion++;
     container._saudeFooterObserver?.disconnect();
     container._saudeFooterObserver = null;
     clearInterval(waterDayTimer);
@@ -3008,57 +3023,22 @@ export async function renderSaudeContent(container) {
     container.removeEventListener('change', onFilter);
   };
 
-  renderLoading(container);
+  renderProfiles(container, state);
   try {
     const response = await fetch('/api/saude?resource=perfis', { cache: 'no-store' });
     if (!response.ok) throw new Error('O endpoint de Saúde não respondeu corretamente.');
     const data = await response.json().catch(() => ({}));
+    if (state.disposed) return;
     state.profiles = Array.isArray(data.rows) ? data.rows : [];
     state.profilesAdminView = Boolean(data.admin_view);
-    try {
-      await ensureFoodCatalog(state);
-    } catch {
-      state.foodRows = [];
-    }
+    state.profilesLoading = false;
+    if (state.view !== 'profiles') return;
     if (isLocalWaterStorageMode() && state.profiles.length) {
       migrateLocalWaterDataToHealthProfiles(state.profiles);
     }
-    await hydrateWaterHistoriesForProfiles(state);
-    const checkpoint = readSaudeCheckpoint();
-    const checkpointProfileId = Number(checkpoint?.selectedProfileId);
-    const restoreProfile = checkpoint?.view === 'profile-detail'
-      && Number.isFinite(checkpointProfileId)
-      && state.profiles.some((profile) => Number(profile.id) === checkpointProfileId);
-    if (restoreProfile) {
-      const healthProfile = state.profiles.find((profile) => Number(profile.id) === checkpointProfileId);
-      state.selectedProfileId = checkpointProfileId;
-      state.view = 'profile-detail';
-      state.profileScreen = normalizeProfileScreen(checkpoint?.profileScreen);
-      try {
-        await Promise.all([
-          syncWaterWithHealthProfile(state, healthProfile),
-          syncDietsForHealthProfile(state, healthProfile),
-        ]);
-        if (state.profileScreen === 'alertas') {
-          try {
-            const result = await requestAlertSchedule('GET', { profile_id: checkpointProfileId });
-            state.alertSchedule = result.row;
-          state.alertScheduleSaved = structuredClone(result.row);
-            state.alertScheduleStorage = result.storage;
-          } catch (error) {
-            state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar os agendadores.' };
-          }
-        }
-        renderProfileDetail(container, state);
-      } catch (_error) {
-        state.view = 'profiles';
-        renderProfiles(container, state);
-      }
-    } else {
-      state.view = 'profiles';
-      renderProfiles(container, state);
-    }
+    renderProfiles(container, state);
   } catch (error) {
-    renderError(container, error instanceof Error ? error.message : 'Não foi possível abrir Saúde.');
+    state.profilesLoading = false;
+    if (!state.disposed && state.view === 'profiles') renderError(container, error instanceof Error ? error.message : 'Não foi possível abrir Saúde.');
   }
 }

@@ -55,6 +55,19 @@ describe('catálogo e dietas integrados em memória', () => {
     expect(listed.body.rows[0].nutricao_total).toMatchObject({ kcal: 71.5, proteina: 6.3, completo: true });
     expect(listed.body.rows[0].refeicoes[0].itens[0].alimento.item).toBe('Ovo inteiro');
   });
+  it('vincula nomes do cardápio importado e persiste IDs e nomes do catálogo', async () => {
+    const perfil_id = await profile();
+    const saved = await request(app).post('/api/saude?resource=dietas').send({ perfil_id, titulo:'Cardápio com aliases',refeicoes:[{tipo:'cafe_da_manha',itens:[
+      {nome:'Ovos',quantidade_valor:3,quantidade_unidade:'un'},
+      {nome:'Batata inglesa',quantidade_valor:150,quantidade_unidade:'g',observacao:'Peso após cozimento, conforme PDF.'},
+    ]}] });
+    expect(saved.status).toBe(201);
+    expect(saved.body.row.refeicoes[0].itens.map(item=>item.nome)).toEqual(['Ovo inteiro','Batata inglesa cozida']);
+    expect(saved.body.row.refeicoes[0].itens.every(item=>item.alimento_id>0)).toBe(true);
+    expect(saved.body.row.nutricao_total).toMatchObject({kcal:345,proteina:21.75,completo:true});
+    const listed = await request(app).get(`/api/saude?resource=dietas&profile_id=${perfil_id}`);
+    expect(listed.body.rows[0].nutricao_total.kcal).toBe(345);
+  });
   it('recusa unidades quando o catálogo não contém o peso de uma unidade', async () => {
     const foods = await getFoods();
     const chicken = foods.body.rows.find((food) => food.item === 'Peito de frango grelhado');

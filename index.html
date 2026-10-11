@@ -8915,7 +8915,7 @@
                 }
                 if (appId === 'saude') {
                     try {
-                        const mod = await import('./features/saude/index.js?v=2026-10-10-separate-alerts-v1');
+                        const mod = await import('./features/saude/index.js?v=2026-10-11-lazy-sections-v1');
                         await mod.renderSaudeContent(contentEl);
                         this.resetModuleWindowScroll(appId, contentEl);
                     } catch (err) {
@@ -8935,23 +8935,40 @@
                         ...(this.uiState.appMeta?.financeiro || {}),
                     };
                     if (!mesAno && financeCheckpoint.mesAno) mesAno = financeCheckpoint.mesAno;
-                    const screenFromDom = contentEl.getAttribute('data-finance-screen');
-                    contentEl.setAttribute('data-finance-screen', this.normalizeFinanceScreen(screenFromDom || financeCheckpoint.screen));
+                    const screenFromDom = contentEl._financeInitialRenderDone
+                        ? contentEl.getAttribute('data-finance-screen')
+                        : 'hub';
+                    contentEl._financeInitialRenderDone = true;
+                    contentEl.setAttribute('data-finance-screen', this.normalizeFinanceScreen(screenFromDom));
                     if (contentEl.getAttribute('data-finance-screen') === 'simulador') {
                         await this.renderFinanceSimulador(contentEl);
                         return;
                     }
                 }
+                let financeRequestVersion;
                 try {
                     if (appId === 'financeiro') {
                         const resolvedMesAno = mesAno || this.getMesAnoAtual();
                         const sections = this.financeSectionsForScreen(contentEl.getAttribute('data-finance-screen'));
+                        const requestedScreen = contentEl.getAttribute('data-finance-screen');
+                        const requestVersion = (contentEl._financeLoadVersion || 0) + 1;
+                        contentEl._financeLoadVersion = requestVersion;
+                        financeRequestVersion = requestVersion;
+                        contentEl._financeScreenLoading = false;
+                        if (!sections.length) {
+                            this.renderFinanceiroContent(contentEl, { mes_ano: resolvedMesAno });
+                            return;
+                        }
+                        contentEl._financeScreenLoading = true;
+                        this.renderFinanceiroContent(contentEl, { mes_ano: resolvedMesAno });
                         const responses = await Promise.all(sections.map(async (section) => {
                             const res = await fetch('/api/financeiro?mes_ano=' + encodeURIComponent(resolvedMesAno)
                                 + '&secao=' + encodeURIComponent(section), { cache: 'no-store' });
                             return this.readApiJsonOrThrow(res, 'Falha ao carregar');
                         }));
                         const loadedMesAno = responses[0]?.mes_ano || resolvedMesAno;
+                        if (contentEl.isConnected === false || contentEl._financeLoadVersion !== requestVersion || contentEl.getAttribute('data-finance-screen') !== requestedScreen) return;
+                        contentEl._financeScreenLoading = false;
                         if (contentEl._financeiroDataMes !== loadedMesAno) {
                             contentEl._financeiroData = null;
                             contentEl._financeiroLoadedSections = new Set();
@@ -8974,6 +8991,8 @@
                     this.rememberWindowScroll(appId, scrollToRestore);
                     this.restoreWindowScroll(appId, contentEl);
                 } catch (err) {
+                    if (appId === 'financeiro' && (contentEl.isConnected === false || contentEl._financeLoadVersion !== financeRequestVersion)) return;
+                    contentEl._financeScreenLoading = false;
                     contentEl.innerHTML = '<div class="app-error"><i class="fas fa-exclamation-triangle"></i> ' + escapeHtml(err.message || 'Erro ao carregar') + '</div>';
                 }
             }
@@ -8996,11 +9015,12 @@
 
             normalizeFinanceScreen(screen) {
                 const value = String(screen || '').toLowerCase();
-                return ['hub', 'fixas', 'extrato', 'receita', 'poupanca', 'simulador'].includes(value) ? value : 'hub';
+                return ['hub', 'tendencia', 'alertas', 'fixas', 'extrato', 'receita', 'poupanca', 'simulador'].includes(value) ? value : 'hub';
             }
 
             financeSectionsForScreen(screen) {
                 const value = this.normalizeFinanceScreen(screen);
+                if (['tendencia', 'alertas', 'simulador'].includes(value)) return [];
                 if (value === 'hub') return ['data', 'poupanca'];
                 if (value === 'poupanca') return ['poupanca'];
                 return ['data'];
@@ -9008,6 +9028,8 @@
 
             async navigateFinanceScreen(el, screen) {
                 const next = this.normalizeFinanceScreen(screen);
+                el._financeLoadVersion = (el._financeLoadVersion || 0) + 1;
+                el._financeScreenLoading = false;
                 el.setAttribute('data-finance-screen', next);
                 this.rememberAppCheckpoint('financeiro', {
                     screen: next,
@@ -9401,6 +9423,7 @@
             }
 
             renderFinanceiroContent(el, data) {
+                data ||= { mes_ano: el.getAttribute('data-mes-ano') || this.getMesAnoAtual() };
                 if (el.getAttribute('data-finance-screen') === 'simulador') {
                     this.renderFinanceSimulador(el);
                     return;
@@ -9560,6 +9583,8 @@
 
                 const screenMeta = {
                     hub: { title: 'Visão geral', tipo: 'gasto_variado', period: true },
+                    tendencia: { title: 'Evolução financeira', tipo: 'gasto_variado', period: false },
+                    alertas: { title: 'Alertas do Financeiro', tipo: 'gasto_variado', period: false },
                     fixas: { title: 'Despesas fixas', tipo: 'despesa_fixa', period: true },
                     extrato: { title: 'Extrato diário', tipo: 'gasto_variado', period: true },
                     receita: { title: 'Receitas', tipo: 'receita', period: true },
@@ -9590,17 +9615,14 @@
                             ${navRow('receita', 'fa-arrow-trend-up', 'Receitas')}
                             ${navRow('poupanca', 'fa-piggy-bank', 'Poupança')}
                             ${navRow('simulador', 'fa-calculator', 'Simulador')}
+                            ${navRow('tendencia', 'fa-chart-line', 'Evolução financeira')}
+                            ${navRow('alertas', 'fa-bell', 'Alertas')}
                         </ul>
-                        <p class="fin-section-label">Resumo de ${escapeHtml(this.formatMesAnoLabel(mesAno))}</p>
-                        <ul class="fin-list">
-                            <li class="fin-kv"><span class="fin-kv__label">Receita do mês</span><span class="fin-kv__value is-pos">${money(receitasVal)}</span></li>
-                            <li class="fin-kv"><span class="fin-kv__label">Despesas fixas</span><span class="fin-kv__value is-neg">${money(fixasVal)}</span></li>
-                            <li class="fin-kv"><span class="fin-kv__label">Gastos PIX / débito</span><span class="fin-kv__value is-neg">${money(variadasVal)}</span></li>
-                            <li class="fin-kv"><span class="fin-kv__label">Poupança acumulada</span><span class="fin-kv__value">${money(poupancaTotal)}</span></li>
-                            <li class="fin-kv fin-kv--total"><span class="fin-kv__label">Saldo do mês</span><span class="fin-kv__value ${saldoVal < 0 ? 'is-neg' : 'is-pos'}">${money(saldoVal)}</span></li>
-                        </ul>
-                        <section data-finance-trend-host aria-label="Evolução financeira"><p class="fin-empty">Carregando evolução financeira…</p></section>
-                        <section data-finance-alerts-host aria-label="Alertas do Financeiro"><p class="fin-empty">Carregando alertas…</p></section>`;
+                        <section data-finance-summary-host aria-label="Resumo mensal"><p class="fin-empty" role="status">Carregando resumo mensal…</p></section>`;
+                } else if (screen === 'tendencia') {
+                    bodyHtml = '<section data-finance-trend-host aria-label="Evolução financeira"><p class="fin-empty" role="status">Carregando evolução financeira…</p></section>';
+                } else if (screen === 'alertas') {
+                    bodyHtml = '<section data-finance-alerts-host aria-label="Alertas do Financeiro"><p class="fin-empty" role="status">Carregando alertas…</p></section>';
                 } else if (screen === 'fixas') {
                     const importHtml = despesasFixas.length === 0 ? `
                         <div class="fin-callout" role="region" aria-label="Preencher despesas fixas">
@@ -9681,13 +9703,29 @@
                     } : null,
                 };
 
+                if (screen === 'hub' && !el._financeScreenLoading) {
+                    const summaryHtml = `
+                        <p class="fin-section-label">Resumo de ${escapeHtml(this.formatMesAnoLabel(mesAno))}</p>
+                        <ul class="fin-list">
+                            <li class="fin-kv"><span class="fin-kv__label">Receita do mês</span><span class="fin-kv__value is-pos">${money(receitasVal)}</span></li>
+                            <li class="fin-kv"><span class="fin-kv__label">Despesas fixas</span><span class="fin-kv__value is-neg">${money(fixasVal)}</span></li>
+                            <li class="fin-kv"><span class="fin-kv__label">Gastos PIX / débito</span><span class="fin-kv__value is-neg">${money(variadasVal)}</span></li>
+                            <li class="fin-kv"><span class="fin-kv__label">Poupança acumulada</span><span class="fin-kv__value">${money(poupancaTotal)}</span></li>
+                            <li class="fin-kv fin-kv--total"><span class="fin-kv__label">Saldo do mês</span><span class="fin-kv__value ${saldoVal < 0 ? 'is-neg' : 'is-pos'}">${money(saldoVal)}</span></li>
+                        </ul>`;
+                    bodyHtml = bodyHtml.replace('<p class="fin-empty" role="status">Carregando resumo mensal…</p>', summaryHtml);
+                }
+                if (el._financeScreenLoading && screen !== 'hub') {
+                    bodyHtml = '<p class="fin-empty" role="status">Carregando dados desta seção…</p>';
+                    footerHtml = '';
+                }
                 el.innerHTML = `
                     <div class="finance-module-shell fin-bank" data-screen="${screen}">
                         <div class="fin-topbar">
                             <div class="fin-topbar__inner">
                                 ${backHtml}
                                 <h2 class="fin-topbar__title">${screenMeta.title}</h2>
-                                <button type="button" class="fin-topbar__add" data-action="financeiro-open-modal" data-default-tipo="${screenMeta.tipo}" aria-label="Adicionar registro" title="Adicionar registro"><i class="fas fa-plus" aria-hidden="true"></i></button>
+                                ${el._financeScreenLoading || ['hub', 'tendencia', 'alertas'].includes(screen) ? '' : `<button type="button" class="fin-topbar__add" data-action="financeiro-open-modal" data-default-tipo="${screenMeta.tipo}" aria-label="Adicionar registro" title="Adicionar registro"><i class="fas fa-plus" aria-hidden="true"></i></button>`}
                                 ${periodHtml}
                             </div>
                         </div>
@@ -9696,18 +9734,20 @@
                     </div>
                 `;
 
-                if (screen === 'hub') {
+                if (screen === 'alertas') {
                     const alertsHost = el.querySelector('[data-finance-alerts-host]');
                     import('./features/financeiro/alertasUi.js').then(({ renderFinanceAlerts }) => {
                         if (alertsHost.isConnected) return renderFinanceAlerts(alertsHost);
                     }).catch(() => {
                         if (alertsHost.isConnected) alertsHost.textContent = 'Não foi possível abrir os alertas.';
                     });
+                }
+                if (screen === 'tendencia') {
                     const trendHost = el.querySelector('[data-finance-trend-host]');
                     import('./features/financeiro/tendenciaUi.js').then(({ renderFinanceTrend }) => {
                         if (!trendHost.isConnected) return;
                         return renderFinanceTrend(trendHost, {
-                            currentData: data,
+                            currentData: el._financeiroLoadedSections?.has('data') ? el._financeiroData : undefined,
                             year: el._financeTrendYear,
                             onYearChange: (year) => { el._financeTrendYear = year; },
                         });

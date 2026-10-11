@@ -94,7 +94,7 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain("renderAddButton('add-diet', 'Nova dieta')");
     expect(source).not.toContain('class="fin-fab"');
     expect(source).toContain('profileScreen: state.profileScreen');
-    expect(source).toContain('state.profileScreen = normalizeProfileScreen(checkpoint?.profileScreen)');
+    expect(source).not.toContain('state.profileScreen = normalizeProfileScreen(checkpoint?.profileScreen)');
     expect(source).not.toContain('class="saude-hero"');
   });
 

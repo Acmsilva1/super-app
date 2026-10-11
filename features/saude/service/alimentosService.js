@@ -7,6 +7,23 @@ export function normalizeFoodName(value) {
     .trim();
 }
 
+// Equivalências explícitas do catálogo: não usar busca por trecho ou similaridade,
+// que poderia associar ovos a claras, ou trocar espécies/preparos de um alimento.
+const FOOD_NAME_ALIASES = Object.freeze({
+  ovo: 'ovo inteiro',
+  ovos: 'ovo inteiro',
+  'ovos inteiros': 'ovo inteiro',
+  'batatas inglesas cozidas': 'batata inglesa cozida',
+});
+
+function catalogNameForDietItem(item, name) {
+  if (FOOD_NAME_ALIASES[name]) return FOOD_NAME_ALIASES[name];
+  const preparation = normalizeFoodName(item?.observacao);
+  if (['batata inglesa', 'batatas inglesas'].includes(name)
+    && /\b(?:apos cozimento|cozid[ao]s?)\b/.test(preparation)) return 'batata inglesa cozida';
+  return name;
+}
+
 function parseQuantity(value) {
   const normalized = String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
   const match = normalized.match(/^(\d+(?:[.,]\d+)?)\s*(kg|g|gramas?|ml|mililitros?|unidades?|un|und|porcoes?|porcao)$/i);
@@ -62,7 +79,14 @@ export function matchFoodForDietItem(item, foods = []) {
     if (byId) return byId;
   }
   const name = normalizeFoodName(item?.nome ?? item?.alimento);
-  return name ? foods.find((food) => normalizeFoodName(food.item ?? food.alimento) === name) || null : null;
+  if (!name) return null;
+  const exact = foods.find((food) => normalizeFoodName(food.item ?? food.alimento) === name);
+  if (exact) return exact;
+  const canonical = catalogNameForDietItem(item, name);
+  if (canonical === name) return null;
+  const matches = foods.filter((food) => normalizeFoodName(food.item ?? food.alimento) === canonical);
+  // Não escolher arbitrariamente entre dois registros equivalentes do catálogo.
+  return matches.length === 1 ? matches[0] : null;
 }
 
 export function nutritionForDietItem(item, foods = []) {

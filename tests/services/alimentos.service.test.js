@@ -1,11 +1,42 @@
 import { describe, expect, it } from 'vitest';
-import { dietQuantity, enrichDietNutrition, foodUnitWeight, nutritionForDietItem } from '../../features/saude/service/alimentosService.js';
+import { dietQuantity, enrichDietNutrition, foodUnitWeight, matchFoodForDietItem, nutritionForDietItem } from '../../features/saude/service/alimentosService.js';
 import { renderDietFoodDetails, renderDietNutritionTotal } from '../../features/saude/dietNutritionView.js';
 
 const food = { id: 1, item: 'Ovo inteiro', porcao: '2 un (~100 g)', peso_referencia_g: 100,
   kcal_100g: 143, proteina_100g: 12.6, carboidrato_100g: 0.7, gordura_100g: 9.5 };
 
 describe('cálculo nutricional das dietas', () => {
+  it('vincula ovo e ovos ao ovo inteiro do Excel e calcula três unidades de 50 g', () => {
+    const item = { nome: 'Ovos', quantidade_valor: 3, quantidade_unidade: 'un' };
+    for (const nome of ['ovo', 'OVOS', 'Ovos inteiros']) expect(matchFoodForDietItem({ nome }, [food])).toBe(food);
+    expect(nutritionForDietItem(item, [food])).toEqual({ kcal: 214.5, proteina: 18.9, carboidrato: 1.05, gordura: 14.25 });
+    expect(renderDietFoodDetails(item, [food])).not.toContain('ainda não está vinculado');
+  });
+  it('resolve batata inglesa do seed somente quando o cozimento está informado', () => {
+    const potato = { id: 17, item: 'Batata inglesa cozida', kcal_100g: 87, proteina_100g: 1.9, carboidrato_100g: 20.1, gordura_100g: 0.1 };
+    const item = { nome: 'Batata inglesa', quantidade_valor: 150, quantidade_unidade: 'g', observacao: 'Peso após cozimento, conforme PDF.' };
+    expect(matchFoodForDietItem(item, [potato])).toBe(potato);
+    expect(nutritionForDietItem(item, [potato])).toEqual({ kcal: 130.5, proteina: 2.85, carboidrato: 30.15, gordura: 0.15 });
+    expect(matchFoodForDietItem({ ...item, observacao: '' }, [potato])).toBeNull();
+  });
+  it('preserva ID e nome exato e bloqueia equivalências ambíguas ou não comprovadas', () => {
+    const exact = { ...food, id: 2, item: 'Ovos' };
+    const white = { ...food, id: 3, item: 'Clara de ovo' };
+    expect(matchFoodForDietItem({ nome: 'Ovos', alimento_id: 3 }, [food,exact,white])).toBe(white);
+    expect(matchFoodForDietItem({ nome: 'Ovos' }, [food,exact])).toBe(exact);
+    expect(matchFoodForDietItem({ nome: 'Ovos' }, [white])).toBeNull();
+    expect(matchFoodForDietItem({ nome: 'Ovos' }, [food,{ ...food,id:4 }])).toBeNull();
+    expect(matchFoodForDietItem({ nome: 'Ovo de codorna' }, [food])).toBeNull();
+    expect(matchFoodForDietItem({ nome: 'Óleo' }, [{id:50,item:'Óleo de coco'}])).toBeNull();
+    expect(matchFoodForDietItem({ nome: 'Abóbora' }, [{id:21,item:'Abóbora cabotiá cozida'}])).toBeNull();
+  });
+  it('aplica os aliases também aos dias de dietas semanais já salvas', () => {
+    const weekly = {semanal:true,semana:[{titulo:'Segunda-feira',refeicoes:[{tipo:'cafe_da_manha',itens:[{nome:'Ovos',quantidade:'3 unidades'}]}]}]};
+    const enriched = enrichDietNutrition(weekly,[food]);
+    expect(enriched.semana[0].refeicoes[0].itens[0].alimento_id).toBe(1);
+    expect(enriched.semana[0].nutricao_total).toMatchObject({kcal:214.5,completo:true,itens_pendentes:0});
+    expect(weekly.semana[0].refeicoes[0].itens[0].alimento_id).toBeUndefined();
+  });
   it('calcula gramas e usa o catálogo em vez de calorias manuais antigas', () => {
     expect(nutritionForDietItem({ alimento_id: 1, quantidade_valor: 50, quantidade_unidade: 'g', calorias: 999 }, [food]))
       .toEqual({ kcal: 71.5, proteina: 6.3, carboidrato: 0.35, gordura: 4.75 });
