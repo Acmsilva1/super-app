@@ -13,6 +13,7 @@ vi.mock('../../lib/supabase.js', () => ({ supabase: {
     const query = {
       select(columns) {
         if (/cintura_cm|quadril_cm|peito_cm|braco_cm|coxa_cm/.test(columns)) throw new Error('Coluna ausente no schema atual');
+        if (/agua_updated_at|dieta_updated_at/.test(columns)) throw new Error('Timestamps por seção ausentes no schema anterior');
         return query;
       },
       eq(field, value) { filters.push((row) => row[field] === value); return query; },
@@ -32,8 +33,10 @@ vi.mock('../../lib/supabase.js', () => ({ supabase: {
         if (operation) {
           state.writes.push({ table, operation, payload });
           if (operation === 'insert' || operation === 'upsert') {
-            const row = { id: rows.length + 20, ...payload };
-            rows.push(row);
+            const existing = operation === 'upsert' && table === 'tb_saude_alertas_agenda'
+              ? rows.find(row => row.perfil_id === payload.perfil_id) : null;
+            const row = existing ? Object.assign(existing,payload) : { id: rows.length + 20, ...payload };
+            if (!existing) rows.push(row);
             matches = [row];
           } else if (operation === 'update') matches.forEach((row) => Object.assign(row, payload));
           else state.rows[table] = rows.filter((row) => !matches.includes(row));
@@ -48,9 +51,9 @@ vi.mock('../../lib/supabase.js', () => ({ supabase: {
 } }));
 import handler from '../../api/saude.js';
 
-async function call(method, resource, body) {
+async function call(method, resource, body, query = {}) {
   const res = { setHeader() {}, status(code) { this.code = code; return this; }, end(value) { this.body = JSON.parse(value); } };
-  await handler({ method, query: { resource }, body }, res);
+  await handler({ method, query: { resource, ...query }, body }, res);
   return res;
 }
 
@@ -63,6 +66,20 @@ describe('Persistência administrativa no contrato Supabase atual', () => {
     state.rows = { tb_saude_perfis: [{ id: 3, nome: 'Teste', created_by: 'owner', peso_kg: 70, altura_cm: 170 }] };
   });
   afterEach(() => vi.unstubAllEnvs());
+
+  it('carrega e salva agenda sem exigir timestamps internos do scheduler', async () => {
+    state.rows.tb_saude_alertas_agenda = [{ perfil_id: 3, created_by:'owner', agua_ativo:true,
+      agua_intervalo_horas:3, agua_inicio:'08:00', agua_fim:'20:00', dieta_ativa:true,
+      dieta_id:null, dieta_horarios:[{tipo:'almoco',horario:'12:15'}], updated_at:'2026-10-10T10:00:00Z' }];
+    const loaded = await call('GET','alertas-agenda',undefined,{profile_id:3});
+    expect(loaded.code).toBe(200);
+    expect(loaded.body.row).toMatchObject({agua_inicio:'08:00',dieta_horarios:[{tipo:'almoco',horario:'12:15',titulo:'Almoço'}]});
+    const saved = await call('POST','alertas-agenda',{profile_id:3,section:'agua',
+      agua_ativo:false,agua_intervalo_horas:2,agua_inicio:'09:00',agua_fim:'21:00'});
+    expect(saved.code).toBe(200);
+    expect(saved.body.row).toMatchObject({agua_ativo:false,agua_inicio:'09:00',dieta_horarios:loaded.body.row.dieta_horarios});
+    expect(state.writes.at(-1).payload.created_by).toBe('owner');
+  });
 
   it('grava meta e consumo para o dono e permite remover o perfil', async () => {
     const goal = await call('POST', 'consumo-agua', { profile_id: 3, nome: 'Água', meta_doses: 6 });

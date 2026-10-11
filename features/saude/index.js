@@ -1466,6 +1466,13 @@ function syncAlertScheduleButtons(container, state) {
 }
 
 function renderProfileAlertSchedules(profile, state) {
+  if (state.alertScheduleLoading || state.alertScheduleError) {
+    return `${renderNotice(state)}<section class="saude-alert-panel" aria-labelledby="saude-alert-title">
+      <h3 id="saude-alert-title">Agendadores deste perfil</h3>
+      <p class="saude-alert-help" role="status">${state.alertScheduleLoading ? 'Carregando agendamentos salvos...' : 'Os agendamentos salvos não foram carregados. Tente novamente antes de editar.'}</p>
+      ${state.alertScheduleError && !state.alertScheduleLoading ? '<button type="button" class="saude-btn" data-saude-action="profile-screen" data-screen="alertas">Tentar novamente</button>' : ''}
+    </section>`;
+  }
   const schedule = state.alertSchedule || DEFAULT_ALERT_SCHEDULE;
   const saveButton = section => `<div class="saude-editor__actions"><button data-save-alert-schedule class="saude-btn saude-btn--primary" type="submit"${alertScheduleChanged(schedule, state.alertScheduleSaved, section) ? '' : ' hidden'}${state.busy || state.alertScheduleLoading ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar alertas de ${section === 'agua' ? 'água' : 'dieta'}</button></div>`;
   const diets = dietsForProfile(state, profile.id);
@@ -1905,6 +1912,7 @@ export async function renderSaudeContent(container) {
     alertScheduleSaved: structuredClone(DEFAULT_ALERT_SCHEDULE),
     alertScheduleStorage: null,
     alertScheduleLoading: false,
+    alertScheduleError: false,
   };
 
   let notice = null;
@@ -2058,6 +2066,7 @@ export async function renderSaudeContent(container) {
       renderProfileDetail(container, state);
       if (state.profileScreen === 'alertas') {
         state.alertScheduleLoading = true;
+        state.alertScheduleError = false;
         renderProfileDetail(container, state);
         try {
           const [result, allDietsRes] = await Promise.all([
@@ -2072,6 +2081,7 @@ export async function renderSaudeContent(container) {
           state.alertScheduleSaved = structuredClone(result.row);
           state.alertScheduleStorage = result.storage;
         } catch (error) {
+          state.alertScheduleError = true;
           state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Nao foi possivel carregar os agendadores.' };
         } finally {
           state.alertScheduleLoading = false;
@@ -2587,7 +2597,7 @@ export async function renderSaudeContent(container) {
     const alertScheduleForm = event.target.closest('[data-alert-schedule-form]');
     if (alertScheduleForm) {
       event.preventDefault();
-      if (state.busy || !alertScheduleForm.reportValidity()) return;
+      if (state.busy || state.alertScheduleLoading || state.alertScheduleError || !alertScheduleForm.reportValidity()) return;
       captureAlertScheduleForm(container, state);
       const section = alertScheduleForm.dataset.alertScheduleForm;
       if (!alertScheduleChanged(state.alertSchedule, state.alertScheduleSaved, section)) return;

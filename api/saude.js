@@ -655,7 +655,7 @@ async function loadAlertSchedule(profileId, userId, isAdmin = false) {
   }
   const { supabase } = await import('../lib/supabase.js');
   let query = supabase.from(TABELA_ALERTAS_AGENDA)
-    .select('perfil_id,agua_ativo,agua_intervalo_horas,agua_inicio,agua_fim,dieta_ativa,dieta_id,dieta_horarios,updated_at,agua_updated_at,dieta_updated_at').eq('perfil_id', profileId);
+    .select('perfil_id,agua_ativo,agua_intervalo_horas,agua_inicio,agua_fim,dieta_ativa,dieta_id,dieta_horarios,updated_at').eq('perfil_id', profileId);
   if (!isAdmin) query = query.eq('created_by', userId);
   const { data, error } = await query.maybeSingle();
   if (error) return { error };
@@ -702,7 +702,7 @@ async function saveAlertSchedule(profileId, payload, userId, isAdmin = false) {
   const { supabase } = await import('../lib/supabase.js');
   const { data, error, status, statusText } = await supabase.from(TABELA_ALERTAS_AGENDA)
     .upsert(row, { onConflict: 'perfil_id' })
-    .select('perfil_id,agua_ativo,agua_intervalo_horas,agua_inicio,agua_fim,dieta_ativa,dieta_id,dieta_horarios,updated_at,agua_updated_at,dieta_updated_at')
+    .select('perfil_id,agua_ativo,agua_intervalo_horas,agua_inicio,agua_fim,dieta_ativa,dieta_id,dieta_horarios,updated_at')
     .single();
   return error
     ? { error, status, statusText }
