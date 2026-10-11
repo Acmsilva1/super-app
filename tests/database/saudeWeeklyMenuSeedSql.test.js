@@ -56,7 +56,8 @@ it('importa ambos os perfis e o conteúdo semanal fiel, sem duplicar nem sobresc
       }
       expect(row.observacoes).toContain('13 ovos por dia');
       expect(row.observacoes).toContain('Não é um plano nutricionalmente completo');
-      expect(row.observacoes).toContain('não representam as calorias deste cardápio adaptado');
+      expect(row.observacoes).toContain('Os nutrientes são calculados pelo catálogo');
+      expect(row.observacoes).not.toMatch(/pdf|Estimativas iniciais/i);
       expect(row.dias.map(day=>day.quantidade_refeicoes)).toEqual(Array(7).fill(5));
       expect(dietForDate(row,'2026-10-12').refeicoes[2].itens.map(item=>[item.nome,item.quantidade_valor])).toEqual([
         ['Ovo inteiro',3],['Abóbora',200],['Brócolis',150],['Batata inglesa cozida',150]]);

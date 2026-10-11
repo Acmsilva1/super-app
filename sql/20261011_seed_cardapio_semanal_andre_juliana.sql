@@ -16,7 +16,7 @@ declare
   v_owner uuid := null;       -- Opcional: created_by real da conta, para filtrar a busca.
   v_pairs integer;
   v_count integer;
-  v_revision constant text := 'Versão sem óleo: o óleo foi excluído dos itens a pedido do usuário. As estimativas e orientações originais abaixo incluem óleo e são apenas referência histórica; não representam as calorias deste cardápio adaptado. O app calcula os nutrientes dos itens vinculados ao catálogo.';
+  v_revision constant text := 'Plano sem óleo, com 13 ovos por dia. Não é um plano nutricionalmente completo; requer avaliação de nutricionista. Os nutrientes são calculados pelo catálogo e podem variar conforme o preparo.';
   v_week jsonb := $cardapio$[
   {
     "titulo": "Segunda-feira",
@@ -1226,16 +1226,7 @@ begin
   ) select 'seed-cardapio-1600-20261011-perfil-' || t.perfil_id::text,
     'Cardápio semanal - ovos, legumes e batata inglesa','Plano alimentar',7,
     'Cardápio adaptado, sem óleo: 7 dias, 5 refeições por dia; meta indicada de 1.600 kcal/dia.',
-    v_revision || E'\n\n' || 'As calorias são estimativas baseadas em ovos grandes (aprox. 78 kcal cada), batata cozida (aprox. 86 kcal/100 g) e óleo (9 kcal/g). Pesos dos legumes e batata após cozimento. O óleo informado já está contabilizado; não acrescentar óleo sem medir. Valores variam por preparo e alimento. Atenção: Este modelo é muito restritivo e contém 13 ovos por dia. Não é um plano nutricionalmente completo ou uma prescrição individual. Não é indicado adotá-lo sem avaliação de nutricionista, sobretudo em caso de colesterol elevado, diabetes ou problemas renais. Os totais calculados podem ficar abaixo de 1.600 kcal, apesar da meta indicada.','',v_days,'[]'::jsonb,true,v_week,v_revision || E'\n\n' || 'As calorias são estimativas baseadas em ovos grandes (aprox. 78 kcal cada), batata cozida (aprox. 86 kcal/100 g) e óleo (9 kcal/g). Pesos dos legumes e batata após cozimento. O óleo informado já está contabilizado; não acrescentar óleo sem medir. Valores variam por preparo e alimento. Atenção: Este modelo é muito restritivo e contém 13 ovos por dia. Não é um plano nutricionalmente completo ou uma prescrição individual. Não é indicado adotá-lo sem avaliação de nutricionista, sobretudo em caso de colesterol elevado, diabetes ou problemas renais. Os totais calculados podem ficar abaixo de 1.600 kcal, apesar da meta indicada.
-
-Estimativas iniciais (não são valores por alimento):
-Segunda-feira: Café da manhã: 381 kcal; Lanche da manhã: 191 kcal; Almoço: 363 kcal; Lanche da tarde: 171 kcal; Jantar: 300 kcal. Total estimado: 1406 kcal.
-Terça-feira: Café da manhã: 381 kcal; Lanche da manhã: 171 kcal; Almoço: 454 kcal; Lanche da tarde: 191 kcal; Jantar: 336 kcal. Total estimado: 1533 kcal.
-Quarta-feira: Café da manhã: 381 kcal; Lanche da manhã: 171 kcal; Almoço: 363 kcal; Lanche da tarde: 191 kcal; Jantar: 330 kcal. Total estimado: 1436 kcal.
-Quinta-feira: Café da manhã: 381 kcal; Lanche da manhã: 191 kcal; Almoço: 436 kcal; Lanche da tarde: 171 kcal; Jantar: 270 kcal. Total estimado: 1449 kcal.
-Sexta-feira: Café da manhã: 381 kcal; Lanche da manhã: 171 kcal; Almoço: 411 kcal; Lanche da tarde: 191 kcal; Jantar: 336 kcal. Total estimado: 1490 kcal.
-Sábado: Café da manhã: 381 kcal; Lanche da manhã: 191 kcal; Almoço: 406 kcal; Lanche da tarde: 171 kcal; Jantar: 310 kcal. Total estimado: 1459 kcal.
-Domingo: Café da manhã: 381 kcal; Lanche da manhã: 171 kcal; Almoço: 400 kcal; Lanche da tarde: 191 kcal; Jantar: 286 kcal. Total estimado: 1429 kcal.',1600,
+    v_revision,'',v_days,'[]'::jsonb,true,v_week,v_revision,1600,
     t.perfil_id,v_source,v_owner,true
     from seed_cardapio_20261011_targets t
     on conflict (slug) do nothing;

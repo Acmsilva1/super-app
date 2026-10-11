@@ -10,12 +10,18 @@ const highlightedLine = (nutrition) => `<strong>${escape(number(nutrition.kcal))
 
 export function cleanDietDisplayNote(value) {
   return String(value ?? '')
+    .replace(/Versão sem óleo:[^\n]*(?:\n\s*)?/gi, '')
+    .replace(/As calorias são estimativas baseadas em ovos grandes[\s\S]*?Os totais calculados podem ficar abaixo de 1\.600 kcal, apesar da meta indicada\./gi,
+      'Plano sem óleo, com 13 ovos por dia. Não é um plano nutricionalmente completo; requer avaliação de nutricionista. Os nutrientes são calculados pelo catálogo e podem variar conforme o preparo.')
+    .replace(/Estimativas (?:transcritas do PDF|iniciais) \(não são valores por alimento\):\s*/gi, '')
+    .replace(/^(?:Segunda-feira|Terça-feira|Quarta-feira|Quinta-feira|Sexta-feira|Sábado|Domingo): Café da manhã:[^\n]*(?:\n|$)/gm, '')
     .replace(/peso\s+ap[oó]s\s+cozimento\s*,?\s*conforme\s+pdf\s*\.?/gi, '')
     .replace(/\s*,?\s*conforme\s+(?:o\s+)?pdf\b/gi, '')
     .replace(/\b(?:do|no|ao|o)\s+pdf\b/gi, '')
     .replace(/\bpdf\b/gi, '')
     .replace(/[ \t]+/g, ' ')
     .replace(/ +([.,;:])/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
