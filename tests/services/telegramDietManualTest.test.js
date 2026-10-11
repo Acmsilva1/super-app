@@ -47,7 +47,7 @@ describe('Teste manual das dietas reais', () => {
     expect(messages[3].message).toContain('125,50');
     expect(messages[4].message).toContain('Pendente: R$ 500,00');
   });
-  it('reports a financial read failure before sending any test messages', async () => {
+  it('envia dietas mesmo com falha no Financeiro e informa resultado parcial', async () => {
     vi.resetModules();
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('OFFLINE_DEV', 'false');
@@ -57,14 +57,51 @@ describe('Teste manual das dietas reais', () => {
     vi.stubEnv('ALERTS_API_URL', 'https://example.invalid/api/telegram-alert');
     preview.mockResolvedValue(['Dieta']);
     financePreview.mockRejectedValue(new Error('private database diagnostic'));
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true, telegram_message_id: 7 }) });
     vi.stubGlobal('fetch', fetchMock);
     const { runTelegramManualTest } = await import('../../lib/telegramManualTest.js');
     const result = await runTelegramManualTest();
-    expect(result.status).toBe(503);
-    expect(result.body.sent).toBe(0);
-    expect(result.body.error).toContain('Financeiro');
-    expect(result.body.error).not.toContain('private');
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({ok:true,partial:true,sent:2,expected:2});
+    expect(result.body.warnings.join(' ')).toContain('Financeiro');
+    expect(result.body.warnings.join(' ')).not.toContain('private');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+  it.each(['ausentes','falha'])('envia os dois resumos financeiros com dietas %s', async (scenario) => {
+    vi.resetModules();
+    vi.stubEnv('NODE_ENV','development'); vi.stubEnv('OFFLINE_DEV','false');
+    vi.stubEnv('TELEGRAM_BOT_TOKEN','fake'); vi.stubEnv('TELEGRAM_CHAT_ID','fake');
+    vi.stubEnv('ALERTS_API_TOKEN','x'.repeat(32)); vi.stubEnv('ALERTS_API_URL','https://example.invalid/api/telegram-alert');
+    if(scenario==='falha') preview.mockRejectedValue(new Error('private diet diagnostic'));
+    else preview.mockResolvedValue([]);
+    financePreview.mockResolvedValue([
+      {event_type:'financeiro.daily_summary',message:'Débito/Pix: R$ 125,50'},
+      {event_type:'financeiro.daily_summary',message:'Fixas: R$ 500,00'},
+    ]);
+    const fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,telegram_message_id:7})}); vi.stubGlobal('fetch',fetchMock);
+    const {runTelegramManualTest}=await import('../../lib/telegramManualTest.js');
+    const result=await runTelegramManualTest();
+    expect(result.status).toBe(200);
+    expect(result.body.partial).toBe(scenario==='falha');
+    const alerts=fetchMock.mock.calls.map(([,options])=>JSON.parse(options.body));
+    expect(alerts.filter(alert=>alert.event_type==='financeiro.daily_summary').map(alert=>alert.message)).toEqual(['Débito/Pix: R$ 125,50','Fixas: R$ 500,00']);
+    if(scenario==='falha') {
+      expect(alerts.some(alert=>alert.event_type==='health.diet_menu')).toBe(false);
+      expect(result.body.warnings.join(' ')).toContain('Dietas');
+      expect(JSON.stringify(result.body)).not.toContain('private');
+    } else expect(alerts.find(alert=>alert.event_type==='health.diet_menu').message).toContain('Nenhuma dieta');
+  });
+  it('não envia e informa as duas falhas quando nenhuma consulta funciona', async () => {
+    vi.resetModules();
+    vi.stubEnv('NODE_ENV','development'); vi.stubEnv('OFFLINE_DEV','false');
+    vi.stubEnv('TELEGRAM_BOT_TOKEN','fake'); vi.stubEnv('TELEGRAM_CHAT_ID','fake');
+    vi.stubEnv('ALERTS_API_TOKEN','x'.repeat(32)); vi.stubEnv('ALERTS_API_URL','https://example.invalid/api/telegram-alert');
+    preview.mockRejectedValue(new Error('private')); financePreview.mockRejectedValue(new Error('private'));
+    const fetchMock=vi.fn(); vi.stubGlobal('fetch',fetchMock);
+    const {runTelegramManualTest}=await import('../../lib/telegramManualTest.js');
+    const result=await runTelegramManualTest();
+    expect(result.status).toBe(503); expect(result.body.sent).toBe(0);
+    expect(result.body.warnings).toHaveLength(2); expect(result.body.error).not.toContain('private');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -8053,8 +8053,8 @@
                     if (!response.ok || !payload.ok) throw new Error(payload.error || 'Não foi possível confirmar o envio. Confira o Telegram antes de repetir.');
                     message.textContent = payload.simulated
                         ? '✅ Teste simulado no modo mock. Nenhuma mensagem enviada ao Telegram.'
-                        : `✅ Telegram confirmou ${payload.sent} mensagem(ns): água, todas as dietas e Financeiro (débito/Pix e despesas fixas). Confira o chat do bot.`;
-                    showAppConfirmation(payload.simulated ? 'Teste concluído no modo local.' : `Teste enviado: ${payload.sent} mensagens.`); message.textContent = '';
+                        : `✅ Telegram confirmou ${payload.sent} mensagem(ns). Confira o chat do bot.${payload.warnings?.length ? ' ' + payload.warnings.join(' ') : ''}`;
+                    showAppConfirmation(payload.simulated ? 'Teste concluído no modo local.' : `${payload.partial ? 'Teste parcial' : 'Teste enviado'}: ${payload.sent} mensagens.`);
                 } catch (error) {
                     message.textContent = error.message || 'Falha no teste. Confira o Telegram antes de repetir.';
                 } finally {
