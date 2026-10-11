@@ -16,7 +16,7 @@ declare
   v_owner uuid := null;       -- Opcional: created_by real da conta, para filtrar a busca.
   v_pairs integer;
   v_count integer;
-  v_revision constant text := 'Versão sem óleo: o óleo foi excluído dos itens a pedido do usuário. As estimativas e orientações originais do PDF abaixo incluem óleo e são apenas referência histórica; não representam as calorias deste cardápio adaptado. O app calcula os nutrientes dos itens vinculados ao catálogo.';
+  v_revision constant text := 'Versão sem óleo: o óleo foi excluído dos itens a pedido do usuário. As estimativas e orientações originais abaixo incluem óleo e são apenas referência histórica; não representam as calorias deste cardápio adaptado. O app calcula os nutrientes dos itens vinculados ao catálogo.';
   v_week jsonb := $cardapio$[
   {
     "titulo": "Segunda-feira",
@@ -30,7 +30,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -39,7 +39,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -48,7 +48,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -63,7 +63,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -72,7 +72,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -87,7 +87,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -96,7 +96,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -105,7 +105,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -114,7 +114,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -129,7 +129,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -138,7 +138,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -153,7 +153,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -162,7 +162,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -171,7 +171,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -196,7 +196,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -205,7 +205,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -214,7 +214,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -229,7 +229,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -238,7 +238,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -253,7 +253,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -262,7 +262,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -271,7 +271,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -286,7 +286,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -295,7 +295,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -310,7 +310,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -319,7 +319,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -328,7 +328,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -353,7 +353,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -362,7 +362,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -371,7 +371,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -386,7 +386,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -395,7 +395,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -410,7 +410,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -419,7 +419,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -428,7 +428,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -437,7 +437,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -452,7 +452,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -461,7 +461,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -476,7 +476,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -485,7 +485,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -494,7 +494,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -519,7 +519,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -528,7 +528,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -537,7 +537,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -552,7 +552,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -561,7 +561,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -576,7 +576,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -585,7 +585,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -594,7 +594,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -609,7 +609,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -618,7 +618,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -633,7 +633,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -642,7 +642,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -651,7 +651,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -676,7 +676,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -685,7 +685,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -694,7 +694,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -709,7 +709,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -718,7 +718,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -733,7 +733,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -742,7 +742,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -751,7 +751,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -760,7 +760,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -775,7 +775,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -784,7 +784,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -799,7 +799,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -808,7 +808,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -817,7 +817,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -842,7 +842,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -851,7 +851,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -860,7 +860,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -875,7 +875,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -884,7 +884,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -899,7 +899,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -908,7 +908,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -917,7 +917,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -932,7 +932,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -941,7 +941,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -956,7 +956,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -965,7 +965,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -974,7 +974,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -999,7 +999,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -1008,7 +1008,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -1017,7 +1017,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -1032,7 +1032,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -1041,7 +1041,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -1056,7 +1056,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -1065,7 +1065,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -1074,7 +1074,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -1083,7 +1083,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -1098,7 +1098,7 @@ declare
             "quantidade": "2 unidades",
             "quantidade_valor": 2,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -1107,7 +1107,7 @@ declare
             "quantidade": "100 g",
             "quantidade_valor": 100,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -1122,7 +1122,7 @@ declare
             "quantidade": "3 unidades",
             "quantidade_valor": 3,
             "quantidade_unidade": "un",
-            "observacao": "Ovos grandes, conforme PDF.",
+            "observacao": "Ovos grandes.",
             "calorias": null,
             "alimento_id": null
           },
@@ -1131,7 +1131,7 @@ declare
             "quantidade": "200 g",
             "quantidade_valor": 200,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           },
@@ -1140,7 +1140,7 @@ declare
             "quantidade": "150 g",
             "quantidade_valor": 150,
             "quantidade_unidade": "g",
-            "observacao": "Peso após cozimento, conforme PDF.",
+            "observacao": "",
             "calorias": null,
             "alimento_id": null
           }
@@ -1225,10 +1225,10 @@ begin
     dias,refeicoes,semanal,semana,observacoes,meta_calorias,perfil_id,source_file,created_by,alerta_ativo
   ) select 'seed-cardapio-1600-20261011-perfil-' || t.perfil_id::text,
     'Cardápio semanal - ovos, legumes e batata inglesa','Plano alimentar',7,
-    'Cardápio adaptado do PDF, sem óleo: 7 dias, 5 refeições por dia; meta indicada de 1.600 kcal/dia.',
+    'Cardápio adaptado, sem óleo: 7 dias, 5 refeições por dia; meta indicada de 1.600 kcal/dia.',
     v_revision || E'\n\n' || 'As calorias são estimativas baseadas em ovos grandes (aprox. 78 kcal cada), batata cozida (aprox. 86 kcal/100 g) e óleo (9 kcal/g). Pesos dos legumes e batata após cozimento. O óleo informado já está contabilizado; não acrescentar óleo sem medir. Valores variam por preparo e alimento. Atenção: Este modelo é muito restritivo e contém 13 ovos por dia. Não é um plano nutricionalmente completo ou uma prescrição individual. Não é indicado adotá-lo sem avaliação de nutricionista, sobretudo em caso de colesterol elevado, diabetes ou problemas renais. Os totais calculados podem ficar abaixo de 1.600 kcal, apesar da meta indicada.','',v_days,'[]'::jsonb,true,v_week,v_revision || E'\n\n' || 'As calorias são estimativas baseadas em ovos grandes (aprox. 78 kcal cada), batata cozida (aprox. 86 kcal/100 g) e óleo (9 kcal/g). Pesos dos legumes e batata após cozimento. O óleo informado já está contabilizado; não acrescentar óleo sem medir. Valores variam por preparo e alimento. Atenção: Este modelo é muito restritivo e contém 13 ovos por dia. Não é um plano nutricionalmente completo ou uma prescrição individual. Não é indicado adotá-lo sem avaliação de nutricionista, sobretudo em caso de colesterol elevado, diabetes ou problemas renais. Os totais calculados podem ficar abaixo de 1.600 kcal, apesar da meta indicada.
 
-Estimativas transcritas do PDF (não são valores por alimento):
+Estimativas iniciais (não são valores por alimento):
 Segunda-feira: Café da manhã: 381 kcal; Lanche da manhã: 191 kcal; Almoço: 363 kcal; Lanche da tarde: 171 kcal; Jantar: 300 kcal. Total estimado: 1406 kcal.
 Terça-feira: Café da manhã: 381 kcal; Lanche da manhã: 171 kcal; Almoço: 454 kcal; Lanche da tarde: 191 kcal; Jantar: 336 kcal. Total estimado: 1533 kcal.
 Quarta-feira: Café da manhã: 381 kcal; Lanche da manhã: 171 kcal; Almoço: 363 kcal; Lanche da tarde: 191 kcal; Jantar: 330 kcal. Total estimado: 1436 kcal.

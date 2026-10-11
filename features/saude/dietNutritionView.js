@@ -8,6 +8,17 @@ const number = (value) => value == null ? '—' : Number(value).toLocaleString('
 const line = (nutrition) => `${number(nutrition.kcal)} kcal · Proteína ${number(nutrition.proteina)} g · Carboidratos ${number(nutrition.carboidrato)} g · Gordura ${number(nutrition.gordura)} g`;
 const highlightedLine = (nutrition) => `<strong>${escape(number(nutrition.kcal))} kcal</strong> · Proteína <strong>${escape(number(nutrition.proteina))} g</strong> · Carboidratos <strong>${escape(number(nutrition.carboidrato))} g</strong> · Gordura <strong>${escape(number(nutrition.gordura))} g</strong>`;
 
+export function cleanDietDisplayNote(value) {
+  return String(value ?? '')
+    .replace(/peso\s+ap[oó]s\s+cozimento\s*,?\s*conforme\s+pdf\s*\.?/gi, '')
+    .replace(/\s*,?\s*conforme\s+(?:o\s+)?pdf\b/gi, '')
+    .replace(/\b(?:do|no|ao|o)\s+pdf\b/gi, '')
+    .replace(/\bpdf\b/gi, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ +([.,;:])/g, '$1')
+    .trim();
+}
+
 export const DIET_NUTRITION_STYLES = `
   .diet-food-details { min-width: 0; width: 100%; }
   .diet-food-details summary { display: flex; align-items: center; justify-content: space-between; gap: .65rem; cursor: pointer; list-style: none; }
@@ -27,9 +38,10 @@ export const DIET_NUTRITION_STYLES = `
 export function renderDietFoodDetails(item, foods = null) {
   const food = foods ? matchFoodForDietItem(item, foods) : item.alimento;
   const nutrition = nutritionForDietItem(item, food ? [food] : []);
+  const note = cleanDietDisplayNote(item.observacao);
   return `<details class="diet-food-details"><summary><span><strong>${escape(item.nome)}</strong> — ${escape(item.quantidade)}</span><i class="fas fa-chevron-right" aria-hidden="true"></i></summary><div class="diet-food-details__body">
     ${food ? (nutrition.proteina != null ? `<p>${highlightedLine(nutrition)}</p>` : '<p>Ajuste a quantidade do item. Para usar unidades, cadastre o peso por unidade em Alimentos.</p>') : `<p>Este alimento ainda não está vinculado ao catálogo. Edite o item e selecione um alimento ou use “Outros”.</p>${nutrition.kcal != null ? `<p>Calorias manuais: ${escape(number(nutrition.kcal))} kcal</p>` : ''}`}
-    ${item.observacao ? `<p>${escape(item.observacao)}</p>` : ''}
+    ${note ? `<p>${escape(note)}</p>` : ''}
     </div></details>`;
 }
 

@@ -346,7 +346,7 @@ export const ALIMENTOS_NUTRICIONAIS = [
     "proteina_100g": 2.2,
     "carboidrato_100g": 23.2,
     "gordura_100g": 0.7,
-    "observacoes": "O PDF agrupa cuscuz/tapioca; aqui estão separados.",
+    "observacoes": "Cuscuz e tapioca estão cadastrados separadamente.",
     "fonte_nutricional": "TBCA/TACO; USDA FoodData Central (complementar)"
   },
   {
