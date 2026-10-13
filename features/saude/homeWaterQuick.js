@@ -4,7 +4,6 @@ import {
   isLocalWaterStorageMode,
   loadLocalWater,
   migrateLocalWaterDataToHealthProfiles,
-  saveLocalWaterGoal,
   updateLocalWaterProgress,
 } from './service/consumoAguaLocalService.js';
 import {
@@ -96,13 +95,13 @@ function ensureStyles() {
     .home-water-quick-notice--error { border: 1px solid rgba(248, 113, 113, .45); background: rgba(127, 29, 29, .25); color: #fecaca; }
     .home-water-quick-notice--info { border: 1px solid rgba(56, 189, 248, .35); background: rgba(12, 42, 65, .45); color: #bae6fd; }
     .home-water-quick-status { font-size: .82rem; color: #67e8f9; font-weight: 700; margin-bottom: .35rem; }
+    .home-water-quick-loading-drop .saude-water-drop__percent { visibility: hidden; }
   `;
 }
 
 async function requestWater(method, payload) {
   if (isLocalWaterStorageMode()) {
     if (method === 'GET') return loadLocalWater(undefined, undefined, payload?.profile_id);
-    if (method === 'POST') return saveLocalWaterGoal(payload);
     if (method === 'PATCH') return updateLocalWaterProgress(payload);
     throw new Error('Operação local de consumo de água não suportada.');
   }
@@ -145,7 +144,7 @@ function renderProfileField(state, { pickStep = false } = {}) {
     : '';
   return `<div class="home-water-quick-field">
     <label for="home-water-profile-select">${pickStep ? 'De quem é o consumo de água?' : 'Perfil'}</label>
-    <select id="home-water-profile-select" ${pickStep ? 'data-home-water-pick' : 'data-home-water-profile'} required>
+    <select id="home-water-profile-select" ${pickStep ? 'data-home-water-pick' : 'data-home-water-profile'} required${state.busy || state.waterPatchInFlight ? ' disabled' : ''}>
       ${placeholder}${state.profiles.map((p) => `<option value="${escapeHtml(p.id)}"${String(p.id) === selected ? ' selected' : ''}>${escapeHtml(p.nome)}</option>`).join('')}
     </select>
   </div>`;
@@ -169,11 +168,17 @@ function syncHomeWaterQuickDom(overlay, state, { animateFillFrom = null, enableC
 }
 
 function renderChecks(state) {
-  if (!state.today) return '';
-  return WATER_AMOUNTS_ML.map(amount=>`<button type="button" class="home-water-quick-check" data-water-amount="${amount}" aria-label="Registrar ${waterAmountLabel(amount)}" ${state.busy || state.waterPatchInFlight?'disabled':''} style="width:auto;height:auto;border:0;background:transparent;display:flex;flex-direction:column;align-items:center"><svg viewBox="0 0 48 60" width="38" height="48" aria-hidden="true"><path d="M24 2C20 12 4 26 4 38a20 20 0 0 0 40 0C44 26 28 12 24 2Z" fill="#22d3ee" stroke="#0891b2" stroke-width="2"/></svg><strong>${waterAmountLabel(amount)}</strong></button>`).join('');
+  return WATER_AMOUNTS_ML.map(amount=>`<button type="button" class="home-water-quick-check" data-water-amount="${amount}" aria-label="Registrar ${waterAmountLabel(amount)}" ${!state.today || state.busy || state.waterPatchInFlight?'disabled':''} style="width:auto;height:auto;border:0;background:transparent;display:flex;flex-direction:column;align-items:center"><svg viewBox="0 0 48 60" width="38" height="48" aria-hidden="true"><path d="M24 2C20 12 4 26 4 38a20 20 0 0 0 40 0C44 26 28 12 24 2Z" fill="#22d3ee" stroke="#0891b2" stroke-width="2"/></svg><strong>${waterAmountLabel(amount)}</strong></button>`).join('');
 }
 
 function renderModalBody(state, { launchSaude } = {}) {
+  if (state.loadingProfiles || (state.busy && !state.today)) {
+    return `
+      ${state.profiles.length ? renderProfileField(state) : ''}
+      <p class="home-water-quick-status" role="status">Carregando consumo de água…</p>
+      <div class="home-water-quick-checks" data-water-checks>${renderChecks(state)}</div>
+      <div class="home-water-quick-loading-drop" aria-hidden="true">${renderWaterDropHtml(null)}</div>`;
+  }
   if (!state.profiles.length) {
     return `
       <p class="home-water-quick-notice home-water-quick-notice--info">Crie um perfil em Saúde para registrar água.</p>
@@ -200,14 +205,8 @@ function renderModalBody(state, { launchSaude } = {}) {
     return `
       ${state.error ? `<p class="home-water-quick-notice home-water-quick-notice--error" role="alert">${escapeHtml(state.error)}</p>` : ''}
       ${profileSelect}
-      <p class="home-water-quick-notice home-water-quick-notice--info">Defina uma meta diária em ml para este perfil.</p>
-      <form data-home-water-goal-form>
-        <div class="home-water-quick-field"><label for="home-water-name">Nome da meta</label><input id="home-water-name" name="nome" maxlength="80" required placeholder="Ex.: Garrafa 500 ml" value="${escapeHtml(state.goalDraft.nome)}"></div>
-        <div class="home-water-quick-field"><label for="home-water-meta">Meta diária (ml)</label><input id="home-water-meta" name="meta_ml" type="number" min="100" max="10000" step="100" required value="${escapeHtml(state.goalDraft.meta_ml)}"></div>
-        <div class="home-water-quick-actions">
-          <button type="submit" class="home-water-quick-btn home-water-quick-btn--primary home-water-quick-btn--block"${state.busy ? ' disabled' : ''}>Salvar meta</button>
-        </div>
-      </form>`;
+      <p class="home-water-quick-notice home-water-quick-notice--info">Configure a meta diária deste perfil em Saúde para registrar água.</p>
+      ${typeof launchSaude === 'function' ? '<button type="button" class="home-water-quick-btn home-water-quick-btn--primary home-water-quick-btn--block" data-action="open-saude">Abrir Saúde</button>' : ''}`;
   }
 
   if (!state.today) {
@@ -269,7 +268,8 @@ export async function openHomeWaterQuickModal(options = {}) {
   document.body.appendChild(overlay);
 
   const state = {
-    step: 'choose-profile',
+    step: 'active',
+    loadingProfiles: true,
     profiles: [],
     profileId: null,
     config: null,
@@ -277,7 +277,6 @@ export async function openHomeWaterQuickModal(options = {}) {
     busy: false,
     waterPatchInFlight: false,
     error: null,
-    goalDraft: { nome: 'Água', meta_ml: 2000 },
   };
 
   const close = () => {
@@ -297,6 +296,8 @@ export async function openHomeWaterQuickModal(options = {}) {
       removeWaterCelebration(overlay);
     }
     state.profileId = profileId;
+    state.config = null;
+    state.today = null;
     state.busy = true;
     state.error = null;
     state.step = 'active';
@@ -322,6 +323,7 @@ export async function openHomeWaterQuickModal(options = {}) {
   const bootstrap = async () => {
     try {
       state.profiles = await loadHealthProfiles();
+      state.loadingProfiles = false;
       const initialProfileId = resolveInitialProfileId(state.profiles);
       if (initialProfileId != null) {
         await openProfileTracker(initialProfileId);
@@ -329,6 +331,7 @@ export async function openHomeWaterQuickModal(options = {}) {
       }
       state.step = 'choose-profile';
     } catch (error) {
+      state.loadingProfiles = false;
       state.error = error instanceof Error ? error.message : 'Não foi possível carregar os perfis de saúde.';
     }
     await refresh();
@@ -405,39 +408,8 @@ export async function openHomeWaterQuickModal(options = {}) {
       return;
     }
     const profileSelect = event.target.closest('[data-home-water-profile]');
-    if (!profileSelect?.value || state.step !== 'active') return;
+    if (!profileSelect?.value || state.step !== 'active' || state.busy || state.waterPatchInFlight) return;
     await openProfileTracker(Number(profileSelect.value));
-  });
-
-  overlay.addEventListener('submit', async (event) => {
-    const form = event.target.closest('[data-home-water-goal-form]');
-    if (!form) return;
-    event.preventDefault();
-    if (state.busy || !form.reportValidity()) return;
-    const values = new FormData(form);
-    const fillBeforeGoalSave = state.today ? waterIntakePercent(state.today) : 0;
-    state.busy = true;
-    state.error = null;
-    await refresh();
-    try {
-      const payload = {
-        profile_id: state.profileId,
-        nome: String(values.get('nome') || '').trim(),
-        meta_ml: Number(values.get('meta_ml')),
-      };
-      const data = await requestWater('POST', payload);
-      applyWaterState(state, data);
-      writeLastProfileId(state.profileId);
-      showAppConfirmation('Meta diária salva.');
-    } catch (error) {
-      state.error = error instanceof Error ? error.message : 'Não foi possível salvar a meta.';
-    } finally {
-      state.busy = false;
-      await refresh();
-      requestAnimationFrame(() => {
-        refreshWaterVictoryPresentation(document.body, overlay, state.today, state.profileId, { animateFillFrom: fillBeforeGoalSave });
-      });
-    }
   });
 
   overlay.addEventListener('keydown', (event) => {
