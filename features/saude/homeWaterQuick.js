@@ -1,3 +1,4 @@
+import {WATER_AMOUNTS_ML,validWaterAmount,waterAmountLabel} from './service/waterIntakeService.js';
 import { showAppConfirmation } from '../../lib/uiConfirmation.js';
 import {
   isLocalWaterStorageMode,
@@ -13,7 +14,7 @@ import {
   stopWaterDropMotion,
   WATER_DROP_STYLES,
   waterIntakePercent,
-} from './waterDropVisual.js?v=2026-09-26-water-drop-v14';
+} from './waterDropVisual.js?v=2026-10-13-water-ml-v1';
 
 const STYLE_ID = 'home-water-quick-styles-v14';
 const HOME_WATER_LAST_PROFILE_KEY = 'superapp:home-water-quick:last-profile-id';
@@ -152,21 +153,16 @@ function renderProfileField(state, { pickStep = false } = {}) {
 
 function syncHomeWaterQuickDom(overlay, state, { animateFillFrom = null, enableChecks = true, skipWaterDrop = false } = {}) {
   if (!state.today) return Promise.resolve();
-  const completed = state.today.realizado_doses >= state.today.meta_doses;
-  overlay.querySelectorAll('[data-water-dose]').forEach((btn) => {
-    const dose = Number(btn.dataset.waterDose);
-    btn.setAttribute('aria-pressed', String(dose <= state.today.realizado_doses));
-    btn.setAttribute('aria-label', `Dose ${dose}, ${dose <= state.today.realizado_doses ? 'tomada' : 'pendente'}`);
-    if (enableChecks) {
-      btn.disabled = false;
-      btn.removeAttribute('disabled');
-    }
+  const completed = state.today.realizado_ml >= state.today.meta_ml;
+  overlay.querySelectorAll('[data-water-amount]').forEach((btn) => {
+    btn.disabled=state.busy || state.waterPatchInFlight;
+
   });
   const status = overlay.querySelector('[data-water-status]');
   if (status) {
     status.textContent = completed
       ? 'Meta do dia concluída!'
-      : `${state.today.realizado_doses} de ${state.today.meta_doses} doses hoje`;
+      : `${state.today.realizado_ml} de ${state.today.meta_ml} ml hoje`;
   }
   if (skipWaterDrop) return Promise.resolve();
   return refreshWaterVictoryPresentation(document.body, overlay, state.today, state.profileId, animateFillFrom != null ? { animateFillFrom } : {});
@@ -174,11 +170,7 @@ function syncHomeWaterQuickDom(overlay, state, { animateFillFrom = null, enableC
 
 function renderChecks(state) {
   if (!state.today) return '';
-  return Array.from({ length: state.today.meta_doses }, (_, index) => {
-    const dose = index + 1;
-    const checked = dose <= state.today.realizado_doses;
-    return `<button type="button" class="home-water-quick-check" data-water-dose="${dose}" aria-pressed="${checked}" aria-label="Dose ${dose}${checked ? ', tomada' : ', pendente'}"${state.busy ? ' disabled' : ''}><i class="fas fa-check"></i></button>`;
-  }).join('');
+  return WATER_AMOUNTS_ML.map(amount=>`<button type="button" class="home-water-quick-check" data-water-amount="${amount}" aria-label="Registrar ${waterAmountLabel(amount)}" ${state.busy || state.waterPatchInFlight?'disabled':''} style="width:auto;height:auto;border:0;background:transparent;display:flex;flex-direction:column;align-items:center"><svg viewBox="0 0 48 60" width="38" height="48" aria-hidden="true"><path d="M24 2C20 12 4 26 4 38a20 20 0 0 0 40 0C44 26 28 12 24 2Z" fill="#22d3ee" stroke="#0891b2" stroke-width="2"/></svg><strong>${waterAmountLabel(amount)}</strong></button>`).join('');
 }
 
 function renderModalBody(state, { launchSaude } = {}) {
@@ -194,7 +186,7 @@ function renderModalBody(state, { launchSaude } = {}) {
   if (state.step === 'choose-profile') {
     return `
       ${state.error ? `<p class="home-water-quick-notice home-water-quick-notice--error" role="alert">${escapeHtml(state.error)}</p>` : ''}
-      <p class="home-water-quick-notice home-water-quick-notice--info">Escolha o perfil de saúde antes de marcar as doses.</p>
+      <p class="home-water-quick-notice home-water-quick-notice--info">Escolha o perfil de saúde antes de registrar o consumo.</p>
       ${renderProfileField(state, { pickStep: true })}
       <div class="home-water-quick-actions">
         <button type="button" class="home-water-quick-btn" data-action="close">Cancelar</button>
@@ -208,10 +200,10 @@ function renderModalBody(state, { launchSaude } = {}) {
     return `
       ${state.error ? `<p class="home-water-quick-notice home-water-quick-notice--error" role="alert">${escapeHtml(state.error)}</p>` : ''}
       ${profileSelect}
-      <p class="home-water-quick-notice home-water-quick-notice--info">Defina uma meta diária de doses para este perfil.</p>
+      <p class="home-water-quick-notice home-water-quick-notice--info">Defina uma meta diária em ml para este perfil.</p>
       <form data-home-water-goal-form>
         <div class="home-water-quick-field"><label for="home-water-name">Nome da meta</label><input id="home-water-name" name="nome" maxlength="80" required placeholder="Ex.: Garrafa 500 ml" value="${escapeHtml(state.goalDraft.nome)}"></div>
-        <div class="home-water-quick-field"><label for="home-water-meta">Doses por dia</label><input id="home-water-meta" name="meta_doses" type="number" min="1" max="100" step="1" required value="${escapeHtml(state.goalDraft.meta_doses)}"></div>
+        <div class="home-water-quick-field"><label for="home-water-meta">Meta diária (ml)</label><input id="home-water-meta" name="meta_ml" type="number" min="100" max="10000" step="100" required value="${escapeHtml(state.goalDraft.meta_ml)}"></div>
         <div class="home-water-quick-actions">
           <button type="submit" class="home-water-quick-btn home-water-quick-btn--primary home-water-quick-btn--block"${state.busy ? ' disabled' : ''}>Salvar meta</button>
         </div>
@@ -222,13 +214,13 @@ function renderModalBody(state, { launchSaude } = {}) {
     return `<p class="home-water-quick-notice home-water-quick-notice--error" role="alert">Não foi possível carregar o registro de hoje.</p>`;
   }
 
-  const complete = state.today.realizado_doses >= state.today.meta_doses;
+  const complete = state.today.realizado_ml >= state.today.meta_ml;
   const profileName = state.profiles.find((p) => Number(p.id) === Number(state.profileId))?.nome || 'Perfil';
 
   return `
     ${state.error ? `<p class="home-water-quick-notice home-water-quick-notice--error" role="alert">${escapeHtml(state.error)}</p>` : ''}
     ${profileSelect}
-    <p class="home-water-quick-status" data-water-status>${complete ? 'Meta do dia concluída!' : `${state.today.realizado_doses} de ${state.today.meta_doses} doses hoje`}</p>
+    <p class="home-water-quick-status" data-water-status>${complete ? 'Meta do dia concluída!' : `${state.today.realizado_ml} de ${state.today.meta_ml} ml hoje`}</p>
     <p style="margin:0;color:#9fb0c3;font-size:.76rem;">${escapeHtml(profileName)} · ${escapeHtml(state.config.nome)}</p>
     <div class="home-water-quick-checks" data-water-checks>${renderChecks(state)}</div>
     ${renderWaterDropHtml(state.today)}
@@ -239,7 +231,7 @@ function paintModal(modalRoot, state, options) {
   stopWaterDropMotion(modalRoot);
   const subtitle = state.step === 'choose-profile'
     ? 'Selecione para quem deseja registrar a água.'
-    : 'Marque as doses que você tomou hoje.';
+    : 'Registre o volume que você bebeu agora.';
   modalRoot.innerHTML = `
     <div class="home-water-quick-modal" role="dialog" aria-modal="true" aria-labelledby="home-water-quick-title">
       <div class="home-water-quick-modal__header">
@@ -285,7 +277,7 @@ export async function openHomeWaterQuickModal(options = {}) {
     busy: false,
     waterPatchInFlight: false,
     error: null,
-    goalDraft: { nome: 'Água', meta_doses: 8 },
+    goalDraft: { nome: 'Água', meta_ml: 2000 },
   };
 
   const close = () => {
@@ -312,7 +304,6 @@ export async function openHomeWaterQuickModal(options = {}) {
     try {
       await reloadWaterState(state);
       writeLastProfileId(state.profileId);
-      showAppConfirmation('Meta diária salva.');
     } catch (error) {
       state.error = error instanceof Error ? error.message : 'Não foi possível carregar o consumo de água.';
       state.config = null;
@@ -377,35 +368,30 @@ export async function openHomeWaterQuickModal(options = {}) {
       await confirmProfileSelection(overlay.querySelector('[data-home-water-pick]'));
       return;
     }
-    const doseBtn = event.target.closest('[data-water-dose]');
-    if (doseBtn && state.step !== 'active') return;
-    if (doseBtn && state.today && !state.waterPatchInFlight) {
-      const dose = Number(doseBtn.dataset.waterDose);
-      const isMarking = dose > state.today.realizado_doses;
-      const realizado_doses = isMarking ? dose : dose - 1;
-      const previous = state.today.realizado_doses;
-      const fillFromPercent = waterIntakePercent({ ...state.today, realizado_doses: previous });
-      const completedNow = isMarking && realizado_doses >= state.today.meta_doses;
-      state.waterPatchInFlight = true;
-      state.today = { ...state.today, realizado_doses };
-      const fillDone = syncHomeWaterQuickDom(overlay, state, { animateFillFrom: fillFromPercent, enableChecks: true });
+    const doseBtn = event.target.closest('[data-water-amount]');
+    if (doseBtn && !state.busy && !state.waterPatchInFlight && state.today) {
+      const amount=Number(doseBtn.dataset.waterAmount);
+      if (!validWaterAmount(amount)) return;
+      const profileId=state.profileId;
+      const before=waterIntakePercent(state.today);
+      state.waterPatchInFlight=true;
+      syncHomeWaterQuickDom(overlay,state,{skipWaterDrop:true});
+      if(state.pendingCheckin?.profileId!==profileId) state.pendingCheckin=null;
+      state.pendingCheckin ||= {amount,profileId,requestId:crypto.randomUUID()};
+      if(state.pendingCheckin.amount!==amount){state.waterPatchInFlight=false;await syncHomeWaterQuickDom(overlay,state,{skipWaterDrop:true});return;}
       try {
-        const data = await requestWater('PATCH', { profile_id: state.profileId, realizado_doses });
-        applyWaterState(state, data);
-        showAppConfirmation('Consumo de água atualizado.');
-        writeLastProfileId(state.profileId);
-        state.error = null;
-        if (!completedNow) {
-          refreshWaterVictoryPresentation(document.body, overlay, state.today, state.profileId);
-        }
-      } catch (error) {
-        state.today = { ...state.today, realizado_doses: previous };
-        state.error = error instanceof Error ? error.message : 'Não foi possível marcar a dose.';
-        refreshWaterVictoryPresentation(document.body, overlay, state.today, state.profileId);
-        removeWaterCelebration(document.body);
+        const data=await requestWater('PATCH',{profile_id:profileId,quantidade_ml:amount,request_id:state.pendingCheckin.requestId});
+        if (!overlay.isConnected || state.profileId!==profileId) return;
+        applyWaterState(state,data);state.pendingCheckin=null;
+        showAppConfirmation(`Check-in confirmado: ${amount} ml registrados.`);
+        writeLastProfileId(state.profileId);state.error=null;
+        await syncHomeWaterQuickDom(overlay,state,{animateFillFrom:before});
+      } catch(error) {
+        state.error=error instanceof Error?error.message:'Não foi possível registrar o consumo.';
+        if(overlay.isConnected) showAppConfirmation(`Não foi possível confirmar. Repita a opção de ${amount} ml para tentar novamente.`);
       } finally {
-        state.waterPatchInFlight = false;
-        syncHomeWaterQuickDom(overlay, state, { skipWaterDrop: true });
+        state.waterPatchInFlight=false;
+        if(overlay.isConnected) syncHomeWaterQuickDom(overlay,state,{skipWaterDrop:true});
       }
       return;
     }
@@ -437,7 +423,7 @@ export async function openHomeWaterQuickModal(options = {}) {
       const payload = {
         profile_id: state.profileId,
         nome: String(values.get('nome') || '').trim(),
-        meta_doses: Number(values.get('meta_doses')),
+        meta_ml: Number(values.get('meta_ml')),
       };
       const data = await requestWater('POST', payload);
       applyWaterState(state, data);

@@ -1,3 +1,4 @@
+import { WATER_AMOUNTS_ML,validWaterAmount,waterAmountLabel } from './service/waterIntakeService.js';
 import { showAppConfirmation } from '../../lib/uiConfirmation.js';
 import {
   filtrarTabelaNutricional,
@@ -27,7 +28,7 @@ import {
   syncWaterDropDom,
   WATER_DROP_STYLES,
   waterIntakePercent,
-} from './waterDropVisual.js?v=2026-09-26-water-drop-v14';
+} from './waterDropVisual.js?v=2026-10-13-water-ml-v1';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -347,6 +348,11 @@ const SAUDE_STYLES = `
     .saude-water-check[aria-pressed="true"] { border-color: #38bdf8; background: linear-gradient(135deg, #0369a1, #0ea5e9); color: #fff; box-shadow: 0 7px 18px rgba(14, 165, 233, .22); }
     .saude-water-check.is-splash { animation: saude-water-check-pop .5s cubic-bezier(.2,.9,.3,1.25); }
     .saude-water-check.is-splash i { animation: saude-water-check-icon .45s ease-out; }
+    .saude-water-amounts { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.4rem; margin:1rem 0; }
+    .saude-water-amount { display:flex; flex-direction:column; align-items:center; gap:.3rem; border:0; background:transparent; color:var(--bk-ink,#20463c); cursor:pointer; min-height:70px; }
+    .saude-water-amount svg { width:min(38px,100%); height:48px; }
+    .saude-water-amount:disabled { opacity:.45; cursor:wait; }
+    .saude-water-amount:focus-visible { outline:2px solid #0891b2; border-radius:8px; }
     .saude-water-check.is-splash::before, .saude-water-check.is-splash::after { content: ''; position: absolute; z-index: 2; width: .45rem; height: .65rem; pointer-events: none; border-radius: 55% 45% 60% 40%; background: #67e8f9; opacity: 0; animation: saude-water-droplets .65s ease-out; }
     .saude-water-check.is-splash::before { box-shadow: -1.5rem -.2rem 0 -.08rem #38bdf8, 1.35rem -.65rem 0 -.12rem #7dd3fc; }
     .saude-water-check.is-splash::after { box-shadow: -1rem 1rem 0 -.12rem #0ea5e9, 1.5rem .8rem 0 -.08rem #67e8f9; animation-delay: .04s; }
@@ -619,9 +625,9 @@ function renderActiveSaudeView(container, state) {
   else renderProfiles(container, state);
 }
 
-async function syncWaterWithHealthProfile(state, healthProfile) {
+async function syncWaterWithHealthProfile(state, healthProfile, {force=false}={}) {
   if (!healthProfile) return;
-  if (state.waterLoadedProfileId === Number(healthProfile.id) && state.waterLoadedDate === todayIsoDate()) return;
+  if (!force && state.waterLoadedProfileId === Number(healthProfile.id) && state.waterLoadedDate === todayIsoDate()) return;
   const profileKey = String(healthProfile.id);
   state.waterProfileId = profileKey;
   if (isLocalWaterStorageMode()) {
@@ -1357,8 +1363,8 @@ function renderProfiles(container, state) {
 function waterSummary(state) {
   const waterToday = state.waterToday;
   const waterConfig = state.waterConfig;
-  const done = waterToday?.realizado_doses ?? 0;
-  const meta = waterToday?.meta_doses ?? waterConfig?.meta_doses ?? 8;
+  const done = waterToday?.realizado_ml ?? 0;
+  const meta = waterToday?.meta_ml ?? waterConfig?.meta_ml ?? 2000;
   return {
     waterToday,
     waterConfig,
@@ -1382,8 +1388,8 @@ function renderProfileHub(profile, state) {
   const waterLoaded = String(state.waterProfileId) === String(profile.id) && state.waterLoadedProfileId === Number(profile.id);
   const waterStatus = state.waterLoading ? 'Carregando acompanhamento…' : !waterLoaded ? 'Abrir acompanhamento'
     : water.waterToday
-    ? `${water.done} de ${water.meta} doses hoje`
-    : (water.waterConfig ? `Meta: ${water.meta} doses diárias` : 'Definir meta de doses diárias');
+    ? `${water.done} de ${water.meta} ml hoje`
+    : (water.waterConfig ? `Meta: ${water.meta} ml por dia` : 'Definir meta de ml por dia');
   const waterActions = !waterLoaded ? '' : water.waterConfig
     ? `<button type="button" class="fin-icon-btn" data-saude-action="edit-water-goal" data-water-profile-id="${id}" aria-label="Editar meta de água" title="Editar meta"><i class="fas fa-pencil"></i></button><button type="button" class="fin-icon-btn" data-saude-action="delete-water-goal" data-water-profile-id="${id}" aria-label="Excluir acompanhamento de água" title="Excluir"><i class="fas fa-trash"></i></button>`
     : `<button type="button" class="fin-icon-btn" data-saude-action="create-water-goal" data-water-profile-id="${id}" aria-label="Criar meta de água" title="Criar meta"><i class="fas fa-plus"></i></button>`;
@@ -1626,11 +1632,11 @@ function renderWaterModal(state) {
   if (state.waterModal === 'config') {
     return `<div class="saude-modal-backdrop" data-water-modal-backdrop role="presentation">
       <section class="saude-water-modal" role="dialog" aria-modal="true" aria-labelledby="water-config-title">
-        <div class="saude-water-modal__header"><div><h3 id="water-config-title">${state.waterConfig ? 'Editar meta' : 'Criar meta de água'}</h3><p>Dê um nome ao item e informe quantas doses pretende tomar por dia.</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-water-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>
+        <div class="saude-water-modal__header"><div><h3 id="water-config-title">${state.waterConfig ? 'Editar meta' : 'Criar meta de água'}</h3><p>Informe sua meta diária em ml.</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-water-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>
         <form data-water-goal-form>
           <div class="saude-editor__grid">
             <div class="saude-field-group"><label for="water-name">Nome da meta</label><input class="saude-field" id="water-name" name="nome" maxlength="80" required placeholder="Ex.: Garrafa 500 ml" value="${escapeHtml(state.waterDraft.nome)}"></div>
-            <div class="saude-field-group"><label for="water-goal">Doses por dia</label><input class="saude-field" id="water-goal" name="meta_doses" type="number" min="1" max="100" step="1" required value="${escapeHtml(state.waterDraft.meta_doses)}"></div>
+            <div class="saude-field-group"><label for="water-goal">Meta diária (ml)</label><input class="saude-field" id="water-goal" name="meta_ml" type="number" min="100" max="10000" step="100" required value="${escapeHtml(state.waterDraft.meta_ml)}"></div>
           </div>
           <div class="saude-editor__actions"><button type="button" class="saude-btn" data-saude-action="close-water-modal">Cancelar</button><button type="submit" class="saude-btn saude-btn--primary"${state.busy ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar meta</button></div>
         </form>
@@ -1638,20 +1644,16 @@ function renderWaterModal(state) {
     </div>`;
   }
   if (state.waterModal !== 'tracker' || !state.waterConfig || !state.waterToday) return '';
-  const checks = Array.from({ length: state.waterToday.meta_doses }, (_, index) => {
-    const dose = index + 1;
-    const checked = dose <= state.waterToday.realizado_doses;
-    return `<button type="button" class="saude-water-check" data-saude-action="toggle-water-dose" data-water-dose="${dose}" aria-pressed="${checked}" aria-label="Dose ${dose}: ${checked ? 'tomada' : 'pendente'}"><i class="fas fa-check"></i></button>`;
-  }).join('');
-  const complete = state.waterToday.realizado_doses === state.waterToday.meta_doses;
+  const checks = WATER_AMOUNTS_ML.map(amount => `<button type="button" class="saude-water-amount" data-saude-action="add-water-ml" data-water-amount="${amount}" aria-label="Registrar ${waterAmountLabel(amount)}" ${state.waterDoseSyncing ? 'disabled' : ''}><svg viewBox="0 0 48 60" aria-hidden="true"><path d="M24 2C20 12 4 26 4 38a20 20 0 0 0 40 0C44 26 28 12 24 2Z" fill="#22d3ee" stroke="#0891b2" stroke-width="2"/></svg><strong>${waterAmountLabel(amount)}</strong></button>`).join('');
+  const complete = state.waterToday.realizado_ml >= state.waterToday.meta_ml;
   const trackerTitle = escapeHtml(waterTrackerDisplayName(state));
   const history = state.waterHistory.length
-    ? `<div class="saude-table-wrap">${state.waterHistory.map((row) => `<div class="saude-water-log"><time datetime="${escapeHtml(row.data)}">${escapeHtml(formatWaterDate(row.data))}</time><span>Meta: <strong>${row.meta_doses}</strong></span><span>Realizado: <strong>${row.realizado_doses}</strong></span></div>`).join('')}</div>`
+    ? `<div class="saude-table-wrap">${state.waterHistory.map((row) => `<div class="saude-water-log"><time datetime="${escapeHtml(row.data)}">${escapeHtml(formatWaterDate(row.data))}</time><span>Meta: <strong>${row.meta_ml} ml</strong></span><span>Realizado: <strong>${row.realizado_ml} ml</strong></span></div>`).join('')}</div>`
     : '<div class="saude-empty"><i class="fas fa-clock-rotate-left"></i><p>O primeiro registro aparecerá aqui após a virada do dia.</p></div>';
   return `<div class="saude-modal-backdrop" data-water-modal-backdrop role="presentation">
     <section class="saude-water-modal${complete ? ' is-complete' : ''}" role="dialog" aria-modal="true" aria-labelledby="water-tracker-title">
-      <div class="saude-water-modal__header"><div><h3 id="water-tracker-title">${trackerTitle}</h3><p>${escapeHtml(state.waterConfig.nome)} · meta diária</p><p data-water-modal-status>${complete ? 'Meta do dia concluída! 💧' : `${state.waterToday.realizado_doses} de ${state.waterToday.meta_doses} doses marcadas hoje`}</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-water-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>
-      <div class="saude-water-checks">${checks}</div>
+      <div class="saude-water-modal__header"><div><h3 id="water-tracker-title">${trackerTitle}</h3><p>${escapeHtml(state.waterConfig.nome)} · meta diária</p><p data-water-modal-status>${complete ? 'Meta do dia concluída! 💧' : `${state.waterToday.realizado_ml} de ${state.waterToday.meta_ml} ml hoje`}</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-water-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>
+      <p>Quanto você bebeu? Toque em uma gota por consumo.</p><div class="saude-water-amounts">${checks}</div>
       ${renderWaterDropHtml(state.waterToday)}
       <section class="saude-water-history" aria-labelledby="water-history-title"><h3 id="water-history-title">Histórico diário</h3>${history}</section>
     </section>
@@ -1659,7 +1661,7 @@ function renderWaterModal(state) {
 }
 
 function unlockWaterDoseButtons(container) {
-  container?.querySelectorAll('[data-saude-action="toggle-water-dose"]').forEach((button) => {
+  container?.querySelectorAll('[data-saude-action="add-water-ml"]').forEach((button) => {
     button.disabled = false;
     button.removeAttribute('disabled');
   });
@@ -1675,25 +1677,20 @@ function remountWaterTrackerModal(container, state) {
 
 function syncWaterTrackerDom(container, state, { skipWaterDrop = false } = {}) {
   if (!state.waterToday) return;
-  const completed = state.waterToday.realizado_doses === state.waterToday.meta_doses;
-  container.querySelectorAll('[data-saude-action="toggle-water-dose"]').forEach((button) => {
-    const dose = Number(button.dataset.waterDose);
-    const checked = dose <= state.waterToday.realizado_doses;
-    button.setAttribute('aria-pressed', String(checked));
-    button.setAttribute('aria-label', `Dose ${dose}: ${checked ? 'tomada' : 'pendente'}`);
-  });
+  const completed = state.waterToday.realizado_ml >= state.waterToday.meta_ml;
+  container.querySelectorAll('[data-saude-action="add-water-ml"]').forEach(button => { button.disabled = state.waterDoseSyncing; });
   const modalStatus = container.querySelector('[data-water-modal-status]');
   if (modalStatus) modalStatus.textContent = completed
     ? 'Meta do dia concluída! 💧'
-    : `${state.waterToday.realizado_doses} de ${state.waterToday.meta_doses} doses marcadas hoje`;
+    : `${state.waterToday.realizado_ml} de ${state.waterToday.meta_ml} ml hoje`;
   const cardStatus = container.querySelector('[data-water-card-status]');
-  if (cardStatus) cardStatus.textContent = `${state.waterToday.realizado_doses} de ${state.waterToday.meta_doses} doses hoje`;
+  if (cardStatus) cardStatus.textContent = `${state.waterToday.realizado_ml} de ${state.waterToday.meta_ml} ml hoje`;
   const progress = container.querySelector('[data-water-progress-fill]');
-  if (progress) progress.style.width = `${Math.round((state.waterToday.realizado_doses / state.waterToday.meta_doses) * 100)}%`;
+  if (progress) progress.style.width = `${Math.min(100,Math.round((state.waterToday.realizado_ml / state.waterToday.meta_ml) * 100))}%`;
   container.querySelector('.saude-water-modal')?.classList.toggle('is-complete', completed);
   container.querySelector('.saude-bank-water')?.classList.toggle('is-complete', completed);
   const footerValue = container.querySelector('[data-water-footer-value]');
-  if (footerValue) footerValue.textContent = `${state.waterToday.realizado_doses}/${state.waterToday.meta_doses}`;
+  if (footerValue) footerValue.textContent = `${state.waterToday.realizado_ml}/${state.waterToday.meta_ml}`;
   if (!skipWaterDrop) {
     refreshWaterVictoryPresentation(container, container, state.waterToday, state.waterProfileId);
   }
@@ -1703,7 +1700,7 @@ function paintWaterTrackerUi(container, state, { animateFillFrom = null } = {}) 
   if (state.waterModal !== 'tracker' || !state.waterToday) return;
   refreshWaterVictoryPresentation(container, container, state.waterToday, state.waterProfileId, { animateFillFrom })
     .then(() => {
-      if (Number(state.waterToday.realizado_doses) < Number(state.waterToday.meta_doses)) {
+      if (Number(state.waterToday.realizado_ml) < Number(state.waterToday.meta_ml)) {
         ensureWaterDropMotion(container);
       }
     });
@@ -1910,7 +1907,7 @@ export async function renderSaudeContent(container) {
     waterHistoryByProfile: {},
     waterDate: todayIsoDate(),
     waterModal: null,
-    waterDraft: { nome: '', meta_doses: 8 },
+    waterDraft: { nome: '', meta_ml: 2000 },
     waterCelebrationTimer: null,
     waterDoseSyncing: false,
     alertSchedule: structuredClone(DEFAULT_ALERT_SCHEDULE),
@@ -2011,8 +2008,8 @@ export async function renderSaudeContent(container) {
       }
       state.waterModal = 'config';
       state.waterDraft = state.waterConfig
-        ? { nome: state.waterConfig.nome, meta_doses: state.waterConfig.meta_doses }
-        : { nome: '', meta_doses: 8 };
+        ? { nome: state.waterConfig.nome, meta_ml: state.waterConfig.meta_ml }
+        : { nome: '', meta_ml: 2000 };
       state.notice = null;
       renderActiveSaudeView(container, state);
       requestAnimationFrame(() => container.querySelector('#water-name')?.focus());
@@ -2099,7 +2096,7 @@ export async function renderSaudeContent(container) {
         state.waterLoading = true;
         renderActiveSaudeView(container, state);
         try {
-          await syncWaterWithHealthProfile(state, healthProfile);
+          await syncWaterWithHealthProfile(state, healthProfile,{force:true});
         } catch (error) {
           state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível carregar o consumo de água.' };
           state.waterLoading = false;
@@ -2129,40 +2126,36 @@ export async function renderSaudeContent(container) {
       renderActiveSaudeView(container, state);
       return;
     }
-    if (action === 'toggle-water-dose' && !state.waterDoseSyncing && state.waterToday) {
-      const dose = Number(actionElement.dataset.waterDose);
-      const isMarking = dose > state.waterToday.realizado_doses;
-      const realizado_doses = isMarking ? dose : dose - 1;
-      const previousRealizado = state.waterToday.realizado_doses;
-      state.waterDoseSyncing = true;
-      const fillFromPercent = waterIntakePercent({ ...state.waterToday, realizado_doses: previousRealizado });
-      state.waterToday = { ...state.waterToday, realizado_doses };
-      syncWaterTrackerDom(container, state, { skipWaterDrop: true });
-      refreshWaterVictoryPresentation(container, container, state.waterToday, state.waterProfileId, { animateFillFrom: fillFromPercent });
-      if (isMarking) animateWaterDose(container, actionElement, false);
+    if (action === 'add-water-ml' && !state.waterDoseSyncing && state.waterToday) {
+      const amount=Number(actionElement.dataset.waterAmount);
+      if (!validWaterAmount(amount)) return;
+      const profileId=state.waterProfileId;
+      if(state.waterPendingCheckin?.profileId!==profileId) state.waterPendingCheckin=null;
+      state.waterPendingCheckin ||= {amount,profileId,requestId:crypto.randomUUID()};
+      if (state.waterPendingCheckin.amount!==amount) {showAppConfirmation(`Repita ${state.waterPendingCheckin.amount} ml para confirmar a tentativa anterior.`);return;}
+      const fillBefore=waterIntakePercent(state.waterToday);
+      state.waterDoseSyncing=true;
+      syncWaterTrackerDom(container,state,{skipWaterDrop:true});
       try {
-        applyWaterData(state, await requestWater('PATCH', { profile_id: state.waterProfileId, realizado_doses }));
-        showAppConfirmation(isMarking ? 'Dose registrada.' : 'Dose desmarcada.');
-        syncWaterTrackerDom(container, state, { skipWaterDrop: true });
-        const completedNow = isMarking && realizado_doses === state.waterToday.meta_doses;
-        if (completedNow) showWaterCelebration(container, state);
-        else refreshWaterVictoryPresentation(container, container, state.waterToday, state.waterProfileId);
-      } catch (error) {
-        const rollbackFrom = waterIntakePercent(state.waterToday);
-        state.waterToday = { ...state.waterToday, realizado_doses: previousRealizado };
-        refreshWaterVictoryPresentation(container, container, state.waterToday, state.waterProfileId, { animateFillFrom: rollbackFrom });
-        syncWaterTrackerDom(container, state, { skipWaterDrop: true });
-        state.notice = { type: 'error', text: error instanceof Error ? error.message : 'Não foi possível marcar a dose.' };
-      } finally {
-        state.waterDoseSyncing = false;
-        if (state.view === 'profile-detail') {
-          renderProfileDetail(container, state);
-        } else {
-          syncWaterTrackerDom(container, state, { skipWaterDrop: true });
+        const data=await requestWater('PATCH',{profile_id:profileId,quantidade_ml:amount,request_id:state.waterPendingCheckin.requestId});
+        if (state.disposed || state.waterProfileId!==profileId) return;
+        applyWaterData(state,data);
+        state.waterPendingCheckin=null;
+        showAppConfirmation(`Check-in confirmado: ${amount} ml registrados.`);
+        syncWaterTrackerDom(container,state,{skipWaterDrop:true});
+        refreshWaterVictoryPresentation(container,container,state.waterToday,profileId,{animateFillFrom:fillBefore});
+        if (fillBefore<100 && waterIntakePercent(state.waterToday)>=100) showWaterCelebration(container,state);
+      } catch(error) {
+        if (!state.disposed && state.waterProfileId===profileId) {
+          state.notice={type:'error',text:error instanceof Error?error.message:'Não foi possível registrar o consumo.'};
         }
+      } finally {
+        state.waterDoseSyncing=false;
+        if (!state.disposed && state.waterProfileId===profileId) renderActiveSaudeView(container,state);
       }
       return;
     }
+
     if (action === 'add-profile') {
       if (state.busy) return;
       if (state.profilesAdminView && isLocalWaterStorageMode() && !state.profileOwners) {
@@ -2670,7 +2663,7 @@ export async function renderSaudeContent(container) {
         profile_id: state.waterProfileId,
         health_profile_nome: healthProfile?.nome,
         nome: String(values.get('nome') || '').trim(),
-        meta_doses: Number(values.get('meta_doses')),
+        meta_ml: Number(values.get('meta_ml')),
       };
       const fillBeforeGoalSave = state.waterToday ? waterIntakePercent(state.waterToday) : 0;
       state.busy = true;

@@ -3,6 +3,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({ rows: {}, writes: [] }));
 vi.mock('../../lib/auth.js', () => ({ requireUser: async () => ({ ok: true, user: { id: 'admin' }, isAdmin: true }) }));
 vi.mock('../../lib/supabase.js', () => ({ supabase: {
+  async rpc(name,args) {
+    if(name!=='saude_record_water_ml') throw Error('RPC inesperada');
+    if(!state.rows.tb_saude_perfis.some(row=>row.id===args.p_profile&&row.created_by===args.p_owner)) return {error:{message:'water_forbidden'}};
+    const goal=state.rows.tb_saude_agua_metas.find(row=>row.perfil_id===args.p_profile&&row.created_by===args.p_owner);
+    const rows=state.rows.tb_saude_agua_logs ||= [];
+    let row=rows.find(row=>row.perfil_id===args.p_profile&&row.created_by===args.p_owner);
+    if(!row){row={created_by:args.p_owner,perfil_id:args.p_profile,meta_ml:goal.meta_ml,realizado_ml:0};rows.push(row);}
+    row.realizado_ml+=args.p_amount;
+    return {data:{data:'2026-10-13',meta_ml:goal.meta_ml,realizado_ml:row.realizado_ml},error:null};
+  },
   from(table) {
     const filters = [];
     let operation = null;
@@ -18,6 +28,7 @@ vi.mock('../../lib/supabase.js', () => ({ supabase: {
       },
       eq(field, value) { filters.push((row) => row[field] === value); return query; },
       in(field, values) { filters.push((row) => values.includes(row[field])); return query; },
+      not(field, op, value) { filters.push(row=>row[field]!==value && row[field]!==undefined);return query; },
       lt(field, value) { filters.push((row) => row[field] < value); return query; },
       order(field, options) { descending = field === 'id' && options?.ascending === false; return query; },
       limit(value) { maxRows = value; return query; },
@@ -82,13 +93,13 @@ describe('Persistência administrativa no contrato Supabase atual', () => {
   });
 
   it('grava meta e consumo para o dono e permite remover o perfil', async () => {
-    const goal = await call('POST', 'consumo-agua', { profile_id: 3, nome: 'Água', meta_doses: 6 });
+    const goal = await call('POST', 'consumo-agua', { profile_id: 3, nome: 'Água', meta_ml: 600 });
     expect(goal.code).toBe(200);
     expect(state.rows.tb_saude_agua_metas[0].created_by).toBe('owner');
-    expect(state.rows.tb_saude_agua_logs[0]).toMatchObject({ created_by: 'owner', meta_doses: 6 });
-    const progress = await call('PATCH', 'consumo-agua', { profile_id: 3, realizado_doses: 2 });
+    expect(state.rows.tb_saude_agua_logs[0]).toMatchObject({ created_by: 'owner', meta_ml: 600 });
+    const progress = await call('PATCH', 'consumo-agua', { profile_id: 3, quantidade_ml: 200,request_id:"admin-water-200" });
     expect(progress.code).toBe(200);
-    expect(state.rows.tb_saude_agua_logs[0].realizado_doses).toBe(2);
+    expect(state.rows.tb_saude_agua_logs[0].realizado_ml).toBe(200);
     expect((await call('DELETE', 'perfis', { id: 3 })).code).toBe(200);
     expect(state.rows.tb_saude_perfis).toEqual([]);
   });
@@ -104,9 +115,9 @@ describe('Persistência administrativa no contrato Supabase atual', () => {
   });
 
   it('inicializa o consumo do novo dia ao admin marcar água de outro usuário', async () => {
-    state.rows.tb_saude_agua_metas = [{ perfil_id: 3, created_by: 'owner', nome: 'Água', meta_doses: 8 }];
-    const progress = await call('PATCH', 'consumo-agua', { profile_id: 3, realizado_doses: 1 });
+    state.rows.tb_saude_agua_metas = [{ perfil_id: 3, created_by: 'owner', nome: 'Água', meta_ml: 800 }];
+    const progress = await call('PATCH', 'consumo-agua', { profile_id: 3, quantidade_ml: 100,request_id:"admin-water-100" });
     expect(progress.code).toBe(200);
-    expect(state.rows.tb_saude_agua_logs[0]).toMatchObject({ created_by: 'owner', perfil_id: 3, realizado_doses: 1 });
+    expect(state.rows.tb_saude_agua_logs[0]).toMatchObject({ created_by: 'owner', perfil_id: 3, realizado_ml: 100 });
   });
 });

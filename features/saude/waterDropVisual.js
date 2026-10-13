@@ -3,14 +3,14 @@ export const WATER_FILL_DURATION_MS = 520;
 
 export function isWaterDayComplete(today) {
   if (!today) return false;
-  const meta = Number(today.meta_doses) || 0;
-  const done = Number(today.realizado_doses) || 0;
+  const meta = Number(today.meta_ml) || 0;
+  const done = Number(today.realizado_ml) || 0;
   return meta > 0 && done >= meta;
 }
 
 export function waterIntakePercent(today) {
-  const done = Number(today?.realizado_doses) || 0;
-  const meta = Number(today?.meta_doses) || 0;
+  const done = Number(today?.realizado_ml) || 0;
+  const meta = Number(today?.meta_ml) || 0;
   if (meta <= 0) return 0;
   return Math.min(100, Math.round((done / meta) * 100));
 }
@@ -116,7 +116,7 @@ export function applyVictoryDropStyle(dropRoot, today) {
 }
 
 export function triggerWaterDropVictory(root, today = null) {
-  applyVictoryDropStyle(root, today || { realizado_doses: 1, meta_doses: 1 });
+  applyVictoryDropStyle(root, today || { realizado_ml: 1, meta_ml: 1 });
 }
 
 export function clearWaterDropVictory(root) {
@@ -148,7 +148,7 @@ export function removeWaterCelebration(root) {
 
 export function renderWaterDropHtml(today) {
   const percent = waterIntakePercent(today);
-  const completed = Number(today?.realizado_doses) >= Number(today?.meta_doses);
+  const completed = Number(today?.realizado_ml) >= Number(today?.meta_ml);
   const bubbles = [0, 1, 2, 3, 4].map((i) => (
     `<span class="saude-water-drop__bubble" style="--bubble-i:${i}; --bubble-x:${12 + i * 16}%" aria-hidden="true"></span>`
   )).join('');
@@ -247,7 +247,7 @@ function scheduleWaterDropMotion(root) {
 export function syncWaterDropDom(root, today, { animateFillFrom = null } = {}) {
   if (!root || !today) return Promise.resolve();
   const percent = waterIntakePercent(today);
-  const completed = Number(today.realizado_doses) >= Number(today.meta_doses);
+  const completed = Number(today.realizado_ml) >= Number(today.meta_ml);
   const drop = root.querySelector('[data-water-drop]');
   const fill = root.querySelector('[data-water-drop-fill]');
   const percentEl = root.querySelector('[data-water-drop-percent]');

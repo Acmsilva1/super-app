@@ -100,7 +100,7 @@ describe('UI mobile do módulo Saúde', () => {
 
   it('oferece um card de consumo de agua com checks em modal e historico diario', () => {
     expect(source).toContain('data-saude-action="open-water-tracker"');
-    expect(source).toContain('data-saude-action="toggle-water-dose"');
+    expect(source).toContain('data-saude-action="add-water-ml"');
     expect(source).toMatch(/from '\.\/waterDropVisual\.js(\?v=[^']+)?'/);
     expect(source).toContain('renderWaterDropHtml(state.waterToday)');
     expect(waterDropSource).toContain('data-water-drop-fill');
@@ -120,10 +120,10 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('@keyframes saude-water-droplets');
     expect(source).toContain('@media (prefers-reduced-motion: reduce)');
     expect(source).toContain('const motion = globalThis.motion || globalThis.Motion');
-    expect(source).toMatch(/syncWaterTrackerDom\(container, state/);
+    expect(source).toMatch(/syncWaterTrackerDom\(container,\s*state/);
     expect(source).toContain('motion.animate(button');
     expect(source).toContain('function showWaterCelebration(container, state)');
-    expect(source).toContain('const completedNow = isMarking && realizado_doses === state.waterToday.meta_doses');
+    expect(source).toContain('if (fillBefore<100 && waterIntakePercent(state.waterToday)>=100)');
     expect(source).toContain('showWaterCelebration(container, state)');
     expect(source).toContain('refreshWaterVictoryPresentation');
     expect(waterDropSource).toContain('saude-water-drop__success-flag');
@@ -141,23 +141,23 @@ describe('UI mobile do módulo Saúde', () => {
     const modalEnd = source.indexOf('function syncWaterTrackerDom(', modalStart);
     const modalSource = source.slice(modalStart, modalEnd);
 
-    expect(modalSource).toContain('saude-water-checks');
+    expect(modalSource).toContain('saude-water-amounts');
     expect(modalSource).toContain('Histórico diário');
-    expect(modalSource.indexOf('saude-water-checks')).toBeLessThan(modalSource.indexOf('Histórico diário'));
+    expect(modalSource.indexOf('saude-water-amounts')).toBeLessThan(modalSource.indexOf('Histórico diário'));
     expect(source).toContain('class="saude-bank-water__open" data-saude-action="open-water-tracker"');
     expect(source).not.toContain('function renderWater(container, state)');
   });
 
   it('atualiza o check de agua sem reconstruir o modal antes de persistir', () => {
-    const start = source.indexOf("if (action === 'toggle-water-dose'");
-    const persisted = source.indexOf("applyWaterData(state, await requestWater('PATCH'", start);
+    const start = source.indexOf("if (action === 'add-water-ml'");
+    const persisted = source.indexOf("const data=await requestWater('PATCH'", start);
     const beforePersist = source.slice(start, persisted);
     expect(start).toBeGreaterThan(-1);
     expect(persisted).toBeGreaterThan(start);
     expect(beforePersist).not.toContain('renderWater(container, state)');
-    expect(beforePersist).toContain('state.waterToday = { ...state.waterToday, realizado_doses }');
-    expect(beforePersist).toMatch(/syncWaterTrackerDom\(container, state/);
-    expect(source.slice(persisted, source.indexOf("if (action === 'delete-measurement'", persisted))).toMatch(/syncWaterTrackerDom\(container, state/);
+    expect(beforePersist).toContain('state.waterDoseSyncing=true;');
+    expect(beforePersist).toMatch(/syncWaterTrackerDom\(container,\s*state/);
+    expect(source.slice(persisted, source.indexOf("if (action === 'delete-measurement'", persisted))).toMatch(/syncWaterTrackerDom\(container,\s*state/);
   });
 
   it('sincroniza água pelo id do perfil de saúde sem página separada de perfis de água', () => {

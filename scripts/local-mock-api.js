@@ -78,6 +78,6 @@ export async function seedLocalSaude(){
   }
   const profile=await call('perfis',{nome:'Perfil Mock',sexo:'nao_informado',data_nascimento:'1990-01-01',data_medicao:new Date().toISOString().slice(0,10),peso_kg:75,altura_cm:175});
   const diet=await call('dietas',{perfil_id:profile.row.id,titulo:'Dieta Mock',meta_calorias:2000,refeicoes:DIET_MEALS.map(meal=>({tipo:meal.tipo,itens:[{nome:'Alimento de demonstração',quantidade:'1 porção',calorias:300,observacao:''}]}))});
-  await call('consumo-agua',{profile_id:profile.row.id,nome:'Copo Mock',meta_doses:8});
+  await call('consumo-agua',{profile_id:profile.row.id,nome:'Água diária',meta_ml:2000});
   await call('alertas-agenda',{profile_id:profile.row.id,agua_ativo:true,agua_intervalo_horas:3,dieta_ativa:true,dieta_id:diet.row.id});
 }

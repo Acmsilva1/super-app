@@ -37,6 +37,25 @@ class GatewayTests(unittest.TestCase):
                 gateway.send_alert("Texto")
             request.assert_not_called()
 
+    def test_water_prompt_creates_only_fixed_volume_buttons(self):
+        payload = self.payload()
+        payload["water_checkin"] = {"profile_id": 1, "date": "2026-10-13", "time": "07:30"}
+        gateway.format_alert(payload)
+        keyboard = gateway.water_keyboard(payload)
+        buttons = [button for row in keyboard["inline_keyboard"] for button in row]
+        self.assertEqual([button["text"] for button in buttons], ["100 ml", "200 ml", "300 ml", "400 ml", "500 ml", "1 L", "2 L"])
+        self.assertEqual(buttons[0]["callback_data"], "water:1:2026-10-13:0730:100")
+        payload["water_checkin"]["profile_id"] = True
+        with self.assertRaises(ValueError):
+            gateway.format_alert(payload)
+
+    def test_water_prompt_is_rejected_on_diet_messages(self):
+        payload = self.payload()
+        payload["event_type"] = "health.diet_menu"
+        payload["water_checkin"] = {"profile_id": 1, "date": "2026-10-13", "time": "07:30"}
+        with self.assertRaises(ValueError):
+            gateway.format_alert(payload)
+
 
 if __name__ == "__main__":
     unittest.main()

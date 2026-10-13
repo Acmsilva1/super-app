@@ -45,7 +45,7 @@ beforeEach(() => {
   state.inserts=[]; state.updates=[]; state.duplicate=false;
   state.rows={
     app_user_roles:[{role:'owner'}], tb_saude_perfis:[{id:1,nome:'Perfil'}],
-    tb_saude_agua_metas:[{perfil_id:1,meta_doses:8}],
+    tb_saude_agua_metas:[{perfil_id:1,meta_ml:2000}],
     tb_saude_alertas_agenda:[{perfil_id:1,agua_ativo:true,agua_intervalo_horas:3,dieta_ativa:false}],
   };
   vi.stubEnv('SAUDE_ALERTS_ENABLED','true');

@@ -220,7 +220,7 @@ describe('API de saúde', () => {
     expect(res.body.error).toBe('Data da medicao invalida.');
   });
 
-  it('cria meta de agua, marca doses e vira o dia preservando o log', async () => {
+  it('cria meta de agua em ml, registra consumo e vira o dia preservando o log', async () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date('2026-09-23T15:00:00Z'));
@@ -231,32 +231,32 @@ describe('API de saúde', () => {
       });
       const profileId = profileRes.body.row.id;
       const created = await request(app).post('/api/saude?resource=consumo-agua').send({
-        profile_id: profileId, nome: 'Garrafa 500 ml', meta_doses: 10,
+        profile_id: profileId, nome: 'Garrafa 500 ml', meta_ml: 1000,
       });
       expect(created.status).toBe(200);
-      expect(created.body.config).toEqual({ nome: 'Garrafa 500 ml', meta_doses: 10 });
-      expect(created.body.today).toMatchObject({ data: '2026-09-23', meta_doses: 10, realizado_doses: 0 });
+      expect(created.body.config).toEqual({ nome: 'Garrafa 500 ml', meta_ml: 1000 });
+      expect(created.body.today).toMatchObject({ data: '2026-09-23', meta_ml: 1000, realizado_ml: 0 });
 
-      const checked = await request(app).patch('/api/saude?resource=consumo-agua').send({ profile_id: profileId, realizado_doses: 3 });
+      const checked = await request(app).patch('/api/saude?resource=consumo-agua').send({ profile_id: profileId, quantidade_ml: 300 , request_id: 'water-test-001'});
       expect(checked.status).toBe(200);
-      expect(checked.body.today.realizado_doses).toBe(3);
+      expect(checked.body.today.realizado_ml).toBe(300);
 
       vi.setSystemTime(new Date('2026-09-24T15:00:00Z'));
       const nextDay = await request(app).get(`/api/saude?resource=consumo-agua&profile_id=${profileId}`);
       expect(nextDay.status).toBe(200);
-      expect(nextDay.body.today).toMatchObject({ data: '2026-09-24', meta_doses: 10, realizado_doses: 0 });
-      expect(nextDay.body.history[0]).toMatchObject({ data: '2026-09-23', meta_doses: 10, realizado_doses: 3 });
+      expect(nextDay.body.today).toMatchObject({ data: '2026-09-24', meta_ml: 1000, realizado_ml: 0 });
+      expect(nextDay.body.history[0]).toMatchObject({ data: '2026-09-23', meta_ml: 1000, realizado_ml: 300 });
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('valida a meta e impede consumo acima do limite diario', async () => {
+  it('valida a meta e impede quantidades fora das opções', async () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date('2026-09-25T15:00:00Z'));
       const app = createApp();
-      const invalid = await request(app).post('/api/saude?resource=consumo-agua').send({ nome: '', meta_doses: 0 });
+      const invalid = await request(app).post('/api/saude?resource=consumo-agua').send({ nome: '', meta_ml: 0 });
       expect(invalid.status).toBe(400);
 
       const profileRes = await request(app).post('/api/saude?resource=perfis').send({
@@ -264,10 +264,10 @@ describe('API de saúde', () => {
         peso_kg: 60, altura_cm: 165,
       });
       const profileId = profileRes.body.row.id;
-      const created = await request(app).post('/api/saude?resource=consumo-agua').send({ profile_id: profileId, nome: 'Copo', meta_doses: 2 });
+      const created = await request(app).post('/api/saude?resource=consumo-agua').send({ profile_id: profileId, nome: 'Copo', meta_ml: 200 });
       expect(created.status).toBe(200);
-      const overflow = await request(app).patch('/api/saude?resource=consumo-agua').send({ profile_id: profileId, realizado_doses: 3 });
-      expect(overflow.status).toBe(409);
+      const overflow = await request(app).patch('/api/saude?resource=consumo-agua').send({ profile_id: profileId, quantidade_ml: 600 , request_id: 'water-test-002'});
+      expect(overflow.status).toBe(400);
     } finally {
       vi.useRealTimers();
     }
@@ -284,9 +284,9 @@ describe('API de saúde', () => {
       });
       const andreId = andreRes.body.row.id;
       await request(app).post('/api/saude?resource=consumo-agua')
-        .send({ profile_id: andreId, nome: 'Garrafa', meta_doses: 4 });
+        .send({ profile_id: andreId, nome: 'Garrafa', meta_ml: 400 });
       await request(app).patch('/api/saude?resource=consumo-agua')
-        .send({ profile_id: andreId, realizado_doses: 3 });
+        .send({ profile_id: andreId, quantidade_ml: 300 , request_id: 'water-test-003'});
 
       const julianaRes = await request(app).post('/api/saude?resource=perfis').send({
         nome: 'Juliana água', sexo: 'feminino', data_nascimento: '1992-02-02', data_medicao: '2026-09-26',
@@ -294,12 +294,12 @@ describe('API de saúde', () => {
       });
       const julianaId = julianaRes.body.row.id;
       await request(app).post('/api/saude?resource=consumo-agua')
-        .send({ profile_id: julianaId, nome: 'Copo', meta_doses: 6 });
+        .send({ profile_id: julianaId, nome: 'Copo', meta_ml: 600 });
 
       const andreLoaded = await request(app).get(`/api/saude?resource=consumo-agua&profile_id=${andreId}`);
       const julianaLoaded = await request(app).get(`/api/saude?resource=consumo-agua&profile_id=${julianaId}`);
-      expect(andreLoaded.body.today.realizado_doses).toBe(3);
-      expect(julianaLoaded.body.today.realizado_doses).toBe(0);
+      expect(andreLoaded.body.today.realizado_ml).toBe(300);
+      expect(julianaLoaded.body.today.realizado_ml).toBe(0);
       expect(julianaLoaded.body.profiles).toEqual(expect.arrayContaining([
         expect.objectContaining({ nome: 'André água' }),
         expect.objectContaining({ nome: 'Juliana água' }),

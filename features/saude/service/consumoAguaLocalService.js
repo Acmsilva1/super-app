@@ -1,3 +1,4 @@
+import {validWaterAmount,validWaterGoal,validWaterRequestId} from './waterIntakeService.js';
 export const WATER_LOCAL_STORAGE_KEY = 'superapp:saude:consumo-agua:v1';
 
 export function waterDateInSaoPaulo(now = new Date()) {
@@ -75,8 +76,8 @@ export function migrateLocalWaterDataToHealthProfiles(healthProfiles, storage = 
       if (String(row.profile_id) !== oldId) return;
       const duplicate = state.days.find((other) => String(other.profile_id) === newId && other.data === row.data);
       if (duplicate) {
-        duplicate.realizado_doses = Math.max(Number(duplicate.realizado_doses) || 0, Number(row.realizado_doses) || 0);
-        duplicate.meta_doses = Math.max(Number(duplicate.meta_doses) || 0, Number(row.meta_doses) || 0);
+        duplicate.realizado_ml = Math.max(Number(duplicate.realizado_ml) || 0, Number(row.realizado_ml) || 0);
+        duplicate.meta_ml = Math.max(Number(duplicate.meta_ml) || 0, Number(row.meta_ml) || 0);
         row._discard = true;
       } else {
         row.profile_id = newId;
@@ -185,10 +186,10 @@ function responseFromState(state, today, profile) {
     storage: 'localStorage',
     profiles: state.profiles.map((row) => ({ ...row })),
     profile_id: profileId,
-    config: profileId && state.goals[profileId] ? { ...state.goals[profileId] } : null,
-    today: todayRow ? { ...todayRow } : null,
+    config: profileId && state.goals[profileId]?.meta_ml ? { ...state.goals[profileId] } : null,
+    today: todayRow?.meta_ml ? { ...todayRow } : null,
     history: profileId ? state.days
-      .filter((row) => row.profile_id === profileId && row.data < today)
+      .filter((row) => row.profile_id === profileId && row.data < today && row.meta_ml != null)
       .sort((a, b) => b.data.localeCompare(a.data))
       .slice(0, 90)
       .map((row) => ({ ...row })) : [],
@@ -197,14 +198,18 @@ function responseFromState(state, today, profile) {
 
 function ensureToday(state, today, profile) {
   const config = profile ? state.goals[profile.id] : null;
-  if (!profile || !config) return false;
-  if (state.days.some((row) => row.profile_id === profile.id && row.data === today)) return false;
+  if (!profile || !config?.meta_ml) return false;
+  const existing=state.days.find(row=>row.profile_id===profile.id && row.data===today);
+  if (existing) {
+    if (existing.meta_ml == null) { existing.meta_ml=config.meta_ml;existing.realizado_ml=0;return true; }
+    return false;
+  }
   state.days.push({
     id: `local-water-${profile.id}-${today}`,
     profile_id: profile.id,
     data: today,
-    meta_doses: config.meta_doses,
-    realizado_doses: 0,
+    meta_ml: config.meta_ml,
+    realizado_ml: 0,
   });
   state.days = state.days.sort((a, b) => b.data.localeCompare(a.data)).slice(0, 1000);
   return true;
@@ -283,9 +288,9 @@ export function deleteLocalWaterGoal(payload, storage = globalThis.localStorage,
 export function saveLocalWaterGoal(payload, storage = globalThis.localStorage, now = new Date()) {
   if (!storage) throw new Error('localStorage indisponível neste navegador.');
   const nome = String(payload?.nome || '').trim();
-  const meta_doses = Number(payload?.meta_doses);
+  const meta_ml = Number(payload?.meta_ml);
   if (!nome || nome.length > 80) throw new Error('Informe um nome de até 80 caracteres para a meta.');
-  if (!Number.isInteger(meta_doses) || meta_doses < 1 || meta_doses > 100) throw new Error('A meta diária deve ter entre 1 e 100 doses.');
+  if (!validWaterGoal(meta_ml)) throw new Error('A meta diária deve ter entre 100 e 10000 ml.');
 
   const today = waterDateInSaoPaulo(now);
   if (payload?.profile_id) {
@@ -299,11 +304,8 @@ export function saveLocalWaterGoal(payload, storage = globalThis.localStorage, n
   const profile = resolveProfile(state, payload?.profile_id, !payload?.profile_id, Boolean(payload?.profile_id));
   if (!profile) throw new Error('Perfil inválido.');
   const todayRow = state.days.find((row) => row.profile_id === profile.id && row.data === today);
-  if (todayRow && todayRow.realizado_doses > meta_doses) {
-    throw new Error('A meta não pode ser menor que a quantidade já realizada hoje.');
-  }
-  state.goals[profile.id] = { nome, meta_doses };
-  if (todayRow) todayRow.meta_doses = meta_doses;
+  state.goals[profile.id] = { nome, meta_ml };
+  if (todayRow) {todayRow.meta_ml=meta_ml;todayRow.realizado_ml ??= 0;}
   else ensureToday(state, today, profile);
   writeState(storage, state);
   return responseFromState(state, today, profile);
@@ -317,11 +319,16 @@ export function updateLocalWaterProgress(payload, storage = globalThis.localStor
   if (!profile || !state.goals[profile.id]) throw new Error('Crie uma meta de água antes de registrar o consumo.');
   if (ensureToday(state, today, profile)) writeState(storage, state);
   const todayRow = state.days.find((row) => row.profile_id === profile.id && row.data === today);
-  const realizado = Number(payload?.realizado_doses);
-  if (!Number.isInteger(realizado) || realizado < 0 || realizado > todayRow.meta_doses) {
-    throw new Error('A quantidade realizada deve ficar entre zero e a meta do dia.');
+  const amount = Number(payload?.quantidade_ml);
+  if (!validWaterAmount(amount) || !validWaterRequestId(payload?.request_id)) throw new Error('Check-in inválido. Escolha 100, 200, 300, 400, 500 ml, 1 L ou 2 L.');
+  state.checkins ||= {};
+  const previous = state.checkins[payload.request_id];
+  if (previous && (previous.profile_id !== profile.id || previous.amount !== amount || previous.date !== today)) throw new Error('Identificador de check-in já utilizado.');
+  if (!previous) {
+    if (todayRow.realizado_ml+amount>100000) throw new Error('Limite de registros do dia atingido.');
+    todayRow.realizado_ml += amount;
+    state.checkins[payload.request_id] = {profile_id:profile.id,amount,date:today};
   }
-  todayRow.realizado_doses = realizado;
   writeState(storage, state);
   return responseFromState(state, today, profile);
 }

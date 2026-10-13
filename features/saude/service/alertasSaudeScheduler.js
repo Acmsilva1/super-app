@@ -40,11 +40,12 @@ async function readAlertConfig(deadline) {
   return { ownerId, url, token, client: getAlertServiceClient({deadline}) };
 }
 
-async function sendAlert(config, { eventType, title, message, dedupeKey }) {
+async function sendAlert(config, { eventType, title, message, dedupeKey,waterPrompt=null }) {
   if (config.deadline && Date.now() + 22000 > config.deadline) throw new Error('alerts_time_budget');
   const client = config.client;
   const { error: claimError } = await client.from('tb_saude_alertas_envios').insert({
     created_by: config.ownerId, dedupe_key: dedupeKey, status: 'sending',
+    ...(waterPrompt?{perfil_id:waterPrompt.profileId,data_local:waterPrompt.date}:{}),
   });
   if (claimError?.code === '23505') return false;
   if (claimError) throw new Error('alerts_claim_failed');
@@ -54,7 +55,8 @@ async function sendAlert(config, { eventType, title, message, dedupeKey }) {
     const response = await fetch(config.url, {
       method: 'POST', headers, redirect: 'error',
       body: JSON.stringify({ source: 'superapp-node', event_type: eventType,
-        severity: 'info', title, message, dedupe_key: dedupeKey, occurred_at: new Date().toISOString() }),
+        severity: 'info', title, message, dedupe_key: dedupeKey, occurred_at: new Date().toISOString(),
+        ...(waterPrompt?{water_checkin:{profile_id:waterPrompt.profileId,date:waterPrompt.date,time:waterPrompt.time}}:{}) }),
       signal: AbortSignal.timeout(Math.max(1,Math.min(20000,(config.deadline || Date.now()+21000)-Date.now()-1000))),
     });
     let payload = null;
@@ -91,9 +93,9 @@ async function loadAlertData(config, today) {
     supabase.from('tb_saude_perfis')
       .select('id,nome,created_by').order('created_at', { ascending: true }),
     supabase.from('tb_saude_agua_metas')
-      .select('perfil_id,nome,meta_doses'),
+      .select('perfil_id,nome,meta_ml'),
     supabase.from('tb_saude_agua_logs')
-      .select('perfil_id,data_local,meta_doses,realizado_doses')
+      .select('perfil_id,data_local,meta_ml,realizado_ml')
       .eq('data_local', today),
     supabase.from('tb_saude_dietas')
       .select('id,perfil_id,titulo,refeicoes,semanal,semana,alerta_ativo,updated_at')
@@ -125,8 +127,8 @@ async function loadAlertData(config, today) {
 }
 
 function waterProfileReport(profile, goal, log, date, time) {
-  const target = Number(goal?.meta_doses ?? log?.meta_doses);
-  const completed = Number(log?.realizado_doses || 0);
+  const target = Number(goal?.meta_ml ?? log?.meta_ml);
+  const completed = Number(log?.realizado_ml || 0);
   const configured = Number.isInteger(target) && target > 0;
   return {
     pipeline: 'agua',
@@ -134,10 +136,10 @@ function waterProfileReport(profile, goal, log, date, time) {
     horario: time,
     perfil: { id: profile.id, nome: profile.nome },
     recipiente: goal?.nome || null,
-    meta_doses: configured ? target : null,
-    doses_realizadas: configured ? completed : null,
-    doses_restantes: configured ? Math.max(0, target - completed) : null,
-    unidade: 'doses',
+    meta_ml: configured ? target : null,
+    realizado_ml: configured ? completed : null,
+    restante_ml: configured ? Math.max(0, target - completed) : null,
+    unidade: 'ml',
     situacao: configured ? 'meta_em_andamento' : 'meta_nao_configurada',
   };
 }
@@ -187,11 +189,12 @@ function formatWaterAlert(report) {
     return lines.join('\n');
   }
   const container = readablePart(report.recipiente, 60);
-  lines.push(`🥤 Meta${container ? ` (${container})` : ''}: ${report.meta_doses} doses`);
-  lines.push(`✅ Já registradas: ${report.doses_realizadas} de ${report.meta_doses}`);
-  lines.push(report.doses_restantes > 0
-    ? `🎯 Faltam ${report.doses_restantes} ${report.doses_restantes === 1 ? 'dose' : 'doses'} para a meta.`
+  lines.push(`🥤 Meta${container ? ` (${container})` : ''}: ${report.meta_ml} ml`);
+  lines.push(`✅ Já registradas: ${report.realizado_ml} / ${report.meta_ml} ml`);
+  lines.push(report.restante_ml > 0
+    ? `🎯 Faltam ${report.restante_ml} ml para a meta.`
     : '🏆 Meta de água concluída. Mandou bem!');
+  lines.push('Quanto você bebeu agora? Escolha 100, 200, 300, 400, 500 ml, 1 L ou 2 L nos botões ou responda a esta mensagem, por exemplo: 200 ml.');
   return lines.join('\n');
 }
 
@@ -229,7 +232,7 @@ function formatDietAlert(report) {
 async function dispatchWaterForProfile(config, data, profile, date, time) {
   const key = `agua:${date}:${time}:${profile.id}`;
   const report = waterProfileReport(profile, data.goals.get(String(profile.id)), data.logs.get(String(profile.id)), date, time);
-  return Number(await sendAlert(config, { eventType: 'health.water_progress', title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key }));
+  return Number(await sendAlert(config, { eventType: 'health.water_progress', title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key,waterPrompt:report.meta_ml?{profileId:profile.id,date,time}:null }));
 }
 
 export function buildDietAlertMessages(data, meal, date, time, { includeInactive = false } = {}) {

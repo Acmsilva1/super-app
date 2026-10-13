@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler
 
 def format_alert(payload):
     if not isinstance(payload, dict) or set(payload) - {
-        "source", "event_type", "severity", "title", "message", "dedupe_key", "occurred_at"
+        "source", "event_type", "severity", "title", "message", "dedupe_key", "occurred_at", "water_checkin"
     }:
         raise ValueError("invalid_payload")
     if payload.get("source") != "superapp-node":
@@ -24,16 +24,38 @@ def format_alert(payload):
         raise ValueError("invalid_event")
     if payload.get("severity") != "info":
         raise ValueError("invalid_severity")
+    water_keyboard(payload)
     text = f"ℹ️ SuperApp\n{payload['title']}\n{payload['message']}"
     return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", " ", text)[:4096]
 
 
-def send_alert(text):
+def water_keyboard(payload):
+    water = payload.get("water_checkin")
+    if water is None:
+        return None
+    if (payload.get("event_type") != "health.water_progress" or not isinstance(water, dict)
+        or set(water) != {"profile_id", "date", "time"}
+        or isinstance(water["profile_id"], bool) or not isinstance(water["profile_id"], int)
+        or water["profile_id"] <= 0
+        or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(water["date"]))
+        or not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", str(water["time"]))):
+        raise ValueError("invalid_water_prompt")
+    buttons = [{"text": (f"{amount // 1000} L" if amount >= 1000 else f"{amount} ml"), "callback_data": f"water:{water['profile_id']}:{water['date']}:{water['time'].replace(':','')}:{amount}"}
+               for amount in [100, 200, 300, 400, 500, 1000, 2000]]
+    if any(len(button["callback_data"].encode("utf-8")) > 64 for button in buttons):
+        raise ValueError("invalid_water_prompt")
+    return {"inline_keyboard": [buttons[:3], buttons[3:5], buttons[5:]]}
+
+
+def send_alert(text, reply_markup=None):
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
     if not re.fullmatch(r"[0-9]+:[A-Za-z0-9_-]+", token) or not re.fullmatch(r"-?[0-9]+", chat_id):
         raise ValueError("telegram_config_missing")
-    body = json.dumps({"chat_id": chat_id, "text": text}, ensure_ascii=False).encode("utf-8")
+    payload = {"chat_id": chat_id, "text": text}
+    if reply_markup is not None:
+        payload["reply_markup"] = reply_markup
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     request = urllib.request.Request(
         f"https://api.telegram.org/bot{token}/sendMessage", data=body,
         headers={"Content-Type": "application/json"}, method="POST",
@@ -72,12 +94,13 @@ class handler(BaseHTTPRequestHandler):
             if not 0 < size <= 16384:
                 self.reply(413, {"ok": False})
                 return
-            text = format_alert(json.loads(self.rfile.read(size)))
+            payload = json.loads(self.rfile.read(size))
+            text = format_alert(payload)
         except (ValueError, TypeError):
             self.reply(400, {"ok": False})
             return
         try:
-            message_id = send_alert(text)
+            message_id = send_alert(text, water_keyboard(payload))
             self.reply(200, {"ok": True, "telegram_message_id": message_id})
         except urllib.error.HTTPError as error:
             # Read privately; only allowlisted codes leave the gateway.

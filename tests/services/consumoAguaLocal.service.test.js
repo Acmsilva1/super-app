@@ -33,31 +33,31 @@ describe('consumo de agua no localStorage', () => {
     const firstDay = new Date('2026-09-23T15:00:00Z');
     const secondDay = new Date('2026-09-24T15:00:00Z');
 
-    const created = saveLocalWaterGoal({ nome: 'Garrafa 500 ml', meta_doses: 10 }, storage, firstDay);
-    expect(created.today).toMatchObject({ data: '2026-09-23', meta_doses: 10, realizado_doses: 0 });
-    const checked = updateLocalWaterProgress({ realizado_doses: 4 }, storage, firstDay);
-    expect(checked.today.realizado_doses).toBe(4);
+    const created = saveLocalWaterGoal({ nome: 'Garrafa 500 ml', meta_ml: 1000 }, storage, firstDay);
+    expect(created.today).toMatchObject({ data: '2026-09-23', meta_ml: 1000, realizado_ml: 0 });
+    const checked = updateLocalWaterProgress({ quantidade_ml: 400 , request_id: 'water-test-001'}, storage, firstDay);
+    expect(checked.today.realizado_ml).toBe(400);
     expect(storage.getItem(WATER_LOCAL_STORAGE_KEY)).toBeTruthy();
 
     const reloaded = loadLocalWater(storage, firstDay);
-    expect(reloaded.today.realizado_doses).toBe(4);
+    expect(reloaded.today.realizado_ml).toBe(400);
     const nextDay = loadLocalWater(storage, secondDay);
-    expect(nextDay.today).toMatchObject({ data: '2026-09-24', realizado_doses: 0 });
-    expect(nextDay.history[0]).toMatchObject({ data: '2026-09-23', meta_doses: 10, realizado_doses: 4 });
+    expect(nextDay.today).toMatchObject({ data: '2026-09-24', realizado_ml: 0 });
+    expect(nextDay.history[0]).toMatchObject({ data: '2026-09-23', meta_ml: 1000, realizado_ml: 400 });
   });
 
-  it('rejeita progresso acima da meta local', () => {
+  it('rejeita quantidades fora das sete opções', () => {
     const storage = createStorage();
     const now = new Date('2026-09-23T15:00:00Z');
-    saveLocalWaterGoal({ nome: 'Copo', meta_doses: 2 }, storage, now);
-    expect(() => updateLocalWaterProgress({ realizado_doses: 3 }, storage, now)).toThrow('entre zero e a meta');
+    saveLocalWaterGoal({ nome: 'Copo', meta_ml: 200 }, storage, now);
+    expect(() => updateLocalWaterProgress({ quantidade_ml: 600 , request_id: 'water-test-002'}, storage, now)).toThrow('Check-in inválido');
   });
 
   it('migra dados do modulo antigo de agua para o id do perfil de saude', () => {
     const storage = createStorage();
     const now = new Date('2026-09-23T15:00:00Z');
-    saveLocalWaterGoal({ nome: 'Garrafa', meta_doses: 8 }, storage, now);
-    updateLocalWaterProgress({ realizado_doses: 5 }, storage, now);
+    saveLocalWaterGoal({ nome: 'Garrafa', meta_ml: 800 }, storage, now);
+    updateLocalWaterProgress({ quantidade_ml: 500 , request_id: 'water-test-003'}, storage, now);
 
     const healthProfiles = [{ id: 42, nome: 'TESTE' }];
     const result = migrateLocalWaterDataToHealthProfiles(healthProfiles, storage);
@@ -65,8 +65,8 @@ describe('consumo de agua no localStorage', () => {
     expect(result.mappings[0]).toMatchObject({ from: 'local-water-profile-1', to: '42' });
 
     const reloaded = loadLocalWater(storage, now, '42', { strict: true });
-    expect(reloaded.config).toMatchObject({ meta_doses: 8 });
-    expect(reloaded.today.realizado_doses).toBe(5);
+    expect(reloaded.config).toMatchObject({ meta_ml: 800 });
+    expect(reloaded.today.realizado_ml).toBe(500);
   });
 
   it('vincula consumo ao id do perfil de saude sem misturar outros perfis', () => {
@@ -75,12 +75,12 @@ describe('consumo de agua no localStorage', () => {
     createLocalWaterProfile({ nome: 'Legado' }, storage, now);
 
     ensureLocalWaterProfileLinkedToHealth({ id: 7, nome: 'Perfil A' }, storage);
-    saveLocalWaterGoal({ profile_id: 7, health_profile_nome: 'Perfil A', nome: 'Garrafa', meta_doses: 5 }, storage, now);
-    updateLocalWaterProgress({ profile_id: 7, realizado_doses: 2 }, storage, now);
+    saveLocalWaterGoal({ profile_id: 7, health_profile_nome: 'Perfil A', nome: 'Garrafa', meta_ml: 500 }, storage, now);
+    updateLocalWaterProgress({ profile_id: 7, quantidade_ml: 200 , request_id: 'water-test-004'}, storage, now);
 
     const loaded = loadLocalWater(storage, now, 7, { strict: true });
     expect(loaded.profile_id).toBe('7');
-    expect(loaded.today.realizado_doses).toBe(2);
+    expect(loaded.today.realizado_ml).toBe(200);
     expect(loaded.profiles.some((profile) => profile.id === '7')).toBe(true);
 
     deleteLocalWaterGoal({ profile_id: 7 }, storage, now);
@@ -91,14 +91,14 @@ describe('consumo de agua no localStorage', () => {
     const storage = createStorage();
     const now = new Date('2026-09-23T15:00:00Z');
     const andre = createLocalWaterProfile({ nome: 'André' }, storage, now);
-    saveLocalWaterGoal({ profile_id: andre.profile_id, nome: 'Garrafa', meta_doses: 4 }, storage, now);
-    updateLocalWaterProgress({ profile_id: andre.profile_id, realizado_doses: 3 }, storage, now);
+    saveLocalWaterGoal({ profile_id: andre.profile_id, nome: 'Garrafa', meta_ml: 400 }, storage, now);
+    updateLocalWaterProgress({ profile_id: andre.profile_id, quantidade_ml: 300 , request_id: 'water-test-005'}, storage, now);
 
     const juliana = createLocalWaterProfile({ nome: 'Juliana' }, storage, now);
-    saveLocalWaterGoal({ profile_id: juliana.profile_id, nome: 'Copo', meta_doses: 6 }, storage, now);
+    saveLocalWaterGoal({ profile_id: juliana.profile_id, nome: 'Copo', meta_ml: 600 }, storage, now);
 
-    expect(loadLocalWater(storage, now, andre.profile_id).today.realizado_doses).toBe(3);
-    expect(loadLocalWater(storage, now, juliana.profile_id).today.realizado_doses).toBe(0);
+    expect(loadLocalWater(storage, now, andre.profile_id).today.realizado_ml).toBe(300);
+    expect(loadLocalWater(storage, now, juliana.profile_id).today.realizado_ml).toBe(0);
     expect(juliana.profiles.map((profile) => profile.nome)).toEqual(['André', 'Juliana']);
 
     const renamed = updateLocalWaterProfile({ profile_id: andre.profile_id, nome: 'André Silva' }, storage, now);

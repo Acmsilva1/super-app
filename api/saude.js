@@ -1,3 +1,4 @@
+import { validWaterAmount, validWaterGoal, validWaterRequestId } from '../features/saude/service/waterIntakeService.js';
 import { ALERT_SCHEDULE_FIELDS, alertScheduleSection } from '../features/saude/service/alertScheduleConfig.js';
 import { requireUser } from '../lib/auth.js';
 import { TABELAS_NUTRICIONAIS } from '../features/saude/data/tabelasNutricionais.js';
@@ -29,6 +30,7 @@ let offlineDiets = [];
 let offlineProfiles = [];
 let offlineProfileMeasurements = [];
 const offlineWaterGoals = new Map();
+const offlineWaterCheckins = new Map();
 let offlineWaterLogs = [];
 const offlineAlertSchedules = new Map();
 
@@ -122,22 +124,21 @@ function validateWaterGoalPayload(body) {
   const profile_id = parseId(body?.profile_id);
   if (!profile_id) return { error: 'Informe o perfil de saude.' };
   const nome = String(body?.nome || '').trim();
-  const meta_doses = Number(body?.meta_doses);
+  const meta_ml = Number(body?.meta_ml);
   if (!nome || nome.length > 80) return { error: 'Informe um nome de ate 80 caracteres para a meta.' };
-  if (!Number.isInteger(meta_doses) || meta_doses < 1 || meta_doses > 100) {
-    return { error: 'A meta diaria deve ter entre 1 e 100 doses.' };
+  if (!validWaterGoal(meta_ml)) {
+    return { error: 'A meta diária deve ter entre 100 e 10000 ml.' };
   }
-  return { data: { nome, meta_doses, profile_id } };
+  return { data: { nome, meta_ml, profile_id } };
 }
 
 function validateWaterProgressPayload(body) {
   const profile_id = parseId(body?.profile_id);
   if (!profile_id) return { error: 'Informe o perfil de saude.' };
-  const realizado_doses = Number(body?.realizado_doses);
-  if (!Number.isInteger(realizado_doses) || realizado_doses < 0 || realizado_doses > 100) {
-    return { error: 'A quantidade realizada deve estar entre 0 e 100 doses.' };
-  }
-  return { data: { realizado_doses, profile_id } };
+  const quantidade_ml = Number(body?.quantidade_ml);
+  const request_id = body?.request_id;
+  if (!validWaterAmount(quantidade_ml) || !validWaterRequestId(request_id)) return {error:'Escolha 100, 200, 300, 400, 500 ml, 1 L ou 2 L e informe o identificador do check-in.'};
+  return {data:{quantidade_ml,request_id,profile_id}};
 }
 
 function dateInSaoPaulo(value) {
@@ -365,18 +366,18 @@ function waterResult(config, today, history, storage, profiles = null, profileId
     storage,
     ...(Array.isArray(profiles) ? { profiles: profiles.map((profile) => ({ id: profile.id, nome: profile.nome })) } : {}),
     profile_id: profileId,
-    config: config ? { nome: config.nome, meta_doses: Number(config.meta_doses) } : null,
+    config: config ? { nome: config.nome, meta_ml: Number(config.meta_ml) } : null,
     today: today ? {
       id: today.id,
       data: today.data_local,
-      meta_doses: Number(today.meta_doses),
-      realizado_doses: Number(today.realizado_doses),
+      meta_ml: Number(today.meta_ml),
+      realizado_ml: Number(today.realizado_ml),
     } : null,
     history: (history || []).map((row) => ({
       id: row.id,
       data: row.data_local,
-      meta_doses: Number(row.meta_doses),
-      realizado_doses: Number(row.realizado_doses),
+      meta_ml: Number(row.meta_ml),
+      realizado_ml: Number(row.realizado_ml),
     })),
   };
 }
@@ -495,7 +496,7 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
     const config = offlineWaterGoals.get(`${userId}:${profileId}`)
       || (isAdmin ? [...offlineWaterGoals.entries()].find(([key]) => key.endsWith(`:${profileId}`))?.[1] : null)
       || null;
-    if (!config) return waterResult(null, null, [], 'memory', profiles, profileId);
+    if (!config?.meta_ml) return waterResult(null, null, [], 'memory', profiles, profileId);
     let todayRow = offlineWaterLogs.find((row) => Number(row.perfil_id) === Number(profileId)
       && (isAdmin || row.created_by === userId) && row.data_local === today);
     const ownerCanInitialize = !isAdmin || offlineProfiles.some((row) => Number(row.id) === Number(profileId) && row.created_by === userId);
@@ -505,26 +506,26 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
         created_by: userId,
         perfil_id: profileId,
         data_local: today,
-        meta_doses: config.meta_doses,
-        realizado_doses: 0,
+        meta_ml: config.meta_ml,
+        realizado_ml: 0,
       };
       offlineWaterLogs.push(todayRow);
     }
     const history = offlineWaterLogs
       .filter((row) => (isAdmin || row.created_by === userId) && Number(row.perfil_id) === Number(profileId) && row.data_local < today)
       .sort((a, b) => b.data_local.localeCompare(a.data_local))
-      .slice(0, 90);
-    if (!todayRow && isAdmin) todayRow = { data_local: today, meta_doses: config.meta_doses, realizado_doses: 0 };
+      .filter(row => row.meta_ml != null).slice(0, 90);
+    if (!todayRow && isAdmin) todayRow = { data_local: today, meta_ml: config.meta_ml, realizado_ml: 0 };
     return waterResult(config, todayRow, history, 'memory', profiles, profileId);
   }
 
   const { supabase } = await import('../lib/supabase.js');
   let configRequest = supabase.from(TABELA_AGUA_METAS)
-    .select('nome,meta_doses').eq('perfil_id', profileId);
+    .select('nome,meta_ml').eq('perfil_id', profileId);
   let todayRequest = supabase.from(TABELA_AGUA_LOGS)
-    .select('id,data_local,meta_doses,realizado_doses').eq('perfil_id', profileId).eq('data_local', today);
+    .select('id,data_local,meta_ml,realizado_ml').eq('perfil_id', profileId).eq('data_local', today);
   let historyRequest = supabase.from(TABELA_AGUA_LOGS)
-    .select('id,data_local,meta_doses,realizado_doses').eq('perfil_id', profileId).lt('data_local', today)
+    .select('id,data_local,meta_ml,realizado_ml').eq('perfil_id', profileId).lt('data_local', today).not('meta_ml','is',null)
     .order('data_local', { ascending: false }).limit(90);
   if (!isAdmin) {
     configRequest = configRequest.eq('created_by', userId);
@@ -536,7 +537,7 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
   const [configResult, todayResult, historyResult] = await Promise.all([configRequest, todayRequest, historyRequest]);
   const { data: config, error: configError } = configResult;
   if (configError) return { error: configError };
-  if (!config) return waterResult(null, null, [], 'supabase', profiles, profileId);
+  if (!config?.meta_ml) return waterResult(null, null, [], 'supabase', profiles, profileId);
   let { data: todayRow, error: todayError } = todayResult;
   if (todayError) return { error: todayError };
   const ownerProfile = isAdmin ? await requireSaudeProfileForWater(userId, profileId, true) : null;
@@ -545,11 +546,11 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
   if (!todayRow && ownerCanInitialize) {
     const { data: inserted, error: insertError } = await supabase.from(TABELA_AGUA_LOGS).insert({
       created_by: userId, perfil_id: profileId, data_local: today,
-      meta_doses: config.meta_doses, realizado_doses: 0,
-    }).select('id,data_local,meta_doses,realizado_doses').single();
+      meta_ml: config.meta_ml, realizado_ml: 0,
+    }).select('id,data_local,meta_ml,realizado_ml').single();
     if (insertError?.code === '23505') {
       const { data: concurrentRow, error: concurrentError } = await supabase.from(TABELA_AGUA_LOGS)
-        .select('id,data_local,meta_doses,realizado_doses')
+        .select('id,data_local,meta_ml,realizado_ml')
         .eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).single();
       if (concurrentError) return { error: concurrentError };
       todayRow = concurrentRow;
@@ -559,7 +560,7 @@ async function loadWater(userId, requestedProfileId = null, { includeProfiles = 
     }
   }
   const { data: history, error: historyError } = historyResult;
-  if (!todayRow && isAdmin) todayRow = { data_local: today, meta_doses: config.meta_doses, realizado_doses: 0 };
+  if (!todayRow && isAdmin) todayRow = { data_local: today, meta_ml: config.meta_ml, realizado_ml: 0 };
   return historyError ? { error: historyError } : waterResult(config, todayRow, history, 'supabase', profiles, profileId);
 }
 
@@ -574,25 +575,23 @@ async function saveWaterGoal(payload, userId, isAdmin = false) {
   const profileId = profileResult.profile.id;
   if (isOfflineMode()) {
     const todayRow = offlineWaterLogs.find((row) => row.created_by === userId && Number(row.perfil_id) === Number(profileId) && row.data_local === today);
-    if (todayRow && todayRow.realizado_doses > payload.meta_doses) return { conflict: true };
-    offlineWaterGoals.set(`${userId}:${profileId}`, { nome: payload.nome, meta_doses: payload.meta_doses });
-    if (todayRow) todayRow.meta_doses = payload.meta_doses;
+    offlineWaterGoals.set(`${userId}:${profileId}`, { nome: payload.nome, meta_ml: payload.meta_ml });
+    if (todayRow) todayRow.meta_ml = payload.meta_ml;
     return loadWater(userId, profileId);
   }
 
   const { supabase } = await import('../lib/supabase.js');
   const { data: current, error: currentError } = await supabase.from(TABELA_AGUA_LOGS)
-    .select('id,realizado_doses').eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).maybeSingle();
+    .select('id,realizado_ml').eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).maybeSingle();
   if (currentError) return { error: currentError };
-  if (current && Number(current.realizado_doses) > payload.meta_doses) return { conflict: true };
 
   const { error: goalError } = await supabase.from(TABELA_AGUA_METAS)
-    .upsert({ created_by: userId, perfil_id: profileId, nome: payload.nome, meta_doses: payload.meta_doses }, { onConflict: 'created_by,perfil_id' });
+    .upsert({ created_by: userId, perfil_id: profileId, nome: payload.nome, meta_ml: payload.meta_ml }, { onConflict: 'created_by,perfil_id' });
   if (goalError) return { error: goalError };
 
   const dailyQuery = current
-    ? supabase.from(TABELA_AGUA_LOGS).update({ meta_doses: payload.meta_doses }).eq('id', current.id).eq('created_by', userId)
-    : supabase.from(TABELA_AGUA_LOGS).insert({ created_by: userId, perfil_id: profileId, data_local: today, meta_doses: payload.meta_doses, realizado_doses: 0 });
+    ? supabase.from(TABELA_AGUA_LOGS).update({ meta_ml: payload.meta_ml }).eq('id', current.id).eq('created_by', userId)
+    : supabase.from(TABELA_AGUA_LOGS).insert({ created_by: userId, perfil_id: profileId, data_local: today, meta_ml: payload.meta_ml, realizado_ml: 0 });
   const { error: dailyError } = await dailyQuery;
   if (dailyError) return { error: dailyError };
   return loadWater(userId, profileId);
@@ -603,45 +602,28 @@ async function updateWaterProgress(payload, userId, isAdmin = false) {
   if (!owner.userId) return owner;
   userId = owner.userId;
   const today = dateInSaoPaulo(new Date());
-  const profileResult = await requireSaudeProfileForWater(userId, payload.profile_id);
-  if (profileResult.error) return profileResult;
-  if (profileResult.notFound) return { notFound: true };
-  const profileId = profileResult.profile.id;
   if (isOfflineMode()) {
-    const loaded = await loadWater(userId, profileId);
+    const loaded = await loadWater(userId, payload.profile_id);
     if (!loaded.config || !loaded.today) return { notFound: true };
-    if (payload.realizado_doses > loaded.today.meta_doses) return { conflict: true };
-    const row = offlineWaterLogs.find((item) => item.created_by === userId && Number(item.perfil_id) === profileId && item.data_local === today);
-    row.realizado_doses = payload.realizado_doses;
-    return loadWater(userId, profileId);
+    const key = `${userId}:${payload.request_id}`;
+    const previous = offlineWaterCheckins.get(key);
+    if (previous && (previous.profile_id !== payload.profile_id || previous.quantidade_ml !== payload.quantidade_ml || previous.date !== today)) return {conflict:true};
+    const row = offlineWaterLogs.find(item=>item.created_by===userId && Number(item.perfil_id)===payload.profile_id && item.data_local===today);
+    if (!previous && row.realizado_ml+payload.quantidade_ml>100000) return {error:{message:"Limite de registros do dia atingido."}};
+    if (!previous) { row.realizado_ml += payload.quantidade_ml; offlineWaterCheckins.set(key,{...payload,date:today}); }
+    return loadWater(userId,payload.profile_id);
   }
-
-  const loaded = await loadWater(userId, profileId, { includeProfiles: false });
-  if (loaded.error) return loaded;
-  if (!loaded.config || !loaded.today) return { notFound: true };
   const { supabase } = await import('../lib/supabase.js');
-  const { data: current, error: currentError } = await supabase.from(TABELA_AGUA_LOGS)
-    .select('id,meta_doses').eq('created_by', userId).eq('perfil_id', profileId).eq('data_local', today).maybeSingle();
-  if (currentError) return { error: currentError };
-  if (!current) return { notFound: true };
-  if (payload.realizado_doses > Number(current.meta_doses)) return { conflict: true };
-  const { data, error } = await supabase.from(TABELA_AGUA_LOGS)
-    .update({ realizado_doses: payload.realizado_doses })
-    .eq('id', current.id).eq('created_by', userId)
-    .select('id,data_local,meta_doses,realizado_doses').maybeSingle();
-  if (error) return { error };
-  if (!data) return { notFound: true };
-  return {
-    resource: RESOURCE_CONSUMO_AGUA,
-    storage: 'supabase',
-    profile_id: profileId,
-    today: {
-      id: data.id,
-      data: data.data_local,
-      meta_doses: Number(data.meta_doses),
-      realizado_doses: Number(data.realizado_doses),
-    },
-  };
+  const {data,error} = await supabase.rpc('saude_record_water_ml',{
+    p_owner:userId,p_profile:payload.profile_id,p_amount:payload.quantidade_ml,p_request:payload.request_id,
+  });
+  if (error) {
+    if (/water_goal_required/.test(error.message || '')) return {notFound:true};
+    if (/water_request_conflict/.test(error.message || '')) return {conflict:true};
+    if (error.code==='PGRST202') return {error:{message:'Aplique a migration de consumo de água em ml antes de registrar.'}};
+    return {error};
+  }
+  return {resource:RESOURCE_CONSUMO_AGUA,storage:'supabase',profile_id:payload.profile_id,today:data};
 }
 
 async function loadAlertSchedule(profileId, userId, isAdmin = false) {
@@ -1471,7 +1453,7 @@ export default async function handler(req, res) {
     const result = await updateWaterProgress(validation.data, auth.user.id, auth.isAdmin);
     if (result.error) return json(res, 500, { error: result.error.message });
     if (result.notFound) return json(res, 404, { error: 'Crie uma meta de agua antes de registrar o consumo.' });
-    if (result.conflict) return json(res, 409, { error: 'A quantidade realizada nao pode ultrapassar a meta do dia.' });
+    if (result.conflict) return json(res, 409, { error: 'Este check-in já foi utilizado com outros dados. Atualize o acompanhamento.' });
     return json(res, 200, result);
   }
 

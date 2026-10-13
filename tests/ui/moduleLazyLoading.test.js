@@ -1,5 +1,6 @@
 import {readFileSync} from 'node:fs';
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+vi.mock('../../lib/uiConfirmation.js',()=>({showAppConfirmation:vi.fn()}));
 import {renderSaudeContent} from '../../features/saude/index.js';
 
 const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
@@ -18,7 +19,7 @@ function container(screen='hub'){
     getAttribute:key=>attributes.get(key),setAttribute:(key,value)=>attributes.set(key,value),
     querySelector:()=>null,querySelectorAll:()=>[],closest:()=>null,
     addEventListener:(name,handler)=>listeners.set(name,handler),removeEventListener:()=>{},
-    click:dataset=>listeners.get('click')({target:{matches:()=>false,closest:()=>({dataset})}})};
+    click:dataset=>listeners.get('click')({target:{matches:()=>false,closest:selector=>selector==='[data-saude-action]'?({dataset}):null}})};
 }
 function financeApp(){
   return {...financeMethods,uiState:{},getMesAnoAtual:()=> '2026-10',
@@ -114,5 +115,26 @@ it('Saúde abre na lista de perfis sem restaurar a dieta anterior',async()=>{
   expect(el.innerHTML).toContain('Minha Saúde');
   expect(el.innerHTML).toContain('André');
   expect(fetch).toHaveBeenCalledTimes(1);
+  el._cleanup();
+});
+
+it('água envia um check-in por ação e ignora outro clique enquanto aguarda a gravação',async()=>{
+  const pending=deferred();const el=container();
+  const fetch=vi.fn(async(url,options)=>{
+    if(options?.method==='PATCH') return pending.promise;
+    if(url.includes('resource=perfis'))return {ok:true,json:async()=>({rows:[profile]})};
+    return {ok:true,json:async()=>({profile_id:1,config:{nome:'Água',meta_ml:2000},today:{meta_ml:2000,realizado_ml:0},history:[]})};
+  });vi.stubGlobal('fetch',fetch);
+  await renderSaudeContent(el);
+  await el.click({saudeAction:'open-profile-detail',saudeId:'1'});
+  await el.click({saudeAction:'open-water-tracker',waterProfileId:'1'});
+  expect(el.innerHTML).toContain('Registrar 100 ml');expect(el.innerHTML).toContain('Registrar 500 ml');expect(el.innerHTML).toContain('Registrar 1 L');expect(el.innerHTML).toContain('Registrar 2 L');
+  const first=el.click({saudeAction:'add-water-ml',waterAmount:'200'});
+  await el.click({saudeAction:'add-water-ml',waterAmount:'500'});
+  const patches=fetch.mock.calls.filter(([,options])=>options?.method==='PATCH');
+  expect(patches).toHaveLength(1);
+  expect(JSON.parse(patches[0][1].body)).toMatchObject({quantidade_ml:200});
+  pending.resolve({ok:true,json:async()=>({today:{meta_ml:2000,realizado_ml:200}})});await first;
+  expect(el.innerHTML).toContain('200 de 2000 ml hoje');
   el._cleanup();
 });

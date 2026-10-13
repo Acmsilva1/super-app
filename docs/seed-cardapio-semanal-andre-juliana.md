@@ -38,3 +38,14 @@ O serviço compartilhado resolve `Ovos` como `Ovo inteiro` e `Batata inglesa` co
 `sql/rollback/20261011_seed_cardapio_semanal_andre_juliana.sql` remove somente os registros deste seed para os dois `perfil_id` que você preencher. Bloqueia se as dietas tiverem sido editadas ou vinculadas a agendas. Não remove perfis, alimentos ou outras dietas.
 
 Testes locais usam PostgreSQL via PGlite, o contrato de tabela das migrations e o seletor semanal real do app. Verificam conteúdo, isolamento por proprietário, ambiguidade, repetição, colisões de slug e reversão. Validação no Supabase real: **não executada**, pois a aplicação do seed será feita pelo responsável do banco.
+
+
+## Recriar as dietas com as observações atuais
+
+Execute `sql/20261011_recriar_cardapio_semanal_andre_juliana.sql` no SQL Editor do Supabase. Esse script é diferente do seed original: apaga e recria somente os registros com os slugs e a origem deste seed, dos perfis André e Juliana da mesma conta. Os IDs existentes e o estado individual de alerta são preservados. As outras dietas e o catálogo de alimentos não são alterados. As edições nas duas dietas são substituídas pelo cardápio atual, sem óleo e com observações curtas.
+
+Antes de apagar, guarda as dietas e as agendas que apontavam para elas em `tb_saude_dietas_seed_backup`. Essa tabela tem RLS e não concede acesso aos clientes anon/authenticated. A execução deve ocorrer pelo responsável pelo banco, no SQL Editor. Se houver perfis homônimos, informe os dois IDs no início do script. O processamento é transacional; um erro impede a substituição parcial.
+
+Os vínculos das agendas são recolocados depois da recriação. Os horários e os interruptores gerais são mantidos; triggers de atualização podem renovar o timestamp da configuração de dieta. O resultado inclui o `run_id` do backup. Para restaurar os registros anteriores, use `sql/rollback/20261011_recriar_cardapio_semanal_andre_juliana.sql`, preenchendo esse identificador. A restauração bloqueia dietas editadas após a execução. A tabela de backup é preservada.
+
+Após executar, feche e abra Saúde novamente para atualizar os dados da tela. Não é preciso publicar o frontend para ver as observações novas gravadas no banco. O script não envia Telegram.

@@ -38,8 +38,8 @@ beforeEach(() => {
   mock.rows = {
     tb_saude_perfis: [{ id: 1, nome: 'Perfil A', created_by: owner }, { id: 2, nome: 'Perfil B', created_by: relative }],
     tb_saude_perfil_medidas: [{ id: 3, perfil_id: 2, created_by: relative, peso_kg: 70 }],
-    tb_saude_agua_metas: [{ perfil_id: 2, created_by: relative, meta_doses: 8 }],
-    tb_saude_agua_logs: [{ perfil_id: 2, created_by: relative, realizado_doses: 4 }],
+    tb_saude_agua_metas: [{ perfil_id: 2, created_by: relative, meta_ml: 800 }],
+    tb_saude_agua_logs: [{ perfil_id: 2, created_by: relative, realizado_ml: 400 }],
     app_user_permissions: [{ user_id: relative, app_id: 'saude', can_access: true }],
   };
   vi.stubEnv('AUTH_MODE', 'supabase');
@@ -55,7 +55,7 @@ describe('Admin Saúde with the unified schema', () => {
     expect(res.body.profiles.map((row) => row.id)).toEqual([2]);
     expect(res.body.water_profiles.map((row) => row.id)).toEqual([2]);
     expect(res.body.measurements).toHaveLength(1);
-    expect(res.body.water_logs[0].realizado_doses).toBe(4);
+    expect(res.body.water_logs[0].realizado_ml).toBe(400);
     expect(mock.queries.some((query) => query.table === 'tb_saude_agua_perfis')).toBe(false);
   });
   it('loads all accounts without mixing profile IDs with the retired water table', async () => {
