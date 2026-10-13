@@ -388,7 +388,7 @@ export async function openHomeWaterQuickModal(options = {}) {
         await syncHomeWaterQuickDom(overlay,state,{animateFillFrom:before});
       } catch(error) {
         state.error=error instanceof Error?error.message:'Não foi possível registrar o consumo.';
-        if(overlay.isConnected) showAppConfirmation(`Não foi possível confirmar. Repita a opção de ${amount} ml para tentar novamente.`);
+        if(overlay.isConnected) showAppConfirmation(`${state.error} Repita a opção de ${amount} ml para tentar novamente.`);
       } finally {
         state.waterPatchInFlight=false;
         if(overlay.isConnected) syncHomeWaterQuickDom(overlay,state,{skipWaterDrop:true});
