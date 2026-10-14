@@ -1,6 +1,7 @@
 import { validWaterAmount, validWaterGoal, validWaterRequestId } from '../features/saude/service/waterIntakeService.js';
 import { ALERT_SCHEDULE_FIELDS, alertScheduleSection } from '../features/saude/service/alertScheduleConfig.js';
 import { requireUser } from '../lib/auth.js';
+import {saudeTreinosHandler} from '../lib/saudeTreinosHandler.js';
 import { TABELAS_NUTRICIONAIS } from '../features/saude/data/tabelasNutricionais.js';
 import { ALIMENTOS_NUTRICIONAIS } from '../features/saude/data/alimentosNutricionais.js';
 import { opcoesTabelaNutricional } from '../features/saude/service/tabelaNutricionalService.js';
@@ -1279,6 +1280,7 @@ export default async function handler(req, res) {
 
   const auth = await requireUser(req, { appId: 'saude' });
   if (!auth.ok) return json(res, auth.status, auth.data);
+  if (req.query?.resource === 'treinos') return saudeTreinosHandler(req,res,{auth,resolveOwner:mutationOwner});
 
   if (!auth.isAdmin && [RESOURCE_TABELA_NUTRICIONAL, RESOURCE_ALIMENTOS].includes(req.query?.resource) && req.method !== 'GET') {
     return json(res, 403, { error: 'Somente o administrador pode alterar o catálogo compartilhado de alimentos.' });

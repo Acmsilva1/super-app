@@ -1,8 +1,5 @@
 export const TRAINING_TYPES = {full_body:'Full body',abc:'ABC',semanal:'Semanal'};
 const DAYS=['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'];
-export function trainingPrototypeEnabled(){
- return ['localhost','127.0.0.1','[::1]','::1','0.0.0.0'].includes(globalThis.location?.hostname || globalThis.window?.location?.hostname);
-}
 export function trainingGroups(type){
  if(type==='full_body')return [{id:'unico',nome:'Exercícios',exercicios:[]}];
  if(type==='abc')return ['A','B','C'].map(id=>({id,nome:`Treino ${id}`,exercicios:[]}));

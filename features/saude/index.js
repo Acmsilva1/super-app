@@ -1,6 +1,5 @@
 import { WATER_AMOUNTS_ML,validWaterAmount,waterAmountLabel } from './service/waterIntakeService.js';
 import { showAppConfirmation } from '../../lib/uiConfirmation.js';
-import {trainingPrototypeEnabled} from '../treino/localStore.js';
 import {
   filtrarTabelaNutricional,
   opcoesTabelaNutricional,
@@ -1315,7 +1314,7 @@ function cacheWaterHistoryForProfile(state, profileId, data) {
 const PROFILE_SCREENS = ['hub', 'peso', 'dietas', 'alertas', 'treinos'];
 
 function normalizeProfileScreen(screen) {
-  return PROFILE_SCREENS.includes(screen) && (screen!=='treinos' || trainingPrototypeEnabled()) ? screen : 'hub';
+  return PROFILE_SCREENS.includes(screen) ? screen : 'hub';
 }
 
 function profileIdentityLine(profile) {
@@ -1436,7 +1435,7 @@ function renderProfileHub(profile, state) {
       </li>
       ${navRow('peso', 'fa-weight-scale', 'Peso e IMC', `${historyCount} ${historyCount === 1 ? 'registro' : 'registros'}`)}
       ${navRow('dietas', 'fa-utensils', 'Dietas', state.dietsLoadedProfileId === Number(profile.id) ? String(diets.length) : 'Abrir')}
-      ${trainingPrototypeEnabled() ? navRow('treinos','fa-dumbbell','Treino','Esboço local') : ''}
+      ${navRow('treinos','fa-dumbbell','Treino','Organizar')}
       ${navRow('alertas', 'fa-bell', 'Agendadores', 'Configurar')}
       <li><button type="button" class="fin-nav-row" data-saude-action="edit-profile" data-saude-id="${id}">
         <i class="fas fa-pencil fin-nav-row__icon" aria-hidden="true"></i>
