@@ -47,7 +47,7 @@ super-app/
 
 ### Fluxo Geral
 
-Nota: o modulo Missões de Treino e sua API foram removidos do app para reduzir funcoes serverless. Tabelas e migrations de treino existentes permanecem preservadas no Supabase; nenhuma operacao de banco foi executada.
+Nota: o treino legado foi removido do app, incluindo interface, mocks e setup local. O novo modo será criado do zero. Migrations históricas foram preservadas; nenhuma operação de banco foi executada.
 
 ```text
 Login Supabase -> Bearer token -> /api/* -> requireUser()

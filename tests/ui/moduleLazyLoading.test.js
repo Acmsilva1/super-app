@@ -138,3 +138,16 @@ it('água envia um check-in por ação e ignora outro clique enquanto aguarda a 
   expect(el.innerHTML).toContain('200 de 2000 ml hoje');
   el._cleanup();
 });
+
+it('treino local aparece no perfil e abre sem consultar outra API',async()=>{
+  vi.stubGlobal('location',{hostname:'localhost'});
+  const fetch=vi.fn(async()=>({ok:true,json:async()=>({rows:[profile]})}));
+  vi.stubGlobal('fetch',fetch);
+  const el=container();await renderSaudeContent(el);
+  await el.click({saudeAction:'open-profile-detail',saudeId:'1'});
+  expect(el.innerHTML).toContain('Esboço local');
+  await el.click({saudeAction:'profile-screen',screen:'treinos'});
+  expect(el.innerHTML).toContain('data-training-root');
+  expect(fetch).toHaveBeenCalledTimes(1);
+  el._cleanup();
+});

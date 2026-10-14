@@ -55,7 +55,6 @@ Config pública: `GET /api/auth-config`
 | `financeiro` | Inline no shell | Lógica embutida em `index.html` |
 | `lista_compras` | Inline no shell | Lógica embutida em `index.html` |
 | `fluxograma` | Dynamic import | `features/fluxograma/index.js` + `cloudSync.js` |
-| `missoes_treino` | Dynamic import | `features/missoes_treino/index.js` |
 
 Padrão de cleanup ao fechar janela:
 ```javascript
@@ -109,50 +108,6 @@ Comportamento:
 
 ---
 
-## Módulo: Missões de treino
-
-Arquivos:
-| Arquivo | Papel |
-|---|---|
-| `features/missoes_treino/index.js` | UI completa (shell + CRUD) |
-| `features/missoes_treino/mock.example.js` | Mock padrão versionado |
-| `features/missoes_treino/mock.js` | Override local (gitignored) |
-
-Export: `renderMissoesTreinoContent(container)`
-
-### Fluxo de telas
-
-```text
-Abrir módulo
-  → Tela de perfis (lista + CRUD)
-  → Selecionar perfil
-  → Treinos daquele perfil (missões, exercícios, performance)
-  → "← Perfis" volta à seleção
-```
-
-Views internas:
-| View | Estado | Conteúdo |
-|---|---|---|
-| `profiles` | `currentView = 'profiles'` | Cards, modal criar/editar |
-| `training` | `currentView = 'training'` | Treinos fixos do perfil (sem dia da semana) |
-
-### Mock local (localhost)
-
-Detectado via `hostname` (`localhost`, `127.0.0.1`, `[::1]`):
-- Instancia `MockTreinoStore` de `mock.example.js`
-- Se existir `mock.js`, substitui o store
-- Nenhuma chamada à API enquanto mock ativo
-- Banner laranja: "Mock local fixo"
-
-Cache bust no import: `?v=2026-08-12-mt-mock-auto`
-
-### Formato de exercício
-
-Armazenamento: `"Nome [series x repeticoes]"` (ex.: `Flexoes [3x12]`)
-- `reps` total = séries × repetições
-
----
-
 ## Estilo e UX
 
 - Tema escuro com gradientes aurora (`--primary`, `--accent`)
@@ -177,5 +132,4 @@ Variáveis locais (`.env` — não commitar):
 
 | Arquivo | Cobertura |
 |---|---|
-| `tests/services/missoesTreinoMock.test.js` | Store demo treino |
 | `scripts/ux-component-analyst.cjs` | Análise estática do shell |

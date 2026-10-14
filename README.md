@@ -217,7 +217,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - O menu do Fluxograma passou a exibir preview da cor atual do item selecionado e da ultima cor usada.
 - Novas conexoes no Fluxograma agora usam a cor ativa da paleta, e o estado `activeColor` passou a ser persistido no payload do grafo para manter contexto entre sessoes.
 - Suporte a promises nos popups nativos foi implementado, e substituiu todos os `confirm()` antigos por uma modal estetica global via `SuperApp.showConfirm()`.
-- O modulo Missões de Treino foi removido do app; tabelas e migrations existentes foram preservadas no Supabase.
+- O treino legado foi removido do código, mocks e setup local. Migrations históricas foram preservadas; esta limpeza não altera o Supabase.
 
 ## Artefatos de Documentacao
 

@@ -65,7 +65,9 @@ Funções auxiliares: `is_app_admin()` e `can_access_app(app_id)` — usadas pel
 
 ---
 
-## Módulo Missões de treino
+## Banco histórico do treino removido
+
+Estas tabelas não possuem consumidores no app atual. Sua existência em produção não foi verificada nesta limpeza; nenhuma exclusão foi executada. O novo modo treino terá um contrato próprio.
 
 ### Diagrama relacional
 
@@ -177,18 +179,7 @@ Ordem cronológica:
 | `20260812_add_missoes_treino_perfis.sql` | Perfis de treino + FK |
 | `20260813_adopt_orphan_missoes_treino.sql` | Backfill: órfãs → perfil Oficial |
 
-### Ordem recomendada para treino (se base ainda não existir)
-
-1. Migrations base de treino no Supabase (20260407/20260408 — podem existir só remotamente)
-2. `migration/20260718_enable_rls_user_permissions.sql`
-3. `migration/20260812_add_missoes_treino_perfis.sql`
-
-### Rollback parcial de perfis de treino
-
-```sql
-alter table public.tb_missoes_treino drop column if exists perfil_id;
-drop table if exists public.tb_missoes_treino_perfis cascade;
-```
+As migrations de treino listadas acima são históricas. Não reaplique esses scripts para criar o novo módulo.
 
 ---
 

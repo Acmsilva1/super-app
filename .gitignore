@@ -67,10 +67,6 @@ AGENTS.md
 .cursor/
 .vscode/
 
-# ---------------------------------------------------------------------------
-# Override opcional do mock local (personalizado — NAO sobe para Git / Vercel)
-# Sem este arquivo, localhost usa mock.example.js automaticamente.
-features/missoes_treino/mock.js
 
 # ---------------------------------------------------------------------------
 # Rascunhos e Caches Locais

@@ -1,5 +1,6 @@
 import { WATER_AMOUNTS_ML,validWaterAmount,waterAmountLabel } from './service/waterIntakeService.js';
 import { showAppConfirmation } from '../../lib/uiConfirmation.js';
+import {trainingPrototypeEnabled} from '../treino/localStore.js';
 import {
   filtrarTabelaNutricional,
   opcoesTabelaNutricional,
@@ -513,6 +514,8 @@ function renderShell(container, content, {
   footer = '',
   addButton = '',
 } = {}) {
+  container._treinoCleanup?.();
+  container._treinoCleanup = null;
   container.innerHTML = `
     ${SAUDE_STYLES}
     <main class="saude-root fin-bank${loading ? ' saude-root--loading' : ''}">
@@ -1309,10 +1312,10 @@ function cacheWaterHistoryForProfile(state, profileId, data) {
   };
 }
 
-const PROFILE_SCREENS = ['hub', 'peso', 'dietas', 'alertas'];
+const PROFILE_SCREENS = ['hub', 'peso', 'dietas', 'alertas', 'treinos'];
 
 function normalizeProfileScreen(screen) {
-  return PROFILE_SCREENS.includes(screen) ? screen : 'hub';
+  return PROFILE_SCREENS.includes(screen) && (screen!=='treinos' || trainingPrototypeEnabled()) ? screen : 'hub';
 }
 
 function profileIdentityLine(profile) {
@@ -1433,6 +1436,7 @@ function renderProfileHub(profile, state) {
       </li>
       ${navRow('peso', 'fa-weight-scale', 'Peso e IMC', `${historyCount} ${historyCount === 1 ? 'registro' : 'registros'}`)}
       ${navRow('dietas', 'fa-utensils', 'Dietas', state.dietsLoadedProfileId === Number(profile.id) ? String(diets.length) : 'Abrir')}
+      ${trainingPrototypeEnabled() ? navRow('treinos','fa-dumbbell','Treino','Esboço local') : ''}
       ${navRow('alertas', 'fa-bell', 'Agendadores', 'Configurar')}
       <li><button type="button" class="fin-nav-row" data-saude-action="edit-profile" data-saude-id="${id}">
         <i class="fas fa-pencil fin-nav-row__icon" aria-hidden="true"></i>
@@ -1523,7 +1527,11 @@ function renderProfileDetail(container, state) {
   let footer = '';
   let addButton = '';
 
-  if (screen === 'peso') {
+  if (screen === 'treinos') {
+    title = `Treino · ${profile.nome}`;
+    back = backToHub;
+    body = '<section data-training-root></section>';
+  } else if (screen === 'peso') {
     const variacao = criarTendenciaPeso(profile.historico).variacao;
     const variacaoLabel = variacao === null ? '—' : `${variacao > 0 ? '+' : ''}${formatarNumeroSaude(variacao)} kg`;
     const chartKey = `${profile.id}:${Array.isArray(profile.historico) ? profile.historico.length : 0}:${profile.peso_kg}`;
@@ -1563,6 +1571,10 @@ function renderProfileDetail(container, state) {
     ${body}
     ${renderProfileModals(state)}
   </section>`, { title, titleId: 'profile-detail-title', back, footer, addButton });
+  if (screen==='treinos' && !state.profileScreenLoading && state.trainingModule) {
+    const root=container.querySelector('[data-training-root]');
+    if(root) container._treinoCleanup=state.trainingModule.mountTrainingPrototype(root,{profile,confirm:options=>requestSaudeConfirmation(container,options)});
+  }
   requestAnimationFrame(() => {
     paintWaterTrackerUi(container, state);
     const viewport = container.querySelector('.saude-weight-trend__viewport');
@@ -2064,14 +2076,15 @@ export async function renderSaudeContent(container) {
       const version = ++state.profileRequestVersion;
       const profile = currentHealthProfile(state);
       state.notice = null;
-      state.profileScreenLoading = ['dietas', 'alertas'].includes(screen);
+      state.profileScreenLoading = ['dietas', 'alertas', 'treinos'].includes(screen);
       state.alertScheduleLoading = screen === 'alertas';
       state.alertScheduleError = false;
       rememberSaudeCheckpoint({ view: 'profile-detail', selectedProfileId: state.selectedProfileId, profileScreen: state.profileScreen });
       renderProfileDetail(container, state);
       if (state.profileScreenLoading) {
         try {
-          await loadSelectedProfileScreen(state, profile, screen);
+          if(screen==='treinos') state.trainingModule=await import('../treino/index.js');
+          else await loadSelectedProfileScreen(state, profile, screen);
         } catch (error) {
           if (state.disposed || version !== state.profileRequestVersion) return;
           state.alertScheduleError = true;
@@ -2978,6 +2991,7 @@ export async function renderSaudeContent(container) {
     clearTimeout(viewportResizeTimer);
     viewportResizeTimer = setTimeout(() => {
       if (state.view !== 'profile-detail' || state.selectedProfileId == null) return;
+      if (state.profileScreen === 'treinos') return;
       if (state.waterModal || state.dietEditorOpen || state.profileEditorOpen || state.measurementEditorOpen || state.weightEditorOpen) return;
       renderProfileDetail(container, state);
     }, 180);
@@ -2996,6 +3010,8 @@ export async function renderSaudeContent(container) {
     }
   }, 60000);
   container._cleanup = () => {
+    container._treinoCleanup?.();
+    container._treinoCleanup = null;
     state.disposed = true;
     state.profileRequestVersion++;
     container._saudeFooterObserver?.disconnect();

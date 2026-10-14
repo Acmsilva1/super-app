@@ -137,41 +137,9 @@ Service: `features/fluxograma/service/exportPngService.js`
 
 ---
 
-### Missões de treino
+### Treino legado
 
-#### `/api/missoes-treino`
-Métodos: `GET`, `POST`, `PATCH`, `DELETE`
-
-- Auth: `requireUser({ appId: 'missoes_treino', adminOnly: true })`
-- Health: `GET ?health=1`
-- Fuso: `America/Sao_Paulo`
-
-**Perfis** (`tb_missoes_treino_perfis`):
-
-| Método | Payload / Query |
-|---|---|
-| `GET` | `?resource=profiles` |
-| `POST` | `{ resource: 'profile', nome, descricao?, cor?, icone? }` |
-| `PATCH` | `{ resource: 'profile', profile_id, ... }` |
-| `DELETE` | `{ resource: 'profile', profile_id }` |
-
-**Treinos** (escopo por `profile_id`):
-
-| Método | Payload / Query |
-|---|---|
-| `GET` | `?profile_id=<id>&date=YYYY-MM-DD?` |
-| `POST` | `{ profile_id, title?, date?, items[] }` |
-| `PATCH` | `{ mission_id, ... }` ou toggle item `{ id, completed }` |
-| `DELETE` | `{ mission_id }` ou `{ id }` (item) |
-
-Regras:
-- Toda missão exige `perfil_id`
-- Treinos são **fixos no perfil** — listagem devolve todos, sem filtro de data/dia da semana
-- Sem carry-over e sem seed de semana
-- Missões antigas com `perfil_id` nulo são adotadas no primeiro perfil (cria `Oficial` se não houver nenhum)
-- Conclusão de item imutável (`completed: false` → 409)
-
-Handler: `api/missoes-treino.js`
+A interface, o mock e a API antigos foram removidos. O novo modo será desenvolvido do zero, sem reaproveitar esse contrato. As migrations históricas não são instruções para reinstalar o módulo.
 
 ---
 
@@ -184,7 +152,6 @@ Handler: `api/missoes-treino.js`
 | `financas/` | Legado | Referências antigas |
 | `lista_compras/` | Ativo | |
 | `fluxograma/` | Ativo | Rascunho local + sync nuvem |
-| `missoes_treino/` | Ativo | UI em `index.js` (ver doc frontend) |
 | `neonkeep/` | Placeholder | |
 
 ## Deploy e execução local
@@ -204,7 +171,6 @@ Handler: `api/missoes-treino.js`
 | `tests/api/lista-compras.api.test.js` | Lista de compras |
 | `tests/api/fluxograma.api.test.js` | Fluxograma |
 | `tests/api/fluxograma-export.api.test.js` | Export PNG |
-| `tests/api/missoes-treino.api.test.js` | Perfis e treinos |
 | `tests/api/disponibilidade.api.test.js` | Health checks |
 
 ## Checkpoints recentes

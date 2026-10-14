@@ -5,17 +5,17 @@
   "typeSlug": "ARCHITECTURE",
   "title": "Super App",
   "slug": "projeto-004",
-  "summary": "PWA pessoal — Financeiro, Lista de Compras, Fluxograma e Missões de Treino. Vercel + Supabase RLS.",
+  "summary": "PWA pessoal — Financeiro, Saúde, Lista de Compras e Fluxograma. Vercel + Supabase RLS.",
   "tags": ["pwa", "supabase", "vercel", "financeiro", "personal"],
   "content": {
     "architecture": {
       "overview": "PWA pessoal (SUPERAPP) com micro-apps de produtividade e finanças. Shell index.html + service worker; backend Vercel Functions; Supabase Auth + RLS por user_id. Produção: super-app-zeta-virid.vercel.app.",
       "components": [
         { "name": "Shell PWA", "description": "index.html, manifest.json, sw.js — auth Supabase e roteamento interno." },
-        { "name": "API serverless", "description": "financeiro, lista-compras, fluxograma, missoes-treino." },
-        { "name": "Features/", "description": "Domínio: financeiro, lista_compras, fluxograma, missoes_treino." },
+        { "name": "API serverless", "description": "financeiro, saude, lista-compras e fluxograma; 12 entradas de Functions." },
+        { "name": "Features/", "description": "Domínio: financeiro, saude, lista_compras e fluxograma." },
         { "name": "Lib/", "description": "supabase.js, auth.js roles, financeiroAnualCache.js." },
-        { "name": "Supabase", "description": "tb_financas, tb_lista_compras, tb_fluxograma, tb_missoes, app_user_roles + RLS." }
+        { "name": "Supabase", "description": "tb_financas, tb_saude_*, tb_lista_compras, tb_fluxograma_projetos, app_user_roles + RLS." }
       ],
       "dataFlow": "Login Supabase → Bearer /api/* → auth roles → service persiste → RLS isola user_id."
     },
@@ -42,8 +42,8 @@
     },
     "checklist": {
       "tests": ["npm test", "npm run test:ux"],
-      "pendencias": ["README desatualizado vs código", "Migration 20260812/20260813 pendente no Supabase se o backfill automatico nao rodar"],
-      "checkpoint": "Treinos fixos por perfil, sem dia da semana nem carry-over — 2026-08-13"
+      "pendencias": ["Novo modo treino a desenvolver do zero, sem aumentar as entradas de Functions"],
+      "checkpoint": "Treino legado removido do código e do setup local; migrations históricas preservadas — 2026-10-13"
     },
     "documentation": {
       "index": "docs/documentacao.md",

@@ -83,32 +83,6 @@ CREATE TABLE IF NOT EXISTS public.tb_fluxograma_projetos (
   dados JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 
--- 4. Missões de Treino
-CREATE TABLE IF NOT EXISTS public.tb_missoes_treino (
-  id BIGSERIAL PRIMARY KEY,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  user_id UUID,
-  data DATE NOT NULL,
-  concluido BOOLEAN NOT NULL DEFAULT FALSE
-);
-
-CREATE TABLE IF NOT EXISTS public.tb_missoes_treino_itens (
-  id BIGSERIAL PRIMARY KEY,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  user_id UUID,
-  missao_id BIGINT REFERENCES public.tb_missoes_treino(id) ON DELETE CASCADE,
-  titulo TEXT NOT NULL,
-  concluido BOOLEAN NOT NULL DEFAULT FALSE,
-  tipo TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.tb_missoes_treino_chamas (
-  id BIGSERIAL PRIMARY KEY,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  user_id UUID,
-  data DATE NOT NULL UNIQUE
-);
-
 -- 5. Módulos & Permissões App
 CREATE TABLE IF NOT EXISTS public.app_modules (
   app_id TEXT PRIMARY KEY,
@@ -122,7 +96,6 @@ VALUES
   ('financeiro', 'Financeiro', true),
   ('lista_compras', 'Lista de compras', false),
   ('fluxograma', 'Fluxograma', false),
-  ('missoes_treino', 'Missoes de treino', false),
   ('admin', 'Administracao', false)
 ON CONFLICT (app_id) DO NOTHING;
 
