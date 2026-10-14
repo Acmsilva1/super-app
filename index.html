@@ -6941,7 +6941,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-05-local-checkin-v2">
+    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-14-home-shortcuts-v1">
 </head>
 <body class="view-apps">
     <div id="appLaunchSplash" class="app-launch-splash" role="status" aria-live="polite" aria-label="Carregando Super App">
@@ -7114,6 +7114,7 @@
     <div id="windowsContainer"></div>
     <nav id="homeQuickbar" class="home-quickbar" aria-label="Atalhos">
         <div class="home-quickbar__inner">
+            <button id="homeTrainingFab" type="button" class="home-training-fab" aria-label="Abrir treino por perfil"><span class="home-quickbar__icon"><i class="fas fa-dumbbell" aria-hidden="true"></i></span><span class="home-quickbar__label">Treino</span></button>
             <button id="homeDietFab" type="button" class="home-diet-fab" aria-label="Consultar dieta por perfil"><span class="home-quickbar__icon"><i class="fas fa-utensils" aria-hidden="true"></i></span><span class="home-quickbar__label">Dieta</span></button>
             <button id="homeWaterFab" type="button" class="home-water-fab" aria-label="Registrar consumo de água"><span class="home-quickbar__icon"><i class="fas fa-droplet" aria-hidden="true"></i></span><span class="home-quickbar__label">Água</span></button>
             <button id="homeFinanceFab" type="button" class="home-finance-fab" aria-label="Lançamento rápido no financeiro"><span class="home-quickbar__icon">+</span><span class="home-quickbar__label">Formulário</span></button>
@@ -7748,6 +7749,9 @@
                 });
                 document.getElementById('homeDietFab')?.addEventListener('click', (e) => {
                     this.quickOpenDiet(e);
+                });
+                document.getElementById('homeTrainingFab')?.addEventListener('click', (e) => {
+                    this.quickOpenTraining(e);
                 });
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'hidden') this.persistOpenAppsState(this.uiState.lastActiveAppId || null);
@@ -8428,7 +8432,20 @@
                 }
             }
 
+            async quickOpenTraining(event) {
+                event?.preventDefault();
+                event?.stopPropagation();
+                try {
+                    const mod = await import('./features/treino/homeTrainingQuick.js?v=2026-10-14-readonly-v2');
+                    await mod.openHomeTrainingQuick({ launchSaude: (intent) => this.openSaudeAt(intent) });
+                } catch (err) {
+                    console.error(err);
+                    alert('Não foi possível abrir o atalho de treino.');
+                }
+            }
+
             openSaudeAt(intent = null) {
+                this._saudeOpenIntent = intent;
                 const profileId = Number(intent?.profileId);
                 if (Number.isFinite(profileId) && profileId > 0) {
                     this.rememberAppCheckpoint('saude', {
@@ -8916,7 +8933,9 @@
                 if (appId === 'saude') {
                     try {
                         const mod = await import('./features/saude/index.js?v=2026-10-13-treino-api-v1');
-                        await mod.renderSaudeContent(contentEl);
+                        const intent = this._saudeOpenIntent;
+                        this._saudeOpenIntent = null;
+                        await mod.renderSaudeContent(contentEl, { intent });
                         this.resetModuleWindowScroll(appId, contentEl);
                     } catch (err) {
                         console.error(err);

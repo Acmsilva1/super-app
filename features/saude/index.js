@@ -1864,7 +1864,7 @@ async function loadTabelaNutricional(container, state) {
   }
 }
 
-export async function renderSaudeContent(container) {
+export async function renderSaudeContent(container, {intent=null} = {}) {
   if (!container) return;
   if (typeof container._cleanup === 'function') container._cleanup();
 
@@ -3043,6 +3043,22 @@ export async function renderSaudeContent(container) {
     if (state.view !== 'profiles') return;
     if (isLocalWaterStorageMode() && state.profiles.length) {
       migrateLocalWaterDataToHealthProfiles(state.profiles);
+    }
+    const shortcutProfile=state.profiles.find(profile=>Number(profile.id)===Number(intent?.profileId));
+    if(shortcutProfile){
+      state.selectedProfileId=Number(shortcutProfile.id);
+      state.view='profile-detail';
+      state.profileScreen=normalizeProfileScreen(intent.screen);
+      state.profileScreenLoading=['dietas','alertas','treinos'].includes(state.profileScreen);
+      renderProfileDetail(container,state);
+      try{
+        if(state.profileScreen==='treinos')state.trainingModule=await import('../treino/index.js');
+        else if(state.profileScreenLoading)await loadSelectedProfileScreen(state,shortcutProfile,state.profileScreen);
+      }catch(error){state.notice={type:'error',text:error.message||'Não foi possível abrir esta seção.'};}
+      if(state.disposed)return;
+      state.profileScreenLoading=false;
+      renderProfileDetail(container,state);
+      return;
     }
     renderProfiles(container, state);
   } catch (error) {

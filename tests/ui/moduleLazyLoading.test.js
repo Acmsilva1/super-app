@@ -151,3 +151,11 @@ it('treino aparece em produção e importa a tela somente quando selecionado',as
   expect(fetch).toHaveBeenCalledTimes(1);
   el._cleanup();
 });
+it('atalho explícito abre os treinos do perfil sem mudar a abertura normal de Saúde',async()=>{
+  vi.stubGlobal('fetch',async()=>({ok:true,json:async()=>({rows:[profile]})}));
+  const el=container();await renderSaudeContent(el,{intent:{profileId:1,screen:'treinos'}});
+  expect(el.innerHTML).toContain('data-training-root');
+  await renderSaudeContent(el);
+  expect(el.innerHTML).toContain('Minha Saúde');expect(el.innerHTML).not.toContain('data-training-root');
+  el._cleanup();
+});

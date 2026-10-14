@@ -322,10 +322,12 @@ html[data-theme] .home-quickbar {
 .home-quickbar__inner {
     width: 100%;
     max-width: var(--bk-max);
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    flex-wrap: nowrap;
 }
 html[data-theme] .home-quickbar button {
+    flex: 1 1 0;
+    min-width: 0;
     position: static;
     width: auto;
     height: auto;
@@ -360,7 +362,7 @@ html[data-theme] .home-quickbar button:hover { background: var(--bk-bg); }
     font-weight: 700;
     line-height: 1;
 }
-.home-quickbar__label { font-size: 0.72rem; font-weight: 600; color: var(--bk-ink); }
+.home-quickbar__label { font-size: 0.72rem; font-weight: 600; color: var(--bk-ink); white-space: nowrap; }
 body.auth-locked > .home-quickbar { display: none !important; }
 
 html[data-theme] .app-version-badge--home {
