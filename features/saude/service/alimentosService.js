@@ -13,15 +13,40 @@ const FOOD_NAME_ALIASES = Object.freeze({
   ovo: 'ovo inteiro',
   ovos: 'ovo inteiro',
   'ovos inteiros': 'ovo inteiro',
+  morangos: 'morango',
   'batatas inglesas cozidas': 'batata inglesa cozida',
 });
 
+// Referências de composição escolhidas para os cardápios importados. A escolha
+// é registrada em observacao; não altera a quantidade nem elimina alternativas.
+const FOOD_REFERENCE_CHOICES = Object.freeze({
+  mamao: 'Mamão papaia',
+  'mamao ou morangos': 'Mamão papaia',
+  'frango grelhado': 'Peito de frango grelhado',
+  'carne bovina magra ou frango': 'Peito de frango grelhado',
+  'frango ou omelete': 'Peito de frango grelhado',
+  aveia: 'Aveia em flocos crua',
+  feijao: 'Feijão cozido',
+  cafe: 'Café sem açúcar',
+  'batata inglesa': 'Batata inglesa cozida',
+  'batatas inglesas': 'Batata inglesa cozida',
+});
+
+export function dietFoodReferenceNote(item, food) {
+  const originalName = typeof item?.nome === 'string' ? item.nome : '';
+  const reference = FOOD_REFERENCE_CHOICES[normalizeFoodName(originalName)];
+  if (!reference || normalizeFoodName(food?.item ?? food?.alimento) !== normalizeFoodName(reference)) return '';
+  return `Referência nutricional adotada para "${originalName}": ${reference}. Quantidades e alternativas originais preservadas; ajuste no app se escolher outra opção.`;
+}
+
 function catalogNameForDietItem(item, name) {
   if (FOOD_NAME_ALIASES[name]) return FOOD_NAME_ALIASES[name];
-  const preparation = normalizeFoodName(item?.observacao);
-  if (['batata inglesa', 'batatas inglesas'].includes(name)
-    && /\b(?:apos cozimento|cozid[ao]s?)\b/.test(preparation)) return 'batata inglesa cozida';
-  return name;
+  if (['batata inglesa', 'batatas inglesas'].includes(name)) {
+    const preparation = normalizeFoodName(item?.observacao);
+    if (/\b(?:frit[ao]s?|pure)\b/.test(preparation)
+      || (/\bassad[ao]s?\b/.test(preparation) && !/\b(?:apos cozimento|cozid[ao]s?)\b/.test(preparation))) return name;
+  }
+  return FOOD_REFERENCE_CHOICES[name] ? normalizeFoodName(FOOD_REFERENCE_CHOICES[name]) : name;
 }
 
 function parseQuantity(value) {
@@ -120,7 +145,11 @@ export function enrichDietNutrition(diet, foods = []) {
   if (diet.semanal) return { ...diet, semana: (diet.semana || []).map(day => enrichDietNutrition({ ...day, semanal: false }, foods)), refeicoes: [] };
   const refeicoes = (diet.refeicoes || []).map((meal) => ({ ...meal, itens: (meal.itens || []).map((item) => {
     const food = matchFoodForDietItem(item, foods);
-    return { ...item, alimento_id: food?.id ?? item.alimento_id ?? null,
+    const referenceNote = dietFoodReferenceNote(item, food);
+    const observation = String(item.observacao || '');
+    return { ...item, nome: food?.item ?? (typeof food?.alimento === 'string' ? food.alimento : null) ?? item.nome,
+      ...(referenceNote && !observation.includes(referenceNote) ? { observacao: [observation, referenceNote].filter(Boolean).join('\n') } : {}),
+      alimento_id: food?.id ?? item.alimento_id ?? null,
       alimento: food || null, nutricao: nutritionForDietItem(item, foods) };
   }) }));
   const items = refeicoes.flatMap((meal) => meal.itens);

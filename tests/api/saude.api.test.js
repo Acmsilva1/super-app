@@ -113,7 +113,7 @@ describe('API de saúde', () => {
     expect(created.body.row.titulo).toBe('Dieta de teste');
     expect(created.body.row.perfil_id).toBe(profileId);
     expect(created.body.row.refeicoes).toHaveLength(6);
-    expect(created.body.row.refeicoes.find((meal) => meal.tipo === 'cafe_da_manha').itens[0]).toMatchObject({ nome: 'Ovos', quantidade: '2 unidades' });
+    expect(created.body.row.refeicoes.find((meal) => meal.tipo === 'cafe_da_manha').itens[0]).toMatchObject({ nome: 'Ovo inteiro', quantidade: '2 unidades' });
 
     const filtered = await request(app).get(`/api/saude?resource=dietas&profile_id=${profileId}`);
     expect(filtered.status).toBe(200);

@@ -145,8 +145,18 @@ function renderProfilePicker(state) {
     </div>`;
 }
 
+function renderActiveProfilePicker(state) {
+  return `<div class="home-diet-quick-field">
+    <label for="home-diet-active-profile">Perfil</label>
+    <select id="home-diet-active-profile" data-home-diet-active-profile${state.busy ? ' disabled' : ''}>
+      ${state.profiles.map((item) => `<option value="${escapeHtml(item.id)}"${Number(item.id) === Number(state.profileId) ? ' selected' : ''}>${escapeHtml(item.nome)}</option>`).join('')}
+    </select>
+  </div>`;
+}
+
 function renderDietList(state) {
   const profile = state.profiles.find((item) => Number(item.id) === Number(state.profileId));
+  if (state.busy) return `${renderActiveProfilePicker(state)}<p class="home-diet-quick-notice" role="status">Carregando dietas...</p>`;
   if (!state.diets.length) {
     return `
       <p class="home-diet-quick-notice">Nenhuma dieta cadastrada para ${escapeHtml(profile?.nome || 'este perfil')}.</p>
@@ -156,12 +166,7 @@ function renderDietList(state) {
       </div>`;
   }
   return `
-    <div class="home-diet-quick-field">
-      <label for="home-diet-active-profile">Perfil</label>
-      <select id="home-diet-active-profile" data-home-diet-active-profile>
-        ${state.profiles.map((item) => `<option value="${escapeHtml(item.id)}"${Number(item.id) === Number(state.profileId) ? ' selected' : ''}>${escapeHtml(item.nome)}</option>`).join('')}
-      </select>
-    </div>
+    ${renderActiveProfilePicker(state)}
     <div class="home-diet-quick-list">
       ${state.diets.map((diet) => `<button type="button" class="home-diet-quick-card" data-diet-id="${escapeHtml(diet.id)}"><span><strong>${escapeHtml(diet.titulo)}</strong><span>${diet.semanal ? 'Semanal · 7 dias' : `${countDietItems(diet.refeicoes)} itens`}</span></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>`).join('')}
     </div>`;
@@ -184,7 +189,7 @@ function renderDietDetail(state) {
   const calorieSummary = Number.isInteger(calorieGoal) && calorieGoal > 0
     ? `<p class="home-diet-quick-observation"><strong>Meta diária:</strong> ${escapeHtml(calorieGoal)} kcal</p>`
     : '';
-  return `${dayNav}${content}${renderDietNutritionTotal(displayedDiet) || calorieSummary}${diet.observacoes ? `<p class="home-diet-quick-observation"><strong>Observações:</strong><br>${escapeHtml(diet.observacoes)}</p>` : ''}<div class="home-diet-quick-actions">${state.diets.length > 1 ? '<button type="button" class="home-diet-quick-btn" data-action="back-to-diets">Outras dietas</button>' : '<button type="button" class="home-diet-quick-btn" data-action="change-profile">Trocar perfil</button>'}${typeof state.launchSaude === 'function' ? '<button type="button" class="home-diet-quick-btn home-diet-quick-btn--primary" data-action="open-saude">Editar em Saúde</button>' : ''}</div>`;
+  return `${renderActiveProfilePicker(state)}${dayNav}${content}${renderDietNutritionTotal(displayedDiet) || calorieSummary}${diet.observacoes ? `<p class="home-diet-quick-observation"><strong>Observações:</strong><br>${escapeHtml(diet.observacoes)}</p>` : ''}<div class="home-diet-quick-actions">${state.diets.length > 1 ? '<button type="button" class="home-diet-quick-btn" data-action="back-to-diets">Outras dietas</button>' : '<button type="button" class="home-diet-quick-btn" data-action="change-profile">Trocar perfil</button>'}${typeof state.launchSaude === 'function' ? '<button type="button" class="home-diet-quick-btn home-diet-quick-btn--primary" data-action="open-saude">Editar em Saúde</button>' : ''}</div>`;
 }
 
 function paintModal(overlay, state) {
@@ -215,6 +220,9 @@ export async function openHomeDietQuickModal(options = {}) {
     state.busy = true;
     state.error = null;
     state.profileId = Number(profileId);
+    state.diets = [];
+    state.dietId = null;
+    state.step = 'diet-list';
     writeHomeDietLastProfileId(state.profileId);
     paintModal(overlay, state);
     try {
@@ -248,6 +256,7 @@ export async function openHomeDietQuickModal(options = {}) {
     if (!event.target.closest('.home-diet-quick-modal')) return close();
     const action = event.target.closest('[data-action]')?.dataset.action;
     if (action === 'close') return close();
+    if (state.busy) return;
     if (action === 'diet-day-prev' || action === 'diet-day-next') {
       const diet = state.diets.find((item) => Number(item.id) === Number(state.dietId));
       if (state.step !== 'detail' || !diet?.semanal) return;
@@ -298,7 +307,10 @@ export async function openHomeDietQuickModal(options = {}) {
 
   overlay.addEventListener('change', async (event) => {
     const profileSelect = event.target.closest('[data-home-diet-active-profile]');
-    if (profileSelect?.value) await openProfile(Number(profileSelect.value));
+    if (!state.busy && profileSelect?.value && state.profiles.some(profile => Number(profile.id) === Number(profileSelect.value))) {
+      await openProfile(Number(profileSelect.value));
+      overlay.querySelector('[data-home-diet-active-profile], [data-home-diet-profile]')?.focus();
+    }
   });
 
   overlay.addEventListener('keydown', (event) => {

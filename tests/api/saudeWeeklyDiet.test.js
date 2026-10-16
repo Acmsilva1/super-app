@@ -32,3 +32,20 @@ it('cadastra alimento novo diretamente no dia selecionado',async()=>{
  const result=await request(app).post('/api/saude?resource=dietas').send({perfil_id:profile.body.row.id,titulo:'Outros semanal',semanal:true,semana,refeicoes:[],novo_alimento:{item:'Alimento semanal novo',categoria:'Outros',porcao:'100 g',peso_referencia_g:100,kcal_100g:100,proteina_100g:10,carboidrato_100g:10,gordura_100g:2},novo_alimento_destino:{dia:3,refeicao:'almoco',indice:0}});
  expect(result.status).toBe(201);expect(result.body.row.semana[3].refeicoes[2].itens[0].alimento_id).toBe(result.body.food.id);expect(result.body.row.semana[3].nutricao_total.kcal).toBe(100);
 });
+it('preserva pendência importada só no mesmo dia e refeição ao editar ovos em unidades',async()=>{
+ const profile=await request(app).post('/api/saude?resource=perfis').send({nome:'Semanal importada',sexo:'masculino',data_nascimento:'1990-01-01',data_medicao:'2026-10-10',peso_kg:80,altura_cm:180});
+ const semana=DIET_WEEK.map(titulo=>({titulo,refeicoes:createEmptyDietMeals()}));
+ semana[0].refeicoes[0].itens.push({nome:'Fruta antiga sem vínculo',quantidade:'150 g'});
+ semana[1].refeicoes[0].itens.push({nome:'Ovos',quantidade:'2 unidades'});
+ const body={perfil_id:profile.body.row.id,titulo:'Importada',semanal:true,semana,refeicoes:[]};
+ const created=await request(app).post('/api/saude?resource=dietas').send(body);expect(created.status).toBe(201);
+ body.id=created.body.row.id;
+ semana[0].refeicoes[0].itens[0]={nome:'Fruta antiga sem vínculo',quantidade_valor:150,quantidade_unidade:'g'};
+ semana[1].refeicoes[0].itens[0]={nome:'Ovo inteiro',quantidade_valor:3,quantidade_unidade:'un'};
+ const edited=await request(app).patch('/api/saude?resource=dietas').send(body);expect(edited.status).toBe(200);
+ expect(edited.body.row.semana[1].refeicoes[0].itens[0]).toMatchObject({quantidade_unidade:'un',nutricao:{kcal:214.5}});
+ const pending=semana[0].refeicoes[0].itens.pop();semana[1].refeicoes[0].itens.push(pending);
+ const moved=await request(app).patch('/api/saude?resource=dietas').send(body);
+ expect(moved.status).toBe(400);expect(moved.body.error).toContain('Fruta antiga sem vínculo');
+ expect(moved.body.error).toContain('Terça-feira');
+});

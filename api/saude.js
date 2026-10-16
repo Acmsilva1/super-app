@@ -8,7 +8,7 @@ import { opcoesTabelaNutricional } from '../features/saude/service/tabelaNutrici
 import { calcularImc } from '../features/saude/service/perfilSaudeService.js';
 import { DIET_MEALS, DIET_WEEK } from '../features/saude/service/dietasService.js';
 import { normalizeAlertSchedule, validateAlertSchedule } from '../features/saude/service/alertScheduleConfig.js';
-import { enrichDietNutrition, foodUnitWeight, matchFoodForDietItem, nutritionForDietItem } from '../features/saude/service/alimentosService.js';
+import { dietFoodReferenceNote, dietQuantity, enrichDietNutrition, foodUnitWeight, matchFoodForDietItem, nutritionForDietItem } from '../features/saude/service/alimentosService.js';
 
 const TABELA_NUTRICIONAL = 'tb_saude_tabela_nutricional';
 const RESOURCE_TABELA_NUTRICIONAL = 'tabelas-nutricionais';
@@ -1172,7 +1172,28 @@ async function createFood(payload) {
   return error ? { error } : { row: foodApiRow(data), storage: 'supabase' };
 }
 
+async function loadDietForNutritionEdit(id, userId, isAdmin) {
+  if (isOfflineMode()) {
+    const row = offlineDiets.find(diet => Number(diet.id) === id && (isAdmin || diet.created_by === userId));
+    return row ? { row } : { notFound: true };
+  }
+  const { supabase } = await import('../lib/supabase.js');
+  let query = supabase.from(TABELA_DIETAS).select('id,semanal,semana,refeicoes').eq('id', id);
+  if (!isAdmin) query = query.eq('created_by', userId);
+  const { data, error } = await query.maybeSingle();
+  return error ? { error } : data ? { row: data } : { notFound: true };
+}
+
+function dietNutritionInputKey(item, foods) {
+  const quantity = dietQuantity(item);
+  const food = matchFoodForDietItem(item, foods);
+  return JSON.stringify([food?.item || String(item.nome || '').trim(), Number(food?.id ?? item.alimento_id) || null,
+    quantity ? [quantity.amount, quantity.unit] : String(item.quantidade || '').trim()]);
+}
+
 async function saveDietWithNutrition(id, payload, body, auth) {
+  const previous = id ? await loadDietForNutritionEdit(id, auth.user.id, auth.isAdmin) : { row: null };
+  if (previous.error || previous.notFound) return previous;
   let actorId = auth.user.id;
   if (!id && payload.perfil_id) {
     const owner = await mutationOwner(actorId, payload.perfil_id, auth.isAdmin);
@@ -1184,15 +1205,37 @@ async function saveDietWithNutrition(id, payload, body, auth) {
   const foods = loaded.rows;
   const mealGroups = payload.semanal ? payload.semana.map(day => day.refeicoes) : [payload.refeicoes || []];
   for (const [dayIndex, meals] of mealGroups.entries()) for (const meal of meals) {
+    const previousMeals = Boolean(previous.row?.semanal) === Boolean(payload.semanal)
+      ? (payload.semanal ? previous.row?.semana?.[dayIndex]?.refeicoes : previous.row?.refeicoes)
+      : [];
+    const unchangedItems = [...(previousMeals?.find(entry => entry.tipo === meal.tipo)?.itens || [])];
     for (const [index, item] of meal.itens.entries()) {
       const food = matchFoodForDietItem(item, foods);
       if (item.alimento_id && !foods.some((entry) => Number(entry.id) === Number(item.alimento_id))) {
         return { invalid: 'O alimento selecionado não está mais no catálogo. Selecione novamente.' };
       }
-      if (food) { item.alimento_id = Number(food.id); item.nome = food.item; }
+      if (food) {
+        const referenceNote = dietFoodReferenceNote(item, food);
+        if (referenceNote && !item.observacao.includes(referenceNote)) {
+          const note = [item.observacao, referenceNote].filter(Boolean).join('\n');
+          if (note.length > 500) return { invalid: `Reduza a observação de "${item.nome}" para registrar a referência nutricional adotada.` };
+          item.observacao = note;
+        }
+        item.alimento_id = Number(food.id); item.nome = food.item;
+      }
       const customDestination = body.novo_alimento && body.novo_alimento_destino?.refeicao === meal.tipo && body.novo_alimento_destino?.indice === index && (!payload.semanal || body.novo_alimento_destino?.dia === dayIndex);
       if (item.quantidade_valor != null && !customDestination && (!food || nutritionForDietItem(item, foods).proteina == null)) {
-        return { invalid: 'Selecione um alimento com peso por unidade cadastrado ou informe a quantidade em gramas.' };
+        // Uma pendência importada não bloqueia a edição de outro item; novos valores continuam validados.
+        const previousIndex = unchangedItems.findIndex(old => dietNutritionInputKey(old, foods) === dietNutritionInputKey(item, foods));
+        if (previousIndex >= 0) {
+          unchangedItems.splice(previousIndex, 1);
+          continue;
+        }
+        const location = `${meal.titulo}${payload.semanal ? ` de ${DIET_WEEK[dayIndex]}` : ''}`;
+        if (!food) return { invalid: `Vincule "${item.nome}" em ${location} a um alimento do catálogo nutricional.` };
+        return { invalid: item.quantidade_unidade === 'un'
+          ? `Cadastre o peso por unidade de "${food.item}" em ${location} para calcular essa quantidade em unidades.`
+          : `Informe uma quantidade calculável para "${food.item}" em ${location}.` };
       }
     }
   }

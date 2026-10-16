@@ -12,12 +12,20 @@ describe('cálculo nutricional das dietas', () => {
     expect(nutritionForDietItem(item, [food])).toEqual({ kcal: 214.5, proteina: 18.9, carboidrato: 1.05, gordura: 14.25 });
     expect(renderDietFoodDetails(item, [food])).not.toContain('ainda não está vinculado');
   });
-  it('resolve batata inglesa do seed somente quando o cozimento está informado', () => {
+  it('adota batata cozida como referência e registra o preparo escolhido sem remover observações', () => {
     const potato = { id: 17, item: 'Batata inglesa cozida', kcal_100g: 87, proteina_100g: 1.9, carboidrato_100g: 20.1, gordura_100g: 0.1 };
     const item = { nome: 'Batata inglesa', quantidade_valor: 150, quantidade_unidade: 'g', observacao: 'Peso após cozimento, conforme PDF.' };
     expect(matchFoodForDietItem(item, [potato])).toBe(potato);
     expect(nutritionForDietItem(item, [potato])).toEqual({ kcal: 130.5, proteina: 2.85, carboidrato: 30.15, gordura: 0.15 });
-    expect(matchFoodForDietItem({ ...item, observacao: '' }, [potato])).toBeNull();
+    expect(matchFoodForDietItem({ ...item, observacao: '' }, [potato])).toBe(potato);
+    const enriched = enrichDietNutrition({refeicoes:[{itens:[{ ...item, observacao: 'Cozida ou assada.' }]}]}, [potato]);
+    expect(enriched.refeicoes[0].itens[0]).toMatchObject({nome:'Batata inglesa cozida',quantidade_valor:150});
+    expect(enriched.refeicoes[0].itens[0].observacao).toContain('Cozida ou assada.');
+    expect(enriched.refeicoes[0].itens[0].observacao).toContain('Referência nutricional adotada');
+    for (const observacao of ['Assada.', 'Frita.', 'Purê de batata.']) {
+      expect(matchFoodForDietItem({ ...item, observacao }, [potato])).toBeNull();
+    }
+    expect(matchFoodForDietItem({ ...item, alimento_id: 17, observacao: 'Assada.' }, [potato])).toBe(potato);
   });
   it('preserva ID e nome exato e bloqueia equivalências ambíguas ou não comprovadas', () => {
     const exact = { ...food, id: 2, item: 'Ovos' };
@@ -34,8 +42,35 @@ describe('cálculo nutricional das dietas', () => {
     const weekly = {semanal:true,semana:[{titulo:'Segunda-feira',refeicoes:[{tipo:'cafe_da_manha',itens:[{nome:'Ovos',quantidade:'3 unidades'}]}]}]};
     const enriched = enrichDietNutrition(weekly,[food]);
     expect(enriched.semana[0].refeicoes[0].itens[0].alimento_id).toBe(1);
+    expect(enriched.semana[0].refeicoes[0].itens[0].nome).toBe('Ovo inteiro');
     expect(enriched.semana[0].nutricao_total).toMatchObject({kcal:214.5,completo:true,itens_pendentes:0});
     expect(weekly.semana[0].refeicoes[0].itens[0].alimento_id).toBeUndefined();
+    expect(weekly.semana[0].refeicoes[0].itens[0].nome).toBe('Ovos');
+  });
+  it('normaliza plurais e adota referências autorizadas preservando alternativas e quantidades', () => {
+    const strawberry = { ...food, id: 30, item: 'Morango' };
+    const diet = enrichDietNutrition({ refeicoes: [{ itens: [
+      { nome: 'Morangos', quantidade: '100 g' },
+      { nome: 'Mamão', quantidade: '150 g' },
+      { nome: 'Frango grelhado', quantidade: '180 g' },
+      { nome: 'Mamão ou morangos', quantidade: '150 g de mamão ou 200 g de morangos' },
+    ] }] }, [strawberry, { ...food, id: 31, item: 'Mamão papaia' }, { ...food, id: 32, item: 'Peito de frango grelhado' }]);
+    expect(diet.refeicoes[0].itens.map(i => i.nome)).toEqual(['Morango', 'Mamão papaia', 'Peito de frango grelhado', 'Mamão papaia']);
+    expect(diet.refeicoes[0].itens.map(i => i.alimento_id)).toEqual([30, 31, 32, 31]);
+    expect(diet.refeicoes[0].itens[1].observacao).toContain('"Mamão": Mamão papaia');
+    expect(diet.refeicoes[0].itens[2].observacao).toContain('"Frango grelhado": Peito de frango grelhado');
+    expect(diet.refeicoes[0].itens[3].observacao).toContain('Mamão ou morangos');
+    expect(diet.refeicoes[0].itens[3].quantidade).toBe('150 g de mamão ou 200 g de morangos');
+    expect(diet.nutricao_total.itens_pendentes).toBe(1);
+    expect(enrichDietNutrition(diet, [strawberry,{ ...food,id:31,item:'Mamão papaia' },{...food,id:32,item:'Peito de frango grelhado'}])).toEqual(diet);
+  });
+  it('adota aveia e feijão do catálogo sem presumir quantidades de intervalos', () => {
+    const oats = {...food,id:23,item:'Aveia em flocos crua'};
+    const beans = {...food,id:27,item:'Feijão cozido'};
+    const diet = enrichDietNutrition({refeicoes:[{itens:[{nome:'Aveia',quantidade:'30 g'},{nome:'Feijão',quantidade:'60-70 g'}]}]},[oats,beans]);
+    expect(diet.refeicoes[0].itens.map(i=>i.nome)).toEqual(['Aveia em flocos crua','Feijão cozido']);
+    expect(diet.refeicoes[0].itens[0].observacao).toContain('Referência nutricional adotada');
+    expect(diet.nutricao_total.itens_pendentes).toBe(1);
   });
   it('calcula gramas e usa o catálogo em vez de calorias manuais antigas', () => {
     expect(nutritionForDietItem({ alimento_id: 1, quantidade_valor: 50, quantidade_unidade: 'g', calorias: 999 }, [food]))

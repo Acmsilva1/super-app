@@ -27,6 +27,19 @@ describe('catálogo e dietas integrados em memória', () => {
     const listed = await request(app).get(`/api/saude?resource=dietas&profile_id=${body.perfil_id}`);
     expect(listed.body.rows[0].nutricao_total.kcal).toBe(143);
   });
+  it('salva nomes canônicos e registra referências adotadas para os nomes genéricos', async () => {
+    const perfil_id=await profile();
+    const created=await request(app).post('/api/saude?resource=dietas').send({perfil_id,titulo:'Referências do catálogo',
+      refeicoes:[{tipo:'almoco',itens:[{nome:'Frango grelhado',quantidade_valor:180,quantidade_unidade:'g'},
+        {nome:'Mamão',quantidade_valor:150,quantidade_unidade:'g'}]}]});
+    expect(created.status).toBe(201);
+    const items=created.body.row.refeicoes[2].itens;
+    expect(items.map(item=>item.nome)).toEqual(['Peito de frango grelhado','Mamão papaia']);
+    expect(items[0].observacao).toContain('"Frango grelhado"');expect(items[1].observacao).toContain('"Mamão"');
+    expect(created.body.row.nutricao_total.completo).toBe(true);
+    const listed=await request(app).get(`/api/saude?resource=dietas&profile_id=${perfil_id}`);
+    expect(listed.body.rows[0].refeicoes[2].itens[0].observacao).toBe(items[0].observacao);
+  });
   it('salva Outros na dieta e no catálogo, permitindo reutilizar o mesmo ID', async () => {
     const food = { item: 'Alimento cadastrado pela dieta', categoria: 'Outros', porcao: '100 g', peso_referencia_g: 100, peso_unidade_g: 40, kcal_100g: 400, proteina_100g: 10, carboidrato_100g: 50, gordura_100g: 10 };
     const payload = { perfil_id: await profile(), titulo: 'Dieta com novo alimento', refeicoes: [{ tipo: 'jantar', itens: [{ nome: food.item, quantidade_valor: 2, quantidade_unidade: 'un' }] }], novo_alimento: food, novo_alimento_destino: { refeicao: 'jantar', indice: 0 } };
@@ -74,6 +87,35 @@ describe('catálogo e dietas integrados em memória', () => {
     const result = await request(app).post('/api/saude?resource=dietas').send({ perfil_id: await profile(), titulo: 'Quantidade sem conversão', refeicoes: [{ tipo: 'almoco', itens: [{ nome: chicken.item, alimento_id: chicken.id, quantidade_valor: 2, quantidade_unidade: 'un' }] }] });
     expect(result.status).toBe(400);
     expect(result.body.error).toContain('peso por unidade');
+  });
+  it('permite editar ovos em unidades sem exigir correção de outro item antigo ainda sem vínculo', async () => {
+    const perfil_id = await profile();
+    const created = await request(app).post('/api/saude?resource=dietas').send({perfil_id,titulo:'Importada com pendência',
+      refeicoes:[{tipo:'cafe_da_manha',itens:[{nome:'Fruta não cadastrada',quantidade:'150 g'},
+        {nome:'Ovos',quantidade:'2 unidades'}]}]});
+    expect(created.status).toBe(201);
+    const egg=(await getFoods()).body.rows.find(food=>food.item==='Ovo inteiro');
+    const payload={id:created.body.row.id,perfil_id,titulo:'Importada com pendência',
+      refeicoes:[{tipo:'cafe_da_manha',itens:[{nome:'Fruta não cadastrada',quantidade_valor:150,quantidade_unidade:'g'},
+        {nome:egg.item,alimento_id:egg.id,quantidade_valor:3,quantidade_unidade:'un'}]}]};
+    const edited=await request(app).patch('/api/saude?resource=dietas').send(payload);
+    expect(edited.status).toBe(200);
+    expect(edited.body.row.refeicoes[0].itens[1]).toMatchObject({quantidade_valor:3,quantidade_unidade:'un',nutricao:{kcal:214.5}});
+    expect(edited.body.row.nutricao_total).toMatchObject({completo:false,itens_pendentes:1});
+    payload.refeicoes[0].itens[0].quantidade_valor=200;
+    const invalid=await request(app).patch('/api/saude?resource=dietas').send(payload);
+    expect(invalid.status).toBe(400);expect(invalid.body.error).toContain('Fruta não cadastrada');
+    expect(invalid.body.error).not.toContain('peso por unidade');
+  });
+  it('não permite duplicar pendências antigas ao editar outra parte da dieta', async () => {
+    const perfil_id=await profile();
+    const created=await request(app).post('/api/saude?resource=dietas').send({perfil_id,titulo:'Uma pendência',
+      refeicoes:[{tipo:'almoco',itens:[{nome:'Item sem vínculo',quantidade:'100 g'}]}]});
+    expect(created.status).toBe(201);
+    const item={nome:'Item sem vínculo',quantidade_valor:100,quantidade_unidade:'g'};
+    const result=await request(app).patch('/api/saude?resource=dietas').send({id:created.body.row.id,perfil_id,titulo:'Duplicada',
+      refeicoes:[{tipo:'almoco',itens:[item,item]}]});
+    expect(result.status).toBe(400);expect(result.body.error).toContain('Item sem vínculo');
   });
   it('não cria um alimento para um perfil inexistente', async () => {
     const before = await getFoods();
