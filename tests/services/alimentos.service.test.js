@@ -1,11 +1,74 @@
 import { describe, expect, it } from 'vitest';
-import { dietQuantity, enrichDietNutrition, foodUnitWeight, matchFoodForDietItem, nutritionForDietItem } from '../../features/saude/service/alimentosService.js';
+import { dietItemNutritionIssue, dietQuantity, enrichDietNutrition, foodUnitWeight, matchFoodForDietItem, nutritionForDietItem } from '../../features/saude/service/alimentosService.js';
 import { renderDietFoodDetails, renderDietNutritionTotal } from '../../features/saude/dietNutritionView.js';
 
 const food = { id: 1, item: 'Ovo inteiro', porcao: '2 un (~100 g)', peso_referencia_g: 100,
   kcal_100g: 143, proteina_100g: 12.6, carboidrato_100g: 0.7, gordura_100g: 9.5 };
 
 describe('cálculo nutricional das dietas', () => {
+  it('reconhece flexões, ordem, preposições e pontuação também no catálogo', () => {
+    const chicken = { ...food, id: 2, item: 'Peito de frango grelhado' };
+    for (const nome of ['PEITOS DE FRANGO GRELHADOS', 'Frango, peito grelhado', 'Peito-de-frango grelhado']) {
+      expect(matchFoodForDietItem({ nome }, [chicken])).toBe(chicken);
+    }
+    const strawberries = { ...food, item: 'Morangos' };
+    expect(matchFoodForDietItem({ nome: 'Morango' }, [strawberries])).toBe(strawberries);
+    expect(matchFoodForDietItem({ nome: 'Frangos grelhados' }, [chicken])).toBe(chicken);
+    expect(matchFoodForDietItem({ nome: 'Brócolis' }, [{ ...food, item: 'Brócolis' }])?.item).toBe('Brócolis');
+  });
+  it('mantém preparo, espécie, composição e ambiguidades na associação automática', () => {
+    const chicken = { ...food, item: 'Peito de frango grelhado' };
+    for (const nome of ['Peito de frango cru', 'Peito de peru grelhado', 'Peito de frango sem pele grelhado']) {
+      expect(matchFoodForDietItem({ nome }, [chicken])).toBeNull();
+    }
+    expect(matchFoodForDietItem({ nome: 'Chá verde com açúcar' }, [{ ...food, item: 'Chá verde sem açúcar' }])).toBeNull();
+    expect(matchFoodForDietItem({ nome: 'Frango sem pele com osso' }, [{ ...food, item: 'Frango com pele sem osso' }])).toBeNull();
+    expect(matchFoodForDietItem({ nome: 'Arroz branco' }, [{ ...food, item: 'Arroz integral cozido' }])).toBeNull();
+    expect(matchFoodForDietItem({ nome: 'Salada de tomate' }, [{ ...food, item: 'Tomate' }])).toBeNull();
+    expect(matchFoodForDietItem({ nome: 'Whey protein' }, [food])).toBeNull();
+    expect(matchFoodForDietItem({ nome: 'OVO INTEIRO' }, [food, { ...food, id: 2 }])).toBeNull();
+    const duplicates = [chicken, { ...chicken, id: 2, item: 'Peitos de frango grelhados' }];
+    expect(matchFoodForDietItem({ nome: 'Frango peito grelhado' }, duplicates)).toBeNull();
+    expect(matchFoodForDietItem({ alimento_id: 2, nome: 'Frango peito grelhado' }, duplicates)).toBe(duplicates[1]);
+  });
+  it('normaliza unidades textuais e estruturadas sem escolher intervalos', () => {
+    expect(dietQuantity({ quantidade_valor: '0,5', quantidade_unidade: 'KG' })).toEqual({ amount: 500, unit: 'g' });
+    expect(dietQuantity({ quantidade: '0,2 L' })).toEqual({ amount: 200, unit: 'ml' });
+    expect(dietQuantity({ quantidade: '100 gr.' })).toEqual({ amount: 100, unit: 'g' });
+    expect(dietQuantity({ quantidade_valor: 2, quantidade_unidade: ' UNIDADES ' })).toEqual({ amount: 2, unit: 'un' });
+    expect(dietQuantity({ quantidade_valor: 1, quantidade_unidade: 'Porção' })).toEqual({ amount: 1, unit: 'porcao' });
+    for (const quantidade of ['25-30 g', '130–150 g', 'À vontade', 'Conforme a fase', '150 g ou 200 g']) {
+      expect(dietQuantity({ quantidade })).toBeNull();
+    }
+    expect(dietQuantity({ quantidade_valor: 3, quantidade_unidade: 'colheres' })).toBeNull();
+  });
+  it('distingue a causa da pendência e não transforma nutrientes ausentes em zero', () => {
+    const item = { nome: 'Ovo inteiro', quantidade: '100 g' };
+    expect(dietItemNutritionIssue(item, [])).toBe('alimento_sem_vinculo');
+    expect(dietItemNutritionIssue({ ...item, quantidade: 'À vontade' }, [food])).toBe('quantidade_indefinida');
+    expect(dietItemNutritionIssue({ ...item, quantidade: '1 un' }, [{ ...food, porcao: '100 g' }])).toBe('peso_nao_cadastrado');
+    for (const proteina_100g of [null, '', ' ', -1, undefined]) {
+      const incomplete = { ...food, proteina_100g };
+      expect(dietItemNutritionIssue(item, [incomplete])).toBe('nutrientes_incompletos');
+      expect(nutritionForDietItem(item, [incomplete]).proteina).toBeNull();
+    }
+    expect(dietItemNutritionIssue(item, [{ ...food, proteina_100g: 0 }])).toBeNull();
+    expect(renderDietFoodDetails({ ...item, quantidade: '25-30 g' }, [food])).toContain('Defina uma quantidade única');
+    expect(renderDietFoodDetails(item, [{ ...food, proteina_100g: null }])).toContain('Complete as calorias');
+  });
+  it('normaliza automaticamente toda a semana sem gravar ou modificar a origem', () => {
+    const chicken = { ...food, id: 2, item: 'Peito de frango grelhado' };
+    const weekly = { semanal: true, semana: [{ refeicoes: [{ itens: [
+      { nome: 'Frango, peito grelhado', quantidade_valor: '0,1', quantidade_unidade: 'KG' },
+      { nome: 'OVOS INTEIROS', quantidade: '2 UN.' },
+    ] }] }] };
+    const original = structuredClone(weekly);
+    const enriched = enrichDietNutrition(weekly, [food, chicken]);
+    expect(enriched.semana[0].nutricao_total).toMatchObject({ completo: true, itens_pendentes: 0, kcal: 286 });
+    expect(enriched.semana[0].refeicoes[0].itens.map(item => item.alimento_id)).toEqual([2, 1]);
+    expect(enrichDietNutrition(enriched, [food, chicken])).toEqual(enriched);
+    expect(weekly).toEqual(original);
+  });
   it('vincula ovo e ovos ao ovo inteiro do Excel e calcula três unidades de 50 g', () => {
     const item = { nome: 'Ovos', quantidade_valor: 3, quantidade_unidade: 'un' };
     for (const nome of ['ovo', 'OVOS', 'Ovos inteiros']) expect(matchFoodForDietItem({ nome }, [food])).toBe(food);

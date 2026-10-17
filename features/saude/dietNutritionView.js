@@ -1,4 +1,4 @@
-import { enrichDietNutrition, matchFoodForDietItem, nutritionForDietItem } from './service/alimentosService.js';
+import { dietItemNutritionIssue, enrichDietNutrition, matchFoodForDietItem, nutritionForDietItem } from './service/alimentosService.js';
 
 function escape(value) {
   return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -44,9 +44,16 @@ export const DIET_NUTRITION_STYLES = `
 export function renderDietFoodDetails(item, foods = null) {
   const food = foods ? matchFoodForDietItem(item, foods) : item.alimento;
   const nutrition = nutritionForDietItem(item, food ? [food] : []);
+  const issue = dietItemNutritionIssue(item, food ? [food] : []);
+  const messages = {
+    alimento_sem_vinculo: 'Este alimento ainda não está vinculado ao catálogo ou possui mais de uma correspondência. Edite o item e selecione um alimento ou use “Outros”.',
+    quantidade_indefinida: 'Defina uma quantidade única em g, ml, unidades ou porções. Intervalos, alternativas e “à vontade” precisam de uma porção escolhida para o cálculo.',
+    peso_nao_cadastrado: 'Cadastre o peso por unidade ou porção em Alimentos para calcular este item.',
+    nutrientes_incompletos: 'Complete as calorias, proteínas, carboidratos e gorduras por 100 g/ml em Alimentos.',
+  };
   const note = cleanDietDisplayNote(item.observacao);
   return `<details class="diet-food-details"><summary><span><strong>${escape(item.nome)}</strong> — ${escape(item.quantidade)}</span><i class="fas fa-chevron-right" aria-hidden="true"></i></summary><div class="diet-food-details__body">
-    ${food ? (nutrition.proteina != null ? `<p>${highlightedLine(nutrition)}</p>` : '<p>Ajuste a quantidade do item. Para usar unidades, cadastre o peso por unidade em Alimentos.</p>') : `<p>Este alimento ainda não está vinculado ao catálogo. Edite o item e selecione um alimento ou use “Outros”.</p>${nutrition.kcal != null ? `<p>Calorias manuais: ${escape(number(nutrition.kcal))} kcal</p>` : ''}`}
+    ${issue ? `<p>${escape(messages[issue])}</p>${nutrition.kcal != null ? `<p>Calorias manuais: ${escape(number(nutrition.kcal))} kcal</p>` : ''}` : `<p>${highlightedLine(nutrition)}</p>`}
     ${note ? `<p>${escape(note)}</p>` : ''}
     </div></details>`;
 }
