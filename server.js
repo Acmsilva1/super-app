@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -32,6 +33,8 @@ function setStaticHeaders(res, filePath) {
   if (NO_CACHE_FILES.has(name)) {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   } else if (IMMUTABLE_FILES.has(name)) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  } else if (/^home-\d+-v\d+\.webp$/.test(name)) {
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   }
   if (name === 'manifest.json') res.setHeader('Content-Type', 'application/manifest+json');
@@ -89,6 +92,9 @@ export function createApp() {
   if (process.env.BASIC_AUTH_USER && process.env.BASIC_AUTH_PASSWORD) {
     app.use(basicAuth({ user: process.env.BASIC_AUTH_USER, password: process.env.BASIC_AUTH_PASSWORD }));
   }
+
+  // Comprime respostas textuais negociadas com o cliente; imagens já comprimidas são ignoradas.
+  app.use(compression({ threshold: 1024, level: 6 }));
 
   app.use(express.json({ limit: '4.5mb' }));
   app.use(express.urlencoded({ extended: true, limit: '4.5mb' }));

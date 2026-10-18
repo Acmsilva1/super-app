@@ -2,7 +2,7 @@
  * Service Worker - SUPERAPP PWA
  * Incrementar CACHE_VERSION a cada deploy/commit para invalidar cache e forcar atualizacao.
  */
-const CACHE_VERSION = 'app-1.9.0-202610141013';
+const CACHE_VERSION = 'app-1.9.0-202610180129';
 const CACHE_NAME = 'superapp-' + CACHE_VERSION;
 
 const ESSENTIAL_ASSETS = [
@@ -10,7 +10,8 @@ const ESSENTIAL_ASSETS = [
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
-  '/logo%20home.png'
+  '/backgrounds/home-640-v1.webp',
+  '/backgrounds/home-1024-v1.webp'
 ];
 
 self.addEventListener('install', (event) => {

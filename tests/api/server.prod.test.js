@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../server.js';
+import { readFileSync } from 'node:fs';
 
 describe('server.js (producao)', () => {
   const app = createApp();
@@ -34,5 +35,33 @@ describe('server.js (producao)', () => {
   it('healthcheck responde', async () => {
     const res = await request(app).get('/healthz');
     expect(res.body).toEqual({ ok: true });
+  });
+
+  it('negocia gzip para HTML e CSS preservando o conteúdo e os headers', async () => {
+    for (const [url, file] of [['/', 'index.html'], ['/styles/bank-theme.css', 'styles/bank-theme.css']]) {
+      const response = await request(app).get(url).set('Accept-Encoding', 'gzip');
+      expect(response.status).toBe(200);
+      expect(response.headers['content-encoding']).toBe('gzip');
+      expect(response.headers.vary).toContain('Accept-Encoding');
+      expect(response.headers['content-security-policy']).toContain("default-src 'self'");
+      expect(response.text).toBe(readFileSync(file, 'utf8'));
+    }
+    const identity = await request(app).get('/').set('Accept-Encoding', 'identity');
+    expect(identity.headers['content-encoding']).toBeUndefined();
+    expect(identity.headers['cache-control']).toContain('no-store');
+  });
+
+  it('serve WebP versionado sem recompressão e mantém validação condicional', async () => {
+    const image = await request(app).get('/backgrounds/home-640-v1.webp').set('Accept-Encoding', 'gzip');
+    expect(image.status).toBe(200);
+    expect(image.headers['content-type']).toContain('image/webp');
+    expect(image.headers['content-encoding']).toBeUndefined();
+    expect(image.headers['cache-control']).toContain('immutable');
+    expect(image.body).toEqual(readFileSync('backgrounds/home-640-v1.webp'));
+    const cached = await request(app).get('/backgrounds/home-640-v1.webp').set('If-None-Match', image.headers.etag);
+    expect(cached.status).toBe(304);
+    const head = await request(app).head('/').set('Accept-Encoding', 'gzip');
+    expect(head.status).toBe(200);
+    expect(head.text).toBeUndefined();
   });
 });

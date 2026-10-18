@@ -16,12 +16,14 @@
     "doc:push": "node \"C:/projetos e aplicativos/documentacao/scripts/doc-cli.cjs\" push",
     "doc:watch": "node \"C:/projetos e aplicativos/documentacao/scripts/doc-cli.cjs\" watch",
     "dev:mock": "node scripts/dev.js",
+    "preview:local": "node scripts/preview-local.js",
     "dev:real": "node scripts/dev.js --real",
     "test:telegram": "node scripts/test-telegram.mjs --send"
   },
   "dependencies": {
     "@supabase/postgrest-js": "^2.117.3",
     "@supabase/supabase-js": "^2.117.3",
+    "compression": "1.8.1",
     "express": "^4.22.3",
     "pngjs": "^7.0.0"
   },

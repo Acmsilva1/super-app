@@ -37,7 +37,7 @@
 
 /* ---------- Base ---------- */
 html[data-theme] body {
-    background: #0b1020 url('/logo%20home.png') center / cover no-repeat fixed;
+    background: #0b1020 var(--home-background-image, url('/backgrounds/home-1024-v1.webp')) center / cover no-repeat fixed;
     font-family: var(--bk-font);
     color: var(--bk-ink);
 }
