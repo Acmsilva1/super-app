@@ -122,6 +122,7 @@ describe('financeiroService', () => {
     });
     expect(upd.error).toBeUndefined();
     expect(upd.payload.conta_fixa).toBe(false);
+    expect(upd.payload.serie_id).toBeNull();
     expect(upd.payload.created_at).toBe('2026-05-29T08:15:00.000Z');
   });
 

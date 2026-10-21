@@ -9,13 +9,20 @@ import {
 } from '../../features/financeiro/service/despesaFixaReplication.js';
 
 describe('buildReplicationSlotsFromStart', () => {
-  it('conta fixa replica do mês informado até dezembro do mesmo ano', () => {
+  it('conta fixa replica do mês informado até dezembro do ano seguinte', () => {
     const slots = buildReplicationSlotsFromStart('2024-03', { contaFixa: true });
-    expect(slots.map((s) => s.mes_ano)).toEqual([
-      '2024-03', '2024-04', '2024-05', '2024-06', '2024-07', '2024-08',
-      '2024-09', '2024-10', '2024-11', '2024-12',
-    ]);
+    expect(slots[0].mes_ano).toBe('2024-03');
+    expect(slots[slots.length - 1].mes_ano).toBe('2025-12');
+    expect(slots).toHaveLength(22);
     expect(slots.every((s) => s.conta_fixa === true)).toBe(true);
+  });
+
+  it('conta fixa criada no fim do ano atravessa para o ano seguinte', () => {
+    const slots = buildReplicationSlotsFromStart('2026-10', { contaFixa: true, serieId: 'serie-aluguel' });
+    expect(slots.map((s) => s.mes_ano)).toContain('2026-12');
+    expect(slots.map((s) => s.mes_ano)).toContain('2027-01');
+    expect(slots.map((s) => s.mes_ano)).toContain('2027-12');
+    expect(slots.every((s) => s.serie_id === 'serie-aluguel')).toBe(true);
   });
 
   it('parcelas geram sequência contínua sem depender de cópia mês a mês', () => {
@@ -70,13 +77,14 @@ describe('seriesDefinitionsFromYearRows + slotsNeededForMonth', () => {
     }]);
   });
 
-  it('conta fixa aparece em qualquer mês restante do ano', () => {
+  it('conta fixa com serie_id aparece em qualquer mês a partir do início', () => {
     const rows = [{
       descricao: 'Aluguel',
       valor: 1200,
       conta_fixa: true,
       parcela_atual: null,
       parcela_total: null,
+      serie_id: 'serie-aluguel',
       created_at: '2024-01-01T12:00:00.000Z',
     }];
     const series = seriesDefinitionsFromYearRows(rows);
@@ -85,8 +93,49 @@ describe('seriesDefinitionsFromYearRows + slotsNeededForMonth', () => {
       conta_fixa: true,
       parcela_atual: null,
       parcela_total: null,
-      serie_id: null,
+      serie_id: 'serie-aluguel',
     }]);
+    expect(slotsNeededForMonth(series[0], '2025-02')).toEqual([{
+      mes_ano: '2025-02',
+      conta_fixa: true,
+      parcela_atual: null,
+      parcela_total: null,
+      serie_id: 'serie-aluguel',
+    }]);
+  });
+
+  it('conta fixa sem serie_id não entra na série recorrente', () => {
+    const rows = [{
+      descricao: 'Aluguel',
+      valor: 1200,
+      conta_fixa: true,
+      created_at: '2024-01-01T12:00:00.000Z',
+    }];
+    expect(seriesDefinitionsFromYearRows(rows)).toHaveLength(0);
+  });
+
+  it('usa nome/valor do mês mais recente da mesma serie_id', () => {
+    const rows = [
+      {
+        descricao: 'Aluguel antigo',
+        valor: 1000,
+        conta_fixa: true,
+        serie_id: 'serie-aluguel',
+        created_at: '2024-01-01T12:00:00.000Z',
+      },
+      {
+        descricao: 'Aluguel novo',
+        valor: 1200,
+        conta_fixa: true,
+        serie_id: 'serie-aluguel',
+        created_at: '2024-06-01T12:00:00.000Z',
+      },
+    ];
+    const series = seriesDefinitionsFromYearRows(rows);
+    expect(series).toHaveLength(1);
+    expect(series[0].startMesAno).toBe('2024-01');
+    expect(series[0].descricao).toBe('Aluguel novo');
+    expect(series[0].valor).toBe(1200);
   });
 
 });

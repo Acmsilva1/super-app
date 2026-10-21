@@ -23,41 +23,52 @@ function createApp(handler) {
   return app;
 }
 
+function createThenableBuilder(data = null) {
+  const result = Promise.resolve({ data, error: null });
+  const obj = {
+    eq: vi.fn(() => obj),
+    gt: vi.fn(() => obj),
+    gte: vi.fn(() => obj),
+    in: vi.fn(() => obj),
+    select: vi.fn(() => obj),
+    single: vi.fn().mockResolvedValue({ data, error: null }),
+    then: result.then.bind(result),
+    catch: result.catch.bind(result),
+  };
+  return obj;
+}
+
 function createDespesaFixaParceladaTableMock({ currentRow, updatedRow = null, futureRows = [] }) {
   const select = vi.fn((fields) => ({
     eq: vi.fn((column, value) => {
       if (column === 'id') {
-        const obj = {
-          eq: vi.fn(() => obj),
-          single: vi.fn().mockResolvedValue({
-            data: currentRow && String(value) === String(currentRow.id) ? currentRow : null,
-            error: null,
-          }),
-        };
+        const data = currentRow && String(value) === String(currentRow.id) ? currentRow : null;
+        const obj = createThenableBuilder(data);
+        obj.single = vi.fn().mockResolvedValue({ data, error: null });
         return obj;
       }
       if (column === 'parcela_total') {
-        const obj = Promise.resolve({
-          data: Number(value) === Number(currentRow?.parcela_total) ? futureRows : [],
-          error: null,
-        });
-        obj.eq = vi.fn(() => obj);
-        return obj;
+        const data = Number(value) === Number(currentRow?.parcela_total) ? futureRows : [];
+        return createThenableBuilder(data);
+      }
+      if (column === 'serie_id') {
+        const data = (futureRows || []).filter((row) => String(row?.serie_id || '') === String(value));
+        return createThenableBuilder(data);
+      }
+      if (column === 'conta_fixa') {
+        const data = (futureRows || []).filter((row) => row?.conta_fixa === true || row?.conta_fixa === 'true');
+        return createThenableBuilder(data);
       }
       throw new Error(`Filtro inesperado em select: ${column}`);
     }),
   }));
 
   const update = vi.fn((payload) => {
-    const obj = {
-      eq: vi.fn(() => obj),
-      select: vi.fn(() => ({
-        single: vi.fn().mockResolvedValue({
-          data: updatedRow || { ...currentRow, ...payload },
-          error: null,
-        }),
-      })),
-    };
+    const data = updatedRow || { ...currentRow, ...payload };
+    const obj = createThenableBuilder(data);
+    obj.select = vi.fn(() => ({
+      single: vi.fn().mockResolvedValue({ data, error: null }),
+    }));
     return obj;
   });
 
@@ -469,6 +480,153 @@ describe('API do financeiro', () => {
     expect(tableMock.deleteEq).toHaveBeenCalledWith('id', 202);
     expect(tableMock.deleteIn).toHaveBeenCalledWith('id', [303, 404]);
     expect(res.body.ok).toBe(true);
+  });
+
+  it('ao excluir conta fixa remove só o mês atual e mantém os meses seguintes da série', async () => {
+    const currentRow = {
+      id: 11,
+      descricao: 'Aluguel',
+      valor: 1500,
+      status: 'pendente',
+      conta_fixa: true,
+      serie_id: 'serie-aluguel',
+      parcela_atual: null,
+      parcela_total: null,
+      created_at: '2026-06-01T12:00:00.000Z',
+    };
+    const futureRows = [
+      {
+        id: 12,
+        descricao: 'Aluguel',
+        conta_fixa: true,
+        serie_id: 'serie-aluguel',
+        created_at: '2026-07-01T12:00:00.000Z',
+      },
+      {
+        id: 13,
+        descricao: 'Aluguel',
+        conta_fixa: true,
+        serie_id: 'serie-aluguel',
+        created_at: '2026-08-01T12:00:00.000Z',
+      },
+    ];
+    const tableMock = createDespesaFixaParceladaTableMock({ currentRow, futureRows });
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_despesas_fixas') return tableMock;
+      throw new Error(`Tabela inesperada: ${table}`);
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .delete('/api/test')
+      .send({
+        id: 11,
+        tipo_registro: 'despesa_fixa',
+      });
+
+    expect(res.status).toBe(200);
+    expect(tableMock.deleteEq).toHaveBeenCalledWith('id', 11);
+    expect(tableMock.deleteIn).not.toHaveBeenCalled();
+    expect(res.body.ok).toBe(true);
+  });
+
+  it('ao desmarcar conta fixa remove meses seguintes e encerra o serie_id', async () => {
+    const currentRow = {
+      id: 11,
+      descricao: 'Aluguel',
+      valor: 1500,
+      status: 'pendente',
+      conta_fixa: true,
+      serie_id: 'serie-aluguel',
+      parcela_atual: null,
+      parcela_total: null,
+      created_at: '2026-06-01T12:00:00.000Z',
+    };
+    const futureRows = [
+      {
+        id: 12,
+        descricao: 'Aluguel',
+        conta_fixa: true,
+        serie_id: 'serie-aluguel',
+        created_at: '2026-07-01T12:00:00.000Z',
+      },
+      {
+        id: 13,
+        descricao: 'Aluguel',
+        conta_fixa: true,
+        serie_id: 'serie-aluguel',
+        created_at: '2026-08-01T12:00:00.000Z',
+      },
+    ];
+    const tableMock = createDespesaFixaParceladaTableMock({
+      currentRow,
+      updatedRow: { ...currentRow, conta_fixa: false, serie_id: null },
+      futureRows,
+    });
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_despesas_fixas') return tableMock;
+      throw new Error(`Tabela inesperada: ${table}`);
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .patch('/api/test')
+      .send({
+        id: 11,
+        tipo_registro: 'despesa_fixa',
+        conta_fixa: false,
+      });
+
+    expect(res.status).toBe(200);
+    expect(tableMock.update).toHaveBeenCalledWith(expect.objectContaining({
+      conta_fixa: false,
+      serie_id: null,
+    }));
+    expect(tableMock.deleteIn).toHaveBeenCalledWith('id', [12, 13]);
+  });
+
+  it('ao renomear conta fixa propaga descrição aos meses seguintes da mesma série', async () => {
+    const currentRow = {
+      id: 11,
+      descricao: 'Aluguel',
+      valor: 1500,
+      status: 'pendente',
+      conta_fixa: true,
+      serie_id: 'serie-aluguel',
+      parcela_atual: null,
+      parcela_total: null,
+      created_at: '2026-06-01T12:00:00.000Z',
+    };
+    const tableMock = createDespesaFixaParceladaTableMock({
+      currentRow,
+      updatedRow: { ...currentRow, descricao: 'Aluguel apto' },
+      futureRows: [],
+    });
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'tb_despesas_fixas') return tableMock;
+      throw new Error(`Tabela inesperada: ${table}`);
+    });
+
+    const app = createApp(financeiroHandler);
+    const res = await request(app)
+      .patch('/api/test')
+      .send({
+        id: 11,
+        tipo_registro: 'despesa_fixa',
+        descricao: 'Aluguel apto',
+        conta_fixa: true,
+      });
+
+    expect(res.status).toBe(200);
+    expect(tableMock.update).toHaveBeenCalledWith(expect.objectContaining({
+      descricao: 'Aluguel apto',
+    }));
+    // update do mês atual + propagate nos meses seguintes
+    expect(tableMock.update.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(tableMock.update).toHaveBeenCalledWith({ descricao: 'Aluguel apto' });
   });
 
   function createThenableQuery({ data = [], track } = {}) {

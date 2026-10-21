@@ -353,6 +353,8 @@ export function payloadUpdateFinanceiro(body = {}) {
     }
     if (body.conta_fixa !== undefined) {
       out.conta_fixa = exclusividade.contaFixa;
+      // Cancelar a recorrência encerra o vínculo com o ID da série neste registro.
+      if (!exclusividade.contaFixa) out.serie_id = null;
     }
     if (body.created_at !== undefined && out.created_at === undefined) {
       out.created_at = String(body.created_at || '').trim() || null;

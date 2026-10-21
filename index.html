@@ -10064,6 +10064,9 @@
                 const parcelaTotalInit = Math.max(0, Math.round(Number(item?.parcela_total ?? 0)));
                 const parcelaAtualInit = Math.max(0, Math.round(Number(item?.parcela_atual ?? 0)));
                 const parcelasCheckedInit = parcelaTotalInit > 0 && parcelaAtualInit > 0 && parcelaAtualInit <= parcelaTotalInit;
+                const isContaFixaInit = item
+                    ? (item?.conta_fixa === true || String(item?.conta_fixa || '').toLowerCase() === 'true')
+                    : (tipoRegistro === 'despesa_fixa' && !parcelasCheckedInit);
                 const overlay = document.createElement('div');
                 overlay.className = 'app-modal-overlay';
                 const initialDateTime = this.getFinanceiroDateTimeLocalValue(item?.created_at || item?.data_lancamento || null);
@@ -10092,7 +10095,7 @@
                                     <select id="financeiro-modal-metodo"></select>
                                 </div>
                                 <div class="field" id="financeiro-conta-fixa-wrap" style="display:none;">
-                                    <label class="finance-conta-fixa-check"><input type="checkbox" id="financeiro-modal-conta-fixa" ${item?.conta_fixa ? 'checked' : ''} /> <span class="finance-emoji finance-emoji--float" aria-hidden="true">🏠</span>Conta fixa</label>
+                                    <label class="finance-conta-fixa-check"><input type="checkbox" id="financeiro-modal-conta-fixa" ${isContaFixaInit ? 'checked' : ''} /> <span class="finance-emoji finance-emoji--float" aria-hidden="true">🏠</span>Conta fixa (recorre nos meses seguintes)</label>
                                 </div>
                                 <div class="field" id="financeiro-parcelas-wrap" style="display:none;">
                                     <label class="finance-parcelas-check"><input type="checkbox" id="financeiro-modal-parcelas" ${parcelasCheckedInit ? 'checked' : ''} /> <span class="finance-emoji finance-emoji--bounce" aria-hidden="true">📑</span>Parcelas</label>
@@ -10153,6 +10156,7 @@
                             parcelasCb.checked = false;
                             syncParcelasUI();
                         }
+                        setTipoUI(tipoEl.value);
                     });
                 }
                 if (parcelasCb) {
@@ -10161,6 +10165,7 @@
                             contaFixaCb.checked = false;
                         }
                         syncParcelasUI();
+                        setTipoUI(tipoEl.value);
                     });
                 }
                 const mesForBounds = () => {
@@ -10192,7 +10197,11 @@
                         if (metodoWrap) metodoWrap.style.display = 'none';
                         dataWrap.style.display = 'none';
                         const mr = mesForBounds();
-                        if (contextoEl) contextoEl.innerHTML = `🏠 A despesa fixa vale para o mês em <strong>${this.formatMesAnoLabel(mr)}</strong> (ajuste no campo abaixo).`;
+                        if (contextoEl) {
+                            contextoEl.innerHTML = contaFixaCb && contaFixaCb.checked
+                                ? `🏠 Conta fixa em <strong>${this.formatMesAnoLabel(mr)}</strong>: gera um ID de série, replica nos meses seguintes e propaga nome/valor à frente. Desmarcar encerra a série.`
+                                : `🏠 Despesa do mês em <strong>${this.formatMesAnoLabel(mr)}</strong>. Marque Conta fixa para recorrência ou Parcelas para parcelamento.`;
+                        }
                     } else if (tipo === 'poupanca') {
                         if (descricaoWrap) descricaoWrap.style.display = 'none';
                         if (mesRefWrap) mesRefWrap.style.display = 'none';
@@ -10217,7 +10226,12 @@
                     syncParcelasUI();
                 };
                 setTipoUI(tipoEl.value);
-                tipoEl.onchange = () => setTipoUI(tipoEl.value);
+                tipoEl.onchange = () => {
+                    if (!item && tipoEl.value === 'despesa_fixa' && contaFixaCb && parcelasCb && !parcelasCb.checked) {
+                        contaFixaCb.checked = true;
+                    }
+                    setTipoUI(tipoEl.value);
+                };
                 if (mesRefEl) mesRefEl.addEventListener('change', () => setTipoUI(tipoEl.value));
 
                 const close = () => overlay.remove();
