@@ -46,28 +46,23 @@ function extractBrazilDateTimeParts(dateLike) {
 
 /**
  * Gera os meses em que um lançamento deve existir a partir do mês de criação.
- * - conta fixa: do mês informado até dezembro do ano seguinte (cruza o ano; ex.: 2026-10 → 2027-12)
+ * - conta fixa: do mês informado até dezembro do mesmo ano
  * - parcelas: sequência contínua de parcela_atual até parcela_total (pode cruzar anos)
  * - demais: apenas o mês informado
  *
  * @param {string} mesAno
- * @param {{ contaFixa?: boolean, parcelaAtual?: number|null, parcelaTotal?: number|null, serieId?: string|null, untilMesAno?: string|null }} options
+ * @param {{ contaFixa?: boolean, parcelaAtual?: number|null, parcelaTotal?: number|null }} options
  */
 export function buildReplicationSlotsFromStart(mesAno, options = {}) {
-  const { contaFixa = false, parcelaAtual = null, parcelaTotal = null, serieId = null, untilMesAno = null } = options;
+  const { contaFixa = false, parcelaAtual = null, parcelaTotal = null, serieId = null } = options;
   const { ano, mes } = parseMesAno(mesAno);
   const startMesAno = `${ano}-${String(mes).padStart(2, '0')}`;
 
   if (contaFixa) {
-    const endMesAno = (untilMesAno && /^\d{4}-\d{2}$/.test(String(untilMesAno)))
-      ? String(untilMesAno)
-      : `${ano + 1}-12`;
-    const startIdx = monthIndexFromMesAno(startMesAno);
-    const endIdx = monthIndexFromMesAno(endMesAno);
     const slots = [];
-    for (let idx = startIdx; idx <= endIdx; idx += 1) {
+    for (let m = mes; m <= 12; m += 1) {
       slots.push({
-        mes_ano: mesAnoFromMonthIndex(idx),
+        mes_ano: `${ano}-${String(m).padStart(2, '0')}`,
         conta_fixa: true,
         parcela_atual: null,
         parcela_total: null,
@@ -126,33 +121,18 @@ export function seriesDefinitionsFromYearRows(rows = []) {
     const serieId = row.serie_id ? String(row.serie_id) : null;
 
     if (isContaFixa) {
-      // Conta fixa recorrente exige serie_id próprio. Sem ID = avulsa ou série já encerrada.
-      if (!serieId) continue;
-      const key = `cf:${serieId}`;
+      const key = serieId ? `cf:${serieId}` : `cf:${descNorm}`;
       const existing = series.get(key);
-      if (!existing) {
+      if (!existing || startMesAno < existing.startMesAno) {
         series.set(key, {
           type: 'conta_fixa',
           descricao,
           valor,
           startMesAno,
           startCreatedAt: String(row?.created_at || ''),
-          latestMesAno: startMesAno,
           serieId,
         });
-        continue;
       }
-      const next = { ...existing };
-      if (startMesAno < existing.startMesAno) {
-        next.startMesAno = startMesAno;
-        next.startCreatedAt = String(row?.created_at || '');
-      }
-      if (startMesAno >= (existing.latestMesAno || existing.startMesAno)) {
-        next.descricao = descricao;
-        next.valor = valor;
-        next.latestMesAno = startMesAno;
-      }
-      series.set(key, next);
       continue;
     }
 
@@ -193,16 +173,6 @@ export function slotsForSeries(series) {
 
 /** @param {ReturnType<typeof seriesDefinitionsFromYearRows>[number]} series @param {string} targetMesAno */
 export function slotsNeededForMonth(series, targetMesAno) {
-  if (series?.type === 'conta_fixa') {
-    if (!targetMesAno || targetMesAno < series.startMesAno) return [];
-    return [{
-      mes_ano: targetMesAno,
-      conta_fixa: true,
-      parcela_atual: null,
-      parcela_total: null,
-      serie_id: series.serieId ?? null,
-    }];
-  }
   return slotsForSeries(series).filter((slot) => slot.mes_ano === targetMesAno);
 }
 
