@@ -44,25 +44,38 @@ function extractBrazilDateTimeParts(dateLike) {
   };
 }
 
+/** Corte operacional: replicação opt-in de conta fixa só a partir deste mês. */
+export const CONTA_FIXA_REPLICATE_MIN_MES = '2027-01';
+
+export function defaultContaFixaUntilMesAno(mesAno) {
+  const { ano } = parseMesAno(mesAno);
+  return `${ano + 1}-12`;
+}
+
 /**
  * Gera os meses em que um lançamento deve existir a partir do mês de criação.
- * - conta fixa: do mês informado até dezembro do mesmo ano
+ * - conta fixa: do mês informado até untilMesAno (default: dez do mesmo ano)
  * - parcelas: sequência contínua de parcela_atual até parcela_total (pode cruzar anos)
  * - demais: apenas o mês informado
  *
  * @param {string} mesAno
- * @param {{ contaFixa?: boolean, parcelaAtual?: number|null, parcelaTotal?: number|null }} options
+ * @param {{ contaFixa?: boolean, parcelaAtual?: number|null, parcelaTotal?: number|null, serieId?: string|null, untilMesAno?: string|null }} options
  */
 export function buildReplicationSlotsFromStart(mesAno, options = {}) {
-  const { contaFixa = false, parcelaAtual = null, parcelaTotal = null, serieId = null } = options;
+  const { contaFixa = false, parcelaAtual = null, parcelaTotal = null, serieId = null, untilMesAno = null } = options;
   const { ano, mes } = parseMesAno(mesAno);
   const startMesAno = `${ano}-${String(mes).padStart(2, '0')}`;
 
   if (contaFixa) {
+    const endMesAno = (untilMesAno && /^\d{4}-\d{2}$/.test(String(untilMesAno)))
+      ? String(untilMesAno)
+      : `${ano}-12`;
+    const startIdx = monthIndexFromMesAno(startMesAno);
+    const endIdx = monthIndexFromMesAno(endMesAno);
     const slots = [];
-    for (let m = mes; m <= 12; m += 1) {
+    for (let idx = startIdx; idx <= endIdx; idx += 1) {
       slots.push({
-        mes_ano: `${ano}-${String(m).padStart(2, '0')}`,
+        mes_ano: mesAnoFromMonthIndex(idx),
         conta_fixa: true,
         parcela_atual: null,
         parcela_total: null,

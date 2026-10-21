@@ -10093,6 +10093,7 @@
                                 </div>
                                 <div class="field" id="financeiro-conta-fixa-wrap" style="display:none;">
                                     <label class="finance-conta-fixa-check"><input type="checkbox" id="financeiro-modal-conta-fixa" ${item?.conta_fixa ? 'checked' : ''} /> <span class="finance-emoji finance-emoji--float" aria-hidden="true">🏠</span>Conta fixa</label>
+                                    <p class="app-form-note" id="financeiro-conta-fixa-hint" style="margin:0.35rem 0 0;">A partir de jan/2027, ao salvar o sistema pergunta se deseja replicar nome e valor deste mês em diante (conta fixa) ou nas demais parcelas.</p>
                                 </div>
                                 <div class="field" id="financeiro-parcelas-wrap" style="display:none;">
                                     <label class="finance-parcelas-check"><input type="checkbox" id="financeiro-modal-parcelas" ${parcelasCheckedInit ? 'checked' : ''} /> <span class="finance-emoji finance-emoji--bounce" aria-hidden="true">📑</span>Parcelas</label>
@@ -10287,6 +10288,33 @@
                     if (tipoVal === 'gasto_variado' && metodoEl && !metodoEl.value) {
                         metodoEl.value = 'debito_pix';
                     }
+
+                    // Guardrail a partir de 2027-01: pergunta se replica nome/valor à frente.
+                    payload.replicar_futuro = false;
+                    if (tipoVal === 'despesa_fixa' && mesAnoPayload >= '2027-01') {
+                        if (payload.conta_fixa && !payload.parcelas) {
+                            const yy = Number(mesAnoPayload.slice(0, 4));
+                            const untilAno = yy + 1;
+                            const mesLabel = this.formatMesAnoLabel(mesAnoPayload);
+                            const untilLabel = this.formatMesAnoLabel(`${untilAno}-12`);
+                            const wantsReplicate = await this.showConfirm(
+                                'Replicar conta fixa?',
+                                `Deseja aplicar nome e valor a todos os meses a partir de ${mesLabel} até ${untilLabel}? Meses anteriores não serão alterados.`,
+                                { confirmLabel: 'Sim, replicar', cancelLabel: 'Só este mês' }
+                            );
+                            payload.replicar_futuro = !!wantsReplicate;
+                        } else if (payload.parcelas && !payload.conta_fixa && item?.id) {
+                            const pa = payload.parcela_atual;
+                            const pt = payload.parcela_total;
+                            const wantsReplicate = await this.showConfirm(
+                                'Replicar nas demais parcelas?',
+                                `Deseja aplicar nome e valor às parcelas seguintes (da ${pa} até a ${pt})? Parcelas já passadas não serão alteradas.`,
+                                { confirmLabel: 'Sim, replicar', cancelLabel: 'Só esta parcela' }
+                            );
+                            payload.replicar_futuro = !!wantsReplicate;
+                        }
+                    }
+
                     const saveBtn = overlay.querySelector('[data-action="modal-save"]');
                     const modalBox = overlay.querySelector('.app-modal.finance-entry-modal');
                     const loadingEl = document.createElement('div');
@@ -10346,6 +10374,7 @@
                         requestBody.parcela_atual = payload.parcela_atual;
                         requestBody.parcela_total = payload.parcela_total;
                     }
+                    if (payload?.replicar_futuro) requestBody.replicar_futuro = true;
                 } else if (tipoRegistro === 'gasto_variado') {
                     requestBody.metodo_pagamento = String(payload?.metodo_pagamento || 'debito_pix').trim() || 'debito_pix';
                 }

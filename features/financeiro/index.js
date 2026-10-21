@@ -17,6 +17,8 @@ export {
 
 
 export {
+  CONTA_FIXA_REPLICATE_MIN_MES,
+  defaultContaFixaUntilMesAno,
   buildReplicationSlotsFromStart,
   seriesDefinitionsFromYearRows,
   slotsNeededForMonth,

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CONTA_FIXA_REPLICATE_MIN_MES,
+  defaultContaFixaUntilMesAno,
   buildReplicationSlotsFromStart,
   buildInsertPayloadFromSlot,
   seriesDefinitionsFromYearRows,
@@ -9,13 +11,25 @@ import {
 } from '../../features/financeiro/service/despesaFixaReplication.js';
 
 describe('buildReplicationSlotsFromStart', () => {
-  it('conta fixa replica do mês informado até dezembro do mesmo ano', () => {
+  it('conta fixa replica do mês informado até dezembro do mesmo ano por padrão', () => {
     const slots = buildReplicationSlotsFromStart('2024-03', { contaFixa: true });
     expect(slots.map((s) => s.mes_ano)).toEqual([
       '2024-03', '2024-04', '2024-05', '2024-06', '2024-07', '2024-08',
       '2024-09', '2024-10', '2024-11', '2024-12',
     ]);
     expect(slots.every((s) => s.conta_fixa === true)).toBe(true);
+  });
+
+  it('conta fixa com untilMesAno cruza o ano sem voltar ao passado', () => {
+    const slots = buildReplicationSlotsFromStart('2027-01', {
+      contaFixa: true,
+      serieId: 's1',
+      untilMesAno: defaultContaFixaUntilMesAno('2027-01'),
+    });
+    expect(slots[0].mes_ano).toBe('2027-01');
+    expect(slots[slots.length - 1].mes_ano).toBe('2028-12');
+    expect(slots.every((s) => s.serie_id === 's1')).toBe(true);
+    expect(CONTA_FIXA_REPLICATE_MIN_MES).toBe('2027-01');
   });
 
   it('parcelas geram sequência contínua sem depender de cópia mês a mês', () => {
