@@ -7807,8 +7807,8 @@
                             <div id="adminTempSecret" class="profile-admin-temp-secret" hidden><strong>Senha temporária (exibida uma vez):</strong> <code id="adminTempSecretValue"></code><button type="button" id="adminTempSecretClose">Ocultar</button></div>
                             <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
                             <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
-                            <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia o teste de água, todas as dietas cadastradas e os dois resumos reais do Financeiro: débito/Pix do dia e despesas fixas do mês.</p></div><button type="button" class="profile-telegram-test" id="adminTelegramTest">Testar Telegram</button></div>
-                            <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
+                            <div class="profile-admin-toolbar"><div><h4>Testes de disparo WhatsApp</h4><p>Envie uma mensagem de teste por rota aos destinatários ativos. Não altera dados nem horários. Aceito na fila não significa entregue no celular.</p><label for="adminWhatsAppProfile">Perfil para Água e Dieta</label><select id="adminWhatsAppProfile" aria-label="Perfil para testes WhatsApp"><option value="">Carregando perfis…</option></select><p>Financeiro usa o proprietário configurado no Super App.</p></div><div class="profile-whatsapp-test-actions"><button type="button" class="profile-whatsapp-test" data-admin-whatsapp-test="water">Testar Água</button><button type="button" class="profile-whatsapp-test" data-admin-whatsapp-test="diet">Testar Dieta</button><button type="button" class="profile-whatsapp-test" data-admin-whatsapp-test="finance">Testar Financeiro</button></div></div>
+                            <p id="adminWhatsAppTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                             <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie somente texto no formato padaria,4,25. Cada linha é um lançamento; confirme o resumo antes de salvar. Sempre débito. Use /pendente para recuperar a última confirmação.</p></div><button type="button" class="profile-telegram-switch" id="adminTelegramWebhook" role="switch" aria-checked="false" aria-label="Compras pelo Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span data-switch-label>Consultando…</span></button></div>
                             <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                         </div>
@@ -7859,16 +7859,19 @@
                         background:var(--pa-input);color:var(--pa-ink);padding:.65rem .9rem;
                         font:700 .85rem 'Space Grotesk',sans-serif;cursor:pointer;
                     }
-                    .profile-admin-card .profile-telegram-test {flex:none;min-height:44px;border:0;border-radius:10px;background:#327746;color:#fff;padding:12px 18px;font:700 .88rem Arial,sans-serif;cursor:pointer;box-shadow:0 3px 8px #20463c24;}
-                    .profile-admin-card .profile-telegram-test:hover {background:#20463c;}
-                    .profile-admin-card .profile-telegram-test:disabled {opacity:.6;cursor:wait;}
+                    .profile-whatsapp-test-actions {display:flex;flex-wrap:wrap;gap:8px;}
+                    #adminWhatsAppTestMessage {white-space:pre-line;overflow-wrap:anywhere;}
+                    #adminWhatsAppProfile {display:block;width:100%;min-height:44px;margin-top:8px;padding:8px;border:1px solid var(--pa-border);border-radius:8px;background:var(--pa-input);color:var(--pa-ink);}
+                    .profile-admin-card .profile-whatsapp-test {flex:none;min-height:44px;border:0;border-radius:10px;background:#327746;color:#fff;padding:12px 18px;font:700 .88rem Arial,sans-serif;cursor:pointer;box-shadow:0 3px 8px #20463c24;}
+                    .profile-admin-card .profile-whatsapp-test:hover {background:#20463c;}
+                    .profile-admin-card .profile-whatsapp-test:disabled {opacity:.6;cursor:wait;}
                     .profile-admin-card .profile-telegram-switch {display:flex;align-items:center;gap:10px;flex:none;min-height:44px;padding:8px 10px;background:transparent;border:1px solid var(--pa-border);border-radius:10px;color:var(--pa-ink);font:700 .88rem Arial,sans-serif;cursor:pointer;}
                     .profile-telegram-switch__track {display:flex;align-items:center;width:46px;height:26px;padding:3px;border-radius:20px;background:#64748b;box-sizing:border-box;transition:background .15s;}
                     .profile-telegram-switch__track span {width:20px;height:20px;border-radius:50%;background:white;transition:transform .15s;box-shadow:0 1px 3px #0003;}
                     .profile-telegram-switch[aria-checked="true"] .profile-telegram-switch__track {background:#327746;}
                     .profile-telegram-switch[aria-checked="true"] .profile-telegram-switch__track span {transform:translateX(20px);}
                     .profile-telegram-switch:disabled {opacity:.6;cursor:wait;}
-                    .profile-telegram-test:focus-visible,.profile-telegram-switch:focus-visible {outline:3px solid #95c11f;outline-offset:3px;}
+                    .profile-whatsapp-test:focus-visible,.profile-telegram-switch:focus-visible {outline:3px solid #95c11f;outline-offset:3px;}
                     .profile-admin-create{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:end;gap:.7rem;margin:1rem 0 0}
                     .profile-admin-create[hidden],.profile-admin-temp-secret[hidden]{display:none}
                     .profile-admin-create h4{grid-column:1/-1}
@@ -7968,7 +7971,8 @@
                 modal.addEventListener('click', (event) => { if (event.target === modal) closeProfile(); });
                 document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closeProfile(); });
 
-                document.getElementById('adminTelegramTest')?.addEventListener('click', () => this.testAdminTelegram());
+                document.querySelectorAll('[data-admin-whatsapp-test]').forEach(button => button.addEventListener('click', () => this.testAdminWhatsApp(button.dataset.adminWhatsappTest)));
+                this.loadAdminWhatsAppProfiles();
                 document.getElementById('adminTelegramWebhook')?.addEventListener('click', () => this.configureAdminTelegramWebhook());
                 if (true) {
                     const createForm = document.getElementById('adminCreateUserForm');
@@ -8043,31 +8047,55 @@
                     message.textContent = error.message || 'Não foi possível alterar o recebimento.';
                 } finally { button.disabled = false; }
             }
-            async testAdminTelegram() {
-                const button = document.getElementById('adminTelegramTest');
-                const message = document.getElementById('adminTelegramTestMessage');
-                if (!button || !message || button.disabled) return;
-                button.disabled = true;
-                button.textContent = 'Enviando testes…';
-                message.textContent = 'Carregando dietas e resumos do Financeiro para enviar o teste…';
+            async loadAdminWhatsAppProfiles() {
+                const select = document.getElementById('adminWhatsAppProfile');
+                const message = document.getElementById('adminWhatsAppTestMessage');
+                if (!select) return;
+                select.disabled = true;
+                try {
+                    const response = await fetch('/api/saude?resource=perfis', { cache: 'no-store' });
+                    const payload = await response.json();
+                    if (!response.ok || !Array.isArray(payload.rows)) throw new Error('Não foi possível carregar os perfis de Saúde.');
+                    select.replaceChildren();
+                    const empty = document.createElement('option');
+                    empty.value = ''; empty.textContent = 'Selecione um perfil de Saúde'; select.appendChild(empty);
+                    for (const profile of payload.rows) {
+                        const option = document.createElement('option');
+                        option.value = String(profile.id); option.textContent = `${profile.nome} · Perfil ${profile.id}`;
+                        select.appendChild(option);
+                    }
+                    if (!payload.rows.length && message) message.textContent = 'Nenhum perfil de Saúde cadastrado. O teste financeiro continua disponível.';
+                } catch (error) {
+                    if (message) message.textContent = error.message || 'Não foi possível carregar os perfis.';
+                } finally { select.disabled = false; }
+            }
+            async testAdminWhatsApp(type) {
+                const buttons = [...document.querySelectorAll('[data-admin-whatsapp-test]')];
+                const button = buttons.find(item => item.dataset.adminWhatsappTest === type);
+                const message = document.getElementById('adminWhatsAppTestMessage');
+                const profile = document.getElementById('adminWhatsAppProfile');
+                if (!button || !message || buttons.some(item => item.disabled)) return;
+                if (type !== 'finance' && !profile?.value) { message.textContent = 'Selecione um perfil de Saúde antes de testar.'; return; }
+                const previous = button.textContent;
+                buttons.forEach(item => { item.disabled = true; });
+                button.textContent = 'Solicitando…';
+
+                message.textContent = 'Verificando perfil, configuração, autenticação e fila de envio…';
                 try {
                     const response = await fetch('/api/admin/usuarios', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'test_telegram' }),
+                        body: JSON.stringify({ action: 'test_whatsapp', type, profileId: type === 'finance' ? undefined : profile.value, requestId: crypto.randomUUID() }),
                     });
-                    const payload = await response.json().catch(() => ({ error: 'Não foi possível ler a resposta do servidor. Confira se o deploy terminou.' }));
-                    if (!response.ok || !payload.ok) throw new Error(payload.error || 'Não foi possível confirmar o envio. Confira o Telegram antes de repetir.');
-                    message.textContent = payload.simulated
-                        ? '✅ Teste simulado no modo mock. Nenhuma mensagem enviada ao Telegram.'
-                        : `✅ Telegram confirmou ${payload.sent} mensagem(ns). Confira o chat do bot.${payload.warnings?.length ? ' ' + payload.warnings.join(' ') : ''}`;
-                    showAppConfirmation(payload.simulated ? 'Teste concluído no modo local.' : `${payload.partial ? 'Teste parcial' : 'Teste enviado'}: ${payload.sent} mensagens.`);
-                } catch (error) {
-                    message.textContent = error.message || 'Falha no teste. Confira o Telegram antes de repetir.';
-                } finally {
-                    button.disabled = false;
-                    button.textContent = 'Testar Telegram';
-                }
+                    const payload = await response.json().catch(() => ({ error: 'Não foi possível ler a resposta do servidor.' }));
+                    const trace = Array.isArray(payload.diagnostics) ? payload.diagnostics.map(item => `${item.state === 'ok' ? '✓' : item.state === 'warning' ? '!' : '✗'} ${item.stage}${item.http_status ? ` (HTTP ${item.http_status})` : ''}: ${item.message} [${item.code}]`).join('\n') : '';
+                    if (!response.ok || !payload.ok) throw new Error([payload.error || 'Pedido não confirmado. Confira o histórico da mensageria antes de repetir.', trace].filter(Boolean).join('\n\n'));
+
+                    message.textContent = payload.simulated ? 'Teste simulado no modo local. Nenhuma mensagem enviada.' : ['Pedido aceito na fila. Confira a entrega em Últimos envios no painel da mensageria.', trace].filter(Boolean).join('\n\n');
+                    showAppConfirmation(payload.simulated ? 'Teste simulado.' : 'Teste WhatsApp enfileirado.');
+                } catch (error) { message.textContent = error.message || 'Falha no teste. Confira a fila antes de repetir.'; }
+                finally { buttons.forEach(item => { item.disabled = false; }); button.textContent = previous; }
             }
+
             async loadAdminUsers() {
                 const message = document.getElementById('adminUsersMessage');
                 const content = document.getElementById('adminUsersContent');

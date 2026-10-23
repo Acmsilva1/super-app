@@ -78,3 +78,28 @@ describe('ponte WhatsApp', () => {
     }
   });
 });
+
+it('diagnostico identifica HTTP 401 sem incluir o corpo ou a chave', async () => {
+  fetch.mockResolvedValueOnce({status:401,json:async()=>({error:'invalid_integration_token',private:'SEGREDO'})});
+  const diagnostics=[];
+  await expect(enqueueWhatsAppAlert(config,{...alert,onDiagnostic:item=>diagnostics.push(item)})).rejects.toThrow('whatsapp_delivery_uncertain');
+  expect(diagnostics.some(item=>item.code==='gateway_unauthorized'&&item.http_status===401)).toBe(true);
+  expect(JSON.stringify(diagnostics)).not.toContain('SEGREDO');
+  expect(JSON.stringify(diagnostics)).not.toContain('t'.repeat(64));
+});
+it('distingue falha TLS do banco remoto de falha de rota', async () => {
+  fetch.mockResolvedValueOnce({status:503,json:async()=>({error:'database_tls_error'})});
+  const diagnostics=[];
+  await expect(enqueueWhatsAppAlert(config,{...alert,onDiagnostic:item=>diagnostics.push(item)})).rejects.toThrow('whatsapp_delivery_uncertain');
+  expect(diagnostics.at(-1)).toMatchObject({code:'gateway_database_tls',stage:'Banco da mensageria',http_status:503});
+});
+it('diagnostico distingue timeout e ausencia de destinatarios', async () => {
+  fetch.mockRejectedValueOnce(Object.assign(new Error('PRIVATE URL'),{name:'TimeoutError'}));
+  const timeout=[];
+  await expect(enqueueWhatsAppAlert(config,{...alert,onDiagnostic:item=>timeout.push(item)})).rejects.toThrow('whatsapp_delivery_uncertain');
+  expect(timeout.at(-1).code).toBe('request_timeout');
+  const missing=[];
+  fetch.mockResolvedValueOnce({status:422,json:async()=>({error:'no_authorized_recipients'})});
+  await enqueueWhatsAppAlert(config,{...alert,dedupeKey:'missing',onDiagnostic:item=>missing.push(item)});
+  expect(missing.at(-1)).toMatchObject({code:'no_recipients',state:'warning'});
+});

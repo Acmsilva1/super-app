@@ -75,3 +75,24 @@ da mensageria. Telegram permanece funcionando.
 
 Nenhuma configuracao de producao, migration ou envio real foi executado pela
 implementacao local. Os testes usam mocks e nao acessam contas WhatsApp/Telegram.
+
+## Testes manuais pelo painel
+
+A secao administrativa Testes de disparo WhatsApp oferece Agua, Dieta e Financeiro.
+Agua e dieta exigem selecao de um perfil de Saude. Financeiro usa o proprietario
+configurado em SAUDE_ALERTS_OWNER_USER_ID. Sao mensagens sinteticas identificadas
+como teste; nao enviam todas as dietas nem resumos financeiros reais.
+A rota continua sendo POST /api/admin/usuarios com action=test_whatsapp, protegida
+por autenticacao administrativa. O cliente nao recebe token da mensageria.
+Cada tipo tem limite de um teste por minuto por administrador. O requestId separa
+ocorrencias manuais e permite identificar repeticoes sem disparo automatico.
+Pedido aceito na fila nao significa entrega: conferir Ultimos envios na mensageria.
+Os comandos de compras Telegram e o agendamento automatico permanecem intactos.
+
+O resultado do teste manual inclui diagnostico por etapa: perfil, configuracao,
+registro local, chamada da API, autenticacao e aceite da fila. Falhas HTTP,
+timeout, certificado/banco remoto e destinatarios ausentes trazem orientacao no
+proprio painel. Apenas codigos conhecidos e mensagens fixas sao exibidos;
+respostas internas, tokens, senhas e URLs com credenciais nunca sao encaminhados.
+O diagnostico vai ate o aceite na fila: nao confirma execucao posterior do worker,
+entrega ou leitura no celular. O resultado de envio continua na mensageria.
