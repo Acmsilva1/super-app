@@ -88,3 +88,19 @@ it('envia horários próximos separadamente e não os repete no próximo polling
   expect(new Set(fetch.mock.calls.map(call=>JSON.parse(call[1].body).dedupe_key)).size).toBe(2);
   expect((await runFinanceiroDailySummary(now)).alerts_sent).toBe(0);
 });
+
+it('encaminha financeiro para o proprietario no WhatsApp e mantem Telegram sem duplicar na repeticao', async () => {
+  vi.stubEnv('WHATSAPP_ALERTS_ENABLED','true');
+  vi.stubEnv('WHATSAPP_API_ORIGIN','https://mensageria.example');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN','w'.repeat(64));
+  const transport = vi.fn(async url => url.includes('mensageria.example')
+    ? {status:202,json:async()=>({ok:true,jobs:[{id:'job',status:'pending'}]})}
+    : {ok:true,json:async()=>({ok:true,telegram_message_id:123})});
+  vi.stubGlobal('fetch',transport);
+  await runFinanceiroDailySummary(new Date('2026-10-09T16:12:00Z'));
+  await runFinanceiroDailySummary(new Date('2026-10-09T16:12:00Z'));
+  const whatsapp=transport.mock.calls.filter(([url])=>url.includes('mensageria.example'));
+  const telegram=transport.mock.calls.filter(([url])=>url.includes('telegram-alert'));
+  expect(whatsapp).toHaveLength(1);expect(telegram).toHaveLength(1);
+  expect(JSON.parse(whatsapp[0][1].body)).toMatchObject({audience:'f88a6351-317d-425b-afcd-9430c8a34f53',event_type:'financeiro.daily_summary',source:'superapp'});
+});

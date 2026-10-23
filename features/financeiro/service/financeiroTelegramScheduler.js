@@ -1,3 +1,4 @@
+import { deliverAlertChannels, whatsappAlertsEnabled, whatsappAlertRecorded } from '../../../lib/whatsappAlertDelivery.js';
 import { alertOccurrences, FINANCIAL_ALERT_INTROS, FINANCIAL_ALERT_SECTIONS } from './alertSchedule.js';
 const TIME_ZONE = 'America/Sao_Paulo';
 
@@ -40,6 +41,13 @@ async function readConfig(deadline) {
 }
 
 async function sendDailySummary(config, date, slot, message, title = null) {
+  return deliverAlertChannels(() => sendTelegramDailySummary(config, date, slot, message, title), config, {
+    eventType: 'financeiro.daily_summary', audience: config.ownerId,
+    title: title || `Resumo financeiro - ${date.split('-').reverse().join('/')}`,
+    message, dedupeKey: `financeiro:resumo-diario:${date}:${slot}`,
+  });
+}
+async function sendTelegramDailySummary(config, date, slot, message, title = null) {
   if (config.deadline && Date.now()+22000 > config.deadline) throw new Error('alerts_time_budget');
   const dedupeKey = `financeiro:resumo-diario:${date}:${slot}`;
   const { error: claimError } = await config.client.from('tb_saude_alertas_envios').insert({
@@ -162,11 +170,12 @@ export async function runFinanceiroDailySummary(now = new Date(), {deadline = Da
     const {data:existing,error:readError}=await config.client.from('tb_saude_alertas_envios').select('dedupe_key')
       .eq('created_by',config.ownerId).eq('dedupe_key',`financeiro:resumo-diario:${occurrence.date}:${slot}`).maybeSingle();
     if (readError) throw new Error('financeiro_alerts_delivery_history_unavailable');
-    if (existing) continue;
+    if (existing && !whatsappAlertsEnabled()) continue;
     const summary = row.tipo === 'mensagem' ? '' : await loadSectionSummary(config,occurrence.date,row.tipo);
     const introduction = row.horarios == null ? row.mensagem
       : `${FINANCIAL_ALERT_INTROS[row.tipo]}\nResumo · ${FINANCIAL_ALERT_SECTIONS[row.tipo]}`;
     const message=[introduction,summary].filter(Boolean).join('\n\n');
+    if (existing && await whatsappAlertRecorded(config, `financeiro:resumo-diario:${occurrence.date}:${slot}`, config.ownerId, message)) continue;
     sent+=Number(await sendDailySummary(config,occurrence.date,slot,message,row.nome));processed++;
     }
   }

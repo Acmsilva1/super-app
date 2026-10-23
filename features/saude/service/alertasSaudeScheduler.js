@@ -1,3 +1,4 @@
+import { deliverAlertChannels, enqueueWhatsAppAlert, whatsappAlertsEnabled } from '../../../lib/whatsappAlertDelivery.js';
 import { DIET_MEALS, dietForDate } from './dietasService.js';
 import { enrichDietNutrition, nutritionForDietItem } from './alimentosService.js';
 import { DEFAULT_ALERT_SCHEDULE, normalizeAlertSchedule } from './alertScheduleConfig.js';
@@ -232,7 +233,8 @@ function formatDietAlert(report) {
 async function dispatchWaterForProfile(config, data, profile, date, time) {
   const key = `agua:${date}:${time}:${profile.id}`;
   const report = waterProfileReport(profile, data.goals.get(String(profile.id)), data.logs.get(String(profile.id)), date, time);
-  return Number(await sendAlert(config, { eventType: 'health.water_progress', title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key,waterPrompt:report.meta_ml?{profileId:profile.id,date,time}:null }));
+  const alert = { eventType: 'health.water_progress', audience: String(profile.id), title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key, waterPrompt: report.meta_ml ? { profileId: profile.id, date, time } : null };
+  return Number(await deliverAlertChannels(() => sendAlert(config, alert), config, alert));
 }
 
 export function buildDietAlertMessages(data, meal, date, time, { includeInactive = false } = {}) {
@@ -307,6 +309,7 @@ async function dispatchCurrentSlot(config, value, data) {
       const meal = DIET_MEALS.find(entry => entry.tipo === type);
       const dueData = { ...data, diets: data.diets.filter(diet => configuredBeforeSlot(diet) && scheduleFor(diet).dieta_horarios.some(entry => entry.tipo === type && entry.horario === time)) };
       const messages = buildDietAlertMessages(dueData, meal, date, time);
+
       for (const [index, message] of messages.entries()) {
         try {
           alertsSent += Number(await sendAlert(config, {
@@ -315,6 +318,25 @@ async function dispatchCurrentSlot(config, value, data) {
           }));
         } catch (error) { failures.push(error); }
       }
+      if (whatsappAlertsEnabled()) {
+        // Separar por perfil antes de formatar: nenhum resumo de outro perfil vai ao destinatario.
+        const profileIds = [...new Set(dueData.diets.map(diet => String(diet.perfil_id)))];
+        for (const profileId of profileIds) {
+          const profile = data.profiles.find(item => String(item.id) === profileId);
+          if (!profile) { failures.push(new Error('whatsapp_profile_not_found')); continue; }
+          const privateData = { ...dueData, diets: dueData.diets.filter(diet => String(diet.perfil_id) === profileId) };
+          const privateMessages = buildDietAlertMessages(privateData, meal, date, time);
+          for (const [index, message] of privateMessages.entries()) {
+            try {
+              await enqueueWhatsAppAlert({ ...config, ownerId: profile.created_by || config.ownerId }, {
+                eventType: 'health.diet_menu', audience: profileId, title: `Dietas · ${meal.titulo}`,
+                message, dedupeKey: `dietas:${date}:${time}:perfil:${profileId}:${type}:${index + 1}`,
+              });
+            } catch (error) { failures.push(error); }
+          }
+        }
+      }
+
     }
   } catch (error) {
     throw error;

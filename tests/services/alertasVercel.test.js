@@ -145,3 +145,25 @@ it('água começa no minuto configurado, repete pelo intervalo e termina na jane
  for(const time of ['11:22','14:22','17:22']){transport.mockClear();await runSaudeAlertSlot(new Date(`2026-10-05T${time}:00Z`));expect(transport).toHaveBeenCalledOnce();}
  for(const time of ['10:37','18:22']){transport.mockClear();await runSaudeAlertSlot(new Date(`2026-10-05T${time}:00Z`));expect(transport).not.toHaveBeenCalled();}
 });
+
+it('WhatsApp recebe dieta separada por perfil, preservando o resumo Telegram', async () => {
+  vi.stubEnv('WHATSAPP_ALERTS_ENABLED', 'true');
+  vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 'w'.repeat(64));
+  state.rows.tb_saude_perfis = [{ id: 1, nome: 'Pessoa A' }, { id: 2, nome: 'Pessoa B' }];
+  state.rows.tb_saude_alertas_agenda = [1,2].map(perfil_id => ({ perfil_id, agua_ativo: false, dieta_ativa: true }));
+  state.rows.tb_saude_dietas = [{ id: 1, perfil_id: 1, titulo: 'Plano exclusivo A' }, { id: 2, perfil_id: 2, titulo: 'Plano exclusivo B' }];
+  const requests = vi.fn(async url => url.includes('mensageria.example')
+    ? { status: 202, json: async () => ({ ok: true, jobs: [{ id: 'job', status: 'pending' }] }) }
+    : { ok: true, json: async () => ({ ok: true, telegram_message_id: 7 }) });
+  vi.stubGlobal('fetch', requests);
+  await runSaudeAlertSlot(new Date('2026-10-05T22:05:00Z'));
+  const telegram = requests.mock.calls.filter(([url]) => url.includes('telegram-alert'));
+  const whatsapp = requests.mock.calls.filter(([url]) => url.includes('mensageria.example')).map(([, options]) => JSON.parse(options.body));
+  expect(telegram).toHaveLength(1);
+  expect(whatsapp).toHaveLength(2);
+  expect(whatsapp.find(item => item.audience === '1').message).toContain('Plano exclusivo A');
+  expect(whatsapp.find(item => item.audience === '1').message).not.toContain('Plano exclusivo B');
+  expect(whatsapp.find(item => item.audience === '2').message).toContain('Plano exclusivo B');
+  expect(whatsapp.find(item => item.audience === '2').message).not.toContain('Plano exclusivo A');
+});
