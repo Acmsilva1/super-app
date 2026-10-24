@@ -161,13 +161,17 @@ const SAUDE_STYLES = `
     .saude-table-wrap { width: 100%; overflow: hidden; border: 1px solid rgba(148, 163, 184, .18); border-radius: 1rem; background: var(--saude-painel); box-shadow: 0 14px 30px rgba(0, 0, 0, .24); }
     .saude-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .saude-table th { padding: .85rem; background: var(--saude-musgo); color: #fff; text-align: left; font-size: .76rem; letter-spacing: .02em; }
-    .saude-table th:nth-child(1) { width: 18%; }
-    .saude-table th:nth-child(2) { width: 27%; }
-    .saude-table th:nth-child(4) { width: 6.75rem; text-align: center; }
+    .saude-table th:nth-child(1) { width: 20%; }
+    .saude-table th:nth-child(2) { width: 25%; }
+    .saude-table th:nth-child(3) { width: 14%; text-align: right; }
+    .saude-table th:nth-child(4) { width: auto; text-align: left; }
+    .saude-table th:nth-child(5) { width: 6.75rem; text-align: center; }
     .saude-table td { padding: .85rem; border-bottom: 1px solid rgba(148, 163, 184, .14); color: var(--saude-texto); font-size: .85rem; line-height: 1.45; vertical-align: top; overflow-wrap: anywhere; }
     .saude-table tbody tr:last-child td { border-bottom: 0; }
     .saude-table tbody tr:hover { background: rgba(74, 164, 85, .08); }
-    .saude-table td:first-child { white-space: nowrap; }
+    .saude-table td:first-child { white-space: normal; }
+    .saude-table td[data-label="Quantidade da porção"] { text-align: right; font-variant-numeric: tabular-nums; }
+    .saude-table td[data-label="Ações"] { vertical-align: middle; }
     .saude-row-actions { display: flex; align-items: center; justify-content: center; gap: .4rem; }
     .saude-icon-btn { width: 2.6rem; height: 2.6rem; display: inline-grid; place-items: center; border: 1px solid var(--saude-frame); border-radius: .7rem; background: var(--saude-painel-elevado); color: var(--saude-texto); cursor: pointer; }
     .saude-icon-btn:hover:not(:disabled) { border-color: var(--saude-grama); background: rgba(50, 119, 70, .28); }
@@ -449,7 +453,7 @@ const SAUDE_STYLES = `
       .saude-table td { padding: 0; border: 0; white-space: normal !important; }
       .saude-table td[data-label="Tipo da tabela"] { grid-area: tipo; color: var(--saude-lima); font-size: .68rem; font-weight: 700; line-height: 1.3; text-transform: uppercase; }
       .saude-table td[data-label="Nome do item"] { grid-area: item; margin-top: .2rem; font-size: .9rem; line-height: 1.35; }
-      .saude-table td[data-label="Quantidade da porção"] { grid-area: porcao; margin-top: .25rem; color: var(--saude-texto-secundario); font-size: .78rem; line-height: 1.35; }
+      .saude-table td[data-label="Quantidade da porção"] { grid-area: porcao; margin-top: .25rem; color: var(--saude-texto-secundario); font-size: .78rem; line-height: 1.35; text-align: left; }
       .saude-table td[data-label="Quantidade da porção"]::before { content: 'Porção: '; color: #718399; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
       .saude-table td[data-label="Nutrição"] { grid-area: nutricao; margin-top: .35rem; color: var(--saude-texto-secundario); font-size: .72rem; line-height: 1.45; }
       .saude-table td[data-label="Ações"] { grid-area: acoes; width: auto; align-self: center; }

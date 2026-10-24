@@ -10740,6 +10740,7 @@
                     </label>
                     <input type="text" class="lc-item__text" data-lista-text data-id="${id}" value="${nome}" maxlength="120" autocomplete="off" enterkeyhint="done" aria-label="Editar ${nome}" />
                     ${meta ? `<span class="lc-item__meta">${escapeHtml(meta)}</span>` : ''}
+                    <button type="button" class="lc-item__edit" data-lista-edit data-id="${id}" aria-label="Editar ${nome}" title="Editar nome e quantidade"><i class="fas fa-pen" aria-hidden="true"></i></button>
                     <button type="button" class="lc-item__del" data-lista-delete data-id="${id}" aria-label="Excluir ${nome}" title="Excluir"><i class="fas fa-xmark" aria-hidden="true"></i></button>
                 </li>`;
             }
@@ -10816,6 +10817,8 @@
                     }
                 });
                 el.addEventListener('click', (event) => {
+                    const edit = event.target.closest('[data-lista-edit]');
+                    if (edit) { this.openListaAddModal(el, edit.dataset.id); return; }
                     const del = event.target.closest('[data-lista-delete]');
                     if (del) {
                         this.submitListaItemDelete(del.dataset.id, el);
@@ -10845,13 +10848,15 @@
                     alert(err.message || 'Erro ao carregar lista de compras');
                 }
             }
-            openListaAddModal(el) {
+            openListaAddModal(el, id = null) {
+                const row = id == null ? null : (el?._listaComprasRows || []).find(item => String(item.id) === String(id));
+                if (id != null && !row) { alert('Este item não está mais na lista. Atualize e tente novamente.'); return; }
                 document.querySelector('.lc-add-overlay')?.remove();
                 const overlay = document.createElement('div');
                 overlay.className = 'app-confirm-overlay lc-add-overlay';
                 overlay.innerHTML = `
                     <form class="app-confirm-modal lc-add-modal" role="dialog" aria-modal="true" aria-labelledby="lc-add-title" autocomplete="off" novalidate>
-                        <h4 id="lc-add-title">Novo item</h4>
+                        <h4 id="lc-add-title">${row ? 'Editar item' : 'Novo item'}</h4>
                         <div class="lc-field">
                             <label for="lc-add-nome">Item</label>
                             <input id="lc-add-nome" name="item" type="text" maxlength="120" placeholder="Ex.: Leite integral" enterkeyhint="next" required />
@@ -10875,10 +10880,25 @@
                 const nome = overlay.querySelector('#lc-add-nome');
                 const qtd = overlay.querySelector('#lc-add-qtd');
                 const error = overlay.querySelector('[data-lc-add-error]');
-                const onKey = (e) => { if (e.key === 'Escape') close(); };
+                nome.value = row?.item || '';
+                qtd.value = String(row?.quantidade ?? 1);
+                const previousFocus = document.activeElement;
+                let saving = false;
+                const onKey = (e) => {
+                    if (e.key === 'Escape') close();
+                    if (e.key !== 'Tab') return;
+                    const controls = [...form.querySelectorAll('input, button')].filter(control => !control.disabled);
+                    if (!controls.length) { e.preventDefault(); return; }
+                    const first = controls[0];
+                    const last = controls[controls.length - 1];
+                    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+                };
                 const close = () => {
+                    if (saving) return;
                     document.removeEventListener('keydown', onKey);
                     overlay.remove();
+                    if (previousFocus?.isConnected) previousFocus.focus();
                 };
                 overlay.querySelector('[data-lc-add-cancel]').onclick = close;
                 overlay.onclick = (e) => { if (e.target === overlay) close(); };
@@ -10889,20 +10909,30 @@
                     };
                 });
                 nome.addEventListener('input', () => { error.hidden = true; });
+                qtd.addEventListener('input', () => { error.hidden = true; });
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
+                    if (saving) return;
                     const item = nome.value.trim();
-                    if (!item) {
+                    if (!item || item.length > 120) {
+                        error.textContent = 'Informe um nome de até 120 caracteres.';
                         error.hidden = false;
                         nome.focus();
                         return;
                     }
-                    const quantidade = Math.min(999, Math.max(1, parseInt(qtd.value, 10) || 1));
+                    const quantidade = Number(qtd.value);
+                    if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 999) {
+                        error.textContent = 'Informe uma quantidade inteira entre 1 e 999.'; error.hidden = false; qtd.focus(); return;
+                    }
                     const submitBtn = form.querySelector('[type="submit"]');
-                    submitBtn.disabled = true;
-                    const ok = await this.submitListaAddItem(item, quantidade, el);
+                    saving = true;
+                    const controls = [...form.querySelectorAll('input, button')];
+                    controls.forEach(control => { control.disabled = true; });
+                    submitBtn.textContent = 'Salvando…';
+                    let ok;
+                    try { ok = row ? await this.submitListaEditItem(row.id, item, quantidade, el) : await this.submitListaAddItem(item, quantidade, el); }
+                    finally { saving = false; controls.forEach(control => { control.disabled = false; }); submitBtn.textContent = 'Salvar'; }
                     if (ok) close();
-                    else submitBtn.disabled = false;
                 });
                 document.addEventListener('keydown', onKey);
                 document.body.appendChild(overlay);
@@ -10925,6 +10955,20 @@
                     alert(e.message);
                     return false;
                 }
+            }
+            async submitListaEditItem(id, item, quantidade, el) {
+                try {
+                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, item, quantidade }) });
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao editar item'));
+                    const updated = await res.json();
+                    const row = (el?._listaComprasRows || []).find(entry => String(entry.id) === String(id));
+                    if (row && String(updated?.id) === String(id)) {
+                        Object.assign(row, updated);
+                        this.rerenderListaCompras(el);
+                    } else await this.refreshListaComprasContent(el);
+                    showAppConfirmation('Item atualizado.');
+                    return true;
+                } catch (error) { alert(error.message || 'Erro ao editar item'); return false; }
             }
             async submitListaRenameItem(input, el) {
                 const id = input.dataset.id;

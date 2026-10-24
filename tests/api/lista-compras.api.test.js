@@ -58,3 +58,25 @@ describe('API da lista de compras', () => {
     }
   });
 });
+
+describe('edicao dos itens', () => {
+  it('altera nome e quantidade sem perder comprado, categoria e unidade', async () => {
+    vi.stubEnv('OFFLINE_DEV','true');
+    try {
+      const app=createApp(listaComprasHandler);
+      const created=await request(app).post('/api/test').send({item:'Leite',quantidade:2,unidade_medida:'caixas',comprado:true,categoria:'Feira'});
+      expect(created.status).toBe(201);
+      const edited=await request(app).patch('/api/test').send({id:created.body.id,item:'Leite integral',quantidade:5});
+      expect(edited.status).toBe(200);
+      expect(edited.body).toMatchObject({id:created.body.id,item:'Leite integral',quantidade:5,unidade_medida:'caixas',comprado:true,categoria:'Feira'});
+      const list=await request(app).get('/api/test');
+      expect(list.body.rows.find(row=>row.id===created.body.id)).toMatchObject({item:'Leite integral',quantidade:5});
+      expect((await request(app).delete('/api/test').send({id:created.body.id})).status).toBe(200);
+    } finally {vi.unstubAllEnvs();}
+  });
+  it.each([{item:'   '},{item:7},{item:'x'.repeat(121)},{quantidade:0},{quantidade:-1},{quantidade:1.5},{quantidade:1000},{quantidade:null},{quantidade:true},{quantidade:''},{quantidade:'errado'}])('rejeita campos invalidos: %j', async fields => {
+    vi.stubEnv('OFFLINE_DEV','true');
+    try {expect((await request(createApp(listaComprasHandler)).patch('/api/test').send({id:999,...fields})).status).toBe(400);}
+    finally {vi.unstubAllEnvs();}
+  });
+});

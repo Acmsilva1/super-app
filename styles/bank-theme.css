@@ -1319,3 +1319,8 @@ html[data-theme] #window-saude .saude-success-toast__close { color: var(--bk-mut
     /* iOS dá zoom ao focar campos com fonte < 16px */
     html[data-theme] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) { font-size: 16px !important; }
 }
+
+/* Acao explicita para editar nome e quantidade da lista de compras. */
+.lc-item__edit { flex: 0 0 auto; width: 2.25rem; height: 2.75rem; padding: 0; border: 0; border-radius: .4rem; background: transparent; color: var(--bk-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.lc-item__edit:hover { background: var(--bk-bg); color: var(--bk-ink); }
+.lc-item__edit:focus-visible { outline: 2px solid var(--bk-focus); outline-offset: 2px; }

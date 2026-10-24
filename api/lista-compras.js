@@ -81,6 +81,20 @@ export default async function handler(req, res) {
 
   const auth = await requireUser(req, { appId: 'lista_compras' });
   if (!auth.ok) return json(res, auth.status, auth.data);
+  if (['POST', 'PATCH'].includes(req.method)) {
+    let body;
+    try { body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}; }
+    catch { return json(res, 400, { error: 'JSON invalido.' }); }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return json(res, 400, { error: 'Dados invalidos.' });
+    if (Object.hasOwn(body, 'item') && (typeof body.item !== 'string' || !body.item.trim() || body.item.trim().length > 120)) return json(res, 400, { error: 'Informe um nome de ate 120 caracteres.' });
+    if (Object.hasOwn(body, 'quantidade')) {
+      const value = body.quantidade;
+      const quantity = Number(value);
+      if (!['number', 'string'].includes(typeof value) || !String(value).trim() || !Number.isInteger(quantity) || quantity < 1 || quantity > 999) return json(res, 400, { error: 'Informe uma quantidade inteira entre 1 e 999.' });
+      body.quantidade = quantity;
+    }
+    req.body = body;
+  }
   if (isOfflineDev()) return handleOffline(req, res);
 
   const ownerScope = (query) => (auth.isAdmin ? query : query.eq('user_id', auth.user.id));
