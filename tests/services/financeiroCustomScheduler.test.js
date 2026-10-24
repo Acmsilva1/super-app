@@ -6,7 +6,6 @@ vi.mock('../../lib/alertServiceClient.js',()=>({getAlertServiceClient:()=>({from
     state.queries.push({table,filters,operation,body});
     let result={data:null,error:null};
     if(table==='tb_financeiro_alertas')result.data=state.rules;
-    else if(table==='tb_saude_perfis')result.data={id:3,created_by:'f88a6351-317d-425b-afcd-9430c8a34f53'};
     else if(table==='tb_financas')result.data=[{tipo:'receita',valor:15000},{tipo:'despesa',valor:200,metodo_pagamento:'pix'},{tipo:'despesa',valor:1000,metodo_pagamento:'credito'}];
     else if(table==='vw_financeiro_poupanca_resumo')result.data=[{total_acumulado:3000,nome_meta:'Reserva',valor_meta:10000}];
     else if(table==='tb_financeiro_simulacoes')result.data=[{id:'new',meta_id:'car',nome:'Carro',created_at:'2026-10-08T00:00:00Z'},{id:'old',meta_id:'car',nome:'Carro',created_at:'2026-10-01T00:00:00Z'}];
@@ -21,8 +20,7 @@ vi.mock('../../lib/alertServiceClient.js',()=>({getAlertServiceClient:()=>({from
   }};return query;
 }})}));
 import {runFinanceiroDailySummary} from '../../features/financeiro/service/financeiroTelegramScheduler.js';
-beforeEach(() => {
-  vi.stubEnv('TELEGRAM_ENABLED','true');
+beforeEach(()=>{
   state.rules=[{id:'alert-one',nome:'Meu lembrete',tipo:'mensagem',mensagem:'Revisar gastos',cron:'0 13 * * *',created_at:'2026-10-01T00:00:00Z'}];state.claims.clear();state.queries=[];state.claimError=null;
   vi.stubEnv('NODE_ENV','development');vi.stubEnv('SAUDE_ALERTS_ENABLED','true');vi.stubEnv('SAUDE_ALERTS_OWNER_USER_ID','f88a6351-317d-425b-afcd-9430c8a34f53');vi.stubEnv('ALERTS_API_URL','http://localhost/api/telegram-alert');vi.stubEnv('ALERTS_API_TOKEN','test-only');
   vi.stubGlobal('fetch',vi.fn(async()=>({ok:true,json:async()=>({ok:true,telegram_message_id:123})})));
@@ -89,42 +87,4 @@ it('envia horários próximos separadamente e não os repete no próximo polling
   expect((await runFinanceiroDailySummary(now)).alerts_sent).toBe(2);
   expect(new Set(fetch.mock.calls.map(call=>JSON.parse(call[1].body).dedupe_key)).size).toBe(2);
   expect((await runFinanceiroDailySummary(now)).alerts_sent).toBe(0);
-});
-
-it('encaminha financeiro para o proprietario no WhatsApp e mantem Telegram sem duplicar na repeticao', async () => {
-  vi.stubEnv('WHATSAPP_ALERTS_ENABLED','true');
-  vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID','3');
-  vi.stubEnv('WHATSAPP_API_ORIGIN','https://mensageria.example');
-  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN','w'.repeat(64));
-  const transport = vi.fn(async url => url.includes('mensageria.example')
-    ? {status:202,json:async()=>({ok:true,jobs:[{id:'job',status:'pending'}]})}
-    : {ok:true,json:async()=>({ok:true,telegram_message_id:123})});
-  vi.stubGlobal('fetch',transport);
-  await runFinanceiroDailySummary(new Date('2026-10-09T16:12:00Z'));
-  await runFinanceiroDailySummary(new Date('2026-10-09T16:12:00Z'));
-  const whatsapp=transport.mock.calls.filter(([url])=>url.includes('mensageria.example'));
-  const telegram=transport.mock.calls.filter(([url])=>url.includes('telegram-alert'));
-  expect(whatsapp).toHaveLength(1);expect(telegram).toHaveLength(1);
-  expect(JSON.parse(whatsapp[0][1].body)).toMatchObject({audience:'3',event_type:'financeiro.daily_summary',source:'superapp'});
-});
-
-it('mapeamento WhatsApp ausente informa erro sem impedir envio Telegram',async()=>{
-  vi.stubEnv('WHATSAPP_ALERTS_ENABLED','true');
-  vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID','');
-  await expect(runFinanceiroDailySummary(new Date('2026-10-09T16:12:00Z'))).rejects.toThrow('whatsapp_finance_profile_required');
-  expect(fetch).toHaveBeenCalledOnce();
-  expect(fetch.mock.calls[0][0]).toContain('telegram-alert');
-});
-
-it('financeiro usa apenas WhatsApp quando Telegram esta desligado sem suas credenciais',async()=>{
- vi.stubEnv('TELEGRAM_ENABLED','');vi.stubEnv('ALERTS_API_URL','');vi.stubEnv('ALERTS_API_TOKEN','');
- vi.stubEnv('WHATSAPP_ALERTS_ENABLED','true');vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID','3');vi.stubEnv('WHATSAPP_API_ORIGIN','https://mensageria.example');vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN','w'.repeat(64));
- fetch.mockResolvedValue({status:202,json:async()=>({ok:true,jobs:[{id:'job',status:'pending'}]})});
- const now=new Date('2026-10-09T16:12:00Z');
- expect((await runFinanceiroDailySummary(now)).alerts_sent).toBe(1);
- expect((await runFinanceiroDailySummary(now)).alerts_sent).toBe(0);
- expect(fetch).toHaveBeenCalledOnce();
- const [url,request]=fetch.mock.calls[0];expect(url).toBe('https://mensageria.example/api/control?action=event');
- expect(JSON.parse(request.body)).toMatchObject({audience:'3',event_type:'financeiro.daily_summary'});
- expect([...state.claims].every(key=>key.startsWith('whatsapp:'))).toBe(true);
 });

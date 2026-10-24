@@ -1486,7 +1486,7 @@ function renderProfileAlertSchedules(profile, state) {
     ? '<p class="saude-alert-help" role="status">Carregando agendamentos salvos...</p>'
     : '';
   return `${renderNotice(state)}<section class="saude-alert-panel" aria-labelledby="saude-alert-title">
-    <header class="saude-alert-panel__header"><span class="saude-alert-panel__icon"><i class="fas fa-bell"></i></span><div><h3 id="saude-alert-title">Agendadores deste perfil</h3><p>Configure quando este perfil recebe os avisos diários no WhatsApp.</p></div></header>
+    <header class="saude-alert-panel__header"><span class="saude-alert-panel__icon"><i class="fas fa-bell"></i></span><div><h3 id="saude-alert-title">Agendadores deste perfil</h3><p>Configure quando este perfil recebe os avisos diários no Telegram.</p></div></header>
     ${loading}
     <form data-alert-schedule-form="agua" data-profile-id="${escapeHtml(profile.id)}">
       <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>

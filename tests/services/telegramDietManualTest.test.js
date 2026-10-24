@@ -1,11 +1,9 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../lib/actionRateLimit.js', () => ({ consumeActionLimit: async () => true }));
 const preview = vi.hoisted(() => vi.fn());
 const financePreview = vi.hoisted(() => vi.fn());
 vi.mock('../../features/saude/service/alertasSaudeScheduler.js', () => ({ previewAllDietAlerts: preview }));
 vi.mock('../../features/financeiro/service/financeiroTelegramScheduler.js', () => ({ previewFinanceiroDailySummaries: financePreview }));
-beforeEach(() => vi.stubEnv('TELEGRAM_ENABLED','true'));
-
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe('Teste manual das dietas reais', () => {

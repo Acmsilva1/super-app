@@ -1,5 +1,3 @@
-import { telegramEnabled } from '../../../lib/messagingChannels.js';
-import { deliverAlertChannels, enqueueWhatsAppAlert, whatsappAlertsEnabled } from '../../../lib/whatsappAlertDelivery.js';
 import { DIET_MEALS, dietForDate } from './dietasService.js';
 import { enrichDietNutrition, nutritionForDietItem } from './alimentosService.js';
 import { DEFAULT_ALERT_SCHEDULE, normalizeAlertSchedule } from './alertScheduleConfig.js';
@@ -30,13 +28,12 @@ async function readAlertConfig(deadline) {
   const url = configuredUrl || (deploymentHost ? `https://${deploymentHost}/api/telegram-alert` : '');
   const token = String(process.env.ALERTS_API_TOKEN || '').trim();
   const enabled = process.env.SAUDE_ALERTS_ENABLED === 'true';
-  if (!enabled || !ownerId || (!telegramEnabled() && !whatsappAlertsEnabled())) return null;
-  if (telegramEnabled() && (!url || !token)) throw new Error('alerts_gateway_config_missing');
+  if (!enabled || !ownerId || !url || !token) return null;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ownerId)) {
     throw new Error('SAUDE_ALERTS_OWNER_USER_ID inválido.');
   }
-  const gateway = telegramEnabled() ? new URL(url) : null;
-  if (gateway && gateway.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(gateway.hostname))) {
+  const gateway = new URL(url);
+  if (gateway.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(gateway.hostname))) {
     throw new Error('alerts_gateway_https_required');
   }
   const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
@@ -44,7 +41,6 @@ async function readAlertConfig(deadline) {
 }
 
 async function sendAlert(config, { eventType, title, message, dedupeKey,waterPrompt=null }) {
-  if (!telegramEnabled()) return false;
   if (config.deadline && Date.now() + 22000 > config.deadline) throw new Error('alerts_time_budget');
   const client = config.client;
   const { error: claimError } = await client.from('tb_saude_alertas_envios').insert({
@@ -185,7 +181,7 @@ function displayDate(value) {
   return match ? `${match[3]}/${match[2]}/${match[1]}` : readablePart(value, 20);
 }
 
-function formatWaterAlert(report, interactive = true) {
+function formatWaterAlert(report) {
   const name = readablePart(report.perfil?.nome, 80) || 'seu perfil';
   const lines = [`💧 Hora de beber água, ${name}!`, `📅 ${displayDate(report.data)} · ⏰ ${report.horario}`];
   if (report.situacao === 'meta_nao_configurada') {
@@ -198,8 +194,7 @@ function formatWaterAlert(report, interactive = true) {
   lines.push(report.restante_ml > 0
     ? `🎯 Faltam ${report.restante_ml} ml para a meta.`
     : '🏆 Meta de água concluída. Mandou bem!');
-  if (interactive) lines.push('Quanto você bebeu agora? Escolha 100, 200, 300, 400, 500 ml, 1 L ou 2 L nos botões ou responda a esta mensagem, por exemplo: 200 ml.');
-  if (!interactive) lines.push('Registre a água que bebeu no Super App.');
+  lines.push('Quanto você bebeu agora? Escolha 100, 200, 300, 400, 500 ml, 1 L ou 2 L nos botões ou responda a esta mensagem, por exemplo: 200 ml.');
   return lines.join('\n');
 }
 
@@ -237,8 +232,7 @@ function formatDietAlert(report) {
 async function dispatchWaterForProfile(config, data, profile, date, time) {
   const key = `agua:${date}:${time}:${profile.id}`;
   const report = waterProfileReport(profile, data.goals.get(String(profile.id)), data.logs.get(String(profile.id)), date, time);
-  const alert = { eventType: 'health.water_progress', audience: String(profile.id), title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key, waterPrompt: report.meta_ml ? { profileId: profile.id, date, time } : null };
-  return Number(await deliverAlertChannels(() => sendAlert(config, alert), config, { ...alert, message: formatWaterAlert(report, false) }));
+  return Number(await sendAlert(config, { eventType: 'health.water_progress', title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key,waterPrompt:report.meta_ml?{profileId:profile.id,date,time}:null }));
 }
 
 export function buildDietAlertMessages(data, meal, date, time, { includeInactive = false } = {}) {
@@ -313,7 +307,6 @@ async function dispatchCurrentSlot(config, value, data) {
       const meal = DIET_MEALS.find(entry => entry.tipo === type);
       const dueData = { ...data, diets: data.diets.filter(diet => configuredBeforeSlot(diet) && scheduleFor(diet).dieta_horarios.some(entry => entry.tipo === type && entry.horario === time)) };
       const messages = buildDietAlertMessages(dueData, meal, date, time);
-
       for (const [index, message] of messages.entries()) {
         try {
           alertsSent += Number(await sendAlert(config, {
@@ -322,26 +315,6 @@ async function dispatchCurrentSlot(config, value, data) {
           }));
         } catch (error) { failures.push(error); }
       }
-      if (whatsappAlertsEnabled()) {
-        // Separar por perfil antes de formatar: nenhum resumo de outro perfil vai ao destinatario.
-        const profileIds = [...new Set(dueData.diets.map(diet => String(diet.perfil_id)))];
-        for (const profileId of profileIds) {
-          const profile = data.profiles.find(item => String(item.id) === profileId);
-          if (!profile) { failures.push(new Error('whatsapp_profile_not_found')); continue; }
-          const privateData = { ...dueData, diets: dueData.diets.filter(diet => String(diet.perfil_id) === profileId) };
-          const privateMessages = buildDietAlertMessages(privateData, meal, date, time);
-          for (const [index, message] of privateMessages.entries()) {
-            try {
-              const queued = await enqueueWhatsAppAlert({ ...config, ownerId: profile.created_by || config.ownerId }, {
-                eventType: 'health.diet_menu', audience: profileId, title: `Dietas · ${meal.titulo}`,
-                message, dedupeKey: `dietas:${date}:${time}:perfil:${profileId}:${type}:${index + 1}`,
-              });
-              if (!telegramEnabled()) alertsSent += Number(queued);
-            } catch (error) { failures.push(error); }
-          }
-        }
-      }
-
     }
   } catch (error) {
     throw error;

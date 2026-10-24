@@ -37,31 +37,6 @@ class GatewayTests(unittest.TestCase):
                 gateway.send_alert("Texto")
             request.assert_not_called()
 
-    def test_disabled_channel_never_contacts_telegram_with_valid_credentials(self):
-        for flag in [None, "false", "TRUE", "1"]:
-            env = {"TELEGRAM_BOT_TOKEN": "123:fake", "TELEGRAM_CHAT_ID": "123"}
-            if flag is not None:
-                env["TELEGRAM_ENABLED"] = flag
-            with patch.dict("os.environ", env, clear=True), patch("urllib.request.urlopen") as request:
-                with self.assertRaisesRegex(ValueError, "telegram_disabled"):
-                    gateway.send_alert("Texto")
-                request.assert_not_called()
-
-    def test_enabled_channel_keeps_telegram_transport(self):
-        env = {"TELEGRAM_ENABLED": "true", "TELEGRAM_BOT_TOKEN": "123:fake", "TELEGRAM_CHAT_ID": "123"}
-        with patch.dict("os.environ", env, clear=True), patch("urllib.request.urlopen") as request:
-            request.return_value.__enter__.return_value.read.return_value = b'{"ok":true,"result":{"message_id":7}}'
-            self.assertEqual(gateway.send_alert("Texto"), 7)
-            self.assertEqual(request.call_count, 1)
-
-    def test_disabled_http_handler_stops_before_reading_body(self):
-        instance = gateway.handler.__new__(gateway.handler)
-        from unittest.mock import Mock
-        instance.reply = Mock()
-        with patch.dict("os.environ", {}, clear=True):
-            instance.do_POST()
-        instance.reply.assert_called_once_with(503, {"ok": False, "error": "telegram_disabled"})
-
     def test_water_prompt_creates_only_fixed_volume_buttons(self):
         payload = self.payload()
         payload["water_checkin"] = {"profile_id": 1, "date": "2026-10-13", "time": "07:30"}

@@ -1,11 +1,9 @@
-import { telegramEnabled } from '../lib/messagingChannels.js';
 import { processTelegramWater } from '../lib/telegramWater.js';
 import { telegramWebhookAuthorized, processTelegramPurchase } from '../lib/telegramPurchase.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ ok: false }); }
-  if (!telegramEnabled()) return res.status(200).json({ ok: true, disabled: true });
   if (!telegramWebhookAuthorized(req)) return res.status(401).json({ ok: false });
   try {
     const update = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
