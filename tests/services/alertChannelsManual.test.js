@@ -76,3 +76,58 @@ it.each([
     expect(bodies.every((item) => item.source === 'superapp' && item.idempotency_key.startsWith('manual:'))).toBe(true);
   }
 });
+
+it('não diz que o teste foi enviado quando o WhatsApp ligado não tem origem', async () => {
+  channels.value = [{ telegram_enabled: false, whatsapp_enabled: true }];
+  vi.resetModules();
+  vi.stubEnv('NODE_ENV', 'development');
+  vi.stubEnv('OFFLINE_DEV', 'false');
+  vi.stubEnv('WHATSAPP_API_ORIGIN', '');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', '');
+  vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID', '42');
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+  const { runTelegramManualTest } = await import('../../lib/telegramManualTest.js');
+  const result = await runTelegramManualTest();
+  expect(result.status).toBe(502);
+  expect(result.body.ok).toBe(false);
+  expect(result.body.sent).toBe(0);
+  expect(result.body.error).toContain('WHATSAPP_API_ORIGIN');
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('não zera a saúde do WhatsApp quando falta o perfil financeiro', async () => {
+  channels.value = [{ telegram_enabled: false, whatsapp_enabled: true }];
+  vi.resetModules();
+  vi.stubEnv('NODE_ENV', 'development');
+  vi.stubEnv('OFFLINE_DEV', 'false');
+  vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 'token-de-teste');
+  vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID', '');
+  const fetchMock = vi.fn(async () => ({ status: 202, ok: true, json: async () => ({ ok: true }) }));
+  vi.stubGlobal('fetch', fetchMock);
+  const { runTelegramManualTest } = await import('../../lib/telegramManualTest.js');
+  const result = await runTelegramManualTest();
+  const bodies = fetchMock.mock.calls.map(([, options]) => JSON.parse(options.body));
+  expect(result.status).toBe(200);
+  expect(result.body.sent).toBe(2);
+  expect(result.body.partial).toBe(true);
+  expect(result.body.warnings.join(' ')).toContain('WHATSAPP_FINANCE_PROFILE_ID');
+  expect(bodies.map((item) => item.event_type)).toEqual(['health.water_progress', 'health.diet_menu']);
+});
+
+it('informa falha do WhatsApp em vez de sucesso com zero', async () => {
+  channels.value = [{ telegram_enabled: false, whatsapp_enabled: true }];
+  vi.resetModules();
+  vi.stubEnv('NODE_ENV', 'development');
+  vi.stubEnv('OFFLINE_DEV', 'false');
+  vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 'token-de-teste');
+  vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID', '42');
+  vi.stubGlobal('fetch', vi.fn(async () => ({ status: 401, ok: false, json: async () => ({ ok: false }) })));
+  const { runTelegramManualTest } = await import('../../lib/telegramManualTest.js');
+  const result = await runTelegramManualTest();
+  expect(result.status).toBe(502);
+  expect(result.body.sent).toBe(0);
+  expect(result.body.error).toContain('não confirmou');
+});
