@@ -8,6 +8,7 @@ const input={type:'water',profileId:'3',requestId:'00000000-0000-4000-8000-00000
 const user={id:'00000000-0000-4000-8000-000000000001'};
 beforeEach(()=>{
   vi.stubEnv('NODE_ENV','development');vi.stubEnv('OFFLINE_DEV','false');
+  vi.stubEnv('TELEGRAM_ENABLED','false');
   vi.stubEnv('SAUDE_ALERTS_OWNER_USER_ID',user.id);
   mocks.limit.mockReset().mockResolvedValue(true);mocks.enqueue.mockReset().mockResolvedValue(true);mocks.enabled.mockReset().mockReturnValue(true);
   mocks.profile={id:3,created_by:'00000000-0000-4000-8000-000000000002'};
@@ -27,9 +28,14 @@ it.each(['water','diet'])('teste %s usa perfil real e proprietario do banco',asy
   expect(mocks.enqueue.mock.calls[0][1]).toMatchObject({audience:'3',eventType:type==='water'?'health.water_progress':'health.diet_menu'});
   expect(mocks.enqueue.mock.calls[0][1].message).toContain('não representa dados reais');
 });
-it('Financeiro usa proprietario configurado e nao o perfil escolhido',async()=>{
-  expect((await runWhatsAppManualTest({...input,type:'finance',profileId:'999'},user)).body.audience).toBe(user.id);
+it('Financeiro usa o perfil escolhido quando ele pertence ao proprietario financeiro',async()=>{
+  mocks.profile={id:3,created_by:user.id};
+  expect((await runWhatsAppManualTest({...input,type:'finance'},user)).body.audience).toBe('3');
   expect(mocks.enqueue.mock.calls[0][1].eventType).toBe('financeiro.daily_summary');
+});
+it('Financeiro recusa perfil de outro proprietario',async()=>{
+  expect((await runWhatsAppManualTest({...input,type:'finance'},user)).status).toBe(403);
+  expect(mocks.enqueue).not.toHaveBeenCalled();
 });
 it('perfil inexistente e limite de testes impedem envio',async()=>{
   mocks.profile=null;expect((await runWhatsAppManualTest(input,user)).status).toBe(404);

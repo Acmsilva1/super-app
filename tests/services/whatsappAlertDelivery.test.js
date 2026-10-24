@@ -3,6 +3,7 @@ import { deliverAlertChannels, enqueueWhatsAppAlert, splitMessage } from '../../
 let rows, config;
 const alert = { eventType: 'health.water_progress', audience: '3', title: 'Água', message: 'Lembrete', dedupeKey: 'agua:hoje:10:3' };
 beforeEach(() => {
+  vi.stubEnv('TELEGRAM_ENABLED','true');
   vi.stubEnv('WHATSAPP_ALERTS_ENABLED', 'true');
   vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
   vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 't'.repeat(64));
@@ -102,4 +103,13 @@ it('diagnostico distingue timeout e ausencia de destinatarios', async () => {
   fetch.mockResolvedValueOnce({status:422,json:async()=>({error:'no_authorized_recipients'})});
   await enqueueWhatsAppAlert(config,{...alert,dedupeKey:'missing',onDiagnostic:item=>missing.push(item)});
   expect(missing.at(-1)).toMatchObject({code:'no_recipients',state:'warning'});
+});
+
+it.each(['', 'false', 'TRUE', '1'])('Telegram fica desligado com flag %s mesmo com WhatsApp habilitado',async flag=>{
+ vi.stubEnv('TELEGRAM_ENABLED',flag);
+ const telegram=vi.fn().mockRejectedValue(Error('Telegram deveria estar desligado'));
+ expect(await deliverAlertChannels(telegram,config,alert)).toBe(true);
+ expect(telegram).not.toHaveBeenCalled();
+ expect(fetch).toHaveBeenCalledOnce();
+ expect(fetch.mock.calls[0][0]).toContain('mensageria.example');
 });

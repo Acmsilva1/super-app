@@ -41,7 +41,8 @@ it('alterar dieta não cancela a recuperação de água anterior', async () => {
 });
 
 beforeEach(() => {
-  vi.unstubAllEnvs(); vi.unstubAllGlobals();
+  vi.stubEnv('TELEGRAM_ENABLED','true');
+  vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.stubEnv('TELEGRAM_ENABLED','true');
   state.inserts=[]; state.updates=[]; state.duplicate=false;
   state.rows={
     app_user_roles:[{role:'owner'}], tb_saude_perfis:[{id:1,nome:'Perfil'}],
@@ -166,4 +167,20 @@ it('WhatsApp recebe dieta separada por perfil, preservando o resumo Telegram', a
   expect(whatsapp.find(item => item.audience === '1').message).not.toContain('Plano exclusivo B');
   expect(whatsapp.find(item => item.audience === '2').message).toContain('Plano exclusivo B');
   expect(whatsapp.find(item => item.audience === '2').message).not.toContain('Plano exclusivo A');
+});
+
+it.each(['agua','dieta'])('cron %s envia somente WhatsApp sem credenciais Telegram',async type=>{
+ vi.stubEnv('TELEGRAM_ENABLED','');vi.stubEnv('ALERTS_API_URL','');vi.stubEnv('ALERTS_API_TOKEN','');
+ vi.stubEnv('WHATSAPP_ALERTS_ENABLED','true');vi.stubEnv('WHATSAPP_API_ORIGIN','https://mensageria.example');vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN','w'.repeat(64));
+ if(type==='dieta'){
+  state.rows.tb_saude_alertas_agenda=[{perfil_id:1,agua_ativo:false,dieta_ativa:true}];
+  state.rows.tb_saude_dietas=[{id:1,perfil_id:1,titulo:'Plano exclusivo'}];
+ }
+ vi.stubGlobal('fetch',vi.fn().mockResolvedValue({status:202,json:async()=>({ok:true,jobs:[{id:'job',status:'pending'}]})}));
+ const result=await runSaudeAlertSlot(new Date(type==='dieta'?'2026-10-05T22:05:00Z':'2026-10-05T10:37:00Z'));
+ expect(result.alerts_sent).toBe(1);expect(fetch).toHaveBeenCalledOnce();
+ const [url,request]=fetch.mock.calls[0];expect(url).toBe('https://mensageria.example/api/control?action=event');
+ expect(JSON.parse(request.body)).toMatchObject({audience:'1',event_type:type==='dieta'?'health.diet_menu':'health.water_progress'});
+ expect(state.inserts.every(row=>row.dedupe_key.startsWith('whatsapp:'))).toBe(true);
+ if(type==='agua'){const body=JSON.parse(request.body);expect(body.message).toContain('Registre a água que bebeu no Super App.');expect(body.message).not.toContain('responda a esta mensagem');expect(body.waterPrompt).toBeUndefined();}
 });

@@ -19,7 +19,8 @@ describe('Compras por texto, uma linha por lançamento',()=>{
 describe('Rascunho e confirmação do Telegram',()=>{
   let inserts, drafts, fetchMock, client;
   const message = text => ({update_id:123,message:{text,date:Math.floor(Date.now()/1000),from:{id:123},chat:{id:123,type:'private'}}});
-  beforeEach(()=>{
+  beforeEach(() => {
+  vi.stubEnv('TELEGRAM_ENABLED','true');
     vi.stubEnv('TELEGRAM_CHAT_ID','123');vi.stubEnv('TELEGRAM_BOT_TOKEN','123:fake');vi.stubEnv('SAUDE_ALERTS_OWNER_USER_ID','owner');
     inserts=[];drafts=[];
     fetchMock=vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,result:{message_id:1}})});vi.stubGlobal('fetch',fetchMock);

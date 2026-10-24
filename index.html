@@ -7807,10 +7807,12 @@
                             <div id="adminTempSecret" class="profile-admin-temp-secret" hidden><strong>Senha temporária (exibida uma vez):</strong> <code id="adminTempSecretValue"></code><button type="button" id="adminTempSecretClose">Ocultar</button></div>
                             <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
                             <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
-                            <div class="profile-admin-toolbar"><div><h4>Testes de disparo WhatsApp</h4><p>Envie uma mensagem de teste por rota aos destinatários ativos. Não altera dados nem horários. Aceito na fila não significa entregue no celular.</p><label for="adminWhatsAppProfile">Perfil para Água e Dieta</label><select id="adminWhatsAppProfile" aria-label="Perfil para testes WhatsApp"><option value="">Carregando perfis…</option></select><p>Financeiro usa o proprietário configurado no Super App.</p></div><div class="profile-whatsapp-test-actions"><button type="button" class="profile-whatsapp-test" data-admin-whatsapp-test="water">Testar Água</button><button type="button" class="profile-whatsapp-test" data-admin-whatsapp-test="diet">Testar Dieta</button><button type="button" class="profile-whatsapp-test" data-admin-whatsapp-test="finance">Testar Financeiro</button></div></div>
+                            <div class="profile-admin-toolbar"><div><h4>Testes de disparo WhatsApp</h4><p>Envie uma mensagem de teste por rota aos destinatários ativos. Não altera dados nem horários. Aceito na fila não significa entregue no celular.</p><label for="adminWhatsAppProfile">Perfil dos alertas</label><select id="adminWhatsAppProfile" aria-label="Perfil para testes WhatsApp"><option value="">Carregando perfis…</option></select><p>Financeiro também usa este perfil, que deve pertencer ao usuário dono dos dados financeiros.</p></div><div class="profile-whatsapp-test-actions"><button type="button" class="profile-whatsapp-test" data-admin-whatsapp-test="water">Testar Água</button><button type="button" class="profile-whatsapp-test" data-admin-whatsapp-test="diet">Testar Dieta</button><button type="button" class="profile-whatsapp-test" data-admin-whatsapp-test="finance">Testar Financeiro</button></div></div>
                             <p id="adminWhatsAppTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
+                            <template id="legacyMessagingSettings">
                             <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie somente texto no formato padaria,4,25. Cada linha é um lançamento; confirme o resumo antes de salvar. Sempre débito. Use /pendente para recuperar a última confirmação.</p></div><button type="button" class="profile-telegram-switch" id="adminTelegramWebhook" role="switch" aria-checked="false" aria-label="Compras pelo Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span data-switch-label>Consultando…</span></button></div>
                             <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
+                            </template>
                         </div>
                     </section>`;
                 document.body.appendChild(modal);
@@ -7959,7 +7961,7 @@
                     document.getElementById('profileAdminEmail').textContent = user?.email || 'Conta local';
                     modal.hidden = false;
                     await this.loadAdminUsers();
-                    await this.loadAdminTelegramWebhookStatus();
+                    // Controles do canal legado preservados no template inativo.
                 });
                 const closeProfile = () => {
                     modal.hidden = true;
@@ -8075,7 +8077,7 @@
                 const message = document.getElementById('adminWhatsAppTestMessage');
                 const profile = document.getElementById('adminWhatsAppProfile');
                 if (!button || !message || buttons.some(item => item.disabled)) return;
-                if (type !== 'finance' && !profile?.value) { message.textContent = 'Selecione um perfil de Saúde antes de testar.'; return; }
+                if (!profile?.value) { message.textContent = 'Selecione um perfil de Saúde antes de testar.'; return; }
                 const previous = button.textContent;
                 buttons.forEach(item => { item.disabled = true; });
                 button.textContent = 'Solicitando…';
@@ -8084,7 +8086,7 @@
                 try {
                     const response = await fetch('/api/admin/usuarios', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'test_whatsapp', type, profileId: type === 'finance' ? undefined : profile.value, requestId: crypto.randomUUID() }),
+                        body: JSON.stringify({ action: 'test_whatsapp', type, profileId: profile.value, requestId: crypto.randomUUID() }),
                     });
                     const payload = await response.json().catch(() => ({ error: 'Não foi possível ler a resposta do servidor.' }));
                     const trace = Array.isArray(payload.diagnostics) ? payload.diagnostics.map(item => `${item.state === 'ok' ? '✓' : item.state === 'warning' ? '!' : '✗'} ${item.stage}${item.http_status ? ` (HTTP ${item.http_status})` : ''}: ${item.message} [${item.code}]`).join('\n') : '';

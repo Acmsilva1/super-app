@@ -44,7 +44,7 @@ export async function renderFinanceAlerts(host) {
     const section = form.elements.tipo.value;
     host.querySelector('[data-message-preview]').textContent = Object.hasOwn(FINANCIAL_ALERT_SECTIONS, section)
       ? `${FINANCIAL_ALERT_INTROS[section]}\nResumo · ${FINANCIAL_ALERT_SECTIONS[section]}\n${FINANCIAL_ALERT_DESCRIPTIONS[section]} Os valores são atualizados na hora do envio.`
-      : 'Escolha um módulo para ver o que vai chegar no Telegram.';
+      : 'Escolha um módulo para ver o que vai chegar no WhatsApp.';
     try {
       const payload = validateAlert({tipo:form.elements.tipo.value,horarios:times(),ativo:form.elements.ativo.checked});
       preview.textContent = 'Próximos envios: ' + alertOccurrences(payload,new Date(),{future:true}).map(fmt).join(' · ');

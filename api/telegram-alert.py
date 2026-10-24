@@ -48,6 +48,8 @@ def water_keyboard(payload):
 
 
 def send_alert(text, reply_markup=None):
+    if os.environ.get("TELEGRAM_ENABLED") != "true":
+        raise ValueError("telegram_disabled")
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
     if not re.fullmatch(r"[0-9]+:[A-Za-z0-9_-]+", token) or not re.fullmatch(r"-?[0-9]+", chat_id):
@@ -84,6 +86,9 @@ class handler(BaseHTTPRequestHandler):
         self.reply(405, {"ok": False})
 
     def do_POST(self):
+        if os.environ.get("TELEGRAM_ENABLED") != "true":
+            self.reply(503, {"ok": False, "error": "telegram_disabled"})
+            return
         token = os.environ.get("ALERTS_API_TOKEN", "")
         supplied = self.headers.get("X-Alert-Token", "")
         if len(token) < 32 or not hmac.compare_digest(supplied.encode(), token.encode()):
