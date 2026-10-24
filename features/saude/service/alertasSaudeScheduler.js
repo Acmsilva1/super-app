@@ -1,6 +1,8 @@
 import { DIET_MEALS, dietForDate } from './dietasService.js';
 import { enrichDietNutrition, nutritionForDietItem } from './alimentosService.js';
 import { DEFAULT_ALERT_SCHEDULE, normalizeAlertSchedule } from './alertScheduleConfig.js';
+import { enqueueWhatsAppAlert } from '../../../lib/whatsappAlertClient.js';
+import { readAlertChannels } from '../../../lib/alertChannelPreferences.js';
 
 const TIME_ZONE = 'America/Sao_Paulo';
 const SAFE_DELIVERY_ERRORS = new Set([
@@ -23,21 +25,28 @@ function saoPauloClock(value = new Date()) {
 
 async function readAlertConfig(deadline) {
   const ownerId = String(process.env.SAUDE_ALERTS_OWNER_USER_ID || '').trim();
-  const configuredUrl = String(process.env.ALERTS_API_URL || '').trim();
-  const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-  const url = configuredUrl || (deploymentHost ? `https://${deploymentHost}/api/telegram-alert` : '');
-  const token = String(process.env.ALERTS_API_TOKEN || '').trim();
   const enabled = process.env.SAUDE_ALERTS_ENABLED === 'true';
-  if (!enabled || !ownerId || !url || !token) return null;
+  if (!enabled || !ownerId) return null;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ownerId)) {
     throw new Error('SAUDE_ALERTS_OWNER_USER_ID inválido.');
   }
-  const gateway = new URL(url);
-  if (gateway.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(gateway.hostname))) {
-    throw new Error('alerts_gateway_https_required');
-  }
   const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
-  return { ownerId, url, token, client: getAlertServiceClient({deadline}) };
+  const client = getAlertServiceClient({deadline});
+  const channels = await readAlertChannels(client);
+  let url = '';
+  let token = '';
+  if (channels.telegram) {
+    const configuredUrl = String(process.env.ALERTS_API_URL || '').trim();
+    const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+    url = configuredUrl || (deploymentHost ? `https://${deploymentHost}/api/telegram-alert` : '');
+    token = String(process.env.ALERTS_API_TOKEN || '').trim();
+    if (!url || !token) return null;
+    const gateway = new URL(url);
+    if (gateway.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(gateway.hostname))) {
+      throw new Error('alerts_gateway_https_required');
+    }
+  }
+  return { ownerId, url, token, client, channels };
 }
 
 async function sendAlert(config, { eventType, title, message, dedupeKey,waterPrompt=null }) {
@@ -232,7 +241,24 @@ function formatDietAlert(report) {
 async function dispatchWaterForProfile(config, data, profile, date, time) {
   const key = `agua:${date}:${time}:${profile.id}`;
   const report = waterProfileReport(profile, data.goals.get(String(profile.id)), data.logs.get(String(profile.id)), date, time);
-  return Number(await sendAlert(config, { eventType: 'health.water_progress', title: `Progresso de agua - ${profile.nome}`, message: formatWaterAlert(report), dedupeKey: key,waterPrompt:report.meta_ml?{profileId:profile.id,date,time}:null }));
+  const title = `Progresso de agua - ${profile.nome}`;
+  const message = formatWaterAlert(report);
+  const channels = config.channels || { telegram: true, whatsapp: true };
+  let sent = 0;
+  try {
+    if (channels.telegram) {
+      sent = Number(await sendAlert(config, { eventType: 'health.water_progress', title, message, dedupeKey: key,waterPrompt:report.meta_ml?{profileId:profile.id,date,time}:null }));
+    }
+    return sent;
+  } finally {
+    if (channels.whatsapp) {
+      await enqueueWhatsAppAlert({
+        eventType: 'health.water_progress', audience: String(profile.id), idempotencyKey: key, title, message,
+      }, { deadline: config.deadline }).catch(() => {
+        console.error('[whatsapp] água isolada');
+      });
+    }
+  }
 }
 
 export function buildDietAlertMessages(data, meal, date, time, { includeInactive = false } = {}) {
@@ -270,6 +296,60 @@ export async function previewAllDietAlerts(now = new Date()) {
   });
 }
 
+export async function previewWhatsAppHealthTests(now = new Date()) {
+  const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
+  const { date, time } = saoPauloClock(now);
+  const data = await loadAlertData({ client: getAlertServiceClient() }, date);
+  const profiles = new Map(data.profiles.map((profile) => [String(profile.id), profile]));
+  const alerts = [];
+  for (const profile of data.profiles) {
+    if (profile?.id == null || String(profile.id).trim() === '') continue;
+    const name = readablePart(profile.nome, 80) || 'seu perfil';
+    alerts.push({
+      eventType: 'health.water_progress',
+      audience: String(profile.id),
+      title: '[TESTE] Água',
+      message: `Teste do SuperApp: alerta de água para ${name}.`,
+    });
+  }
+  for (const diet of data.diets) {
+    if (diet?.perfil_id == null || String(diet.perfil_id).trim() === '') continue;
+    const profile = profiles.get(String(diet.perfil_id)) || { id: diet.perfil_id, nome: 'Perfil não vinculado' };
+    const schedule = normalizeAlertSchedule(data.schedules.get(String(diet.perfil_id)));
+    const meal = schedule.dieta_horarios.find((entry) => entry.horario >= time) || schedule.dieta_horarios[0];
+    if (!meal) continue;
+    const name = readablePart(profile.nome, 80) || 'seu perfil';
+    alerts.push({
+      eventType: 'health.diet_menu',
+      audience: String(diet.perfil_id),
+      title: '[TESTE] Dieta',
+      message: `Teste do SuperApp: alerta de dieta para ${name}.`,
+    });
+  }
+  return alerts;
+}
+
+async function enqueueDietMenus(config, data, meal, date, time) {
+  const profiles = new Map(data.profiles.map((profile) => [String(profile.id), profile]));
+  for (const diet of data.diets) {
+    try {
+      if (diet.alerta_ativo === false || data.schedules.get(String(diet.perfil_id))?.dieta_ativa === false) continue;
+      if (diet.perfil_id == null || String(diet.perfil_id).trim() === '') continue;
+      const profile = profiles.get(String(diet.perfil_id)) || { id: diet.perfil_id, nome: 'Perfil não vinculado' };
+      const perfilId = String(diet.perfil_id);
+      await enqueueWhatsAppAlert({
+        eventType: 'health.diet_menu',
+        audience: perfilId,
+        idempotencyKey: `dietas:${date}:${time}:${perfilId}:${meal.tipo}`,
+        title: `Dietas · ${meal.titulo}`,
+        message: formatDietAlert(dietProfileReport(profile, diet, meal, date, time, data.foods)),
+      }, { deadline: config.deadline });
+    } catch {
+      console.error('[whatsapp] dieta isolada');
+    }
+  }
+}
+
 async function dispatchCurrentSlot(config, value, data) {
   const { date, time } = saoPauloClock(value);
   const failures = [];
@@ -303,18 +383,22 @@ async function dispatchCurrentSlot(config, value, data) {
     for (const diet of data.diets) if (configuredBeforeSlot(diet) && diet.alerta_ativo !== false && scheduleFor(diet).dieta_ativa) {
       for (const meal of scheduleFor(diet).dieta_horarios) if (meal.horario === time) dueTypes.add(meal.tipo);
     }
+    const channels = config.channels || { telegram: true, whatsapp: true };
     for (const type of dueTypes) {
       const meal = DIET_MEALS.find(entry => entry.tipo === type);
       const dueData = { ...data, diets: data.diets.filter(diet => configuredBeforeSlot(diet) && scheduleFor(diet).dieta_horarios.some(entry => entry.tipo === type && entry.horario === time)) };
       const messages = buildDietAlertMessages(dueData, meal, date, time);
-      for (const [index, message] of messages.entries()) {
-        try {
-          alertsSent += Number(await sendAlert(config, {
-            eventType: 'health.diet_menu', title: `Dietas · ${meal.titulo}`,
-            message, dedupeKey: `dietas:${date}:${time}:todas:${dueTypes.size > 1 ? `${type}:` : ''}${index + 1}`,
-          }));
-        } catch (error) { failures.push(error); }
+      if (channels.telegram) {
+        for (const [index, message] of messages.entries()) {
+          try {
+            alertsSent += Number(await sendAlert(config, {
+              eventType: 'health.diet_menu', title: `Dietas · ${meal.titulo}`,
+              message, dedupeKey: `dietas:${date}:${time}:todas:${dueTypes.size > 1 ? `${type}:` : ''}${index + 1}`,
+            }));
+          } catch (error) { failures.push(error); }
+        }
       }
+      if (channels.whatsapp) await enqueueDietMenus(config, dueData, meal, date, time);
     }
   } catch (error) {
     throw error;
@@ -328,6 +412,7 @@ export async function runSaudeAlertSlot(now = new Date(), {deadline = Date.now()
   config.deadline = deadline;
   const { data: roles, error } = await config.client.from('app_user_roles').select('role').eq('user_id', config.ownerId);
   if (error || !roles?.some(row => ['owner', 'admin'].includes(row.role))) throw new Error('alerts_owner_invalid');
+  if (!config.channels.telegram && !config.channels.whatsapp) return { skipped: true, reason: 'channels_disabled', alerts_sent: 0 };
   const start = new Date(Math.floor(now.getTime() / 60000) * 60000);
   const failures = [];
   let alertsSent = 0;

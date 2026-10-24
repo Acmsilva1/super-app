@@ -1,4 +1,6 @@
 import { alertOccurrences, FINANCIAL_ALERT_INTROS, FINANCIAL_ALERT_SECTIONS } from './alertSchedule.js';
+import { enqueueWhatsAppAlert } from '../../../lib/whatsappAlertClient.js';
+import { readAlertChannels } from '../../../lib/alertChannelPreferences.js';
 const TIME_ZONE = 'America/Sao_Paulo';
 
 function saoPauloClock(value = new Date()) {
@@ -23,29 +25,57 @@ function money(value) {
 
 async function readConfig(deadline) {
   const ownerId = String(process.env.SAUDE_ALERTS_OWNER_USER_ID || '').trim();
-  const configuredUrl = String(process.env.ALERTS_API_URL || '').trim();
-  const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-  const url = configuredUrl || (deploymentHost ? `https://${deploymentHost}/api/telegram-alert` : '');
-  const token = String(process.env.ALERTS_API_TOKEN || '').trim();
-  if (process.env.SAUDE_ALERTS_ENABLED !== 'true' || !ownerId || !url || !token) return null;
+  if (process.env.SAUDE_ALERTS_ENABLED !== 'true' || !ownerId) return null;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ownerId)) {
     throw new Error('financeiro_alerts_owner_invalid');
   }
-  const gateway = new URL(url);
-  if (gateway.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(gateway.hostname))) {
-    throw new Error('alerts_gateway_https_required');
-  }
   const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
-  return { ownerId, url, token, deadline, client: getAlertServiceClient({deadline}) };
+  const client = getAlertServiceClient({deadline});
+  const channels = await readAlertChannels(client);
+  let url = '';
+  let token = '';
+  if (channels.telegram) {
+    const configuredUrl = String(process.env.ALERTS_API_URL || '').trim();
+    const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+    url = configuredUrl || (deploymentHost ? `https://${deploymentHost}/api/telegram-alert` : '');
+    token = String(process.env.ALERTS_API_TOKEN || '').trim();
+    if (!url || !token) return null;
+    const gateway = new URL(url);
+    if (gateway.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(gateway.hostname))) {
+      throw new Error('alerts_gateway_https_required');
+    }
+  }
+  return { ownerId, url, token, deadline, client, channels };
 }
 
 async function sendDailySummary(config, date, slot, message, title = null) {
   if (config.deadline && Date.now()+22000 > config.deadline) throw new Error('alerts_time_budget');
+  const channels = config.channels || { telegram: true, whatsapp: true };
   const dedupeKey = `financeiro:resumo-diario:${date}:${slot}`;
+  const alertTitle = title || `Resumo financeiro - ${date.split('-').reverse().join('/')}`;
+  const notifyWhatsApp = () => {
+    if (!channels.whatsapp) return undefined;
+    return enqueueWhatsAppAlert({
+      eventType: 'financeiro.daily_summary',
+      audience: String(process.env.WHATSAPP_FINANCE_PROFILE_ID || '').trim(),
+      idempotencyKey: dedupeKey,
+      title: alertTitle,
+      message,
+    }, { deadline: config.deadline }).catch(() => {
+      console.error('[whatsapp] financeiro isolado');
+    });
+  };
+  if (!channels.telegram) {
+    await notifyWhatsApp();
+    return false;
+  }
   const { error: claimError } = await config.client.from('tb_saude_alertas_envios').insert({
     created_by: config.ownerId, dedupe_key: dedupeKey, status: 'sending',
   });
-  if (claimError?.code === '23505') return false;
+  if (claimError?.code === '23505') {
+    await notifyWhatsApp();
+    return false;
+  }
   if (claimError) throw new Error('financeiro_alerts_claim_failed');
 
   try {
@@ -54,7 +84,7 @@ async function sendDailySummary(config, date, slot, message, title = null) {
     const response = await fetch(config.url, {
       method: 'POST', headers, redirect: 'error',
       body: JSON.stringify({ source: 'superapp-node', event_type: 'financeiro.daily_summary', severity: 'info',
-        title: title || `Resumo financeiro - ${date.split('-').reverse().join('/')}`, message,
+        title: alertTitle, message,
         dedupe_key: dedupeKey, occurred_at: new Date().toISOString() }),
       signal: AbortSignal.timeout(Math.max(1,Math.min(20000,(config.deadline || Date.now()+21000)-Date.now()-1000))),
     });
@@ -76,6 +106,8 @@ async function sendDailySummary(config, date, slot, message, title = null) {
         .eq('created_by', config.ownerId).eq('dedupe_key', dedupeKey);
     }
     throw error;
+  } finally {
+    await notifyWhatsApp();
   }
 }
 
@@ -148,6 +180,7 @@ async function runLegacyFinanceiroSummary(now = new Date(), {deadline = Date.now
 export async function runFinanceiroDailySummary(now = new Date(), {deadline = Date.now()+45000} = {}) {
   const config = await readConfig(deadline);
   if (!config) return { skipped:true,reason:'disabled_or_missing_config' };
+  if (!config.channels.telegram && !config.channels.whatsapp) return { skipped:true,reason:'channels_disabled' };
   const {data:rows,error} = await config.client.from('tb_financeiro_alertas')
     .select('id,nome,tipo,mensagem,cron,horarios,ativo,created_at,updated_at').eq('user_id',config.ownerId).eq('ativo',true).order('id').limit(51);
   // Compatibilidade durante o rollout: a migration habilita as regras persistidas.

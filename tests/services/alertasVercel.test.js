@@ -41,6 +41,7 @@ it('alterar dieta não cancela a recuperação de água anterior', async () => {
 });
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllEnvs(); vi.unstubAllGlobals();
   state.inserts=[]; state.updates=[]; state.duplicate=false;
   state.rows={
@@ -52,6 +53,9 @@ beforeEach(() => {
   vi.stubEnv('SAUDE_ALERTS_OWNER_USER_ID','00000000-0000-4000-8000-000000000001');
   vi.stubEnv('ALERTS_API_URL','https://example.invalid/api/telegram-alert');
   vi.stubEnv('ALERTS_API_TOKEN','x'.repeat(32));
+  vi.stubEnv('WHATSAPP_API_ORIGIN','');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN','');
+  vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID','');
 });
 
 describe('Vercel alerts', () => {
@@ -138,10 +142,144 @@ it('envia em minuto personalizado por perfil e ignora o antigo horário fixo',as
  transport.mockClear();await runSaudeAlertSlot(new Date('2026-10-05T14:05:00Z'));expect(transport).not.toHaveBeenCalled();
 });
 
+it('enfileira água e cada dieta no WhatsApp sem a chave agregada', async () => {
+  vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 'token-de-teste');
+  const fetchMock = vi.fn(async (url) => String(url).includes('/api/control')
+    ? { status: 202, ok: true, json: async () => ({ ok: true }) }
+    : { ok: true, json: async () => ({ ok: true, telegram_message_id: 7 }) });
+  vi.stubGlobal('fetch', fetchMock);
+  await runSaudeAlertSlot(new Date('2026-10-05T10:37:00Z'));
+  const telegram = fetchMock.mock.calls.find(([url]) => String(url).includes('telegram-alert'));
+  const whatsapp = fetchMock.mock.calls.find(([url]) => String(url).includes('/api/control'));
+  const telegramBody = JSON.parse(telegram[1].body);
+  const body = JSON.parse(whatsapp[1].body);
+  expect(whatsapp[0]).toBe('https://mensageria.example/api/control?action=event');
+  expect(whatsapp[1].headers.Authorization).toBe('Bearer token-de-teste');
+  expect(body).toMatchObject({
+    source: 'superapp', event_type: 'health.water_progress', audience: '1',
+    idempotency_key: 'agua:2026-10-05:07:30:1', title: telegramBody.title, message: telegramBody.message,
+  });
+  expect(Object.values(body).every((value) => typeof value === 'string')).toBe(true);
+
+  state.rows.tb_saude_perfis = [{ id: 1, nome: 'André' }, { id: 99, nome: 'Juliana' }];
+  state.rows.tb_saude_alertas_agenda = [{ perfil_id: 1, agua_ativo: false, dieta_ativa: true, dieta_id: 2 }];
+  state.rows.tb_saude_dietas = [
+    { id: 2, perfil_id: 99, titulo: 'Emagrecimento' },
+    { id: 3, perfil_id: 99, titulo: 'Manutenção' },
+    { id: 4, perfil_id: 1, titulo: 'Plano André' },
+  ];
+  fetchMock.mockClear();
+  await runSaudeAlertSlot(new Date('2026-10-05T22:05:00Z'));
+  const dietTelegram = fetchMock.mock.calls.filter(([url]) => String(url).includes('telegram-alert'));
+  const dietWhatsapp = fetchMock.mock.calls.filter(([url]) => String(url).includes('/api/control'));
+  expect(dietTelegram).toHaveLength(1);
+  expect(JSON.parse(dietTelegram[0][1].body).dedupe_key).toBe('dietas:2026-10-05:19:00:todas:1');
+  expect(dietWhatsapp).toHaveLength(3);
+  const menus = dietWhatsapp.map(([, options]) => JSON.parse(options.body));
+  expect(menus.map((item) => item.idempotency_key)).toEqual([
+    'dietas:2026-10-05:19:00:99:jantar',
+    'dietas:2026-10-05:19:00:99:jantar',
+    'dietas:2026-10-05:19:00:1:jantar',
+  ]);
+  expect(menus.every((item) => item.source === 'superapp' && item.event_type === 'health.diet_menu' && item.title === 'Dietas · Jantar')).toBe(true);
+  expect(menus.every((item) => !item.idempotency_key.includes(':todas'))).toBe(true);
+  expect(menus[0].message).toContain('Emagrecimento');
+  expect(menus[0].message).not.toContain('Plano André');
+  expect(menus[2].message).toContain('Plano André');
+  expect(menus[2].message).not.toContain('Emagrecimento');
+  expect(menus[0].audience).toBe('99');
+  expect(menus[2].audience).toBe('1');
+});
+
+it('falha de rede do WhatsApp não impede o Telegram', async () => {
+  vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 'token-de-teste');
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  const fetchMock = vi.fn(async (url) => {
+    if (String(url).includes('/api/control')) throw new Error('network');
+    return { ok: true, json: async () => ({ ok: true, telegram_message_id: 7 }) };
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  await expect(runSaudeAlertSlot(new Date('2026-10-05T10:37:00Z'))).resolves.toMatchObject({ alerts_sent: 1 });
+  expect(fetchMock.mock.calls.some(([url]) => String(url).includes('telegram-alert'))).toBe(true);
+});
+
 it('água começa no minuto configurado, repete pelo intervalo e termina na janela',async()=>{
  vi.stubEnv('SAUDE_ALERTS_ENABLED','true');vi.stubEnv('SAUDE_ALERTS_OWNER_USER_ID','f88a6351-317d-425b-afcd-9430c8a34f53');vi.stubEnv('ALERTS_API_URL','https://example.invalid/api/telegram-alert');vi.stubEnv('ALERTS_API_TOKEN','x'.repeat(32));
  state.rows.tb_saude_alertas_agenda=[{perfil_id:1,agua_ativo:true,agua_inicio:'08:17',agua_fim:'14:17',agua_intervalo_horas:3,dieta_ativa:false}];
  const transport=vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,telegram_message_id:1})});vi.stubGlobal('fetch',transport);
  for(const time of ['11:22','14:22','17:22']){transport.mockClear();await runSaudeAlertSlot(new Date(`2026-10-05T${time}:00Z`));expect(transport).toHaveBeenCalledOnce();}
  for(const time of ['10:37','18:22']){transport.mockClear();await runSaudeAlertSlot(new Date(`2026-10-05T${time}:00Z`));expect(transport).not.toHaveBeenCalled();}
+});
+
+function callsTo(fetchMock, fragment) {
+  return fetchMock.mock.calls.filter(([url]) => String(url).includes(fragment));
+}
+
+it.each([
+  ['os dois', true, true, true, true],
+  ['só Telegram', true, false, true, false],
+  ['só WhatsApp', false, true, false, true],
+  ['nenhum', false, false, false, false],
+])('respeita os canais na água: %s', async (_label, telegram, whatsapp, expectTelegram, expectWhatsapp) => {
+  state.rows.tb_admin_alert_channels = [{ telegram_enabled: telegram, whatsapp_enabled: whatsapp }];
+  vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 'token-de-teste');
+  const fetchMock = vi.fn(async (url) => String(url).includes('/api/control')
+    ? { status: 202, ok: true, json: async () => ({ ok: true }) }
+    : { ok: true, json: async () => ({ ok: true, telegram_message_id: 7 }) });
+  vi.stubGlobal('fetch', fetchMock);
+  const result = await runSaudeAlertSlot(new Date('2026-10-05T10:37:00Z'));
+  expect(callsTo(fetchMock, 'telegram-alert').length > 0).toBe(expectTelegram);
+  expect(callsTo(fetchMock, '/api/control').length > 0).toBe(expectWhatsapp);
+  if (!expectTelegram) expect(state.inserts).toHaveLength(0);
+  if (expectWhatsapp) {
+    expect(JSON.parse(callsTo(fetchMock, '/api/control')[0][1].body)).toMatchObject({
+      source: 'superapp', event_type: 'health.water_progress', audience: '1',
+      idempotency_key: 'agua:2026-10-05:07:30:1',
+    });
+  }
+  if (!telegram && !whatsapp) expect(result).toMatchObject({ skipped: true, reason: 'channels_disabled' });
+});
+
+it.each([
+  ['os dois', true, true, 1, 3],
+  ['só Telegram', true, false, 1, 0],
+  ['só WhatsApp', false, true, 0, 3],
+  ['nenhum', false, false, 0, 0],
+])('respeita os canais na dieta: %s', async (_label, telegram, whatsapp, telegramCount, whatsappCount) => {
+  state.rows.tb_admin_alert_channels = [{ telegram_enabled: telegram, whatsapp_enabled: whatsapp }];
+  state.rows.tb_saude_perfis = [{ id: 1, nome: 'André' }, { id: 99, nome: 'Juliana' }];
+  state.rows.tb_saude_alertas_agenda = [{ perfil_id: 1, agua_ativo: false, dieta_ativa: true, dieta_id: 2 }];
+  state.rows.tb_saude_dietas = [
+    { id: 2, perfil_id: 99, titulo: 'Emagrecimento' },
+    { id: 3, perfil_id: 99, titulo: 'Manutenção' },
+    { id: 4, perfil_id: 1, titulo: 'Plano André' },
+  ];
+  vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 'token-de-teste');
+  const fetchMock = vi.fn(async (url) => String(url).includes('/api/control')
+    ? { status: 202, ok: true, json: async () => ({ ok: true }) }
+    : { ok: true, json: async () => ({ ok: true, telegram_message_id: 7 }) });
+  vi.stubGlobal('fetch', fetchMock);
+  await runSaudeAlertSlot(new Date('2026-10-05T22:05:00Z'));
+  expect(callsTo(fetchMock, 'telegram-alert')).toHaveLength(telegramCount);
+  const menus = callsTo(fetchMock, '/api/control').map(([, options]) => JSON.parse(options.body));
+  expect(menus).toHaveLength(whatsappCount);
+  if (whatsappCount) {
+    expect(menus.map((item) => item.audience)).toEqual(['99', '99', '1']);
+    expect(menus.every((item) => item.event_type === 'health.diet_menu' && !item.idempotency_key.includes(':todas'))).toBe(true);
+  }
+  if (!telegram) expect(state.inserts).toHaveLength(0);
+});
+
+it('o teste de saúde do WhatsApp usa o perfil de cada alerta', async () => {
+  state.rows.tb_saude_perfis = [{ id: 9, nome: 'Ana' }];
+  state.rows.tb_saude_dietas = [{ id: 1, perfil_id: 9, titulo: 'Plano', alerta_ativo: true }];
+  const { previewWhatsAppHealthTests } = await import('../../features/saude/service/alertasSaudeScheduler.js');
+  const alerts = await previewWhatsAppHealthTests(new Date('2026-10-05T15:00:00Z'));
+  expect(alerts.find((item) => item.eventType === 'health.water_progress')).toMatchObject({ audience: '9' });
+  expect(alerts.find((item) => item.eventType === 'health.diet_menu')).toMatchObject({ audience: '9' });
+  expect(alerts.every((item) => item.message.startsWith('Teste do SuperApp:'))).toBe(true);
 });

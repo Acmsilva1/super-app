@@ -7807,7 +7807,9 @@
                             <div id="adminTempSecret" class="profile-admin-temp-secret" hidden><strong>Senha temporária (exibida uma vez):</strong> <code id="adminTempSecretValue"></code><button type="button" id="adminTempSecretClose">Ocultar</button></div>
                             <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
                             <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
-                            <div class="profile-admin-toolbar"><div><h4>Teste do Telegram</h4><p>Envia o teste de água, todas as dietas cadastradas e os dois resumos reais do Financeiro: débito/Pix do dia e despesas fixas do mês.</p></div><button type="button" class="profile-telegram-test" id="adminTelegramTest">Testar Telegram</button></div>
+                            <div class="profile-admin-toolbar"><div><h4>Canais dos alertas</h4><p>Ligue ou desligue quem recebe os alertas de saúde e do financeiro. O teste abaixo envia só para os canais ligados.</p></div><div class="profile-admin-channels"><button type="button" class="profile-telegram-switch" id="adminAlertChannelTelegram" role="switch" aria-checked="false" aria-label="Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span class="profile-alert-channel__name">Telegram</span><span data-switch-label>Consultando…</span></button><button type="button" class="profile-telegram-switch" id="adminAlertChannelWhatsApp" role="switch" aria-checked="false" aria-label="WhatsApp" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span class="profile-alert-channel__name">WhatsApp</span><span data-switch-label>Consultando…</span></button></div></div>
+                            <p id="adminAlertChannelsMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
+                            <div class="profile-admin-toolbar"><div><h4>Teste de alertas</h4><p>Envia o teste de água, as dietas cadastradas e os resumos do Financeiro somente para os canais ligados.</p></div><button type="button" class="profile-telegram-test" id="adminTelegramTest">Testar alertas</button></div>
                             <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                             <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie somente texto no formato padaria,4,25. Cada linha é um lançamento; confirme o resumo antes de salvar. Sempre débito. Use /pendente para recuperar a última confirmação.</p></div><button type="button" class="profile-telegram-switch" id="adminTelegramWebhook" role="switch" aria-checked="false" aria-label="Compras pelo Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span data-switch-label>Consultando…</span></button></div>
                             <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
@@ -7869,6 +7871,8 @@
                     .profile-telegram-switch[aria-checked="true"] .profile-telegram-switch__track span {transform:translateX(20px);}
                     .profile-telegram-switch:disabled {opacity:.6;cursor:wait;}
                     .profile-telegram-test:focus-visible,.profile-telegram-switch:focus-visible {outline:3px solid #95c11f;outline-offset:3px;}
+                    .profile-admin-channels{display:flex;flex-wrap:wrap;gap:.6rem;flex:none}
+                    .profile-alert-channel__name{min-width:5.2rem;text-align:left}
                     .profile-admin-create{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:end;gap:.7rem;margin:1rem 0 0}
                     .profile-admin-create[hidden],.profile-admin-temp-secret[hidden]{display:none}
                     .profile-admin-create h4{grid-column:1/-1}
@@ -7934,6 +7938,8 @@
                         .profile-admin-header{padding:1rem;align-items:flex-start}
                         #profileAdminPane{padding:1rem}
                         .profile-admin-toolbar{align-items:stretch;flex-direction:column}
+                        .profile-admin-channels{width:100%}
+                        .profile-admin-channels .profile-telegram-switch{flex:1}
                         .profile-admin-create{grid-template-columns:1fr}
                         .profile-admin-table{display:block;min-width:0}
                         .profile-admin-table thead{display:none}
@@ -7957,6 +7963,7 @@
                     modal.hidden = false;
                     await this.loadAdminUsers();
                     await this.loadAdminTelegramWebhookStatus();
+                    await this.loadAdminAlertChannels();
                 });
                 const closeProfile = () => {
                     modal.hidden = true;
@@ -7969,6 +7976,8 @@
                 document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closeProfile(); });
 
                 document.getElementById('adminTelegramTest')?.addEventListener('click', () => this.testAdminTelegram());
+                document.getElementById('adminAlertChannelTelegram')?.addEventListener('click', () => this.toggleAdminAlertChannel('telegram'));
+                document.getElementById('adminAlertChannelWhatsApp')?.addEventListener('click', () => this.toggleAdminAlertChannel('whatsapp'));
                 document.getElementById('adminTelegramWebhook')?.addEventListener('click', () => this.configureAdminTelegramWebhook());
                 if (true) {
                     const createForm = document.getElementById('adminCreateUserForm');
@@ -7996,6 +8005,76 @@
                         profileButton.style.display = 'inline-flex';
                     }
                 } catch (_error) {}
+            }
+            setAdminAlertChannelState(channel, enabled) {
+                const button = document.getElementById(channel === 'whatsapp' ? 'adminAlertChannelWhatsApp' : 'adminAlertChannelTelegram');
+                if (!button) return;
+                const name = channel === 'whatsapp' ? 'WhatsApp' : 'Telegram';
+                button.setAttribute('aria-checked', enabled ? 'true' : 'false');
+                button.setAttribute('aria-label', `${name} ${enabled ? 'ligado' : 'desligado'}`);
+                button.querySelector('[data-switch-label]').textContent = enabled ? 'Ligado' : 'Desligado';
+            }
+            async loadAdminAlertChannels() {
+                const telegram = document.getElementById('adminAlertChannelTelegram');
+                const whatsapp = document.getElementById('adminAlertChannelWhatsApp');
+                const message = document.getElementById('adminAlertChannelsMessage');
+                if (!telegram || !whatsapp || !message) return;
+                telegram.disabled = true;
+                whatsapp.disabled = true;
+                try {
+                    const response = await fetch('/api/admin/usuarios?resource=alert_channels', { cache: 'no-store' });
+                    const payload = await response.json();
+                    if (!response.ok || !payload.ok || typeof payload.telegram !== 'boolean' || typeof payload.whatsapp !== 'boolean') {
+                        throw new Error(payload.error || 'Não foi possível consultar os canais.');
+                    }
+                    this.setAdminAlertChannelState('telegram', payload.telegram);
+                    this.setAdminAlertChannelState('whatsapp', payload.whatsapp);
+                    telegram.disabled = false;
+                    whatsapp.disabled = false;
+                    message.textContent = '';
+                } catch (error) {
+                    telegram.querySelector('[data-switch-label]').textContent = 'Indisponível';
+                    whatsapp.querySelector('[data-switch-label]').textContent = 'Indisponível';
+                    message.textContent = error.message;
+                }
+            }
+            async toggleAdminAlertChannel(channel) {
+                const telegram = document.getElementById('adminAlertChannelTelegram');
+                const whatsapp = document.getElementById('adminAlertChannelWhatsApp');
+                const message = document.getElementById('adminAlertChannelsMessage');
+                const button = channel === 'whatsapp' ? whatsapp : telegram;
+                if (!button || !telegram || !whatsapp || !message || button.disabled) return;
+                const previous = {
+                    telegram: telegram.getAttribute('aria-checked') === 'true',
+                    whatsapp: whatsapp.getAttribute('aria-checked') === 'true',
+                };
+                const next = { ...previous, [channel]: !previous[channel] };
+                telegram.disabled = true;
+                whatsapp.disabled = true;
+                button.querySelector('[data-switch-label]').textContent = 'Salvando…';
+                message.textContent = 'Salvando canais de alerta…';
+                try {
+                    const response = await fetch('/api/admin/usuarios', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'set_alert_channels', telegram: next.telegram, whatsapp: next.whatsapp }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok || !payload.ok || payload.telegram !== next.telegram || payload.whatsapp !== next.whatsapp) {
+                        throw new Error(payload.error || 'Não foi possível salvar os canais.');
+                    }
+                    this.setAdminAlertChannelState('telegram', payload.telegram);
+                    this.setAdminAlertChannelState('whatsapp', payload.whatsapp);
+                    const summary = `Telegram ${payload.telegram ? 'ligado' : 'desligado'}. WhatsApp ${payload.whatsapp ? 'ligado' : 'desligado'}.`;
+                    message.textContent = summary;
+                    showAppConfirmation(summary);
+                } catch (error) {
+                    this.setAdminAlertChannelState('telegram', previous.telegram);
+                    this.setAdminAlertChannelState('whatsapp', previous.whatsapp);
+                    message.textContent = error.message || 'Não foi possível salvar os canais.';
+                } finally {
+                    telegram.disabled = false;
+                    whatsapp.disabled = false;
+                }
             }
             setAdminTelegramWebhookState(enabled) {
                 const button = document.getElementById('adminTelegramWebhook');
@@ -8058,14 +8137,14 @@
                     const payload = await response.json().catch(() => ({ error: 'Não foi possível ler a resposta do servidor. Confira se o deploy terminou.' }));
                     if (!response.ok || !payload.ok) throw new Error(payload.error || 'Não foi possível confirmar o envio. Confira o Telegram antes de repetir.');
                     message.textContent = payload.simulated
-                        ? '✅ Teste simulado no modo mock. Nenhuma mensagem enviada ao Telegram.'
-                        : `✅ Telegram confirmou ${payload.sent} mensagem(ns). Confira o chat do bot.${payload.warnings?.length ? ' ' + payload.warnings.join(' ') : ''}`;
+                        ? 'Teste simulado no modo local. Nenhuma mensagem enviada.'
+                        : `Teste enviado: ${payload.sent} mensagem(ns) para os canais ligados.${payload.warnings?.length ? ' ' + payload.warnings.join(' ') : ''}`;
                     showAppConfirmation(payload.simulated ? 'Teste concluído no modo local.' : `${payload.partial ? 'Teste parcial' : 'Teste enviado'}: ${payload.sent} mensagens.`);
                 } catch (error) {
                     message.textContent = error.message || 'Falha no teste. Confira o Telegram antes de repetir.';
                 } finally {
                     button.disabled = false;
-                    button.textContent = 'Testar Telegram';
+                    button.textContent = 'Testar alertas';
                 }
             }
             async loadAdminUsers() {

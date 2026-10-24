@@ -10,6 +10,7 @@ export function createLocalMockHandler(apps){
   let projects=[{id:1,nome:'Fluxograma Mock',dados:{nodes:[],edges:[]},created_at:new Date().toISOString(),updated_at:new Date().toISOString()}];
   let nextProject=2;
   let webhookEnabled=false;
+  let alertChannels={telegram:true,whatsapp:true};
   return(req,res,next)=>{
     if(process.env.OFFLINE_DEV!=='true'||process.env.LOCAL_DATA_MODE!=='mock')return next();
     const endpoint=req.path.replace(/^\/api\//,'').replace(/\/$/,'');
@@ -18,6 +19,7 @@ export function createLocalMockHandler(apps){
       res.setHeader('Cache-Control','no-store');
       if(req.method==='HEAD')return res.status(204).end();
       if(req.method==='GET' && req.query.resource==='telegram_webhook')return send(res,200,{ok:true,enabled:webhookEnabled,simulated:true});
+      if(req.method==='GET' && req.query.resource==='alert_channels')return send(res,200,{ok:true,...alertChannels});
       if(req.method==='GET')return send(res,200,{apps:apps.map(({id,title})=>({id,title})),restricted_apps:[],users});
       const body=req.body||{};
       if(req.method==='POST'){
@@ -25,7 +27,15 @@ export function createLocalMockHandler(apps){
           if(typeof body.enabled!=='boolean')return send(res,400,{error:'Estado inválido.'});
           webhookEnabled=body.enabled;return send(res,200,{ok:true,enabled:webhookEnabled,simulated:true});
         }
-        if(body.action==='test_telegram')return send(res,200,{ok:true,simulated:true,sent:0});
+        if(body.action==='set_alert_channels'){
+          if(typeof body.telegram!=='boolean'||typeof body.whatsapp!=='boolean')return send(res,400,{error:'Estado inválido.'});
+          alertChannels={telegram:body.telegram,whatsapp:body.whatsapp};
+          return send(res,200,{ok:true,...alertChannels});
+        }
+        if(body.action==='test_telegram'){
+          if(!alertChannels.telegram&&!alertChannels.whatsapp)return send(res,409,{ok:false,sent:0,error:'Telegram e WhatsApp estão desligados. Ligue um canal para enviar o teste.'});
+          return send(res,200,{ok:true,simulated:true,sent:0,channels:alertChannels});
+        }
         if(!String(body.name||'').trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.email||'')))return send(res,400,{error:'Nome ou email inválido.'});
         if(body.password!==undefined&&(typeof body.password!=='string'||body.password.length<8||body.password.length>128))return send(res,400,{error:'A senha deve ter entre 8 e 128 caracteres.'});
         if(users.some(user=>user.email===body.email))return send(res,409,{error:'Email já cadastrado.'});

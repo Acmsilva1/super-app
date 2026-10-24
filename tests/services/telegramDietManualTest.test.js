@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../lib/actionRateLimit.js', () => ({ consumeActionLimit: async () => true }));
 const preview = vi.hoisted(() => vi.fn());
 const financePreview = vi.hoisted(() => vi.fn());
-vi.mock('../../features/saude/service/alertasSaudeScheduler.js', () => ({ previewAllDietAlerts: preview }));
+const healthWhatsapp = vi.hoisted(() => vi.fn(async () => []));
+vi.mock('../../features/saude/service/alertasSaudeScheduler.js', () => ({ previewAllDietAlerts: preview, previewWhatsAppHealthTests: healthWhatsapp }));
 vi.mock('../../features/financeiro/service/financeiroTelegramScheduler.js', () => ({ previewFinanceiroDailySummaries: financePreview }));
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 

@@ -14,7 +14,23 @@ describe('Painel administrativo de dietas do Telegram', () => {
     const testMethod = html.slice(html.indexOf('            async testAdminTelegram('), html.indexOf('            async loadAdminUsers('));
     await new Function(`return ({${testMethod}});`)().testAdminTelegram();
     expect(showAppConfirmation).toHaveBeenCalledWith('Teste enviado: 5 mensagens.');
-    expect(message.textContent).toBe('');
+    expect(message.textContent).toBe('Teste enviado: 5 mensagem(ns) para os canais ligados.');
+    expect(button.textContent).toBe('Testar alertas');
+    expect(button.disabled).toBe(false);
+  });
+
+  it('diz que nada foi enviado quando Telegram e WhatsApp estão desligados', async () => {
+    const button = { disabled: false, textContent: 'Testar alertas' };
+    const message = { textContent: '' };
+    vi.stubGlobal('document', { getElementById: (id) => id === 'adminTelegramTest' ? button : message });
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false,
+      json: async () => ({ ok: false, error: 'Telegram e WhatsApp estão desligados. Ligue um canal para enviar o teste.' }),
+    })));
+    const testMethod = html.slice(html.indexOf('            async testAdminTelegram('), html.indexOf('            async loadAdminUsers('));
+    await new Function(`return ({${testMethod}});`)().testAdminTelegram();
+    expect(message.textContent).toBe('Telegram e WhatsApp estão desligados. Ligue um canal para enviar o teste.');
+    expect(button.textContent).toBe('Testar alertas');
     expect(button.disabled).toBe(false);
   });
 });
