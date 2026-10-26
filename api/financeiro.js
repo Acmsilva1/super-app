@@ -1,3 +1,4 @@
+import { whatsappPurchasesHandler } from '../lib/whatsappPurchases.js';
 import {
   obterFinanceiroMes,
   garantirDespesasFixasMes,
@@ -45,6 +46,7 @@ async function handleOfflineMutation(req) {
 }
 
 export default async function handler(req, res) {
+  if (req.query?.resource === 'whatsapp-purchases') return whatsappPurchasesHandler(req, res);
   try {
     if (req.query?.recurso === 'alertas') {
       const { default: alertas } = await import('../lib/financeiroAlertas.js');
