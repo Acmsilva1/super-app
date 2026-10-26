@@ -39,5 +39,14 @@ it('endpoint real reutiliza RPC SQL, confirma lote uma vez e não altera registr
     expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(2);
     expect((await db.query('select count(*)::int n from tb_telegram_compras')).rows[0].n).toBe(1);
     expect((await db.query('select update_id::text id from tb_telegram_compras')).rows[0].id.startsWith('-')).toBe(true);
+    // The oldest deployed helper must never turn a batch into a blank expense.
+    await db.exec(await readFile(new URL('../../migration/20261006_telegram_compras.sql', import.meta.url), 'utf8'));
+    const single = await call({ ...packet, request_id: '00000000-0000-4000-8000-000000000011', items: [packet.items[0]] });
+    expect(single.code).toBe(200);
+    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(3);
+    const legacyBatch = await call({ ...packet, request_id: '00000000-0000-4000-8000-000000000012' });
+    expect(legacyBatch.code).toBe(503);
+    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(3);
+    expect((await db.query('select count(*)::int n from tb_financas where descricao is null or valor is null')).rows[0].n).toBe(0);
   } finally { await db.close(); }
 }, 20000);
