@@ -3,6 +3,8 @@ import {PGlite} from '@electric-sql/pglite';
 import {it,expect} from 'vitest';
 const source=readFileSync(new URL('../../migration/20260926_reset_modulo_saude.sql',import.meta.url),'utf8');
 const migration=readFileSync(new URL('../../migration/20261013_saude_agua_ml.sql',import.meta.url),'utf8');
+const whatsappMigration=readFileSync(new URL('../../migration/20261025_whatsapp_water_day_guard.sql',import.meta.url),'utf8');
+const whatsappRollback=readFileSync(new URL('../../migration/rollback/20261025_whatsapp_water_day_guard.sql',import.meta.url),'utf8');
 const owner='00000000-0000-4000-8000-000000000001';
 const other='00000000-0000-4000-8000-000000000002';
 it('check-ins atômicos, isolados, idempotentes e sem converter doses antigas',async()=>{
@@ -20,7 +22,7 @@ it('check-ins atômicos, isolados, idempotentes e sem converter doses antigas',a
    insert into tb_saude_perfis(id,created_by,nome,sexo,data_nascimento,peso_kg,altura_cm) values(1,'${owner}','Perfil A','masculino','1990-01-01',80,174),(2,'${other}','Perfil B','feminino','1990-01-01',70,160);
    insert into tb_saude_agua_metas(created_by,perfil_id,nome,meta_doses) values('${owner}',1,'Água',8);
    insert into tb_saude_agua_logs(created_by,perfil_id,data_local,meta_doses,realizado_doses) values('${owner}',1,(now() at time zone 'America/Sao_Paulo')::date,8,3);`);
-  await db.exec(migration);await db.exec(migration);
+  await db.exec(migration);await db.exec(migration);await db.exec(whatsappMigration);await db.exec(whatsappMigration);
   expect((await db.query('select meta_ml from tb_saude_agua_metas')).rows[0].meta_ml).toBeNull();
   const record=(id,amount=100,who=owner)=>db.query('select saude_record_water_ml($1,1,$2,$3) as result',[who,amount,id]);
   await expect(record('request-a')).rejects.toThrow('water_goal_required');
@@ -35,8 +37,15 @@ it('check-ins atômicos, isolados, idempotentes e sem converter doses antigas',a
   await expect(record('request-d',50)).rejects.toThrow('water_invalid');
   await expect(record('request-e',100,other)).rejects.toThrow('water_goal_required');
   await expect(record('tg-water:agua:2000-01-01:0700:1')).rejects.toThrow('water_request_conflict');
+  await expect(record('wa-water:agua:2000-01-01:07:00:1')).rejects.toThrow('water_request_conflict');
+  const today=(await db.query("select (now() at time zone 'America/Sao_Paulo')::date::text as day")).rows[0].day;
+  await record('wa-water:agua:'+today+':07:30:1',200);
+  expect((await record('wa-water:agua:'+today+':07:30:1',200)).rows[0].result.duplicate).toBe(true);
+  await expect(record('wa-water:agua:'+today+':07:30:1',300)).rejects.toThrow('water_request_conflict');
   await db.exec(`set request.jwt.claim.role='authenticated';set request.jwt.claim.sub='${other}';`);
   await expect(record('request-f')).rejects.toThrow('water_forbidden');
-  expect((await db.query('select count(*)::int n from tb_saude_agua_checkins')).rows[0].n).toBe(5);
+  expect((await db.query('select count(*)::int n from tb_saude_agua_checkins')).rows[0].n).toBe(6);
+  await db.exec(whatsappRollback);
+  expect((await db.query('select count(*)::int n from tb_saude_agua_checkins')).rows[0].n).toBe(6);
  }finally{await db.close();}
 },20000);

@@ -1,3 +1,4 @@
+import { createWhatsAppWaterPrompt } from '../../../lib/whatsappWater.js';
 import { DIET_MEALS, dietForDate } from './dietasService.js';
 import { enrichDietNutrition, nutritionForDietItem } from './alimentosService.js';
 import { DEFAULT_ALERT_SCHEDULE, normalizeAlertSchedule } from './alertScheduleConfig.js';
@@ -254,6 +255,7 @@ async function dispatchWaterForProfile(config, data, profile, date, time) {
     if (channels.whatsapp) {
       await enqueueWhatsAppAlert({
         eventType: 'health.water_progress', audience: String(profile.id), idempotencyKey: key, title, message,
+        waterPrompt: report.meta_ml ? createWhatsAppWaterPrompt({ profileId: profile.id, date, dedupeKey: key }) : null,
       }, { deadline: config.deadline }).catch(() => {
         console.error('[whatsapp] água isolada');
       });

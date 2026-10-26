@@ -1,3 +1,4 @@
+import { whatsappWaterHandler } from '../lib/whatsappWater.js';
 import { validWaterAmount, validWaterGoal, validWaterRequestId } from '../features/saude/service/waterIntakeService.js';
 import { ALERT_SCHEDULE_FIELDS, alertScheduleSection } from '../features/saude/service/alertScheduleConfig.js';
 import { requireUser } from '../lib/auth.js';
@@ -1317,6 +1318,7 @@ async function deleteFood(id) {
 }
 
 export default async function handler(req, res) {
+  if (req.query?.resource === 'whatsapp-water') return whatsappWaterHandler(req, res);
   if (req.method === 'GET' && req.query?.health === '1') {
     return json(res, 200, { ok: true, service: 'saude' });
   }

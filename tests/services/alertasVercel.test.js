@@ -283,3 +283,25 @@ it('o teste de saúde do WhatsApp usa o perfil de cada alerta', async () => {
   expect(alerts.find((item) => item.eventType === 'health.diet_menu')).toMatchObject({ audience: '9' });
   expect(alerts.every((item) => item.message.startsWith('Teste do SuperApp:'))).toBe(true);
 });
+
+it('lembrete produzido pelo scheduler transporta assinatura válida até o registro de água', async () => {
+  const { whatsappWaterHandler } = await import('../../lib/whatsappWater.js');
+  const callbackToken = 'callback-test-'.padEnd(48, 'x');
+  vi.stubEnv('WHATSAPP_WATER_CALLBACK_TOKEN', callbackToken);
+  vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
+  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 'integration-test');
+  const fetchMock = vi.fn(async url => String(url).includes('/api/control')
+    ? { status: 202, ok: true, json: async () => ({ ok: true }) }
+    : { ok: true, json: async () => ({ ok: true, telegram_message_id: 7 }) });
+  vi.stubGlobal('fetch', fetchMock);
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  await runSaudeAlertSlot(new Date(`${date}T10:37:00Z`));
+  const body = JSON.parse(callsTo(fetchMock, '/api/control')[0][1].body);
+  expect(body.water_prompt).toMatchObject({ profile_id: '1', date, dedupe_key: `agua:${date}:07:30:1`, signature: expect.stringMatching(/^[a-f0-9]{64}$/) });
+  const rpc = vi.fn(async () => ({ data: { realizado_ml: 300, meta_ml: 2000, duplicate: false }, error: null }));
+  const db = { rpc, from(table) { const q = { select() { return q; }, eq() { return q; }, maybeSingle() { return q; }, then(resolve) { return Promise.resolve({ data: table === 'app_user_roles' ? [{ role: 'admin' }] : { id: 1, nome: 'Perfil', created_by: process.env.SAUDE_ALERTS_OWNER_USER_ID }, error: null }).then(resolve); } }; return q; } };
+  const res = { setHeader() {}, status(code) { this.code = code; return this; }, json(value) { this.value = value; return this; } };
+  await whatsappWaterHandler({ method: 'POST', headers: { authorization: `Bearer ${callbackToken}` }, body: { water_prompt: body.water_prompt, amount_ml: 300 } }, res, { getClient: () => db });
+  expect(res.code).toBe(200); expect(res.value).toMatchObject({ amount_ml: 300, remaining_ml: 1700 });
+  expect(rpc).toHaveBeenCalledWith('saude_record_water_ml', expect.objectContaining({ p_request: `wa-water:${body.idempotency_key}` }));
+});
