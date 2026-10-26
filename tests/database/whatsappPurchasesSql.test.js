@@ -9,7 +9,7 @@ const phone = '+5511900000000';
 afterEach(() => vi.unstubAllEnvs());
 it('endpoint real reutiliza RPC SQL, confirma lote uma vez e não altera registros Telegram', async () => {
   const db = new PGlite();
-  vi.stubEnv('WHATSAPP_PURCHASE_CALLBACK_TOKEN', token); vi.stubEnv('WHATSAPP_PURCHASE_OWNER_PHONE', phone); vi.stubEnv('SAUDE_ALERTS_OWNER_USER_ID', owner);
+  vi.stubEnv('WHATSAPP_PURCHASE_CALLBACK_TOKEN', token); vi.stubEnv('WHATSAPP_PURCHASE_OWNER_PHONE', phone); vi.stubEnv('SAUDE_ALERTS_OWNER_USER_ID', owner); vi.stubEnv('WHATSAPP_API_ORIGIN','https://mensageria.example'); vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN','test-only-integration-token');
   try {
     await db.exec('create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);create table app_user_roles(user_id uuid,role text);create table tb_financas(user_id uuid,descricao text,valor numeric(12,2),tipo text,categoria text,data_lancamento date,metodo_pagamento text);');
     await db.query('insert into auth.users values($1)', [owner]); await db.query('insert into app_user_roles values($1,$2)', [owner, 'owner']);
@@ -26,8 +26,8 @@ it('endpoint real reutiliza RPC SQL, confirma lote uma vez e não altera registr
       } }; return q;
     } };
     const requestId = '00000000-0000-4000-8000-000000000010';
-    const packet = { action: 'record', sender_phone: phone, request_id: requestId, confirmed: true, date: getBrazilTodayIso(), items: [{ description: 'Padaria', amount_cents: 425, payment: 'debito' }, { description: 'Mercado', amount_cents: 1530, payment: 'pix' }] };
-    async function call(body) { const res = { code: null, data: null, setHeader() {}, status(code) { this.code = code; return this; }, json(data) { this.data = data; return this; } }; await whatsappPurchasesHandler({ method: 'POST', headers: { authorization: 'Bearer ' + token }, body }, res, { getClient: () => client }); return res; }
+    const packet = { action: 'record', sender_phone: phone, authorization_id:'00000000-0000-4000-8000-000000000020', authorization_version:'a'.repeat(64), request_id: requestId, confirmed: true, date: getBrazilTodayIso(), items: [{ description: 'Padaria', amount_cents: 425, payment: 'debito' }, { description: 'Mercado', amount_cents: 1530, payment: 'pix' }] };
+    async function call(body) { const res = { code: null, data: null, setHeader() {}, status(code) { this.code = code; return this; }, json(data) { this.data = data; return this; } }; await whatsappPurchasesHandler({ method: 'POST', headers: { authorization: 'Bearer ' + token }, body }, res, { getClient: () => client, fetcher: async (_url,options) => { const packet=JSON.parse(options.body); return {status:200,json:async()=>({ok:true,authorized:true,sender_phone:packet.sender_phone,authorization_id:packet.authorization_id,authorization_version:packet.authorization_version})}; } }); return res; }
     expect((await call({ ...packet, confirmed: false })).code).toBe(400);
     expect((await db.query('select count(*)::int n from tb_telegram_compras')).rows[0].n).toBe(0);
     const results = await Promise.all([call(packet), call(packet)]);
@@ -39,14 +39,19 @@ it('endpoint real reutiliza RPC SQL, confirma lote uma vez e não altera registr
     expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(2);
     expect((await db.query('select count(*)::int n from tb_telegram_compras')).rows[0].n).toBe(1);
     expect((await db.query('select update_id::text id from tb_telegram_compras')).rows[0].id.startsWith('-')).toBe(true);
+    const otherPhone = '+5511900000001';
+    const otherRequest = '00000000-0000-4000-8000-000000000013';
+    expect((await call({ ...packet, request_id: otherRequest, sender_phone: otherPhone, items: [packet.items[0]] })).code).toBe(200);
+    expect((await db.query('select owner_id,chat_id,sender_id from tb_telegram_compras where id=$1',[otherRequest])).rows[0]).toEqual({owner_id:owner,chat_id:'wa:'+otherPhone,sender_id:'wa:'+otherPhone});
+    expect((await db.query('select count(*)::int n from tb_financas where user_id=$1',[owner])).rows[0].n).toBe(3);
     // The oldest deployed helper must never turn a batch into a blank expense.
     await db.exec(await readFile(new URL('../../migration/20261006_telegram_compras.sql', import.meta.url), 'utf8'));
     const single = await call({ ...packet, request_id: '00000000-0000-4000-8000-000000000011', items: [packet.items[0]] });
     expect(single.code).toBe(200);
-    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(3);
+    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(4);
     const legacyBatch = await call({ ...packet, request_id: '00000000-0000-4000-8000-000000000012' });
     expect(legacyBatch.code).toBe(503);
-    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(3);
+    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(4);
     expect((await db.query('select count(*)::int n from tb_financas where descricao is null or valor is null')).rows[0].n).toBe(0);
   } finally { await db.close(); }
 }, 20000);
