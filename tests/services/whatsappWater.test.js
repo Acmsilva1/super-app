@@ -84,3 +84,20 @@ it.each([['water_request_conflict', 409], ['water_goal_required', 409], ['databa
 it('JSON inválido não toca banco', async () => {
   expect((await run(request({ body: '{invalid' }))).statusCode).toBe(400); expect(state.rpc).not.toHaveBeenCalled();
 });
+
+it.each([['water_request_conflict',true],['water_invalid',false]])('healthcheck diagnostica guard pela RPC sem gravação: %s',async(message,installed)=>{
+ state.rpc.mockResolvedValue({data:null,error:{message}});
+ const res=await run(request({body:{action:'healthcheck'}}));
+ expect(res.statusCode).toBe(200);expect(res.data).toEqual({ok:true,water_day_guard:installed});
+ expect(state.rpc).toHaveBeenCalledWith('saude_record_water_ml',{p_owner:owner,p_profile:1,p_amount:0,p_request:'wa-water:agua:2000-01-01:07:30:1'});
+});
+it('healthcheck não expõe erros inesperados do banco',async()=>{
+ state.rpc.mockResolvedValue({data:null,error:{message:'internal_database_details'}});
+ const res=await run(request({body:{action:'healthcheck'}}));
+ expect(res.statusCode).toBe(503);expect(res.data).toEqual({ok:false,error:'water_unavailable'});
+});
+it('healthcheck exige autenticação e owner/admin antes da RPC',async()=>{
+ expect((await run(request({headers:{},body:{action:'healthcheck'}}))).statusCode).toBe(401);expect(state.rpc).not.toHaveBeenCalled();
+ state.rows.app_user_roles[0].role='user';
+ expect((await run(request({body:{action:'healthcheck'}}))).statusCode).toBe(403);expect(state.rpc).not.toHaveBeenCalled();
+});

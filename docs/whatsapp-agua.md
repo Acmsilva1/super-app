@@ -61,3 +61,7 @@ O dia é `America/Sao_Paulo`. Consumo pode ultrapassar a meta; `remaining_ml` pa
 `npx vitest run tests/services/whatsappWater.test.js tests/services/whatsappAlertClient.test.js tests/services/alertasVercel.test.js tests/services/telegramWater.test.js tests/database/saudeWaterMlSql.test.js --pool threads --maxWorkers 1`
 
 Os testes cobrem emissão pelo scheduler, transporte assinado, dispatch da rota real, validação de token/perfil/quantidade/dia, resolução do proprietário, sucesso/duplicidade/conflito e RPC/migration/rollback em PostgreSQL embarcado. Mocks e PGlite não comprovam Supabase, Vercel ou entrega e seleção reais no WhatsApp.
+
+## Diagnóstico sem registro de consumo
+
+O mesmo callback autenticado aceita `POST` com corpo `{"action":"healthcheck"}`. Após validar o token e o owner/admin configurado, o backend verifica a proteção de data da RPC usando quantidade zero e um lembrete antigo fixo. Quantidade zero é inválida e impede qualquer gravação mesmo se a migration estiver ausente. A resposta é `{"ok":true,"water_day_guard":true}` quando a proteção está instalada ou `false` quando falta; erro de banco/configuração retorna 503 sem detalhes sensíveis. Esse diagnóstico mantém a service-role no runtime do servidor e não envia mensagens.
