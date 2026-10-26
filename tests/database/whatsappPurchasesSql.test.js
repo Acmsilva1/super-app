@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { afterEach, expect, it, vi } from 'vitest';
-import { whatsappPurchasesHandler } from '../../lib/whatsappPurchases.js';
+import { whatsappPurchaseInput, whatsappPurchasesHandler } from '../../lib/whatsappPurchases.js';
 import { getBrazilTodayIso } from '../../features/financeiro/service/financeiroService.js';
 const owner = '00000000-0000-4000-8000-000000000001';
 const token = 'test-only-whatsapp-purchase-sql'.padEnd(48, 'x');
@@ -41,17 +41,26 @@ it('endpoint real reutiliza RPC SQL, confirma lote uma vez e não altera registr
     expect((await db.query('select update_id::text id from tb_telegram_compras')).rows[0].id.startsWith('-')).toBe(true);
     const otherPhone = '+5511900000001';
     const otherRequest = '00000000-0000-4000-8000-000000000013';
-    expect((await call({ ...packet, request_id: otherRequest, sender_phone: otherPhone, items: [packet.items[0]] })).code).toBe(200);
+    expect((await call({ ...packet, request_id: otherRequest, sender_phone: otherPhone, items: [{...packet.items[0],payment:'debito_pix'}] })).code).toBe(200);
     expect((await db.query('select owner_id,chat_id,sender_id from tb_telegram_compras where id=$1',[otherRequest])).rows[0]).toEqual({owner_id:owner,chat_id:'wa:'+otherPhone,sender_id:'wa:'+otherPhone});
     expect((await db.query('select count(*)::int n from tb_financas where user_id=$1',[owner])).rows[0].n).toBe(3);
+    const legacyPendingId='00000000-0000-4000-8000-000000000014';
+    const legacyPacket={...packet,request_id:legacyPendingId,items:[packet.items[0]]};
+    const legacyInput=whatsappPurchaseInput(legacyPacket);
+    await db.query('insert into tb_telegram_compras(id,update_id,chat_id,sender_id,owner_id,payload) values($1,$2,$3,$4,$5,$6)',[legacyPendingId,legacyInput.updateId,'wa:'+phone,'wa:'+phone,owner,JSON.stringify(legacyInput.payload)]);
+    expect((await call({...legacyPacket,items:[{...packet.items[0],payment:'debito_pix'}]})).code).toBe(409);
+    const recovered=await call(legacyPacket);expect(recovered.code).toBe(200);expect(recovered.data.duplicate).toBe(true);
+    expect((await call(legacyPacket)).data.duplicate).toBe(true);
+    expect((await db.query('select payload from tb_telegram_compras where id=$1',[legacyPendingId])).rows[0].payload.whatsapp_request.input_hash).toBe(legacyInput.payload.whatsapp_request.input_hash);
+    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(4);
     // The oldest deployed helper must never turn a batch into a blank expense.
     await db.exec(await readFile(new URL('../../migration/20261006_telegram_compras.sql', import.meta.url), 'utf8'));
     const single = await call({ ...packet, request_id: '00000000-0000-4000-8000-000000000011', items: [packet.items[0]] });
     expect(single.code).toBe(200);
-    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(4);
+    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(5);
     const legacyBatch = await call({ ...packet, request_id: '00000000-0000-4000-8000-000000000012' });
     expect(legacyBatch.code).toBe(503);
-    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(4);
+    expect((await db.query('select count(*)::int n from tb_financas')).rows[0].n).toBe(5);
     expect((await db.query('select count(*)::int n from tb_financas where descricao is null or valor is null')).rows[0].n).toBe(0);
   } finally { await db.close(); }
 }, 20000);

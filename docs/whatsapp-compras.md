@@ -1,6 +1,6 @@
 # Compras confirmadas pelo WhatsApp
 
-A mensageria interpreta texto e áudio, apresenta os lançamentos e pede confirmação. O Super App recebe somente itens estruturados após essa confirmação; não recebe áudio, texto bruto nem chave Groq e não executa LLM. O painel da mensageria define quais pessoas podem registrar compras. Todos os lançamentos autorizados entram na mesma conta financeira do proprietário configurado no Super App, como despesas variáveis de hoje por débito/Pix, categoria Outros.
+A mensageria interpreta texto e áudio, apresenta os lançamentos e pede confirmação. Uma frase como “gastei 10 reais na padaria” já fornece o necessário: descrição e valor. O bot preenche automaticamente a modalidade única Débito/Pix e a categoria Outros, sem perguntar essas informações. O Super App recebe somente itens estruturados após essa confirmação; não recebe áudio, texto bruto nem chave Groq e não executa LLM. O painel da mensageria define quais pessoas podem registrar compras. Todos os lançamentos autorizados entram na mesma conta financeira do proprietário configurado no Super App, como despesas variáveis de hoje por débito/Pix, categoria Outros.
 
 ## Configuração e ativação
 
@@ -27,15 +27,15 @@ O recurso utiliza a Function Financeiro existente; não adiciona uma décima ter
   "confirmed": true,
   "date": "2026-10-26",
   "items": [
-    { "description": "Padaria", "amount_cents": 425, "payment": "debito" },
-    { "description": "Mercado", "amount_cents": 1530, "payment": "pix" }
+    { "description": "Padaria", "amount_cents": 425, "payment": "debito_pix" },
+    { "description": "Mercado", "amount_cents": 1530, "payment": "debito_pix" }
   ]
 }
 ```
 
 O worker é responsável por obter a confirmação explícita do usuário, identificar o remetente real da mensagem, vincular a confirmação ao rascunho e à autorização corretos e rejeitar remetentes/grupos não autorizados. O callback exige `confirmed:true`, telefone E.164, `authorization_id` UUID e `authorization_version` hexadecimal minúsculo de 64 caracteres. Não aceita uma escolha de conta pelo modelo ou corpo. Não existe ação de preparar rascunho nessa API: a linha intermediária do banco só é inserida após a confirmação já ter chegado.
 
-Aceita 1 a 20 itens. Cada descrição tem 1 a 120 caracteres, sem controles. `amount_cents` deve ser número inteiro entre 1 e 999999999, sem arredondar centavos recebidos. `payment` aceita exatamente `debito` ou `pix`; ambos persistem no método existente `debito_pix`. Crédito, parcelas e propriedades extras dos itens são recusados.
+Aceita 1 a 20 itens. Cada descrição tem 1 a 120 caracteres, sem controles. `amount_cents` deve ser número inteiro entre 1 e 999999999, sem arredondar centavos recebidos. `payment` usa `debito_pix` nos pedidos novos, preenchido automaticamente pelo worker; `debito` e `pix` continuam aceitos para repetir rascunhos antigos sem modificar seu conteúdo. Todos persistem no método existente `debito_pix`. Esse campo técnico continua obrigatório no callback, mas o usuário não precisa informar pagamento ou categoria. Crédito, parcelas e propriedades extras dos itens são recusados.
 
 Resposta 200:
 
@@ -51,7 +51,7 @@ Resposta 200:
 }
 ```
 
-A RPC confirma todo o lote na mesma transação. Cada UUID de rascunho usa um identificador negativo derivado de hash para não compartilhar os IDs positivos do Telegram, e `chat_id`/`sender_id` recebem prefixo `wa:`. O payload guarda os itens e um hash canônico do pedido; diferenças de método, quantidade, descrição, ordem ou data no mesmo UUID retornam conflito. Mesmo UUID já salvo retorna `duplicate:true` sem nova gravação, após revalidar a autorização atual. A identidade `wa:<remetente real>` impede que outra pessoa autorizada reutilize o mesmo UUID para recuperar ou alterar a compra. Um retry de pedido já salvo no dia anterior também pode recuperar o sucesso, desde que telefone, proprietário e conteúdo sejam os mesmos. Um pedido novo ou ainda pendente de outro dia é recusado. A mensageria deve preservar o UUID/conteúdo nas repetições após timeout.
+A RPC confirma todo o lote na mesma transação. Cada UUID de rascunho usa um identificador negativo derivado de hash para não compartilhar os IDs positivos do Telegram, e `chat_id`/`sender_id` recebem prefixo `wa:`. O payload guarda os itens e um hash canônico do pedido; diferenças de método, quantidade, descrição, ordem ou data no mesmo UUID retornam conflito. Mesmo UUID já salvo retorna `duplicate:true` sem nova gravação, após revalidar a autorização atual. A identidade `wa:<remetente real>` impede que outra pessoa autorizada reutilize o mesmo UUID para recuperar ou alterar a compra. Um retry de pedido já salvo no dia anterior também pode recuperar o sucesso, desde que telefone, proprietário e conteúdo sejam os mesmos. Um pedido novo ou ainda pendente de outro dia é recusado. A mensageria deve preservar o UUID/conteúdo nas repetições após timeout. Não normalize `payment` de um UUID antigo de `debito`/`pix` para `debito_pix`: o hash original é preservado e essa troca no mesmo pedido retorna 409. Use `debito_pix` para novos UUIDs; pedidos pendentes/salvos antigos repetem exatamente os campos anteriores.
 
 Erros: 400 `invalid_request`; 401 `unauthorized`; 403 `sender_forbidden`/`owner_forbidden`; 405 `method_not_allowed`; 409 `request_conflict`/`purchase_cancelled`/`purchase_expired`; 410 `purchase_date_expired`; 413 `invalid_request`; 503 `purchase_unavailable`. Nunca mostrar confirmação de registro quando a resposta for erro ou ambígua.
 

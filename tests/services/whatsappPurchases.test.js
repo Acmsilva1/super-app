@@ -83,7 +83,7 @@ it.each([false, 'true', undefined])('não insere rascunho sem confirmed estritam
 it.each([0, -1, 10.5, '425', 1000000000, null])('recusa centavos inválidos %s', async amount_cents => {
   expect((await run(req({ body: body({ items: [{ description: 'Padaria', amount_cents, payment: 'pix' }] }) }))).code).toBe(400); expect(state.inserts).toHaveLength(0);
 });
-it.each(['credito', 'dinheiro', 'debito_pix', '', null])('recusa método %s', async payment => {
+it.each(['credito', 'dinheiro', '', null, undefined])('recusa método %s', async payment => {
   expect((await run(req({ body: body({ items: [{ description: 'Padaria', amount_cents: 100, payment }] }) }))).code).toBe(400);
 });
 it('limita quantidade, descrições e campos extras das compras', async () => {
@@ -202,4 +202,23 @@ it('healthcheck com grant revogado ou ACL indisponível falha antes do banco',as
 it('grant válido não permite healthcheck de outro remetente',async()=>{
  expect((await run(req({body:{action:'healthcheck',sender_phone:'+5511900000001',authorization_id:authorizationId,authorization_version:authorizationVersion}}))).code).toBe(403);
  expect(aclFetch).not.toHaveBeenCalled();expect(state.reads).toHaveLength(0);
+});
+
+it.each(['debito_pix','debito','pix'])('aceita modalidade %s e registra despesa variável como debito_pix/Outros',async payment=>{
+ const response=await run(req({body:body({items:[{description:'Padaria',amount_cents:1000,payment}]})}));
+ expect(response.code).toBe(200);expect(response.data).toMatchObject({status:'saved',count:1,total_cents:1000});
+ expect(state.inserts[0].payload.items[0]).toMatchObject({descricao:'Padaria',valor:10,tipo:'despesa',categoria:'Outros',metodo_pagamento:'debito_pix'});
+});
+it('preserva exatamente o hash de um lote legado débito/Pix',()=>{
+ const legacy=whatsappPurchaseInput(body({date:'2026-10-26'}));
+ expect(legacy.payload.whatsapp_request.input_hash).toBe('47f16fa432073fc218ba07cdec3b7d2ee3a3e22be8579f43ea98da1e6a6b17c1');
+});
+it('retry de rascunho legado mantém pagamento original; converter mesmo UUID ao canônico é conflito',async()=>{
+ state.rpc.mockResolvedValueOnce({data:null,error:{message:'temporary'}});
+ expect((await run()).code).toBe(503);
+ const legacyHash=state.inserts[0].payload.whatsapp_request.input_hash;
+ const canonical=body({items:body().items.map(item=>({...item,payment:'debito_pix'}))});
+ expect((await run(req({body:canonical}))).code).toBe(409);
+ expect((await run()).data).toMatchObject({status:'saved',duplicate:true});
+ expect(state.inserts).toHaveLength(1);expect(state.inserts[0].payload.whatsapp_request.input_hash).toBe(legacyHash);
 });
