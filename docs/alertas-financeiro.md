@@ -9,6 +9,7 @@ O formulário mostra o conteúdo de cada resumo. Cada módulo tem uma abertura p
 - Receitas: total recebido no mês.
 - Poupança: saldo acumulado e meta cadastrada.
 - Simulador: metas salvas e data da última simulação; resultados não são recalculados pelo alerta.
+- Carnê / boleto: a partir de D-3 do próximo boleto em aberto (após o último pago), vira linha extra de qualquer alerta financeiro — faltam X dias ou já passou Y — até marcar pago no módulo Carnê.
 - Geral: reúne receitas, despesas e saldo mensal, extrato do dia, fixas, poupança e simulador.
 
 Horários diários em Brasília, até 12 por alerta, com pelo menos cinco minutos de intervalo. Cada horário é armazenado e calculado separadamente, evitando combinações indevidas de horas e minutos. O cron da infraestrutura continua acionando o bot periodicamente; o envio pode atrasar até a próxima execução. O scheduler recupera ocorrências da última hora e usa uma chave persistente para cada alerta, data e horário. Alterações não disparam retroativamente horários anteriores à edição.

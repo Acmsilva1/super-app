@@ -625,8 +625,8 @@
         .logo-icon {
             width: 3rem;
             height: 3rem;
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.88), rgba(14, 165, 233, 0.9));
-            box-shadow: 0 10px 25px rgba(6, 182, 212, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+            background: linear-gradient(135deg, #ef4444, #cc0000);
+            box-shadow: 0 10px 25px rgba(204, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.28);
             border-radius: 1rem;
             display: flex;
             align-items: center;
@@ -852,10 +852,10 @@
             align-items: center;
             justify-content: center;
             border-radius: 0.8rem;
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.88), rgba(34, 197, 94, 0.86));
+            background: linear-gradient(135deg, #ef4444, #cc0000);
             color: #fff;
             font-size: 1.35rem;
-            box-shadow: 0 14px 34px rgba(14, 165, 233, 0.24);
+            box-shadow: 0 14px 34px rgba(204, 0, 0, 0.28);
         }
         .auth-sparkles {
             display: inline-flex;
@@ -6978,7 +6978,7 @@
                 </div>
                 <div class="auth-field">
                     <label for="loginPassword">Senha</label>
-                    <div class="auth-password-wrap"><input id="loginPassword" name="password" type="password" autocomplete="current-password" required minlength="6" /><button type="button" class="auth-password-toggle" data-password-toggle="loginPassword" aria-label="Mostrar senha" aria-pressed="false"><i class="fas fa-eye"></i></button></div>
+                    <div class="auth-password-wrap"><input id="loginPassword" name="password" type="password" autocomplete="current-password" required minlength="5" /><button type="button" class="auth-password-toggle" data-password-toggle="loginPassword" aria-label="Mostrar senha" aria-pressed="false"><i class="fas fa-eye"></i></button></div>
                 </div>
                 <button type="submit" class="auth-submit">Entrar</button>
                 <button type="button" id="forgotPasswordBtn" class="auth-secondary">Esqueci minha senha</button>
@@ -9037,12 +9037,12 @@
 
             normalizeFinanceScreen(screen) {
                 const value = String(screen || '').toLowerCase();
-                return ['hub', 'tendencia', 'alertas', 'fixas', 'extrato', 'receita', 'poupanca', 'simulador'].includes(value) ? value : 'hub';
+                return ['hub', 'tendencia', 'alertas', 'carne', 'fixas', 'extrato', 'receita', 'poupanca', 'simulador'].includes(value) ? value : 'hub';
             }
 
             financeSectionsForScreen(screen) {
                 const value = this.normalizeFinanceScreen(screen);
-                if (['tendencia', 'alertas', 'simulador'].includes(value)) return [];
+                if (['tendencia', 'alertas', 'carne', 'simulador'].includes(value)) return [];
                 if (value === 'hub') return ['data', 'poupanca'];
                 if (value === 'poupanca') return ['poupanca'];
                 return ['data'];
@@ -9061,6 +9061,10 @@
                 this.rememberWindowScroll('financeiro', 0);
                 if (next === 'simulador') {
                     await this.renderFinanceSimulador(el);
+                    return;
+                }
+                if (next === 'carne') {
+                    this.renderFinanceiroContent(el, el._financeiroData || { mes_ano: el.getAttribute('data-mes-ano') || this.getMesAnoAtual() });
                     return;
                 }
                 const loaded = el._financeiroLoadedSections || new Set();
@@ -9607,6 +9611,7 @@
                     hub: { title: 'Visão geral', tipo: 'gasto_variado', period: true },
                     tendencia: { title: 'Evolução financeira', tipo: 'gasto_variado', period: false },
                     alertas: { title: 'Alertas do Financeiro', tipo: 'gasto_variado', period: false },
+                    carne: { title: 'Carnê', tipo: 'gasto_variado', period: false },
                     fixas: { title: 'Despesas fixas', tipo: 'despesa_fixa', period: true },
                     extrato: { title: 'Extrato diário', tipo: 'gasto_variado', period: true },
                     receita: { title: 'Receitas', tipo: 'receita', period: true },
@@ -9636,6 +9641,7 @@
                             ${navRow('extrato', 'fa-receipt', 'Extrato diário')}
                             ${navRow('receita', 'fa-arrow-trend-up', 'Receitas')}
                             ${navRow('poupanca', 'fa-piggy-bank', 'Poupança')}
+                            ${navRow('carne', 'fa-file-invoice-dollar', 'Carnê')}
                             ${navRow('simulador', 'fa-calculator', 'Simulador')}
                             ${navRow('tendencia', 'fa-chart-line', 'Evolução financeira')}
                             ${navRow('alertas', 'fa-bell', 'Alertas')}
@@ -9645,6 +9651,8 @@
                     bodyHtml = '<section data-finance-trend-host aria-label="Evolução financeira"><p class="fin-empty" role="status">Carregando evolução financeira…</p></section>';
                 } else if (screen === 'alertas') {
                     bodyHtml = '<section data-finance-alerts-host aria-label="Alertas do Financeiro"><p class="fin-empty" role="status">Carregando alertas…</p></section>';
+                } else if (screen === 'carne') {
+                    bodyHtml = '<section data-finance-carne-host aria-label="Carnê digital"><p class="fin-empty" role="status">Carregando carnê…</p></section>';
                 } else if (screen === 'fixas') {
                     const importHtml = despesasFixas.length === 0 ? `
                         <div class="fin-callout" role="region" aria-label="Preencher despesas fixas">
@@ -9747,7 +9755,7 @@
                             <div class="fin-topbar__inner">
                                 ${backHtml}
                                 <h2 class="fin-topbar__title">${screenMeta.title}</h2>
-                                ${el._financeScreenLoading || ['hub', 'tendencia', 'alertas'].includes(screen) ? '' : `<button type="button" class="fin-topbar__add" data-action="financeiro-open-modal" data-default-tipo="${screenMeta.tipo}" aria-label="Adicionar registro" title="Adicionar registro"><i class="fas fa-plus" aria-hidden="true"></i></button>`}
+                                ${el._financeScreenLoading || ['hub', 'tendencia', 'alertas', 'carne'].includes(screen) ? '' : `<button type="button" class="fin-topbar__add" data-action="financeiro-open-modal" data-default-tipo="${screenMeta.tipo}" aria-label="Adicionar registro" title="Adicionar registro"><i class="fas fa-plus" aria-hidden="true"></i></button>`}
                                 ${periodHtml}
                             </div>
                         </div>
@@ -9762,6 +9770,14 @@
                         if (alertsHost.isConnected) return renderFinanceAlerts(alertsHost);
                     }).catch(() => {
                         if (alertsHost.isConnected) alertsHost.textContent = 'Não foi possível abrir os alertas.';
+                    });
+                }
+                if (screen === 'carne') {
+                    const carneHost = el.querySelector('[data-finance-carne-host]');
+                    import('./features/financeiro/carneUi.js').then(({ renderCarne }) => {
+                        if (carneHost.isConnected) return renderCarne(carneHost);
+                    }).catch(() => {
+                        if (carneHost.isConnected) carneHost.textContent = 'Não foi possível abrir o carnê.';
                     });
                 }
                 if (screen === 'tendencia') {

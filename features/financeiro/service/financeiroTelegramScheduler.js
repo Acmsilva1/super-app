@@ -1,4 +1,5 @@
 import { alertOccurrences, FINANCIAL_ALERT_INTROS, FINANCIAL_ALERT_SECTIONS } from './alertSchedule.js';
+import { buildCarneAlertMessage, listCarnePagoForUser } from './carneNextBoleto.js';
 import { enqueueWhatsAppAlert } from '../../../lib/whatsappAlertClient.js';
 import { readAlertChannels } from '../../../lib/alertChannelPreferences.js';
 const TIME_ZONE = 'America/Sao_Paulo';
@@ -172,7 +173,9 @@ async function runLegacyFinanceiroSummary(now = new Date(), {deadline = Date.now
   if (!config) return { skipped: true, reason: 'disabled_or_missing_config' };
   const { data: roles, error } = await config.client.from('app_user_roles').select('role').eq('user_id', config.ownerId);
   if (error || !roles?.some((row) => ['owner', 'admin'].includes(row.role))) throw new Error('financeiro_alerts_owner_invalid');
-  const message = await loadSummary(config, date, slot);
+  let message = await loadSummary(config, date, slot);
+  const carneLine = await loadSectionSummary(config, date, 'carne');
+  if (carneLine) message = [message, carneLine].filter(Boolean).join('\n\n');
   const sent = await sendDailySummary(config, date, slot, message);
   return { processed: true, alerts_sent: Number(sent), date, slot };
 }
@@ -196,10 +199,21 @@ export async function runFinanceiroDailySummary(now = new Date(), {deadline = Da
       .eq('created_by',config.ownerId).eq('dedupe_key',`financeiro:resumo-diario:${occurrence.date}:${slot}`).maybeSingle();
     if (readError) throw new Error('financeiro_alerts_delivery_history_unavailable');
     if (existing) continue;
-    const summary = row.tipo === 'mensagem' ? '' : await loadSectionSummary(config,occurrence.date,row.tipo);
+    let summary = '';
+    if (row.tipo === 'carne') {
+      summary = await loadSectionSummary(config, occurrence.date, 'carne');
+      if (!summary) continue;
+    } else if (row.tipo !== 'mensagem') {
+      summary = await loadSectionSummary(config, occurrence.date, row.tipo);
+    }
     const introduction = row.horarios == null ? row.mensagem
-      : `${FINANCIAL_ALERT_INTROS[row.tipo]}\nResumo · ${FINANCIAL_ALERT_SECTIONS[row.tipo]}`;
-    const message=[introduction,summary].filter(Boolean).join('\n\n');
+      : `${FINANCIAL_ALERT_INTROS[row.tipo] || ''}\nResumo · ${FINANCIAL_ALERT_SECTIONS[row.tipo] || row.nome}`.trim();
+    // Carnê: a partir de D-3 vira linha extra do alerta financeiro (mesmo canal), até marcar pago.
+    let message = [introduction, summary].filter(Boolean).join('\n\n');
+    if (row.tipo !== 'carne') {
+      const carneLine = await loadSectionSummary(config, occurrence.date, 'carne');
+      if (carneLine) message = [message, carneLine].filter(Boolean).join('\n\n');
+    }
     sent+=Number(await sendDailySummary(config,occurrence.date,slot,message,row.nome));processed++;
     }
   }
@@ -255,6 +269,10 @@ export async function loadSectionSummary(config,date,type) {
     return [`🚗 Simulador: ${goals.length} meta(s) salva(s)`,
       ...goals.slice(0,3).map(row => `• ${String(row.nome || 'Meta').slice(0,120)} · última simulação: ${String(row.created_at).slice(0,10).split('-').reverse().join('/')}`),
       goals.length ? 'Resultados salvos; repita a simulação no app para atualizar.' : 'Nenhuma simulação salva.'].join('\n');
+  }
+  if (type === 'carne') {
+    const pagoRows = await listCarnePagoForUser(config.client, config.ownerId);
+    return buildCarneAlertMessage(pagoRows, date);
   }
   if (type === 'geral') {
     const parts = await Promise.all([loadMonthlySummary(config,date),

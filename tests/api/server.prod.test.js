@@ -17,6 +17,7 @@ describe('server.js (producao)', () => {
     expect((await request(app).get('/styles/bank-theme.css')).status).toBe(200);
     expect((await request(app).get('/manifest.json')).headers['content-type']).toContain('application/manifest+json');
     expect((await request(app).get('/icon-192.png')).headers['cache-control']).toContain('immutable');
+    expect((await request(app).get('/lib/uiConfirmation.js')).status).toBe(200);
   });
 
   it('nao expoe segredos nem codigo de servidor', async () => {

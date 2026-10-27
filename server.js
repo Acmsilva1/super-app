@@ -24,9 +24,40 @@ function loadEnvFile(fileName) {
 
 const PUBLIC_ROOT_FILES = new Set(['index.html', 'offline.html', 'sw.js', 'manifest.json', 'app-version.json']);
 const PUBLIC_DIRS = ['styles', 'features', 'components', 'backgrounds'];
+/** Único módulo de `lib/` consumido pelo browser (parity com Vercel estático, sem expor auth/service-role). */
+const CLIENT_LIB_FILES = new Set(['uiConfirmation.js']);
 const NO_CACHE_FILES = new Set(['index.html', 'sw.js', 'app-version.json']);
 const IMMUTABLE_FILES = new Set(['icon-192.png', 'icon-512.png']);
 const CONSOLIDATED_ROUTES = new Set(['auth-config', 'statistics', 'roadmap']);
+
+async function proxyTelegramAlert(req, res) {
+  const target = String(process.env.TELEGRAM_ALERT_INTERNAL_URL || 'http://127.0.0.1:8091/').replace(/\/?$/, '/');
+  const headers = { 'Content-Type': 'application/json' };
+  const alertToken = req.headers['x-alert-token'];
+  if (alertToken) headers['X-Alert-Token'] = alertToken;
+  let body;
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? {});
+  }
+  try {
+    const upstream = await fetch(target, {
+      method: req.method,
+      headers,
+      body,
+      redirect: 'error',
+      signal: AbortSignal.timeout(25000),
+    });
+    const text = await upstream.text();
+    res.status(upstream.status);
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(text);
+  } catch (err) {
+    console.error('[server] Gateway Telegram indisponível:', err?.message || err);
+    if (res.headersSent) return res.end();
+    return res.status(502).json({ ok: false, error: 'telegram_gateway_unavailable' });
+  }
+}
 
 function setStaticHeaders(res, filePath) {
   const name = path.basename(filePath);
@@ -117,6 +148,10 @@ export function createApp() {
     if (!/^[a-z0-9-]+(\/[a-z0-9-]+)*$/i.test(endpoint)) {
       return res.status(404).json({ error: 'Rota de API nao encontrada.' });
     }
+    // Mesmo contrato Vercel (`api/telegram-alert.py`); sem criar api/telegram-alert.js (evita sombrear a Function Python na Vercel).
+    if (endpoint === 'telegram-alert') {
+      return proxyTelegramAlert(req, res);
+    }
     const modulePath = path.join(__dirname, 'api', `${endpoint}.js`);
     if (!fs.existsSync(modulePath)) {
       return res.status(404).json({ error: 'Rota de API nao encontrada.' });
@@ -138,6 +173,15 @@ export function createApp() {
       setHeaders: setStaticHeaders,
     }));
   }
+
+  app.get('/lib/:file', (req, res, next) => {
+    const name = req.params.file;
+    if (!CLIENT_LIB_FILES.has(name)) return next();
+    const filePath = path.join(__dirname, 'lib', name);
+    if (!fs.existsSync(filePath)) return next();
+    setStaticHeaders(res, name);
+    return res.sendFile(filePath);
+  });
 
   app.get('/', (req, res) => {
     setStaticHeaders(res, 'index.html');

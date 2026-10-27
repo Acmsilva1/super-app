@@ -1,4 +1,12 @@
-export const FINANCIAL_ALERT_SECTIONS = { geral: 'Geral', diario: 'Extrato diário', fixas: 'Despesas fixas', receitas: 'Receitas', poupanca: 'Poupança', simulador: 'Simulador' };
+export const FINANCIAL_ALERT_SECTIONS = {
+  geral: 'Geral',
+  diario: 'Extrato diário',
+  fixas: 'Despesas fixas',
+  receitas: 'Receitas',
+  poupanca: 'Poupança',
+  simulador: 'Simulador',
+  carne: 'Carnê / boleto',
+};
 export const FINANCIAL_ALERT_INTROS = {
   geral: 'Sua visão financeira completa, em um só resumo.',
   diario: 'Confira os gastos do dia e acompanhe suas movimentações.',
@@ -6,14 +14,16 @@ export const FINANCIAL_ALERT_INTROS = {
   receitas: 'Acompanhe as entradas do mês e a evolução das suas receitas.',
   poupanca: 'Veja o saldo da sua poupança e acompanhe sua meta.',
   simulador: 'Confira suas metas e as últimas simulações salvas.',
+  carne: 'Lembrete do próximo boleto do carnê.',
 };
 export const FINANCIAL_ALERT_DESCRIPTIONS = {
-  geral: 'Receitas, despesas e saldo do mês, gastos de hoje com débito/Pix, despesas fixas, poupança e metas do simulador.',
-  diario: 'Gastos de hoje com débito/Pix.',
-  fixas: 'Despesas fixas pagas e pendentes deste mês.',
-  receitas: 'Total de receitas recebidas neste mês.',
-  poupanca: 'Saldo acumulado e meta de poupança.',
-  simulador: 'Metas salvas e data da última simulação.',
+  geral: 'Receitas, despesas e saldo do mês, gastos de hoje com débito/Pix, despesas fixas, poupança e metas do simulador. Inclui carnê a partir de D-3 até pagar.',
+  diario: 'Gastos de hoje com débito/Pix. Inclui carnê a partir de D-3 até pagar.',
+  fixas: 'Despesas fixas pagas e pendentes deste mês. Inclui carnê a partir de D-3 até pagar.',
+  receitas: 'Total de receitas recebidas neste mês. Inclui carnê a partir de D-3 até pagar.',
+  poupanca: 'Saldo acumulado e meta de poupança. Inclui carnê a partir de D-3 até pagar.',
+  simulador: 'Metas salvas e data da última simulação. Inclui carnê a partir de D-3 até pagar.',
+  carne: 'Agenda diária no horário escolhido (não é a data do boleto). O Telegram só recebe a mensagem de D-3 do próximo vencimento em aberto até marcar como pago.',
 };
 export const ALERT_TYPES = [...Object.keys(FINANCIAL_ALERT_SECTIONS), 'mensal', 'mensagem'];
 export function validateAlertTimes(times) {

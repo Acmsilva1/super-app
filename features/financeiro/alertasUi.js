@@ -14,7 +14,7 @@ export async function renderFinanceAlerts(host) {
     <form hidden class="fin-alerts-form">
       <label>O que você quer acompanhar?<select name="tipo" required><option value="">Selecione um módulo</option>${Object.entries(FINANCIAL_ALERT_SECTIONS).map(([value,label]) => `<option value="${value}">${value === 'geral' ? 'Geral · resumo de tudo' : label}</option>`).join('')}</select></label>
       <div><span class="fin-alerts-label">Horários do dia</span><div data-times class="fin-alerts-times"></div><button class="fin-btn fin-btn--ghost" type="button" data-add-time>Adicionar horário</button></div>
-      <p class="fin-alerts-note">Todos os dias, no horário de Brasília. Geral reúne extrato, despesas fixas, receitas, poupança e metas do simulador.</p>
+      <p class="fin-alerts-note">Todos os dias, no horário de Brasília. A partir de D-3 do próximo boleto em aberto, o carnê entra como linha extra no alerta financeiro (faltam X dias ou já passou Y), até marcar como pago. Geral reúne extrato, fixas, receitas, poupança e simulador.</p>
       <div class="fin-alerts-message"><strong>Mensagem padrão do bot</strong><p data-message-preview role="status" aria-live="polite"></p></div>
       <p data-preview role="status" aria-live="polite"></p>
       <label class="fin-alerts-active"><input type="checkbox" name="ativo" checked> Ativo</label>
@@ -47,7 +47,10 @@ export async function renderFinanceAlerts(host) {
       : 'Escolha um módulo para ver o que vai chegar no Telegram.';
     try {
       const payload = validateAlert({tipo:form.elements.tipo.value,horarios:times(),ativo:form.elements.ativo.checked});
-      preview.textContent = 'Próximos envios: ' + alertOccurrences(payload,new Date(),{future:true}).map(fmt).join(' · ');
+      const slots = alertOccurrences(payload,new Date(),{future:true}).map(fmt).join(' · ');
+      preview.textContent = section === 'carne'
+        ? `Próximas verificações (cron diário; envio só de D-3 até pagar): ${slots}`
+        : `Próximos envios: ${slots}`;
     } catch { preview.textContent = 'Selecione o módulo e preencha os horários desejados.'; }
   }
   function renderTimes(values) {
@@ -107,7 +110,12 @@ export async function renderFinanceAlerts(host) {
         const state = document.createElement('span'); state.textContent = `Alerta ${row.ativo ? 'Ligado' : 'Desligado'}`;
         toggle.append(track,state); header.append(title,toggle);
         desc.textContent = `${row.ativo ? 'Ativo' : 'Pausado'} · ${row.horarios ? 'Todos os dias às ' + row.horarios.join(' · ') : 'Agendamento anterior'}`;
-        try { const dates = alertOccurrences(row,new Date(),{future:true,count:1}); next.textContent = row.ativo && dates.length ? 'Próximo: ' + fmt(dates[0]) : ''; } catch { next.textContent = 'Revise os horários deste alerta.'; }
+        try {
+          const dates = alertOccurrences(row,new Date(),{future:true,count:1});
+          if (!row.ativo || !dates.length) next.textContent = '';
+          else if (row.tipo === 'carne') next.textContent = `Próxima verificação: ${fmt(dates[0])} · envio só de D-3 até pagar`;
+          else next.textContent = 'Próximo: ' + fmt(dates[0]);
+        } catch { next.textContent = 'Revise os horários deste alerta.'; }
         actions.className = 'fin-alerts-actions';
         const edit = button('Editar',() => open(row,item,edit));
         edit.setAttribute('aria-controls',form.id); edit.setAttribute('aria-expanded','false');

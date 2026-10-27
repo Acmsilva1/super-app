@@ -12,6 +12,7 @@ vi.mock('../../lib/alertServiceClient.js',()=>({getAlertServiceClient:()=>({from
     else if(table==='tb_despesas_fixas')result.data=[{valor:5000}];
     else if(table==='vw_financeiro_resumo_mensal')result.data=[{fixas_pagas:4000,fixas_pendentes:1000}];
     else if(table==='tb_admin_alert_channels')result.data=state.channels;
+    else if(table==='tb_financeiro_carne_pago')result.data=state.carnePago || [];
     else if(operation==='insert') {
       if(state.claimError)result.error=state.claimError;
       else if(state.claims.has(body.dedupe_key))result.error={code:'23505'};
@@ -22,7 +23,7 @@ vi.mock('../../lib/alertServiceClient.js',()=>({getAlertServiceClient:()=>({from
 }})}));
 import {runFinanceiroDailySummary} from '../../features/financeiro/service/financeiroTelegramScheduler.js';
 beforeEach(()=>{
-  state.rules=[{id:'alert-one',nome:'Meu lembrete',tipo:'mensagem',mensagem:'Revisar gastos',cron:'0 13 * * *',created_at:'2026-10-01T00:00:00Z'}];state.claims.clear();state.queries=[];state.claimError=null;state.channels=null;
+  state.rules=[{id:'alert-one',nome:'Meu lembrete',tipo:'mensagem',mensagem:'Revisar gastos',cron:'0 13 * * *',created_at:'2026-10-01T00:00:00Z'}];state.claims.clear();state.queries=[];state.claimError=null;state.channels=null;state.carnePago=[];
   vi.stubEnv('NODE_ENV','development');vi.stubEnv('SAUDE_ALERTS_ENABLED','true');vi.stubEnv('SAUDE_ALERTS_OWNER_USER_ID','f88a6351-317d-425b-afcd-9430c8a34f53');vi.stubEnv('ALERTS_API_URL','http://localhost/api/telegram-alert');vi.stubEnv('ALERTS_API_TOKEN','test-only');
   vi.stubEnv('WHATSAPP_API_ORIGIN','');vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN','');vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID','');
   vi.stubGlobal('fetch',vi.fn(async()=>({ok:true,json:async()=>({ok:true,telegram_message_id:123})})));
@@ -111,7 +112,7 @@ it.each([
   expect(message).toContain(content);
   expect(message).not.toContain('Resumo geral');
   const tables={diario:['tb_financas'],fixas:['vw_financeiro_resumo_mensal'],receitas:['tb_financas'],poupanca:['vw_financeiro_poupanca_resumo'],simulador:['tb_financeiro_simulacoes']};
-  expect([...new Set(state.queries.filter(q=>!['tb_saude_alertas_envios','tb_financeiro_alertas','tb_admin_alert_channels'].includes(q.table)).map(q=>q.table))]).toEqual(tables[tipo]);
+  expect([...new Set(state.queries.filter(q=>!['tb_saude_alertas_envios','tb_financeiro_alertas','tb_admin_alert_channels','tb_financeiro_carne_pago'].includes(q.table)).map(q=>q.table))]).toEqual(tables[tipo]);
 });
 it('envia horários próximos separadamente e não os repete no próximo polling',async()=>{
   state.rules[0]={...state.rules[0],tipo:'diario',horarios:['13:00','13:05'],mensagem:''};
@@ -119,6 +120,33 @@ it('envia horários próximos separadamente e não os repete no próximo polling
   expect((await runFinanceiroDailySummary(now)).alerts_sent).toBe(2);
   expect(new Set(fetch.mock.calls.map(call=>JSON.parse(call[1].body).dedupe_key)).size).toBe(2);
   expect((await runFinanceiroDailySummary(now)).alerts_sent).toBe(0);
+});
+
+it('Carnê entra como linha do alerta financeiro de D-3 até pagar', async () => {
+  state.rules[0] = { ...state.rules[0], tipo: 'diario', nome: 'Resumo · Extrato diário', horarios: ['13:00'], mensagem: '' };
+  // Antes de D-3: sem linha de carnê
+  expect((await runFinanceiroDailySummary(new Date('2026-11-15T16:12:00Z'))).alerts_sent).toBe(1);
+  expect(JSON.parse(fetch.mock.calls[0][1].body).message).not.toMatch(/Carnê ·/);
+
+  fetch.mockClear();
+  state.claims.clear();
+  // D-3: linha anexada ao financeiro (mesmo event_type)
+  expect((await runFinanceiroDailySummary(new Date('2026-11-16T16:12:00Z'))).alerts_sent).toBe(1);
+  const onD3 = JSON.parse(fetch.mock.calls[0][1].body);
+  expect(onD3.event_type).toBe('financeiro.daily_summary');
+  expect(onD3.message).toMatch(/Carnê · Carro Juliana/);
+  expect(onD3.message).toMatch(/Faltam 3 dias/);
+
+  fetch.mockClear();
+  state.claims.clear();
+  expect((await runFinanceiroDailySummary(new Date('2026-11-21T16:12:00Z'))).alerts_sent).toBe(1);
+  expect(JSON.parse(fetch.mock.calls[0][1].body).message).toMatch(/Já passaram 2 dias/);
+
+  fetch.mockClear();
+  state.claims.clear();
+  state.carnePago = [{ carne_id: 'carro-juliana', parcela_numero: 1 }];
+  expect((await runFinanceiroDailySummary(new Date('2026-11-21T16:12:00Z'))).alerts_sent).toBe(1);
+  expect(JSON.parse(fetch.mock.calls[0][1].body).message).not.toMatch(/Carnê ·/);
 });
 
 it.each([

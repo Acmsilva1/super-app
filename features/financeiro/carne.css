@@ -1,0 +1,405 @@
+.fin-carne {
+  color: var(--bk-ink, #1b1d21);
+  margin: 0 0 8px;
+}
+
+.fin-carne-note {
+  font-size: 12px;
+  color: var(--bk-muted, #6b7079);
+  margin: 0 0 12px;
+}
+
+.fin-carne-subnav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.fin-carne-subnav .fin-link-btn {
+  min-height: 40px;
+}
+
+.fin-carne-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.fin-carne-card {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid var(--bk-line, #e2e4e8);
+  border-radius: 12px;
+  background: var(--bk-surface, #fff);
+  color: var(--bk-ink, #1b1d21);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.fin-carne-card:hover,
+.fin-carne-card:focus-visible {
+  border-color: var(--bk-primary, #cc0000);
+  outline: none;
+}
+
+.fin-carne-card:focus-visible {
+  box-shadow: 0 0 0 2px var(--bk-focus, rgba(204, 0, 0, 0.28));
+}
+
+.fin-carne-card__title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.fin-carne-card__meta,
+.fin-carne-card__stats {
+  font-size: 12px;
+  color: var(--bk-muted, #6b7079);
+}
+
+.fin-carne-card__stats strong {
+  color: var(--bk-ink, #1b1d21);
+  font-weight: 600;
+}
+
+.fin-carne-summary {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--bk-line, #e2e4e8);
+  border-radius: 12px;
+  background: var(--bk-surface, #fff);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.fin-carne-summary__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fin-carne-summary__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bk-ink, #1b1d21);
+}
+
+.fin-carne-summary__meta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--bk-muted, #6b7079);
+}
+
+.fin-carne-summary__count {
+  margin: 0;
+  flex: none;
+  font-size: 13px;
+  color: var(--bk-muted, #6b7079);
+  white-space: nowrap;
+}
+
+.fin-carne-summary__count strong {
+  color: var(--bk-ink, #1b1d21);
+  font-weight: 700;
+}
+
+.fin-carne-summary__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bk-bg, #f2f3f5);
+  overflow: hidden;
+}
+
+.fin-carne-summary__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--bk-pos, #0b7a3e);
+  min-width: 0;
+}
+
+.fin-carne-parcelas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.fin-carne-parcela {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--bk-line, #e2e4e8);
+  border-radius: 12px;
+  background: var(--bk-surface, #fff);
+  color: var(--bk-ink, #1b1d21);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.fin-carne-parcela:hover,
+.fin-carne-parcela:focus-visible {
+  border-color: var(--bk-primary, #cc0000);
+  background: var(--bk-surface, #fff);
+  outline: none;
+}
+
+.fin-carne-parcela:focus-visible {
+  box-shadow: 0 0 0 2px var(--bk-focus, rgba(204, 0, 0, 0.28));
+}
+
+.fin-carne-parcela__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.fin-carne-parcela__title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.fin-carne-parcela__meta {
+  font-size: 12px;
+  color: var(--bk-muted, #6b7079);
+}
+
+.fin-carne-parcela__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: none;
+}
+
+.fin-carne-parcela__valor {
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fin-carne-parcela__chevron {
+  flex: none;
+  color: var(--bk-muted, #6b7079);
+  font-size: 1.15rem;
+  line-height: 1;
+  margin-left: 2px;
+}
+
+.fin-carne-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bk-pos-soft, #e6f4ec);
+  color: var(--bk-pos, #0b7a3e);
+}
+
+.fin-carne-badge--pending {
+  background: var(--bk-bg, #f2f3f5);
+  color: var(--bk-muted, #6b7079);
+  border: 1px solid var(--bk-line, #e2e4e8);
+}
+
+.fin-carne-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 14px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--bk-line, #e2e4e8);
+  border-radius: 12px;
+  background: var(--bk-surface, #fff);
+}
+
+.fin-carne-pager__btn {
+  min-width: 5.5rem;
+  min-height: 2.2rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.fin-carne-pager__status {
+  margin: 0;
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bk-muted, #6b7079);
+}
+
+.fin-carne-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.fin-carne-detail__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--bk-line, #e2e4e8);
+  border-radius: 12px;
+  background: var(--bk-surface, #fff);
+}
+
+.fin-carne-detail__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.fin-carne-detail__meta {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--bk-muted, #6b7079);
+}
+
+.fin-carne-seal {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 3px solid var(--bk-pos, #0b7a3e);
+  border-radius: 50%;
+  color: var(--bk-pos, #0b7a3e);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  transform: rotate(-12deg);
+  opacity: 0.92;
+  background: var(--bk-pos-soft, #e6f4ec);
+}
+
+.fin-carne-seal[hidden],
+.fin-carne-paybox[hidden] {
+  display: none;
+}
+
+.fin-carne-linha {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--bk-line, #e2e4e8);
+  border-radius: 12px;
+  background: var(--bk-bg, #f2f3f5);
+}
+
+.fin-carne-linha[aria-disabled="true"] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.fin-carne-linha__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bk-muted, #6b7079);
+}
+
+.fin-carne-linha__code {
+  margin: 0;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  color: var(--bk-ink, #1b1d21);
+}
+
+.fin-carne-barcode {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 8px 0;
+  background: #fff;
+  border-radius: 6px;
+  line-height: 0;
+}
+
+.fin-carne-barcode svg {
+  display: block;
+  width: 100%;
+  min-width: 280px;
+  height: 56px;
+}
+
+.fin-carne-barcode__caption {
+  margin: 0;
+  font-size: 11px;
+  color: var(--bk-muted, #6b7079);
+  text-align: center;
+}
+
+.fin-carne-pago-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  /* Fora do card branco: precisa contraste no fundo escuro do Financeiro */
+  color: #e8eef5;
+}
+
+.fin-carne-pago-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--bk-primary, #cc0000);
+  flex-shrink: 0;
+}
+
+.fin-carne-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fin-carne .fin-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 420px) {
+  .fin-carne-pager {
+    flex-wrap: wrap;
+  }
+
+  .fin-carne-pager__status {
+    order: -1;
+    width: 100%;
+  }
+
+  .fin-carne-pager__btn {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fin-carne-seal {
+    transform: none;
+  }
+}

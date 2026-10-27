@@ -52,6 +52,10 @@ export default async function handler(req, res) {
       const { default: alertas } = await import('../lib/financeiroAlertas.js');
       return await alertas(req, res);
     }
+    if (req.query?.recurso === 'carne-pago') {
+      const { default: carnePago } = await import('../lib/financeiroCarnePago.js');
+      return await carnePago(req, res);
+    }
     if (req.query?.recurso === 'simulador') {
       const { default: simulador } = await import('../lib/financeiroSimulador.js');
       return await simulador(req, res);
