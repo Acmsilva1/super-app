@@ -1,0 +1,13 @@
+[Unit]
+Description=Timer Super App saude-alertas-cron a cada 5 min (minutos 2,7,...,57)
+After=network-online.target
+
+[Timer]
+# Equivalente ao GitHub cron 2-59/5 * * * *
+OnCalendar=*-*-* *:2/5:00
+Persistent=true
+Unit=superapp-saude-alertas.service
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=Super App saude-alertas-cron (scheduled)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Nice=10
+Environment=SUPERAPP_ENV_FILE=/opt/super-app/.env
+Environment=SUPERAPP_CRON_URL=http://127.0.0.1:3000
+ExecStart=/opt/super-app/scripts/saude-alertas-cron.sh scheduled
+StandardOutput=journal
+StandardError=journal

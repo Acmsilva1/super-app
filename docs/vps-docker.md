@@ -88,12 +88,22 @@ Na mensageria, `SUPERAPP_API_ORIGIN` pode apontar para `https://seu-app.duckdns.
 
 ## Crons na VPS
 
-Na Vercel o GitHub Actions chama o endpoint. Na VPS use **crontab** ou **systemd timer** no host (ou num container one-shot), contra a URL interna:
+**Fonte principal:** systemd timer no host (`superapp-saude-alertas.timer`), a cada 5 min (minutos 2,7,…,57). O script `scripts/saude-alertas-cron.sh` lê `CRON_SECRET` de `/opt/super-app/.env` e chama o Super App local; o endpoint avalia os horários configurados e, quando devido, envia eventos à mensageria.
 
 ```bash
-# a cada 5 min, fora do minuto 0 (mesmo espírito do workflow)
-2-59/5 * * * * curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" \
-  "http://127.0.0.1:3000/api/saude-alertas-cron" >/dev/null
+# instalar / atualizar
+install -m 750 scripts/saude-alertas-cron.sh /opt/super-app/scripts/saude-alertas-cron.sh
+cp deploy/systemd/superapp-saude-alertas.{service,timer} /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now superapp-saude-alertas.timer
+systemctl start superapp-saude-alertas.service   # disparo manual
+journalctl -u superapp-saude-alertas.service -n 50 --no-pager
+```
+
+Equivalente em crontab (se não usar systemd):
+
+```bash
+2-59/5 * * * * /opt/super-app/scripts/saude-alertas-cron.sh scheduled
 ```
 
 Opcional treino de modelo:
@@ -105,9 +115,10 @@ Opcional treino de modelo:
 
 - Auth: `lib/cronAuth.js` → `isCronAuthorized` (`Bearer` + `CRON_SECRET` ≥32).
 - Health do app: `GET /healthz` (sem secret; isento de Basic Auth se houver).
-- Teste manual Telegram: `GET /api/saude-alertas-cron?mode=telegram_test` com o mesmo Bearer (ou o botão admin, igual antes).
+- Teste manual: `GET /api/saude-alertas-cron?mode=telegram_test` com o mesmo Bearer (ou o botão admin).
+- GitHub Actions: só `workflow_dispatch` de emergência → `https://super-app-go.duckdns.org` (sem schedule).
 
-Com Basic Auth na frente, o cron deve chamar `127.0.0.1` **atrás** do proxy ou enviar também o header Basic — preferir bind `127.0.0.1` + cron local sem Basic no path interno.
+Com Basic Auth na frente, o cron deve chamar `127.0.0.1` **atrás** do proxy — preferir bind local + cron no host.
 
 ## Próximos passos na VPS
 
