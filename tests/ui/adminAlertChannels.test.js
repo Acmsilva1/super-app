@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { afterEach, expect, it, vi } from 'vitest';
 
 const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
-const methods = html.slice(html.indexOf('            setAdminAlertChannelState('), html.indexOf('            setAdminTelegramWebhookState('));
+const methods = html.slice(html.indexOf('            setAdminAlertChannelState('), html.indexOf('            async loadAdminUsers('));
 const controller = () => new Function(`return new class {${methods}};`)();
 
 afterEach(() => vi.unstubAllGlobals());
