@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import {afterEach,it,expect,vi} from 'vitest';
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
-const methods=html.slice(html.indexOf('            setAdminTelegramWebhookState('),html.indexOf('            async testAdminTelegram('));
+const methods=html.slice(html.indexOf('            setAdminTelegramWebhookState('),html.indexOf('            async loadAdminUsers('));
 const controller=()=>new Function(`return new class {${methods}};`)();
 afterEach(()=>vi.unstubAllGlobals());
 function setup(enabled){

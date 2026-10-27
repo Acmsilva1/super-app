@@ -7807,10 +7807,8 @@
                             <div id="adminTempSecret" class="profile-admin-temp-secret" hidden><strong>Senha temporária (exibida uma vez):</strong> <code id="adminTempSecretValue"></code><button type="button" id="adminTempSecretClose">Ocultar</button></div>
                             <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
                             <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
-                            <div class="profile-admin-toolbar"><div><h4>Canais dos alertas</h4><p>Ligue ou desligue quem recebe os alertas de saúde e do financeiro. O teste abaixo envia só para os canais ligados.</p></div><div class="profile-admin-channels"><button type="button" class="profile-telegram-switch" id="adminAlertChannelTelegram" role="switch" aria-checked="false" aria-label="Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span class="profile-alert-channel__name">Telegram</span><span data-switch-label>Consultando…</span></button><button type="button" class="profile-telegram-switch" id="adminAlertChannelWhatsApp" role="switch" aria-checked="false" aria-label="WhatsApp" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span class="profile-alert-channel__name">WhatsApp</span><span data-switch-label>Consultando…</span></button></div></div>
+                            <div class="profile-admin-toolbar"><div><h4>Canais dos alertas</h4><p>Ligue ou desligue quem recebe os alertas de saúde e do financeiro. O teste de WhatsApp fica no painel da mensageria (um envio por destinatário).</p></div><div class="profile-admin-channels"><button type="button" class="profile-telegram-switch" id="adminAlertChannelTelegram" role="switch" aria-checked="false" aria-label="Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span class="profile-alert-channel__name">Telegram</span><span data-switch-label>Consultando…</span></button><button type="button" class="profile-telegram-switch" id="adminAlertChannelWhatsApp" role="switch" aria-checked="false" aria-label="WhatsApp" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span class="profile-alert-channel__name">WhatsApp</span><span data-switch-label>Consultando…</span></button></div></div>
                             <p id="adminAlertChannelsMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
-                            <div class="profile-admin-toolbar"><div><h4>Teste de alertas</h4><p>Envia o teste de água, as dietas cadastradas e os resumos do Financeiro somente para os canais ligados.</p></div><button type="button" class="profile-telegram-test" id="adminTelegramTest">Testar alertas</button></div>
-                            <p id="adminTelegramTestMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                             <div class="profile-admin-toolbar"><div><h4>Compras pelo Telegram</h4><p>Envie somente texto no formato padaria,4,25. Cada linha é um lançamento; confirme o resumo antes de salvar. Sempre débito. Use /pendente para recuperar a última confirmação.</p></div><button type="button" class="profile-telegram-switch" id="adminTelegramWebhook" role="switch" aria-checked="false" aria-label="Compras pelo Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span data-switch-label>Consultando…</span></button></div>
                             <p id="adminTelegramWebhookMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                         </div>
@@ -7975,7 +7973,6 @@
                 modal.addEventListener('click', (event) => { if (event.target === modal) closeProfile(); });
                 document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closeProfile(); });
 
-                document.getElementById('adminTelegramTest')?.addEventListener('click', () => this.testAdminTelegram());
                 document.getElementById('adminAlertChannelTelegram')?.addEventListener('click', () => this.toggleAdminAlertChannel('telegram'));
                 document.getElementById('adminAlertChannelWhatsApp')?.addEventListener('click', () => this.toggleAdminAlertChannel('whatsapp'));
                 document.getElementById('adminTelegramWebhook')?.addEventListener('click', () => this.configureAdminTelegramWebhook());
@@ -8121,31 +8118,6 @@
                     this.setAdminTelegramWebhookState(previous);
                     message.textContent = error.message || 'Não foi possível alterar o recebimento.';
                 } finally { button.disabled = false; }
-            }
-            async testAdminTelegram() {
-                const button = document.getElementById('adminTelegramTest');
-                const message = document.getElementById('adminTelegramTestMessage');
-                if (!button || !message || button.disabled) return;
-                button.disabled = true;
-                button.textContent = 'Enviando testes…';
-                message.textContent = 'Carregando dietas e resumos do Financeiro para enviar o teste…';
-                try {
-                    const response = await fetch('/api/admin/usuarios', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'test_telegram' }),
-                    });
-                    const payload = await response.json().catch(() => ({ error: 'Não foi possível ler a resposta do servidor. Confira se o deploy terminou.' }));
-                    if (!response.ok || !payload.ok) throw new Error(payload.error || 'Não foi possível confirmar o envio. Confira o Telegram antes de repetir.');
-                    message.textContent = payload.simulated
-                        ? 'Teste simulado no modo local. Nenhuma mensagem enviada.'
-                        : `Teste enviado: ${payload.sent} mensagem(ns) para os canais ligados.${payload.warnings?.length ? ' ' + payload.warnings.join(' ') : ''}`;
-                    showAppConfirmation(payload.simulated ? 'Teste concluído no modo local.' : `${payload.partial ? 'Teste parcial' : 'Teste enviado'}: ${payload.sent} mensagens.`);
-                } catch (error) {
-                    message.textContent = error.message || 'Falha no teste. Confira o Telegram antes de repetir.';
-                } finally {
-                    button.disabled = false;
-                    button.textContent = 'Testar alertas';
-                }
             }
             async loadAdminUsers() {
                 const message = document.getElementById('adminUsersMessage');

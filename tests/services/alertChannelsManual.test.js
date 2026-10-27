@@ -18,7 +18,6 @@ vi.mock('../../features/saude/service/alertasSaudeScheduler.js', () => ({
   previewAllDietAlerts: async () => ['Dieta teste'],
   previewWhatsAppHealthTests: async () => [
     { eventType: 'health.water_progress', audience: '15', title: '[TESTE] Água', message: 'Teste do SuperApp: alerta de água.' },
-    { eventType: 'health.diet_menu', audience: '15', title: '[TESTE] Dieta', message: 'Teste do SuperApp: alerta de dieta.' },
   ],
 }));
 vi.mock('../../features/financeiro/service/financeiroTelegramScheduler.js', () => ({
@@ -51,83 +50,25 @@ async function run(telegram, whatsapp) {
   return { result: await runTelegramManualTest(), fetchMock };
 }
 
-it.each([
-  ['os dois', true, true, 3, 3],
-  ['só Telegram', true, false, 3, 0],
-  ['só WhatsApp', false, true, 0, 3],
-  ['nenhum', false, false, 0, 0],
-])('o teste manual envia para %s', async (_label, telegram, whatsapp, telegramCount, whatsappCount) => {
-  const { result, fetchMock } = await run(telegram, whatsapp);
+it('o teste manual envia só para o Telegram', async () => {
+  const { result, fetchMock } = await run(true, true);
   const telegramCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes('telegram-alert'));
   const whatsappCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes('/api/control'));
-  expect(telegramCalls).toHaveLength(telegramCount);
-  expect(whatsappCalls).toHaveLength(whatsappCount);
-  if (!telegram && !whatsapp) {
-    expect(result.status).toBe(409);
-    expect(result.body.error).toBe('Telegram e WhatsApp estão desligados. Ligue um canal para enviar o teste.');
-    return;
-  }
+  expect(telegramCalls).toHaveLength(3);
+  expect(whatsappCalls).toHaveLength(0);
   expect(result.status).toBe(200);
-  expect(result.body.sent).toBe(telegramCount + whatsappCount);
-  if (whatsapp) {
-    const bodies = whatsappCalls.map(([, options]) => JSON.parse(options.body));
-    expect(bodies.map((item) => item.audience)).toEqual(['15', '15', '42']);
-    expect(bodies.map((item) => item.event_type)).toEqual(['health.water_progress', 'health.diet_menu', 'financeiro.daily_summary']);
-    expect(bodies.every((item) => item.source === 'superapp' && item.idempotency_key.startsWith('manual:'))).toBe(true);
-  }
+  expect(result.body.sent).toBe(3);
 });
 
-it('não diz que o teste foi enviado quando o WhatsApp ligado não tem origem', async () => {
-  channels.value = [{ telegram_enabled: false, whatsapp_enabled: true }];
-  vi.resetModules();
-  vi.stubEnv('NODE_ENV', 'development');
-  vi.stubEnv('OFFLINE_DEV', 'false');
-  vi.stubEnv('WHATSAPP_API_ORIGIN', '');
-  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', '');
-  vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID', '42');
-  const fetchMock = vi.fn();
-  vi.stubGlobal('fetch', fetchMock);
-  const { runTelegramManualTest } = await import('../../lib/telegramManualTest.js');
-  const result = await runTelegramManualTest();
-  expect(result.status).toBe(502);
-  expect(result.body.ok).toBe(false);
-  expect(result.body.sent).toBe(0);
-  expect(result.body.error).toContain('WHATSAPP_API_ORIGIN');
+it('recusa quando só WhatsApp está ligado e aponta para a mensageria', async () => {
+  const { result, fetchMock } = await run(false, true);
   expect(fetchMock).not.toHaveBeenCalled();
+  expect(result.status).toBe(409);
+  expect(result.body.error).toMatch(/mensageria/i);
 });
 
-it('não zera a saúde do WhatsApp quando falta o perfil financeiro', async () => {
-  channels.value = [{ telegram_enabled: false, whatsapp_enabled: true }];
-  vi.resetModules();
-  vi.stubEnv('NODE_ENV', 'development');
-  vi.stubEnv('OFFLINE_DEV', 'false');
-  vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
-  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 'token-de-teste');
-  vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID', '');
-  const fetchMock = vi.fn(async () => ({ status: 202, ok: true, json: async () => ({ ok: true }) }));
-  vi.stubGlobal('fetch', fetchMock);
-  const { runTelegramManualTest } = await import('../../lib/telegramManualTest.js');
-  const result = await runTelegramManualTest();
-  const bodies = fetchMock.mock.calls.map(([, options]) => JSON.parse(options.body));
-  expect(result.status).toBe(200);
-  expect(result.body.sent).toBe(2);
-  expect(result.body.partial).toBe(true);
-  expect(result.body.warnings.join(' ')).toContain('WHATSAPP_FINANCE_PROFILE_ID');
-  expect(bodies.map((item) => item.event_type)).toEqual(['health.water_progress', 'health.diet_menu']);
-});
-
-it('informa falha do WhatsApp em vez de sucesso com zero', async () => {
-  channels.value = [{ telegram_enabled: false, whatsapp_enabled: true }];
-  vi.resetModules();
-  vi.stubEnv('NODE_ENV', 'development');
-  vi.stubEnv('OFFLINE_DEV', 'false');
-  vi.stubEnv('WHATSAPP_API_ORIGIN', 'https://mensageria.example');
-  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN', 'token-de-teste');
-  vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID', '42');
-  vi.stubGlobal('fetch', vi.fn(async () => ({ status: 401, ok: false, json: async () => ({ ok: false }) })));
-  const { runTelegramManualTest } = await import('../../lib/telegramManualTest.js');
-  const result = await runTelegramManualTest();
-  expect(result.status).toBe(502);
-  expect(result.body.sent).toBe(0);
-  expect(result.body.error).toContain('não confirmou');
+it('recusa quando Telegram e WhatsApp estão desligados', async () => {
+  const { result } = await run(false, false);
+  expect(result.status).toBe(409);
+  expect(result.body.error).toMatch(/Telegram/i);
 });
