@@ -174,10 +174,10 @@ it.each([302,401,404,429,500,503])('status ACL %d não permite registro nem aces
 it.each(['http://mensageria.example','https://user:secret@mensageria.example','invalid'])('origem ACL recusada %s',async origin=>{
  vi.stubEnv('WHATSAPP_API_ORIGIN',origin);expect((await run()).code).toBe(503);expect(aclFetch).not.toHaveBeenCalled();expect(state.reads).toHaveLength(0);
 });
-it('token de integração ausente bloqueia record mas healthcheck pinned não depende da ACL',async()=>{
+it('token de integração ausente bloqueia record mas healthcheck básico não depende da ACL',async()=>{
  vi.stubEnv('WHATSAPP_INTEGRATION_TOKEN','');expect((await run()).code).toBe(503);expect(state.reads).toHaveLength(0);
  expect((await run(req({body:{action:'healthcheck',sender_phone:phone}}))).code).toBe(200);expect(aclFetch).not.toHaveBeenCalled();
- expect((await run(req({body:{action:'healthcheck',sender_phone:'+5511900000001'}}))).code).toBe(403);
+ expect((await run(req({body:{action:'healthcheck',sender_phone:'+5511900000001'}}))).code).toBe(200);
 });
 it('outro remetente autorizado não consegue reutilizar o UUID da compra de alguém',async()=>{
  await run();expect((await run(req({body:body({sender_phone:'+5511900000001'})}))).code).toBe(409);expect(state.inserts).toHaveLength(1);
@@ -199,9 +199,10 @@ it('healthcheck com grant revogado ou ACL indisponível falha antes do banco',as
  aclFetch.mockRejectedValueOnce(new Error('timeout'));expect((await run(req({body:packet}))).code).toBe(503);
  expect(state.reads).toHaveLength(0);expect(state.inserts).toHaveLength(0);expect(state.rpc).not.toHaveBeenCalled();
 });
-it('grant válido não permite healthcheck de outro remetente',async()=>{
+it('grant com ACL negada bloqueia healthcheck de outro remetente antes do banco',async()=>{
+ aclFetch.mockResolvedValueOnce({status:403});
  expect((await run(req({body:{action:'healthcheck',sender_phone:'+5511900000001',authorization_id:authorizationId,authorization_version:authorizationVersion}}))).code).toBe(403);
- expect(aclFetch).not.toHaveBeenCalled();expect(state.reads).toHaveLength(0);
+ expect(aclFetch).toHaveBeenCalled();expect(state.reads).toHaveLength(0);
 });
 
 it.each(['debito_pix','debito','pix'])('aceita modalidade %s e registra despesa variável como debito_pix/Outros',async payment=>{
