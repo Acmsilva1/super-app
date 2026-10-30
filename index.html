@@ -6945,7 +6945,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-17-loading-v1">
+    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-10-30-interaction-motion-v1">
 </head>
 <body class="view-apps">
     <div id="appLaunchSplash" class="app-launch-splash" role="status" aria-live="polite" aria-label="Carregando Super App">
@@ -7528,6 +7528,16 @@
                 if (status) status.textContent = 'Tudo pronto';
                 splash.classList.add('is-complete', 'is-ready');
                 window.setTimeout(() => splash.remove(), 360);
+            }
+
+            playInteractionFeedback(element, className) {
+                if (!element || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+                element.classList.remove(className);
+                void element.offsetWidth;
+                element.classList.add(className);
+                const clear = () => element.classList.remove(className);
+                element.addEventListener('animationend', clear, { once: true });
+                window.setTimeout(clear, 700);
             }
 
             async loadAppVersionManifest() {
@@ -9334,9 +9344,15 @@
                 const previous = { status: row.status, pendente_mes: row.pendente_mes };
                 Object.assign(row, patch);
                 this.renderFinanceiroOptimistic(el, 'data');
+                const renderedRow = [...el.querySelectorAll('[data-finance-row-id]')]
+                    .find((item) => item.dataset.financeRowId === String(id));
+                this.playInteractionFeedback(renderedRow, 'is-status-changing');
                 return () => {
                     Object.assign(row, previous);
                     this.renderFinanceiroOptimistic(el, 'data');
+                    const restoredRow = [...el.querySelectorAll('[data-finance-row-id]')]
+                        .find((item) => item.dataset.financeRowId === String(id));
+                    this.playInteractionFeedback(restoredRow, 'is-status-changing');
                 };
             }
 
@@ -9564,7 +9580,7 @@
                         !hasParcelas && isContaFixa ? '<span class="fin-tag">Conta fixa</span>' : '',
                         pendenteMes ? '<span class="fin-tag fin-tag--neg">Pendente no mês</span>' : '',
                     ].join('');
-                    return `<li class="fin-entry">
+                    return `<li class="fin-entry ${paid ? 'is-status-paid' : 'is-status-pending'}" data-finance-row-id="${escapeHtml(String(r.id ?? ''))}">
                         <div class="fin-entry__main">
                             <span class="fin-entry__title" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</span>
                             <span class="fin-entry__meta">${tags}${rowActions(r, 'despesa_fixa', { pendingToggle: true })}</span>
@@ -10809,10 +10825,15 @@
                 }
                 this.bindListaComprasEvents(el);
             }
-            rerenderListaCompras(el) {
+            rerenderListaCompras(el, changedId = null) {
                 const previousScrollTop = el.scrollTop || 0;
                 this.renderListaComprasContent(el, { rows: el._listaComprasRows || [] });
                 el.scrollTop = previousScrollTop;
+                if (changedId !== null) {
+                    const changedRow = [...el.querySelectorAll('.lc-item[data-id]')]
+                        .find((item) => item.dataset.id === String(changedId));
+                    this.playInteractionFeedback(changedRow, 'is-state-changing');
+                }
             }
             bindListaComprasEvents(el) {
                 if (el._listaEventsBound) return;
@@ -11012,7 +11033,7 @@
                 const previous = row ? row.comprado : null;
                 if (row) {
                     row.comprado = Boolean(comprado);
-                    this.rerenderListaCompras(el);
+                    this.rerenderListaCompras(el, id);
                 }
                 try {
                     const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, comprado }) });
@@ -11027,7 +11048,7 @@
                     alert(e.message);
                     if (row) {
                         row.comprado = previous;
-                        this.rerenderListaCompras(el);
+                        this.rerenderListaCompras(el, id);
                     } else {
                         await this.refreshListaComprasContent(el);
                     }

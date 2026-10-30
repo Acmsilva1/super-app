@@ -7,7 +7,7 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 
 /** Porta do preview:local / mock API (padrão 3000). */
 function apiProxyTarget() {
-  const port = process.env.VITE_API_PROXY_PORT || process.env.PREVIEW_PORT || '3000';
+  const port = process.env.VITE_API_PROXY_PORT || process.env.PORT || process.env.PREVIEW_PORT || '3000';
   return `http://127.0.0.1:${port}`;
 }
 

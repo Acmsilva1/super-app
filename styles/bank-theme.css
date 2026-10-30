@@ -443,7 +443,7 @@ html[data-theme] #window-lista_compras {
     border: 0;
     box-shadow: none;
     backdrop-filter: none;
-    animation: none;
+    animation: bank-window-enter 220ms ease-out both;
 }
 html[data-theme] #window-financeiro .window-header,
 html[data-theme] #window-saude .window-header,
@@ -1324,3 +1324,91 @@ html[data-theme] #window-saude .saude-success-toast__close { color: var(--bk-mut
 .lc-item__edit { flex: 0 0 auto; width: 2.25rem; height: 2.75rem; padding: 0; border: 0; border-radius: .4rem; background: transparent; color: var(--bk-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .lc-item__edit:hover { background: var(--bk-bg); color: var(--bk-ink); }
 .lc-item__edit:focus-visible { outline: 2px solid var(--bk-focus); outline-offset: 2px; }
+
+/* ---------- Feedback de interacao ---------- */
+.home-app-row {
+    transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+.home-app-row__chevron { transition: color 160ms ease, transform 160ms ease; }
+@media (hover: hover) and (pointer: fine) {
+    .home-app-row:hover {
+        transform: translateX(2px);
+        box-shadow: inset 3px 0 var(--bk-primary);
+    }
+    .home-app-row:hover .home-app-row__chevron {
+        color: var(--bk-primary);
+        transform: translateX(2px);
+    }
+}
+.home-app-row:active { transform: scale(0.99); }
+
+.fin-icon-btn,
+.fin-status,
+.lc-item__del,
+.lc-item__edit,
+.lc-qty__btn {
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+.fin-icon-btn:active,
+.fin-status:active,
+.lc-item__del:active,
+.lc-item__edit:active,
+.lc-qty__btn:active { transform: scale(0.94); }
+.fin-status { transition: background-color 180ms ease, color 180ms ease, box-shadow 220ms ease, transform 180ms ease; }
+.fin-entry.is-status-changing .fin-status { animation: fin-status-feedback 480ms ease-out; }
+.fin-entry.is-status-paid { --fin-feedback-color: var(--bk-pos-soft); }
+.fin-entry.is-status-pending { --fin-feedback-color: var(--bk-neg-soft); }
+
+.lc-item { transition: background-color 160ms ease; }
+.lc-item.is-state-changing { animation: lc-item-feedback 420ms ease-out; }
+.lc-check__box { transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 150ms ease; }
+.lc-check__input:active + .lc-check__box { transform: scale(0.9); }
+.lc-item.is-state-changing .lc-check__input:checked + .lc-check__box i {
+    animation: lc-check-feedback 320ms cubic-bezier(0.2, 0.8, 0.2, 1.2);
+}
+
+@keyframes bank-window-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fin-status-feedback {
+    45% { transform: scale(1.08); box-shadow: 0 0 0 5px var(--fin-feedback-color); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes lc-item-feedback {
+    35% { background-color: var(--bk-bg); }
+}
+@keyframes lc-check-feedback {
+    0% { opacity: 0; transform: scale(0.35); }
+    65% { opacity: 1; transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-theme] #window-financeiro,
+    html[data-theme] #window-saude,
+    html[data-theme] #window-lista_compras,
+    .home-app-row,
+    .home-app-row__chevron,
+    .fin-icon-btn,
+    .fin-status,
+    .lc-item,
+    .lc-item__del,
+    .lc-item__edit,
+    .lc-qty__btn,
+    .lc-check__box {
+        animation: none !important;
+        transition: none !important;
+    }
+    .home-app-row:hover,
+    .home-app-row:hover .home-app-row__chevron { transform: none; }
+    .home-app-row:active,
+    .fin-icon-btn:active,
+    .fin-status:active,
+    .lc-item__del:active,
+    .lc-item__edit:active,
+    .lc-qty__btn:active,
+    .lc-check__input:active + .lc-check__box {
+        transform: none;
+    }
+}
