@@ -54,7 +54,6 @@ Config pública: `GET /api/auth-config`
 |---|---|---|
 | `financeiro` | Inline no shell | Lógica embutida em `index.html` |
 | `lista_compras` | Inline no shell | Lógica embutida em `index.html` |
-| `fluxograma` | Dynamic import | `features/fluxograma/index.js` + `cloudSync.js` |
 
 Padrão de cleanup ao fechar janela:
 ```javascript
@@ -87,24 +86,6 @@ Funcionalidades:
 - Toggle, reset e exclusão em massa via API
 
 Modelo: `features/lista_compras/model/itemLista.js`
-
----
-
-## Módulo: Fluxograma
-
-Arquivos:
-| Arquivo | Papel |
-|---|---|
-| `features/fluxograma/index.js` | Editor visual (nós, conexões) |
-| `features/fluxograma/cloudSync.js` | Sync com Supabase |
-| `features/fluxograma/model/flowchartModel.js` | Modelo de dados |
-| `features/fluxograma/service/flowchartService.js` | Regras de persistência |
-| `features/fluxograma/service/exportPngService.js` | Export PNG server-side |
-
-Comportamento:
-- Rascunho em `localStorage` enquanto edita
-- Projetos salvos na nuvem via `/api/fluxograma`
-- Export PNG via `/api/fluxograma-export`
 
 ---
 

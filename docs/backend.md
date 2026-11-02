@@ -115,28 +115,6 @@ Service: `features/lista_compras/service/listaComprasService.js`
 
 ---
 
-### Fluxograma
-
-#### `/api/fluxograma`
-Métodos: `GET`, `POST`, `PATCH`, `DELETE`
-
-- Auth: `requireUser({ appId: 'fluxograma' })`; cada consulta da API também filtra por `user_id`, exceto para o owner admin.
-- Tabela: `tb_fluxograma_projetos`
-
-Recursos:
-- Lista de projetos do usuário
-- Busca por `id`
-- Persistência de campo `dados` (JSON do diagrama)
-
-Service: `features/fluxograma/service/flowchartService.js`
-
-#### `GET /api/fluxograma-export`
-Exportação PNG do diagrama (usa `pngjs`).
-
-Service: `features/fluxograma/service/exportPngService.js`
-
----
-
 ### Treino legado
 
 A interface, o mock e a API antigos foram removidos. O novo modo será desenvolvido do zero, sem reaproveitar esse contrato. As migrations históricas não são instruções para reinstalar o módulo.
@@ -151,7 +129,6 @@ A interface, o mock e a API antigos foram removidos. O novo modo será desenvolv
 | `despesas_fixas/` | Legado interno | Usado por compatibilidade no financeiro |
 | `financas/` | Legado | Referências antigas |
 | `lista_compras/` | Ativo | |
-| `fluxograma/` | Ativo | Rascunho local + sync nuvem |
 | `neonkeep/` | Placeholder | |
 
 ## Deploy e execução local
@@ -169,8 +146,6 @@ A interface, o mock e a API antigos foram removidos. O novo modo será desenvolv
 | `tests/api/financeiro.api.test.js` | CRUD financeiro |
 | `tests/api/financeiro.carga.test.js` | Carga/volume |
 | `tests/api/lista-compras.api.test.js` | Lista de compras |
-| `tests/api/fluxograma.api.test.js` | Fluxograma |
-| `tests/api/fluxograma-export.api.test.js` | Export PNG |
 | `tests/api/disponibilidade.api.test.js` | Health checks |
 
 ## Checkpoints recentes

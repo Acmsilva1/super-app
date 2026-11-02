@@ -14,8 +14,6 @@ vi.mock('../../lib/supabase.js', () => ({
 import appsHandler, { APPS } from '../../api/apps.js';
 import financeiroHandler from '../../api/financeiro.js';
 import listaComprasHandler from '../../api/lista-compras.js';
-import fluxogramaHandler from '../../api/fluxograma.js';
-import fluxogramaExportHandler from '../../api/fluxograma-export.js';
 import saudeHandler from '../../api/saude.js';
 
 function createApp(handler) {
@@ -28,8 +26,6 @@ function createApp(handler) {
 const HEALTH_HANDLERS = [
   { id: 'financeiro', handler: financeiroHandler },
   { id: 'lista_compras', handler: listaComprasHandler },
-  { id: 'fluxograma', handler: fluxogramaHandler },
-  { id: 'fluxograma_export', handler: fluxogramaExportHandler },
   { id: 'saude', handler: saudeHandler },
 ];
 

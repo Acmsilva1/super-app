@@ -10,7 +10,7 @@ beforeAll(async()=>{
 afterAll(()=>vi.unstubAllEnvs());
 describe('All local application modules',()=>{
   it('serves the catalog and offline auth',async()=>{
-    expect((await request(app).get('/api/apps')).body).toHaveLength(4);
+    expect((await request(app).get('/api/apps')).body).toHaveLength(3);
     expect((await request(app).get('/api/auth-config')).body.offlineMode).toBe(true);
   });
   it('serves Financeiro and Lista de Compras without a database',async()=>{
@@ -28,12 +28,6 @@ describe('All local application modules',()=>{
     expect(response.status).toBe(201);const id=response.body.user_id;
     expect((await request(app).patch('/api/admin/usuarios').send({user_id:id,app_id:'saude',can_access:true})).status).toBe(200);
     expect((await request(app).patch('/api/admin/usuarios').send({user_id:id,action:'status',blocked:true})).body.is_banned).toBe(true);
-  });
-  it('persists Fluxograma CRUD in memory',async()=>{
-    const created=await request(app).post('/api/fluxograma').send({nome:'Teste',dados:{nodes:[],edges:[]}});
-    expect(created.status).toBe(201);const id=created.body.id;
-    expect((await request(app).patch('/api/fluxograma').send({id,nome:'Editado'})).body.nome).toBe('Editado');
-    expect((await request(app).delete(`/api/fluxograma?id=${id}`)).status).toBe(200);
   });
   it('never triggers external notifications in mock mode',async()=>{
     for(const endpoint of ['/api/saude-alertas-cron','/api/telegram-alert'])expect((await request(app).get(endpoint)).status).toBe(503);

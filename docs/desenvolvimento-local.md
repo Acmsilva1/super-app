@@ -1,6 +1,6 @@
 # Desenvolvimento local e testes
 
-`npm run dev` e `npm run dev:mock` iniciam Vite e backend em localhost com dados ficticios. Nao e necessario configurar Supabase. O login aceita um email e uma senha ficticios nesse modo. Financeiro, Saude, Lista de Compras, Fluxograma e administracao usam mocks. Os dados em memoria reiniciam ao encerrar o backend; alguns controles da interface usam localStorage do navegador.
+`npm run dev` e `npm run dev:mock` iniciam Vite e backend em localhost com dados ficticios. Nao e necessario configurar Supabase. O login aceita um email e uma senha ficticios nesse modo. Financeiro, Saude, Lista de Compras e administracao usam mocks. Os dados em memoria reiniciam ao encerrar o backend; alguns controles da interface usam localStorage do navegador.
 
 As portas padrao sao 5173 (interface) e 3002 (API). Podem ser ajustadas em `.env.local` com `VITE_PORT` e `PORT`. O servidor aceita apenas conexoes locais. Credenciais e arquivos locais sao ignorados pelo Git e excluidos do pacote Vercel.
 

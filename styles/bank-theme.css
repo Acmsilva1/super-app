@@ -410,12 +410,10 @@ html[data-theme] #window-lista_compras {
 #window-financeiro { --bk-module-bg: url('/backgrounds/financeiro.jpg'); }
 #window-saude { --bk-module-bg: url('/backgrounds/saude.jpg'); }
 #window-lista_compras { --bk-module-bg: url('/backgrounds/lista-compras.jpg'); }
-#window-fluxograma { --bk-module-bg: url('/backgrounds/fluxograma.jpg'); }
 @media (orientation: portrait) {
     #window-financeiro { --bk-module-bg: url('/backgrounds/financeiro-mobile.jpg'); }
     #window-saude { --bk-module-bg: url('/backgrounds/saude-mobile.jpg'); }
     #window-lista_compras { --bk-module-bg: url('/backgrounds/lista-compras-mobile.jpg'); }
-    #window-fluxograma { --bk-module-bg: url('/backgrounds/fluxograma-mobile.jpg'); }
 }
 @media (max-width: 520px) {
     html[data-theme] .app-window .window-title-group {

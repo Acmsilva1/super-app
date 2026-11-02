@@ -35,7 +35,6 @@ super-app-1/
 | `financeiro` | `tb_financas` + `tb_despesas_fixas` + `tb_poupanca` + `tb_poupanca_metas` | Dashboard financeiro com receitas, gastos variados, despesas fixas e poupanca |
 | `lista_compras` | `tb_lista_compras` | Itens, categorias e marcacao de compra |
 | `calendario` | `tb_calendario` | Agenda, visualizacao mensal e status de confirmacao |
-| `fluxograma` | `tb_fluxograma_projetos` | Projetos de fluxograma com rascunho local e nuvem |
 
 ### Aderencia ao padrao de arquitetura
 
@@ -100,7 +99,6 @@ flowchart TD
 | `/api/financeiro` | `GET, POST, PATCH, DELETE` | `tb_financas`, `tb_despesas_fixas`, `tb_poupanca`, `tb_poupanca_metas` | contrato segmentado por `data`, `summary` e `poupanca` |
 | `/api/lista-compras` | `GET, POST, PATCH, DELETE` | `tb_lista_compras` | suporta toggle e reset global |
 | `/api/calendario` | `GET, POST, PATCH, DELETE` | `tb_calendario` | GET aceita `action=config`, `action=view` e `action=sync_status` |
-| `/api/fluxograma` | `GET, POST, PATCH, DELETE` | `tb_fluxograma_projetos` | persistencia de projetos |
 | `/api/notificar` | `POST` | `tb_calendario` | envia lembretes Telegram |
 
 O antigo modo Compras do Financeiro e a tabela `tb_compras` foram removidos. Isso nao altera a categoria `Compras` dos gastos variados nem o app separado `lista_compras`, persistido em `tb_lista_compras`.
@@ -175,7 +173,6 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - `GET /api/financeiro?mes_ano=YYYY-MM&secao=data`
 - `GET /api/lista-compras`
 - `GET /api/calendario?action=config`
-- `GET /api/fluxograma`
 - `GET /api/system-analysis-dashboard`
 - consulta de conectividade no Supabase
 
@@ -213,9 +210,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 ## Ajustes Aplicados
 
 - `/api/auth-config`, `/api/statistics` e `/api/roadmap` preservam seus caminhos publicos e agora compartilham a funcao `/api/apps` por rewrites da Vercel.
-- Fluxograma atualizado com paleta fixa de 16 cores por selecao (nos, textos e conexoes), substituindo o seletor livre de cor.
-- O menu do Fluxograma passou a exibir preview da cor atual do item selecionado e da ultima cor usada.
-- Novas conexoes no Fluxograma agora usam a cor ativa da paleta, e o estado `activeColor` passou a ser persistido no payload do grafo para manter contexto entre sessoes.
+- O módulo Fluxograma foi removido do catálogo, shell, APIs, mock local e assets. As migrations e a tabela histórica foram preservadas para evitar perda de dados.
 - Suporte a promises nos popups nativos foi implementado, e substituiu todos os `confirm()` antigos por uma modal estetica global via `SuperApp.showConfirm()`.
 - O treino legado foi removido do código, mocks e setup local. Migrations históricas foram preservadas; esta limpeza não altera o Supabase.
 

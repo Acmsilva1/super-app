@@ -4,14 +4,14 @@ import { unsafeAuthEnvironment } from '../lib/authEnvironment.js';
 
 const ROADMAP = [
   { step: '1', title: 'Shell único publicado na Vercel', description: 'Frontend estático/PWA em index.html com catálogo central de apps e consumo de APIs serverless.' },
-  { step: '2', title: 'Domínios integrados ao Supabase', description: 'Despesas Fixas, Finanças, Lista de Compras, Saúde e Fluxograma persistem dados no Supabase.' },
+  { step: '2', title: 'Domínios integrados ao Supabase', description: 'Despesas Fixas, Finanças, Lista de Compras e Saúde persistem dados no Supabase.' },
   { step: '3', title: 'Automação operacional', description: 'GitHub Actions acorda a Vercel para análise operacional agendada.' },
   { step: '4', title: 'Evolução contínua', description: 'Base está pronta para evolução incremental de módulos e melhorias de confiabilidade.' },
 ];
 
 /**
  * Lista de aplicacoes do Super App (usada pelo index.html no Vercel).
- * Cada app costuma ter uma API, exceto fluxograma (so front + localStorage).
+ * Cada app ativo possui uma API de suporte e health check.
  */
 export const APPS = [
   {
@@ -31,15 +31,6 @@ export const APPS = [
     description: 'Lista de compras com prioridade e controle do que ja foi comprado.',
     category: 'Produtividade',
     health_path: '/api/lista-compras?health=1',
-  },
-  {
-    id: 'fluxograma',
-    icon: 'fa-diagram-project',
-    status: 'active',
-    title: 'Fluxograma',
-    description: 'Crie fluxogramas com nos e conexoes; rascunho local e projetos salvos na nuvem (Supabase).',
-    category: 'Produtividade',
-    health_path: '/api/fluxograma?health=1',
   },
   {
     id: 'saude',

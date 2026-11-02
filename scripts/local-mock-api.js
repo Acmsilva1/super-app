@@ -7,8 +7,6 @@ export function createLocalMockHandler(apps){
     {id:OWNER,name:'Administrador Mock',email:'admin@example.invalid',is_admin:true,is_banned:false,permissions:[],created_at:new Date().toISOString()},
     {id:'00000000-0000-4000-8000-000000000002',name:'Usuário Mock',email:'usuario@example.invalid',is_admin:false,is_banned:false,permissions:['saude'],created_at:new Date().toISOString()},
   ];
-  let projects=[{id:1,nome:'Fluxograma Mock',dados:{nodes:[],edges:[]},created_at:new Date().toISOString(),updated_at:new Date().toISOString()}];
-  let nextProject=2;
   let webhookEnabled=false;
   let alertChannels={telegram:true,whatsapp:true};
   return(req,res,next)=>{
@@ -58,21 +56,6 @@ export function createLocalMockHandler(apps){
         user.permissions=user.permissions.filter(id=>id!==body.app_id);if(body.can_access)user.permissions.push(body.app_id);
         return send(res,200,{ok:true});
       }
-      return send(res,405,{error:'Method Not Allowed'});
-    }
-    if(endpoint==='fluxograma'){
-      if(req.query.health==='1')return send(res,200,{ok:true,service:'fluxograma',storage:'memory'});
-      const body=req.body||{},id=Number(body.id??req.query.id),project=projects.find(row=>row.id===id);
-      if(req.method==='GET')return req.query.id?(project?send(res,200,{project}):send(res,404,{error:'Projeto não encontrado'})):send(res,200,{projects});
-      if(req.method==='POST'){
-        const row={id:nextProject++,nome:String(body.nome||'Novo Fluxograma'),dados:body.dados||{},created_at:new Date().toISOString(),updated_at:new Date().toISOString()};projects.push(row);return send(res,201,row);
-      }
-      if(!project)return send(res,404,{error:'Projeto não encontrado'});
-      if(req.method==='PATCH'){
-        if(body.nome!==undefined)project.nome=String(body.nome);if(body.dados!==undefined)project.dados=body.dados;
-        project.updated_at=new Date().toISOString();return send(res,200,project);
-      }
-      if(req.method==='DELETE'){projects=projects.filter(row=>row.id!==id);return send(res,200,{ok:true});}
       return send(res,405,{error:'Method Not Allowed'});
     }
     next();
