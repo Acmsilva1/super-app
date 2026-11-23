@@ -116,18 +116,49 @@ Opcional treino de modelo:
 - Auth: `lib/cronAuth.js` → `isCronAuthorized` (`Bearer` + `CRON_SECRET` ≥32).
 - Health do app: `GET /healthz` (sem secret; isento de Basic Auth se houver).
 - Teste manual: `GET /api/saude-alertas-cron?mode=telegram_test` com o mesmo Bearer (ou o botão admin).
-- GitHub Actions: só `workflow_dispatch` de emergência → `https://super-app-go.duckdns.org` (sem schedule).
+- GitHub Actions (`saude-alertas.yml`): só `workflow_dispatch` de emergência → `https://super-app-go.duckdns.org` (sem schedule). O agendador real é o systemd timer.
+
+## Deploy automático (GitHub Actions → VPS)
+
+Espelha o Ritmo Saúde no gatilho (`push` em `main` + `workflow_dispatch`), com execução via SSH (o Super App já vive como clone git em `/opt/super-app`).
+
+| Peça | Onde |
+|------|------|
+| Workflow | `.github/workflows/deploy.yml` |
+| Helper na VPS | `/usr/local/sbin/deploy-super-app` (cópia de `deploy/deploy-super-app.sh`) |
+| Ação | `git fetch` + `checkout/reset` no SHA + `docker compose up -d --build --force-recreate` |
+| Preserva | `/opt/super-app/.env` (nunca vem do git) |
+
+Secrets do repositório (Settings → Secrets and variables → Actions):
+
+| Secret | Conteúdo |
+|--------|----------|
+| `VPS_HOST` | IP ou hostname da VPS |
+| `VPS_USER` | Usuário SSH (ex.: `root`) |
+| `VPS_SSH_KEY` | Chave privada OpenSSH (PEM/ed25519) autorizada na VPS |
+| `VPS_KNOWN_HOSTS` | Linha(s) de `ssh-keyscan` do host (recomendado) |
+
+Instalar/atualizar o helper na VPS (uma vez, ou após mudar o script):
+
+```bash
+install -m 755 deploy/deploy-super-app.sh /usr/local/sbin/deploy-super-app
+# smoke manual:
+/usr/local/sbin/deploy-super-app origin/main
+```
+
+URL canônica: `https://super-app-go.duckdns.org` — health: `GET /healthz`.
 
 Com Basic Auth na frente, o cron deve chamar `127.0.0.1` **atrás** do proxy — preferir bind local + cron no host.
 
 ## Próximos passos na VPS
 
 1. Copiar o repo (ou artefato) + `.env` preenchido a partir de `.env.vps.example`.
-2. `docker compose build && docker compose up -d`.
-3. Validar `curl http://127.0.0.1:3000/healthz` e login Supabase no browser via túnel/SSH.
-4. Configurar crontab dos alertas com `CRON_SECRET`.
-5. Depois: DuckDNS + reverse proxy TLS → apontar `ALERTS_API_URL` e `WHATSAPP_API_ORIGIN` (HTTPS).
-6. Na mensageria: `SUPERAPP_API_ORIGIN` para a URL canônica do Super App.
+2. Instalar `deploy/deploy-super-app.sh` em `/usr/local/sbin/deploy-super-app` e configurar os secrets SSH no GitHub.
+3. `docker compose build && docker compose up -d` (primeiro sobe) ou disparar o workflow.
+4. Validar `curl http://127.0.0.1:3000/healthz` e login Supabase no browser.
+5. Configurar o timer systemd dos alertas com `CRON_SECRET`.
+6. DuckDNS + reverse proxy TLS → apontar `ALERTS_API_URL` e `WHATSAPP_API_ORIGIN` (HTTPS).
+7. Na mensageria: `SUPERAPP_API_ORIGIN` para a URL canônica do Super App.
 
 ## Riscos / residual
 

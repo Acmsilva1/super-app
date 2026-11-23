@@ -16,7 +16,7 @@ Produção: `super-app-zeta-virid.vercel.app`
 
 ```text
 index.html
-  ├── Auth Supabase (login, cadastro, recovery)
+  ├── Auth Supabase (login, cadastro, biometria)
   ├── Grid de apps (GET /api/apps)
   ├── Janelas modais por micro-app
   └── import() dinâmico de features/
@@ -39,7 +39,7 @@ Cache de assets estáticos para uso offline parcial. Headers configurados em `ve
 Fluxos implementados no shell:
 1. **Login** — email/senha via Supabase Auth
 2. **Cadastro** — criação de conta
-3. **Recovery** — link de redefinição de senha (detecta hash na URL)
+3. **Biometria** — digital/Face ID no aparelho (quando habilitada)
 
 Após login:
 - Token armazenado na sessão Supabase

@@ -1,0 +1,66 @@
+name: Deploy Super App
+
+# Espelha o Ritmo Saúde (push em main + dispatch manual), com deploy via SSH:
+# na VPS o helper faz git reset ao SHA + docker compose rebuild/up.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'SHA ou ref a publicar (vazio = este commit / origin/main)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: super-app-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Deploy na VPS (git + docker compose)
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          DEPLOY_REF: ${{ github.event.inputs.ref || github.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [[ -z "${VPS_HOST:-}" || -z "${VPS_USER:-}" || -z "${VPS_SSH_KEY:-}" ]]; then
+            echo 'Configure os secrets VPS_HOST, VPS_USER e VPS_SSH_KEY no repositório.' >&2
+            exit 1
+          fi
+
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+          if [[ -n "${VPS_KNOWN_HOSTS:-}" ]]; then
+            printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -T 10 -t ed25519,rsa "$VPS_HOST" > ~/.ssh/known_hosts 2>/dev/null || true
+          fi
+          chmod 644 ~/.ssh/known_hosts
+
+          # root: chama o helper direto; demais usuários: sudo sem senha (NOPASSWD no helper).
+          remote_cmd="/usr/local/sbin/deploy-super-app '${DEPLOY_REF}'"
+          if [[ "${VPS_USER}" != "root" ]]; then
+            remote_cmd="sudo -n ${remote_cmd}"
+          fi
+
+          ssh -i ~/.ssh/id_deploy \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=20 \
+            "${VPS_USER}@${VPS_HOST}" \
+            "${remote_cmd}"

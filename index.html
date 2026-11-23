@@ -7027,7 +7027,6 @@
                     </span>
                 </label>
                 <button type="submit" class="auth-submit">Entrar</button>
-                <button type="button" id="forgotPasswordBtn" class="auth-secondary">Esqueci minha senha</button>
             </form>
 
             <div id="biometricUnlockPanel" class="auth-form auth-biometric-panel" hidden>
@@ -7035,19 +7034,6 @@
                 <button type="button" id="biometricUnlockBtn" class="auth-submit">Usar digital ou Face ID</button>
                 <button type="button" id="biometricUsePasswordBtn" class="auth-secondary">Entrar com e-mail e senha</button>
             </div>
-
-            <form id="resetPasswordForm" class="auth-form" hidden>
-                <div class="auth-field">
-                    <label for="newPassword">Nova senha</label>
-                    <div class="auth-password-wrap"><input id="newPassword" name="password" type="password" autocomplete="new-password" required minlength="6" /><button type="button" class="auth-password-toggle" data-password-toggle="newPassword" aria-label="Mostrar senha" aria-pressed="false"><i class="fas fa-eye"></i></button></div>
-                </div>
-                <div class="auth-field">
-                    <label for="confirmPassword">Confirmar nova senha</label>
-                    <div class="auth-password-wrap"><input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required minlength="6" /><button type="button" class="auth-password-toggle" data-password-toggle="confirmPassword" aria-label="Mostrar senha" aria-pressed="false"><i class="fas fa-eye"></i></button></div>
-                </div>
-                <button type="submit" class="auth-submit">🔐 Atualizar senha</button>
-            </form>
-
 
             <p id="authMessage" class="auth-message"></p>
         </section>
@@ -7198,7 +7184,6 @@
             client: null,
             session: null,
             initialized: false,
-            recoveryMode: false,
             forcePasswordLogin: false,
             biometricSupported: false,
             biometricModule: null,
@@ -7312,7 +7297,7 @@
                     return 'Limite de emails do Supabase atingido. Aguarde alguns minutos/1 hora ou configure SMTP proprio no Supabase.';
                 }
                 if (message.includes('already registered') || message.includes('user already registered')) {
-                    return 'Este email ja possui cadastro. Tente entrar ou recuperar a senha.';
+                    return 'Este email ja possui cadastro. Tente entrar.';
                 }
                 if (message.includes('invalid login credentials')) {
                     return 'Email ou senha invalidos.';
@@ -7327,16 +7312,12 @@
             },
 
             setMode(mode) {
-                mode = mode === 'reset' ? 'reset' : mode === 'biometric' ? 'biometric' : 'login';
-                const isReset = mode === 'reset';
+                mode = mode === 'biometric' ? 'biometric' : 'login';
                 const isBiometric = mode === 'biometric';
                 document.getElementById('loginForm').hidden = mode !== 'login';
                 document.getElementById('biometricUnlockPanel').hidden = !isBiometric;
-                document.getElementById('resetPasswordForm').hidden = !isReset;
-                document.getElementById('authTabs').hidden = isReset || isBiometric;
-                document.getElementById('authSubtitle').textContent = isReset
-                    ? 'Defina uma nova senha para continuar.'
-                    : isBiometric
+                document.getElementById('authTabs').hidden = isBiometric;
+                document.getElementById('authSubtitle').textContent = isBiometric
                     ? 'Entre com a biometria deste aparelho.'
                     : 'Entre para acessar seus dados.';
                 document.querySelectorAll('[data-auth-tab]').forEach((btn) => {
@@ -7375,7 +7356,6 @@
             async init() {
                 try {
                     await this.configureClient();
-                    await this.consumeRecoveryUrl();
                     this.bindEvents();
                     this.installFetchAuth();
                     if (!this.fixedMode && !this.offlineMode) {
@@ -7384,11 +7364,6 @@
                     }
                     const { data } = await this.client.auth.getSession();
                     this.session = data?.session || null;
-
-                    if (this.recoveryMode) {
-                        this.showGate('reset');
-                        return false;
-                    }
 
                     if (!this.session) {
                         const bio = this.biometricModule || await this.loadBiometricModule();
@@ -7407,31 +7382,6 @@
                     this.showGate('login', error?.message || 'Nao foi possivel iniciar o login.');
                     return false;
                 }
-            },
-
-            async consumeRecoveryUrl() {
-                if (this.fixedMode) {
-                    this.recoveryMode = false;
-                    return;
-                }
-                const url = new URL(window.location.href);
-                const params = url.searchParams;
-                const hashParams = new URLSearchParams((url.hash || '').replace(/^#/, ''));
-                const error = params.get('error_description') || hashParams.get('error_description');
-                if (error) {
-                    this.recoveryMode = false;
-                    this.showGate('login', error.replace(/\+/g, ' '));
-                    return;
-                }
-
-                if (params.get('code')) {
-                    await this.client.auth.exchangeCodeForSession(params.get('code'));
-                    this.recoveryMode = params.get('type') === 'recovery' || params.get('auth') === 'recovery';
-                    history.replaceState({}, document.title, window.location.pathname + '?auth=recovery');
-                    return;
-                }
-
-                this.recoveryMode = params.get('auth') === 'recovery' || hashParams.get('type') === 'recovery';
             },
 
             bindEvents() {
@@ -7545,47 +7495,6 @@
                 document.getElementById('biometricUsePasswordBtn')?.addEventListener('click', () => {
                     this.forcePasswordLogin = true;
                     this.showGate('login');
-                });
-
-                document.getElementById('forgotPasswordBtn')?.addEventListener('click', async () => {
-                    const inputVal = String(document.getElementById('loginEmail')?.value || '').trim();
-                    if (!inputVal) return this.setMessage('Digite seu email ou usuário para receber o link.', 'error');
-                    let targetEmail = inputVal;
-                    if (this.client && inputVal) {
-                        try {
-                            const { data: usuario } = await this.client
-                                .from('usuarios')
-                                .select('email')
-                                .or(`username.eq.${inputVal},email.eq.${inputVal}`)
-                                .limit(1)
-                                .maybeSingle();
-                            if (usuario?.email) {
-                                targetEmail = usuario.email;
-                            }
-                        } catch (_) {}
-                    }
-                    this.setMessage('Enviando link de recuperacao...');
-                    const { error } = await this.client.auth.resetPasswordForEmail(targetEmail, {
-                        redirectTo: window.location.origin + window.location.pathname + '?auth=recovery',
-                    });
-                    if (error) return this.setMessage(this.formatAuthError(error), 'error');
-                    this.setMessage('Link enviado. Confira seu email para trocar a senha.');
-                    showAppConfirmation('Link de recuperação enviado.');
-                });
-
-                document.getElementById('resetPasswordForm')?.addEventListener('submit', async (event) => {
-                    event.preventDefault();
-                    const form = new FormData(event.currentTarget);
-                    const password = String(form.get('password') || '');
-                    const confirmPassword = String(form.get('confirmPassword') || '');
-                    if (password.length < 6) return this.setMessage('A senha precisa ter pelo menos 6 caracteres.', 'error');
-                    if (password !== confirmPassword) return this.setMessage('As senhas nao conferem.', 'error');
-                    this.setMessage('Atualizando senha...');
-                    const { error } = await this.client.auth.updateUser({ password });
-                    if (error) return this.setMessage(this.formatAuthError(error), 'error');
-                    this.setMessage('Senha atualizada. Entrando...');
-                    showAppConfirmation('Senha atualizada.');
-                    window.location.replace(window.location.pathname);
                 });
 
                 document.getElementById('authLogoutBtn')?.addEventListener('click', async () => {
