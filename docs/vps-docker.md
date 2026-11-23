@@ -126,8 +126,9 @@ Espelha o Ritmo Saúde no gatilho (`push` em `main` + `workflow_dispatch`), com 
 |------|------|
 | Workflow | `.github/workflows/deploy.yml` |
 | Helper na VPS | `/usr/local/sbin/deploy-super-app` (cópia de `deploy/deploy-super-app.sh`) |
-| Ação | `git fetch` + `checkout/reset` no SHA + `docker compose up -d --build --force-recreate` |
+| Ação | `git fetch` + `checkout -B main` no SHA de `origin/main` + `docker compose up -d --build --force-recreate` |
 | Preserva | `/opt/super-app/.env` (nunca vem do git) |
+| Timer host | `/opt/deploy/config/super-app.conf` **deve** ter `BRANCH=main` (ref: `deploy/vps-auto-deploy-super-app.conf`). Se apontar para `feature/*`, o `vps-deploy.timer` (a cada ~2 min) republica a feature e desfaz o deploy de `main`. |
 
 Secrets do repositório (Settings → Secrets and variables → Actions):
 

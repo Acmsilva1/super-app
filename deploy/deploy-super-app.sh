@@ -1,19 +1,35 @@
 #!/usr/bin/env bash
-# Deploy do Super App na VPS: alinha o git ao SHA/ref e reconstrói o container.
+# Deploy do Super App na VPS: alinha o git a main (ou SHA de main) e reconstrói o container.
 # Preserva /opt/super-app/.env. Uso: deploy-super-app [git-sha|origin/main]
+# Produção NÃO deve ficar em feature/* — o timer /opt/deploy também deve usar BRANCH=main.
 set -Eeuo pipefail
 
 APP_DIR="${SUPERAPP_DIR:-/opt/super-app}"
 TARGET_REF="${1:-origin/main}"
 COMPOSE_FILE="${SUPERAPP_COMPOSE_FILE:-docker-compose.yml}"
+LOCK_FILE="${SUPERAPP_DEPLOY_LOCK:-/var/lock/super-app-deploy.lock}"
 
 cd "$APP_DIR"
 
 test -f .env || { echo "Arquivo ${APP_DIR}/.env ausente." >&2; exit 1; }
 test -f "$COMPOSE_FILE" || { echo "Compose ausente: ${COMPOSE_FILE}" >&2; exit 1; }
 
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "Deploy já em andamento (${LOCK_FILE}); abortando." >&2
+  exit 1
+fi
+
 # Nunca sobrescrever secrets locais com o que vier do git.
 chmod 600 .env 2>/dev/null || true
+
+# Evita que o auto-deploy do host (/opt/deploy) volte a feature/*.
+if [[ -f /opt/deploy/config/super-app.conf ]]; then
+  if grep -qE '^BRANCH=feature/' /opt/deploy/config/super-app.conf; then
+    echo "Corrigindo /opt/deploy/config/super-app.conf: BRANCH=main" >&2
+    sed -i 's/^BRANCH=feature\/.*/BRANCH=main/' /opt/deploy/config/super-app.conf
+  fi
+fi
 
 echo "=== fetch ==="
 GIT_TERMINAL_PROMPT=0 git fetch --prune origin
@@ -26,11 +42,48 @@ else
   RESOLVED="$(git rev-parse --verify "origin/${TARGET_REF}^{commit}")"
 fi
 
-echo "=== checkout ${RESOLVED} ==="
-# Descarta divergência local do código (ex.: branch antiga); .env fica fora do git.
+MAIN_SHA="$(git rev-parse --verify origin/main^{commit})"
+# Aceita só commits que estão em origin/main (evita publicar feature/* por engano).
+if ! git merge-base --is-ancestor "$RESOLVED" "$MAIN_SHA"; then
+  echo "Ref ${TARGET_REF} (${RESOLVED:0:7}) não está em origin/main (${MAIN_SHA:0:7}). Abortando." >&2
+  exit 1
+fi
+# Sempre publica o tip de main quando o pedido é a branch main / origin/main.
+if [[ "$TARGET_REF" == "main" || "$TARGET_REF" == "origin/main" ]]; then
+  RESOLVED="$MAIN_SHA"
+fi
+
+echo "=== checkout main @ ${RESOLVED} ==="
+# Sempre branch main — nunca deixa o working tree em feature/*.
 git checkout -B main "$RESOLVED"
 git reset --hard "$RESOLVED"
 git clean -fd --exclude=.env --exclude=.env.* --exclude=backups --exclude=.deployed-revision
+
+BRANCH_NOW="$(git branch --show-current)"
+HEAD_NOW="$(git rev-parse HEAD)"
+if [[ "$BRANCH_NOW" != "main" || "$HEAD_NOW" != "$RESOLVED" ]]; then
+  echo "Checkout inconsistente: branch=${BRANCH_NOW} head=${HEAD_NOW:0:7} expected=main@${RESOLVED:0:7}" >&2
+  exit 1
+fi
+
+# Sanity dos artefatos de auth (biometria mobile-only permanece; forgot some).
+if [[ ! -f features/auth/biometric.js ]]; then
+  echo "features/auth/biometric.js ausente após checkout — abortando." >&2
+  exit 1
+fi
+if grep -q 'forgotPasswordBtn' index.html; then
+  echo "index.html ainda contém forgotPasswordBtn — abortando." >&2
+  exit 1
+fi
+if ! grep -q 'biometricUnlockBtn' index.html; then
+  echo "index.html sem biometricUnlockBtn — abortando." >&2
+  exit 1
+fi
+
+# Atualiza o helper instalado a partir do repo (após checkout).
+if [[ -f deploy/deploy-super-app.sh ]]; then
+  install -m 755 deploy/deploy-super-app.sh /usr/local/sbin/deploy-super-app
+fi
 
 printf '%s\n' "$RESOLVED" > .deployed-revision
 chmod 600 .env
@@ -55,6 +108,15 @@ if [[ "$ok" -ne 1 ]]; then
   exit 1
 fi
 
+# Confirma o que o container realmente serve.
+forgot_count="$(docker exec super-app sh -c 'grep -c forgotPasswordBtn /app/index.html || true')"
+if [[ "${forgot_count:-0}" != "0" ]]; then
+  echo "Container ainda serve forgotPasswordBtn (count=${forgot_count})." >&2
+  exit 1
+fi
+docker exec super-app test -f /app/features/auth/biometric.js \
+  || { echo "Container sem /app/features/auth/biometric.js." >&2; exit 1; }
+
 curl -fsS -m 5 http://127.0.0.1:3000/healthz
 echo
-echo "deployed=$RESOLVED"
+echo "deployed=$RESOLVED branch=main"
