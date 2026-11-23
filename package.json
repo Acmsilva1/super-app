@@ -21,6 +21,7 @@
     "test:telegram": "node scripts/test-telegram.mjs --send"
   },
   "dependencies": {
+    "@simplewebauthn/server": "^13.3.3",
     "@supabase/postgrest-js": "^2.117.3",
     "@supabase/supabase-js": "^2.117.3",
     "compression": "1.8.1",

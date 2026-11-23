@@ -936,6 +936,45 @@
             gap: 0.35rem;
         }
 
+        .auth-biometric-toggle {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 12px;
+            align-items: start;
+            margin-top: 4px;
+            padding: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 12px;
+            background: rgba(2, 6, 23, 0.28);
+            cursor: pointer;
+        }
+        .auth-biometric-toggle input {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            accent-color: #cc0000;
+        }
+        .auth-biometric-toggle strong {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+        .auth-biometric-toggle small {
+            display: block;
+            margin-top: 4px;
+            color: #94a3b8;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+        [data-theme="light"] .auth-biometric-toggle {
+            border-color: #dfe3ea;
+            background: #f7f8fa;
+        }
+        [data-theme="light"] .auth-biometric-toggle strong { color: #0f172a; }
+        [data-theme="light"] .auth-biometric-toggle small { color: #64748b; }
+        .auth-biometric-panel { display: grid; gap: 12px; }
+
         .auth-field label {
             font-weight: 800;
             color: #cbd5e1;
@@ -6980,9 +7019,22 @@
                     <label for="loginPassword">Senha</label>
                     <div class="auth-password-wrap"><input id="loginPassword" name="password" type="password" autocomplete="current-password" required minlength="5" /><button type="button" class="auth-password-toggle" data-password-toggle="loginPassword" aria-label="Mostrar senha" aria-pressed="false"><i class="fas fa-eye"></i></button></div>
                 </div>
+                <label id="loginBiometricToggle" class="auth-biometric-toggle" hidden>
+                    <input type="checkbox" name="enable_biometric" id="enableBiometric" />
+                    <span>
+                        <strong>Usar digital ou Face ID neste aparelho</strong>
+                        <small>Após entrar, o sistema pede a biometria cadastrada no dispositivo.</small>
+                    </span>
+                </label>
                 <button type="submit" class="auth-submit">Entrar</button>
                 <button type="button" id="forgotPasswordBtn" class="auth-secondary">Esqueci minha senha</button>
             </form>
+
+            <div id="biometricUnlockPanel" class="auth-form auth-biometric-panel" hidden>
+                <p>Use a digital ou o reconhecimento facial deste aparelho para acessar o SUPERAPP.</p>
+                <button type="button" id="biometricUnlockBtn" class="auth-submit">Usar digital ou Face ID</button>
+                <button type="button" id="biometricUsePasswordBtn" class="auth-secondary">Entrar com e-mail e senha</button>
+            </div>
 
             <form id="resetPasswordForm" class="auth-form" hidden>
                 <div class="auth-field">
@@ -7147,7 +7199,44 @@
             session: null,
             initialized: false,
             recoveryMode: false,
+            forcePasswordLogin: false,
+            biometricSupported: false,
+            biometricModule: null,
             originalFetch: window.fetch.bind(window),
+
+            async loadBiometricModule() {
+                if (this.biometricModule) return this.biometricModule;
+                this.biometricModule = await import('/features/auth/biometric.js');
+                return this.biometricModule;
+            },
+
+            async syncBiometricPreference(enableBiometric) {
+                if (this.fixedMode || this.offlineMode || !this.biometricSupported) return;
+                const bio = await this.loadBiometricModule();
+                const pref = bio.readBiometricPreference();
+                const token = this.session?.access_token;
+                const userId = this.session?.user?.id;
+                if (!token || !userId) return;
+                if (enableBiometric) {
+                    if (pref?.credentialId && pref.userId === userId) {
+                        bio.writeBiometricPreference({ userId, credentialId: pref.credentialId, preferred: true });
+                        return;
+                    }
+                    this.setMessage('Ativando biometria neste aparelho...');
+                    const result = await bio.enrollBiometric(token);
+                    bio.writeBiometricPreference({
+                        userId,
+                        credentialId: result.credentialId,
+                        preferred: true,
+                    });
+                    return;
+                }
+                if (pref?.credentialId && pref.userId === userId) {
+                    await bio.revokeBiometric(token, pref.credentialId);
+                } else {
+                    bio.clearBiometricPreference();
+                }
+            },
 
             async loadSupabaseSdk() {
                 if (window.supabase?.createClient) return true;
@@ -7238,18 +7327,36 @@
             },
 
             setMode(mode) {
-                mode = mode === 'reset' ? 'reset' : 'login';
+                mode = mode === 'reset' ? 'reset' : mode === 'biometric' ? 'biometric' : 'login';
                 const isReset = mode === 'reset';
+                const isBiometric = mode === 'biometric';
                 document.getElementById('loginForm').hidden = mode !== 'login';
+                document.getElementById('biometricUnlockPanel').hidden = !isBiometric;
                 document.getElementById('resetPasswordForm').hidden = !isReset;
-                document.getElementById('authTabs').hidden = isReset;
+                document.getElementById('authTabs').hidden = isReset || isBiometric;
                 document.getElementById('authSubtitle').textContent = isReset
                     ? 'Defina uma nova senha para continuar.'
+                    : isBiometric
+                    ? 'Entre com a biometria deste aparelho.'
                     : 'Entre para acessar seus dados.';
                 document.querySelectorAll('[data-auth-tab]').forEach((btn) => {
-                    btn.classList.toggle('active', btn.dataset.authTab === mode);
+                    btn.classList.toggle('active', btn.dataset.authTab === 'login' && mode === 'login');
                 });
                 this.setMessage('');
+            },
+
+            async refreshBiometricToggle() {
+                const wrap = document.getElementById('loginBiometricToggle');
+                const checkbox = document.getElementById('enableBiometric');
+                if (!wrap || !checkbox) return;
+                if (this.fixedMode || this.offlineMode || !this.biometricSupported) {
+                    wrap.hidden = true;
+                    checkbox.checked = false;
+                    return;
+                }
+                const bio = await this.loadBiometricModule();
+                wrap.hidden = false;
+                checkbox.checked = bio.isBiometricPreferred();
             },
 
             showGate(mode = 'login', message = '') {
@@ -7257,6 +7364,7 @@
                 document.body.classList.remove('auth-ready');
                 this.setMode(mode);
                 this.setMessage(message);
+                if (mode === 'login') void this.refreshBiometricToggle();
             },
 
             showApp() {
@@ -7270,6 +7378,10 @@
                     await this.consumeRecoveryUrl();
                     this.bindEvents();
                     this.installFetchAuth();
+                    if (!this.fixedMode && !this.offlineMode) {
+                        const bio = await this.loadBiometricModule();
+                        this.biometricSupported = await bio.supportsPlatformAuth();
+                    }
                     const { data } = await this.client.auth.getSession();
                     this.session = data?.session || null;
 
@@ -7279,6 +7391,12 @@
                     }
 
                     if (!this.session) {
+                        const bio = this.biometricModule || await this.loadBiometricModule();
+                        if (!this.forcePasswordLogin && this.biometricSupported && bio.isBiometricPreferred()) {
+                            this.showGate('biometric');
+                            queueMicrotask(() => document.getElementById('biometricUnlockBtn')?.click());
+                            return false;
+                        }
                         this.showGate('login');
                         return false;
                     }
@@ -7361,6 +7479,7 @@
                         return;
                     }
                     const inputVal = String(form.get('email') || '').trim();
+                    const enableBiometric = Boolean(form.get('enable_biometric'));
                     let targetEmail = inputVal;
 
                     if (this.client && inputVal) {
@@ -7377,12 +7496,55 @@
                         } catch (_) {}
                     }
 
-                    const { error } = await this.client.auth.signInWithPassword({
+                    const { data: signInData, error } = await this.client.auth.signInWithPassword({
                         email: targetEmail,
                         password: String(form.get('password') || ''),
                     });
                     if (error) return this.setMessage(this.formatAuthError(error), 'error');
+                    this.session = signInData?.session || null;
+                    try {
+                        await this.syncBiometricPreference(enableBiometric);
+                    } catch (bioError) {
+                        this.setMessage(bioError?.message || 'Login ok, mas a biometria não foi ativada.', 'error');
+                        await new Promise((resolve) => setTimeout(resolve, 1200));
+                    }
+                    this.forcePasswordLogin = false;
                     window.location.replace(window.location.pathname);
+                });
+
+                document.getElementById('biometricUnlockBtn')?.addEventListener('click', async () => {
+                    const btn = document.getElementById('biometricUnlockBtn');
+                    const bio = await this.loadBiometricModule();
+                    const pref = bio.readBiometricPreference();
+                    if (!pref?.credentialId) {
+                        this.forcePasswordLogin = true;
+                        this.showGate('login', 'Ative a biometria pelo login com senha.');
+                        return;
+                    }
+                    this.setMessage('Aguardando biometria...');
+                    if (btn) { btn.disabled = true; btn.textContent = 'Aguardando biometria…'; }
+                    try {
+                        const result = await bio.assertBiometric(pref.credentialId);
+                        const { error } = await this.client.auth.setSession({
+                            access_token: result.session.access_token,
+                            refresh_token: result.session.refresh_token,
+                        });
+                        if (error) throw error;
+                        this.forcePasswordLogin = false;
+                        window.location.replace(window.location.pathname);
+                    } catch (cause) {
+                        if (/não encontrada|nao encontrada|indisponível|indisponivel/i.test(String(cause?.message || ''))) {
+                            bio.clearBiometricPreference();
+                        }
+                        this.setMessage(cause?.message || 'Não foi possível entrar com biometria.', 'error');
+                    } finally {
+                        if (btn) { btn.disabled = false; btn.textContent = 'Usar digital ou Face ID'; }
+                    }
+                });
+
+                document.getElementById('biometricUsePasswordBtn')?.addEventListener('click', () => {
+                    this.forcePasswordLogin = true;
+                    this.showGate('login');
                 });
 
                 document.getElementById('forgotPasswordBtn')?.addEventListener('click', async () => {
