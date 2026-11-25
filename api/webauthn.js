@@ -1,9 +1,9 @@
 import { requireUser } from '../lib/auth.js';
 import {
-  getLoginOptions,
   getRegisterOptions,
+  getFactorOptions,
+  verifyFactor,
   revokeCredential,
-  verifyLogin,
   verifyRegistration,
 } from '../lib/webauthnService.js';
 
@@ -27,22 +27,22 @@ export default async function handler(req, res) {
     const action = String(req.query?.action || req.query?.resource || '').trim();
     const body = readBody(req);
 
-    if (req.method === 'POST' && action === 'login-options') {
-      const result = await getLoginOptions(req, body);
+    const auth = await requireUser(req);
+    if (!auth.ok) return json(res, auth.status || 401, auth.data || { error: 'Login obrigatório' });
+
+    if (req.method === 'POST' && action === 'factor-options') {
+      const result = await getFactorOptions(req, auth.user, body);
       return result.options
         ? json(res, 200, result)
         : json(res, 400, { error: result.error || 'Biometria indisponível.' });
     }
 
-    if (req.method === 'POST' && action === 'login') {
-      const result = await verifyLogin(req, body);
-      return result.session
+    if (req.method === 'POST' && action === 'factor-verify') {
+      const result = await verifyFactor(req, auth.user, body);
+      return result.ok
         ? json(res, 200, result)
-        : json(res, 401, { error: result.error || 'Não foi possível entrar com biometria.' });
+        : json(res, 401, { error: result.error || 'Não foi possível confirmar a biometria.' });
     }
-
-    const auth = await requireUser(req);
-    if (!auth.ok) return json(res, auth.status || 401, auth.data || { error: 'Login obrigatório' });
 
     if (req.method === 'POST' && action === 'register-options') {
       const result = await getRegisterOptions(req, auth.user);

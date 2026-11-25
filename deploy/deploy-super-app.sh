@@ -66,7 +66,7 @@ if [[ "$BRANCH_NOW" != "main" || "$HEAD_NOW" != "$RESOLVED" ]]; then
   exit 1
 fi
 
-# Sanity dos artefatos de auth (biometria mobile-only permanece; forgot some).
+# Sanity dos artefatos de auth.
 if [[ ! -f features/auth/biometric.js ]]; then
   echo "features/auth/biometric.js ausente após checkout — abortando." >&2
   exit 1
@@ -75,8 +75,16 @@ if grep -q 'forgotPasswordBtn' index.html; then
   echo "index.html ainda contém forgotPasswordBtn — abortando." >&2
   exit 1
 fi
-if ! grep -q 'biometricUnlockBtn' index.html; then
-  echo "index.html sem biometricUnlockBtn — abortando." >&2
+if ! grep -q 'requireBiometricAfterPassword' index.html; then
+  echo "index.html sem a etapa obrigatória de biometria após senha — abortando." >&2
+  exit 1
+fi
+if ! grep -q 'factor-verify' api/webauthn.js; then
+  echo "API sem verificação da biometria como segundo fator — abortando." >&2
+  exit 1
+fi
+if grep -q "action === 'login-options'\|action === 'login'" api/webauthn.js; then
+  echo "API ainda permite autenticação direta só com biometria — abortando." >&2
   exit 1
 fi
 

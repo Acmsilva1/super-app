@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'superapp_biometric';
+const VERIFIED_SESSION_KEY = 'superapp_biometric_verified_user';
 
 function bufferToBase64Url(value) {
   const bytes = value instanceof ArrayBuffer ? new Uint8Array(value) : new Uint8Array(value || []);
@@ -39,17 +40,35 @@ export function clearBiometricPreference() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+export function markBiometricSessionVerified(userId) {
+  localStorage.setItem(VERIFIED_SESSION_KEY, String(userId || ''));
+}
+
+export function isBiometricSessionVerified(userId) {
+  try {
+    return Boolean(userId) && localStorage.getItem(VERIFIED_SESSION_KEY) === String(userId);
+  } catch {
+    return false;
+  }
+}
+
+export function clearBiometricSessionVerified() {
+  try {
+    localStorage.removeItem(VERIFIED_SESSION_KEY);
+  } catch {
+    // A ausência do marcador fará o próximo acesso móvel voltar ao login.
+  }
+}
+
 export function isBiometricPreferred() {
   const pref = readBiometricPreference();
-  return Boolean(pref?.preferred && pref?.credentialId);
+  return Boolean(pref?.credentialId);
 }
 
 /** Biometria só no mobile (telefone/tablet). Desktop usa e-mail e senha. */
 export function isMobileDevice() {
   if (typeof navigator === 'undefined') return false;
-  if (typeof navigator.userAgentData?.mobile === 'boolean') {
-    return navigator.userAgentData.mobile;
-  }
+  if (navigator.userAgentData?.mobile === true) return true;
   const ua = String(navigator.userAgent || '');
   if (/Android|iPhone|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
   // iPadOS moderno se identifica como Mac, mas tem toque.
@@ -133,6 +152,9 @@ async function api(path, { method = 'POST', body, token } = {}) {
 }
 
 export async function enrollBiometric(accessToken) {
+  if (!await supportsPlatformAuth()) {
+    throw Error('A biometria obrigatória só está disponível em celulares e tablets compatíveis.');
+  }
   const { options } = await api('/api/webauthn?action=register-options', { token: accessToken });
   const credential = await navigator.credentials.create({
     publicKey: reviveCreationOptions(options),
@@ -144,15 +166,20 @@ export async function enrollBiometric(accessToken) {
   });
 }
 
-export async function assertBiometric(credentialId) {
-  const { options } = await api('/api/webauthn?action=login-options', {
+export async function verifyBiometricFactor(accessToken, credentialId) {
+  if (!await supportsPlatformAuth()) {
+    throw Error('A biometria obrigatória só está disponível em celulares e tablets compatíveis.');
+  }
+  const { options } = await api('/api/webauthn?action=factor-options', {
+    token: accessToken,
     body: { credentialId },
   });
   const assertion = await navigator.credentials.get({
     publicKey: reviveRequestOptions(options),
   });
   if (!assertion) throw Error('Biometria cancelada.');
-  return api('/api/webauthn?action=login', {
+  return api('/api/webauthn?action=factor-verify', {
+    token: accessToken,
     body: { response: publicKeyCredentialToJSON(assertion) },
   });
 }
