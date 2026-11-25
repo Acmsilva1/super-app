@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <title>SUPERAPP</title>
+    <script src="/components/vendor/dompurify.min.js"></script>
+    <script src="/components/security-dom.js"></script>
+    <link rel="stylesheet" href="/styles/privacy.css">
     <meta name="theme-color" content="#cc0000">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -7067,6 +7070,7 @@
             <div hidden aria-hidden="true"><button type="button" id="biometricUnlockBtn" disabled></button></div>
 
             <p id="authMessage" class="auth-message"></p>
+            <button type="button" class="auth-secondary" data-privacy-open>Privacidade e seus dados</button>
         </section>
     </main>
 
@@ -7157,6 +7161,7 @@
                     <button class="header-btn" id="profileOpenBtn" title="Administração" aria-label="Abrir administração" style="display:none">
                         <i class="fas fa-user-circle"></i><span class="header-btn-label">Administração</span>
                     </button>
+                    <button type="button" class="header-btn" data-privacy-open title="Privacidade e seus dados">Privacidade</button>
                     <button class="auth-logout" id="authLogoutBtn" title="Sair" aria-label="Sair">
                         <i class="fas fa-right-from-bracket"></i>
                         <span class="header-btn-label">Sair</span>
@@ -7292,7 +7297,7 @@
                         return;
                     }
                     const script = document.createElement('script');
-                    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js';
+                    script.src = '/components/vendor/supabase.js';
                     script.async = true;
                     script.dataset.authSdk = 'supabase';
                     script.onload = resolve;
@@ -7408,7 +7413,7 @@
 
                     if (!this.fixedMode && !this.offlineMode) {
                         const bio = await this.loadBiometricModule();
-                        if (bio.isMobileDevice() && !bio.isBiometricSessionVerified(this.session.user?.id)) {
+                        if (bio.isMobileDevice() && !await bio.isBiometricSessionVerified(this.session.access_token)) {
                             await this.client.auth.signOut({ scope: 'local' }).catch(() => {});
                             this.session = null;
                             this.showGate('login', 'Entre com e-mail e senha e confirme a biometria neste celular.');
@@ -7509,9 +7514,10 @@
                             if (sessionError) throw sessionError;
                         }
                         if (this.biometricModule?.isMobileDevice() && this.session?.user?.id) {
-                            this.biometricModule.markBiometricSessionVerified(this.session.user.id);
+                            await this.biometricModule.markBiometricSessionVerified(this.session.access_token);
                         }
                     } catch (bioError) {
+                        await (await import('/features/auth/privateClientData.js')).clearPrivateClientData();
                         await passwordClient.auth.signOut({ scope: 'local' }).catch(() => {});
                         await this.client.auth.signOut({ scope: 'local' }).catch(() => {});
                         this.biometricModule?.clearBiometricSessionVerified();
@@ -7531,6 +7537,7 @@
                 });
 
                 document.getElementById('authLogoutBtn')?.addEventListener('click', async () => {
+                    await (await import('/features/auth/privateClientData.js')).clearPrivateClientData();
                     if (this.offlineMode) {
                         sessionStorage.removeItem('offline_token');
                         sessionStorage.removeItem('offline_user');
@@ -8977,10 +8984,10 @@
                             <div class="window-title">${app.title}</div>
                         </div>
                         <div class="window-controls">
-                            <button class="window-btn" onclick="superApp.goHome('${windowId}')" title="Voltar para a tela inicial" aria-label="Voltar para a tela inicial">
+                            <button class="window-btn" data-ui-command="goHome" data-ui-window="${escapeHtml(windowId)}" title="Voltar para a tela inicial" aria-label="Voltar para a tela inicial">
                                 <i class="fas fa-arrow-left" aria-hidden="true"></i>
                             </button>
-                            <button class="window-btn" onclick="superApp.closeWindow('${windowId}')" title="Fechar">
+                            <button class="window-btn" data-ui-command="closeWindow" data-ui-window="${escapeHtml(windowId)}" title="Fechar">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -10704,27 +10711,27 @@
                                 <button type="button" class="flux-toolbar-btn" id="flux-back-hub" aria-label="Sair" title="Sair">
                                     <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
                                 </button>
-                                <button type="button" class="flux-toolbar-btn" onclick="openColorModal()" aria-label="Cores" title="Cores">
+                                <button type="button" class="flux-toolbar-btn" data-ui-command="openColorModal" aria-label="Cores" title="Cores">
                                     <i class="fas fa-palette" aria-hidden="true"></i>
                                 </button>
                                 <div class="shape-menu-wrap shape-menu-wrap--topbar">
-                                    <button type="button" class="flux-toolbar-btn shape-menu-trigger" id="flux-shapeMenuBtn" onclick="toggleShapeMenu()" aria-label="Formas" title="Formas" aria-haspopup="menu" aria-expanded="false">
+                                    <button type="button" class="flux-toolbar-btn shape-menu-trigger" id="flux-shapeMenuBtn" data-ui-command="toggleShapeMenu" aria-label="Formas" title="Formas" aria-haspopup="menu" aria-expanded="false">
                                         <i class="fas fa-shapes" aria-hidden="true"></i>
                                     </button>
                                     <div id="flux-shapeMenu" class="shape-menu" hidden role="menu" aria-label="Selecionar forma">
-                                        <button type="button" class="shape-menu-item" data-flux-shape="rect" onclick="setNodeShape('rect')"><i class="far fa-square" aria-hidden="true"></i><span>Retangulo</span></button>
-                                        <button type="button" class="shape-menu-item" data-flux-shape="ellipse" onclick="setNodeShape('ellipse')"><i class="far fa-circle" aria-hidden="true"></i><span>Elipse</span></button>
-                                        <button type="button" class="shape-menu-item" data-flux-shape="diamond" onclick="setNodeShape('diamond')"><i class="far fa-gem" aria-hidden="true"></i><span>Losango</span></button>
-                                        <button type="button" class="shape-menu-item" data-flux-shape="hexagon" onclick="setNodeShape('hexagon')"><i class="fas fa-certificate" aria-hidden="true"></i><span>Hexagono</span></button>
+                                        <button type="button" class="shape-menu-item" data-flux-shape="rect" data-ui-command="setNodeShape" data-ui-argument="rect"><i class="far fa-square" aria-hidden="true"></i><span>Retangulo</span></button>
+                                        <button type="button" class="shape-menu-item" data-flux-shape="ellipse" data-ui-command="setNodeShape" data-ui-argument="ellipse"><i class="far fa-circle" aria-hidden="true"></i><span>Elipse</span></button>
+                                        <button type="button" class="shape-menu-item" data-flux-shape="diamond" data-ui-command="setNodeShape" data-ui-argument="diamond"><i class="far fa-gem" aria-hidden="true"></i><span>Losango</span></button>
+                                        <button type="button" class="shape-menu-item" data-flux-shape="hexagon" data-ui-command="setNodeShape" data-ui-argument="hexagon"><i class="fas fa-certificate" aria-hidden="true"></i><span>Hexagono</span></button>
                                     </div>
                                 </div>
-                                <button type="button" class="flux-toolbar-btn" onclick="addNode()" aria-label="Novo nó" title="Novo nó">
+                                <button type="button" class="flux-toolbar-btn" data-ui-command="addNode" aria-label="Novo nó" title="Novo nó">
                                     <i class="fas fa-square-plus" aria-hidden="true"></i>
                                 </button>
-                                <button type="button" class="flux-toolbar-btn" onclick="centerView()" aria-label="Centralizar" title="Centralizar">
+                                <button type="button" class="flux-toolbar-btn" data-ui-command="centerView" aria-label="Centralizar" title="Centralizar">
                                     <i class="fas fa-bullseye" aria-hidden="true"></i>
                                 </button>
-                                <button type="button" class="flux-toolbar-btn" onclick="exportToPNG()" aria-label="Baixar PNG da tela inteira" title="Baixar PNG da tela inteira">
+                                <button type="button" class="flux-toolbar-btn" data-ui-command="exportToPNG" aria-label="Baixar PNG da tela inteira" title="Baixar PNG da tela inteira">
                                     <i class="fas fa-download" aria-hidden="true"></i>
                                 </button>
                             </div>
@@ -10735,7 +10742,7 @@
                                             <h3>Cores</h3>
                                             <p>Escolha uma cor para o fluxo.</p>
                                         </div>
-                                        <button type="button" class="flux-toolbar-btn" onclick="closeColorModal()" aria-label="Fechar cores" title="Fechar cores">
+                                        <button type="button" class="flux-toolbar-btn" data-ui-command="closeColorModal" aria-label="Fechar cores" title="Fechar cores">
                                             <i class="fas fa-xmark" aria-hidden="true"></i>
                                         </button>
                                     </div>
@@ -10747,7 +10754,7 @@
                                         <span id="flux-activeColorSwatch" class="flux-color-preview-swatch"></span>
                                         <span id="flux-activeColorText">#D1D5DB</span>
                                     </div>
-                                    <button type="button" class="sec" style="width:100%;margin-top:0.6rem;" onclick="resetActiveColor()">
+                                    <button type="button" class="sec" style="width:100%;margin-top:0.6rem;" data-ui-command="resetActiveColor">
                                         Resetar para cinza original
                                     </button>
                                     <div id="flux-colorPalette" class="flux-color-palette" role="group" aria-label="Paleta de cores"></div>
@@ -10771,7 +10778,7 @@
                                         <option value="line">Fio direto</option>
                                         <option value="curve">Curva suave</option>
                                     </select>
-                                    <button type="button" class="sec mini" id="flux-disconnectActionBtn" onclick="toggleDisconnectFromMenu()" title="Selecione um no, clique em Desconectar ns e depois toque no no destino">Desconectar ns</button>
+                                    <button type="button" class="sec mini" id="flux-disconnectActionBtn" data-ui-command="toggleDisconnectFromMenu" title="Selecione um no, clique em Desconectar ns e depois toque no no destino">Desconectar ns</button>
                                     <label>Cores</label>
                                     <div id="flux-colorPalette" class="flux-color-palette" role="group" aria-label="Paleta de cores"></div>
                                     <span class="flux-color-preview-item" title="Cor atual do item selecionado">
@@ -10789,8 +10796,8 @@
                                     <span>Conectados: <b id="flux-connectedNodes">0</b></span>
                                 </div>
                                 <div class="flux-fc-actions">
-                                    <button type="button" class="sec" onclick="renameProject()">Renomear Projeto</button>
-                                    <button type="button" class="sec" id="flux-viewModeBtn" onclick="toggleViewMode()">Visualizar</button>
+                                    <button type="button" class="sec" data-ui-command="renameProject">Renomear Projeto</button>
+                                    <button type="button" class="sec" id="flux-viewModeBtn" data-ui-command="toggleViewMode">Visualizar</button>
                                 </div>
                             </div>
                         <div class="flux-fc-container">
@@ -10810,20 +10817,20 @@
                             </div>
                         </div>
                         <div class="fab-wrap">
-                            <button type="button" class="fab fab-add" onclick="addNode()" aria-label="Adicionar no">+</button>
-                            <button type="button" class="fab sec" onclick="addTextLabel()" aria-label="Adicionar texto curto" title="Adicionar texto curto" style="font-size:1rem;font-weight:700;">T</button>
-                            <button type="button" class="fab fab-link" onclick="toggleConnectionFromMenu()" aria-label="Conectar nos" title="Conectar nos">&#128279;</button>
-                            <button type="button" class="fab fab-center" onclick="centerView()" aria-label="Centralizar visao">&#9678;</button>
-                            <button type="button" class="fab fab-del" onclick="deleteNode()" aria-label="Apagar no selecionado">&#128465;</button>
-                            <button type="button" class="fab fab-dl" onclick="exportToPNG()" aria-label="Baixar PNG da tela inteira" title="Baixar PNG da tela inteira (divide em 2 páginas se for muito grande)">&#8681;</button>
+                            <button type="button" class="fab fab-add" data-ui-command="addNode" aria-label="Adicionar no">+</button>
+                            <button type="button" class="fab sec" data-ui-command="addTextLabel" aria-label="Adicionar texto curto" title="Adicionar texto curto" style="font-size:1rem;font-weight:700;">T</button>
+                            <button type="button" class="fab fab-link" data-ui-command="toggleConnectionFromMenu" aria-label="Conectar nos" title="Conectar nos">&#128279;</button>
+                            <button type="button" class="fab fab-center" data-ui-command="centerView" aria-label="Centralizar visao">&#9678;</button>
+                            <button type="button" class="fab fab-del" data-ui-command="deleteNode" aria-label="Apagar no selecionado">&#128465;</button>
+                            <button type="button" class="fab fab-dl" data-ui-command="exportToPNG" aria-label="Baixar PNG da tela inteira" title="Baixar PNG da tela inteira (divide em 2 páginas se for muito grande)">&#8681;</button>
                         </div>
                         <div id="flux-renameModal" class="modal">
                             <div>
                                 <div style="font-size:1.08rem;font-weight:700;margin-bottom:.8rem">Renomear Projeto</div>
                                 <input id="flux-projectNameInput" type="text" placeholder="Nome do projeto">
                                 <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem">
-                                    <button type="button" class="sec" onclick="closeRenameModal()">Cancelar</button>
-                                    <button type="button" class="pri" onclick="saveProjectName()">Salvar</button>
+                                    <button type="button" class="sec" data-ui-command="closeRenameModal">Cancelar</button>
+                                    <button type="button" class="pri" data-ui-command="saveProjectName">Salvar</button>
                                 </div>
                             </div>
                         </div>
@@ -11505,6 +11512,39 @@
         // Inicializar SUPERAPP
         const superApp = new SuperApp();
         window.superApp = superApp;
+        document.addEventListener('click', async (event) => {
+            if (event.target.closest('[data-privacy-open]')) {
+                (await import('/features/auth/privacy.js')).openPrivacyCenter();
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-ui-command]');
+            if (!button || button.disabled) return;
+            const command = button.dataset.uiCommand;
+            if (command === 'goHome' || command === 'closeWindow') {
+                superApp[command](button.dataset.uiWindow);
+                return;
+            }
+            const commands = {openColorModal: () => window.openColorModal?.(),
+                toggleShapeMenu: () => window.toggleShapeMenu?.(),
+                setNodeShape: () => window.setNodeShape?.(button.dataset.uiArgument),
+                addNode: () => window.addNode?.(),
+                centerView: () => window.centerView?.(),
+                exportToPNG: () => window.exportToPNG?.(),
+                closeColorModal: () => window.closeColorModal?.(),
+                resetActiveColor: () => window.resetActiveColor?.(),
+                toggleDisconnectFromMenu: () => window.toggleDisconnectFromMenu?.(),
+                renameProject: () => window.renameProject?.(),
+                toggleViewMode: () => window.toggleViewMode?.(),
+                addTextLabel: () => window.addTextLabel?.(),
+                toggleConnectionFromMenu: () => window.toggleConnectionFromMenu?.(),
+                deleteNode: () => window.deleteNode?.(),
+                closeRenameModal: () => window.closeRenameModal?.(),
+                saveProjectName: () => window.saveProjectName?.()};
+            if (Object.hasOwn(commands, command)) commands[command]();
+        });
+
         window._superappPwaUpdatePending = false;
 
         // ============================================

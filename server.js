@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { setSecurityHeaders } from './lib/securityHeaders.js';
+import { enforceRequestLimit } from './lib/actionRateLimit.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,7 +29,7 @@ const PUBLIC_DIRS = ['styles', 'features', 'components', 'backgrounds'];
 const CLIENT_LIB_FILES = new Set(['uiConfirmation.js']);
 const NO_CACHE_FILES = new Set(['index.html', 'sw.js', 'app-version.json']);
 const IMMUTABLE_FILES = new Set(['icon-192.png', 'icon-512.png']);
-const CONSOLIDATED_ROUTES = new Set(['auth-config', 'statistics', 'roadmap']);
+const CONSOLIDATED_ROUTES = new Set(['auth-config', 'statistics', 'roadmap', 'cron-treinar-modelo']);
 
 async function proxyTelegramAlert(req, res) {
   const target = String(process.env.TELEGRAM_ALERT_INTERNAL_URL || 'http://127.0.0.1:8091/').replace(/\/?$/, '/');
@@ -139,6 +140,8 @@ export function createApp() {
   app.get('/healthz', (req, res) => res.json({ ok: true }));
 
   app.all('/api/*', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (!await enforceRequestLimit(req, res, { action: 'api-ip', limit: 600, windowSeconds: 60 })) return;
     const requestedEndpoint = String(req.path || '').replace(/^\/api\//, '').replace(/\/$/, '');
     const endpoint = requestedEndpoint === 'financeiro-simulador' ? 'financeiro' : CONSOLIDATED_ROUTES.has(requestedEndpoint) ? 'apps' : requestedEndpoint;
     if (requestedEndpoint === 'financeiro-simulador') req.query = { ...req.query, recurso: 'simulador' };

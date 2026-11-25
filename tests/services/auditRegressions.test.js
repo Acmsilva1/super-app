@@ -1,7 +1,7 @@
 import { afterEach,describe,it,expect,vi } from 'vitest';
 import request from 'supertest';
 import { requireUser } from '../../lib/auth.js';
-import cron from '../../api/cron-treinar-modelo.js';
+import cron from '../../lib/cronTreinarModeloHandler.js';
 import { validatePngHeader } from '../../lib/pngLimits.js';
 import { PNG } from 'pngjs';
 import { createApp } from '../../server.js';

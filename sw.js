@@ -2,7 +2,7 @@
  * Service Worker - SUPERAPP PWA
  * Incrementar CACHE_VERSION a cada deploy/commit para invalidar cache e forcar atualizacao.
  */
-const CACHE_VERSION = 'app-1.10.3-202610271752';
+const CACHE_VERSION = 'app-1.10.3-202611251704';
 const CACHE_NAME = 'superapp-' + CACHE_VERSION;
 
 const ESSENTIAL_ASSETS = [
@@ -64,7 +64,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Demais assets: rede primeiro, com fallback de cache apenas para manter imagens e ícones responsivos.
+  // Only public assets can enter CacheStorage; unknown routes and personal exports never do.
+  const isPublicAsset = url.pathname.startsWith('/backgrounds/') ||
+    url.pathname.startsWith('/styles/') || /\.(?:png|ico|woff2?)$/.test(url.pathname) || url.pathname === '/manifest.json';
+  if (!isPublicAsset) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
   event.respondWith(
     fetch(event.request)
       .then((res) => {

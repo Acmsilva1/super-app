@@ -59,6 +59,14 @@ function json(res, status, data) {
 
 export default async function handler(req, res) {
   const route = String(req.query?.route || '');
+  if (route === 'cron-treinar-modelo') {
+    const { default: legacyHandler } = await import('../lib/cronTreinarModeloHandler.js');
+    return legacyHandler(req, res);
+  }
+  if (route === 'privacy') {
+    const { default: privacyHandler } = await import('../lib/privacyHandler.js');
+    return privacyHandler(req, res);
+  }
   if (route === 'auth-config') {
     if (unsafeAuthEnvironment()) return json(res, 503, { error: 'Configuracao de autenticacao insegura.' });
     if (req.method !== 'GET') {

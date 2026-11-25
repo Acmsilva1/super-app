@@ -19,6 +19,14 @@ services:
       PORT: 3000
       # Nunca ativar em produção — desliga auth real.
       OFFLINE_DEV: "false"
+      RATE_LIMIT_BACKEND: redis
+      REDIS_URL: redis://rate-limit:6379
+    depends_on:
+      rate-limit:
+        condition: service_healthy
+    networks:
+      - default
+      - rate-limit-internal
     ports:
       # Bind local até o DuckDNS/reverse-proxy; ajuste SUPERAPP_PUBLISH se precisar.
       - "${SUPERAPP_PUBLISH:-127.0.0.1:3000}:3000"
@@ -37,6 +45,32 @@ services:
     # networks:
     #   - default
     #   - mensageria
+
+  rate-limit:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "64mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - rate-limit-data:/data
+    networks:
+      - rate-limit-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    mem_limit: 128m
+    pids_limit: 64
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  rate-limit-data:
+
+networks:
+  default:
+  rate-limit-internal:
+    internal: true
 
 # networks:
 #   mensageria:

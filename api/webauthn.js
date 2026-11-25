@@ -1,4 +1,5 @@
 import { requireUser } from '../lib/auth.js';
+import { enforceRequestLimit } from '../lib/actionRateLimit.js';
 import {
   getRegisterOptions,
   getFactorOptions,
@@ -29,6 +30,7 @@ export default async function handler(req, res) {
 
     const auth = await requireUser(req);
     if (!auth.ok) return json(res, auth.status || 401, auth.data || { error: 'Login obrigatório' });
+    if (!await enforceRequestLimit(req, res, { action: 'webauthn', subject: auth.user.id, limit: 20 })) return;
 
     if (req.method === 'POST' && action === 'factor-options') {
       const result = await getFactorOptions(req, auth.user, body);

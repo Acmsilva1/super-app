@@ -2,6 +2,7 @@ import { whatsappWaterHandler } from '../lib/whatsappWater.js';
 import { validWaterAmount, validWaterGoal, validWaterRequestId } from '../features/saude/service/waterIntakeService.js';
 import { ALERT_SCHEDULE_FIELDS, alertScheduleSection } from '../features/saude/service/alertScheduleConfig.js';
 import { requireUser } from '../lib/auth.js';
+import { scopeOwnedQuery, resolveOwnedRecord } from '../lib/scopedOwnership.js';
 import {saudeTreinosHandler} from '../lib/saudeTreinosHandler.js';
 import { TABELAS_NUTRICIONAIS } from '../features/saude/data/tabelasNutricionais.js';
 import { ALIMENTOS_NUTRICIONAIS } from '../features/saude/data/alimentosNutricionais.js';
@@ -404,13 +405,13 @@ async function requireSaudeProfileForWater(userId, profileId, isAdmin = false) {
   const id = parseId(profileId);
   if (!id) return { invalid: true };
   if (isOfflineMode()) {
-    const profile = offlineProfiles.find((row) => Number(row.id) === id && (isAdmin || row.created_by === userId));
+    const profile = resolveOwnedRecord(offlineProfiles.find((row) => Number(row.id) === id), userId, isAdmin);
     if (!profile) return { notFound: true };
     return { profile: { id: profile.id, nome: profile.nome, created_by: profile.created_by }, storage: 'memory' };
   }
   const { supabase } = await import('../lib/supabase.js');
   let query = supabase.from(TABELA_PERFIS).select('id,nome,created_by').eq('id', id);
-  if (!isAdmin) query = query.eq('created_by', userId);
+  query = scopeOwnedQuery(query, userId, isAdmin);
   const { data, error, status, statusText } = await query.maybeSingle();
   if (error) return { error, status, statusText };
   if (!data) return { notFound: true };

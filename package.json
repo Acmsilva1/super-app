@@ -8,7 +8,8 @@
     "start": "node server.js",
     "version:sync": "node scripts/sync-app-version.cjs",
     "predev": "node scripts/sync-app-version.cjs",
-    "build": "node scripts/check-function-budget.cjs && node scripts/sync-app-version.cjs && echo Build complete",
+    "build": "node scripts/check-function-budget.cjs && node scripts/sync-app-version.cjs && node scripts/sync-security-headers.mjs && echo Build complete",
+    "test:security": "node scripts/check-security.mjs && node scripts/check-xss.mjs",
     "test": "npm run test:ux && vitest run --pool threads",
     "test:ux": "node scripts/ux-component-analyst.cjs --path index.html --path api --path features --path lib",
     "doc:validate": "node \"C:/projetos e aplicativos/documentacao/scripts/doc-cli.cjs\" validate",
@@ -24,12 +25,15 @@
     "@simplewebauthn/server": "^13.3.3",
     "@supabase/postgrest-js": "^2.117.3",
     "@supabase/supabase-js": "^2.117.3",
-    "compression": "1.8.1",
+    "compression": "1.8.2",
+    "dompurify": "3.5.0",
     "express": "^4.22.3",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "redis": "6.4.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "jsdom": "^29.1.1",
     "supertest": "^7.3.1",
     "vite": "^8.3.3",
     "vitest": "^5.0.3"

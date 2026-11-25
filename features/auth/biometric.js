@@ -1,5 +1,15 @@
 const STORAGE_KEY = 'superapp_biometric';
 const VERIFIED_SESSION_KEY = 'superapp_biometric_verified_user';
+const OPAQUE_SESSION_KEY = 'superapp_biometric_verified_session';
+
+function removeLegacyBiometricData() {
+  try { localStorage.removeItem(VERIFIED_SESSION_KEY); } catch {}
+  if (typeof document !== 'undefined') {
+    for (const name of ['superapp_biometric', VERIFIED_SESSION_KEY]) {
+      document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Strict`;
+    }
+  }
+}
 
 function bufferToBase64Url(value) {
   const bytes = value instanceof ArrayBuffer ? new Uint8Array(value) : new Uint8Array(value || []);
@@ -19,10 +29,18 @@ function base64UrlToBuffer(value) {
 
 export function readBiometricPreference() {
   try {
+    removeLegacyBiometricData();
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
+    removeLegacyBiometricData();
+    if (!parsed || typeof parsed.credentialId !== 'string' || !/^[A-Za-z0-9_-]{8,2048}$/.test(parsed.credentialId)) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    const clean = { credentialId: parsed.credentialId };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+    return clean;
   } catch {
     return null;
   }
@@ -33,20 +51,32 @@ export function writeBiometricPreference(value) {
     localStorage.removeItem(STORAGE_KEY);
     return;
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+  removeLegacyBiometricData();
+  if (typeof value.credentialId !== 'string' || !/^[A-Za-z0-9_-]{8,2048}$/.test(value.credentialId)) throw Error('Credencial biométrica inválida.');
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ credentialId: value.credentialId }));
 }
 
 export function clearBiometricPreference() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-export function markBiometricSessionVerified(userId) {
-  localStorage.setItem(VERIFIED_SESSION_KEY, String(userId || ''));
+async function opaqueSessionDigest(accessToken) {
+  const encoded = String(accessToken || '').split('.')[1];
+  const claims = JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')));
+  if (typeof claims.session_id !== 'string' || !claims.session_id) throw Error('Identificador de sessão indisponível.');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(claims.session_id));
+  return bufferToBase64Url(digest);
 }
 
-export function isBiometricSessionVerified(userId) {
+export async function markBiometricSessionVerified(accessToken) {
+  removeLegacyBiometricData();
+  sessionStorage.setItem(OPAQUE_SESSION_KEY, await opaqueSessionDigest(accessToken));
+}
+
+export async function isBiometricSessionVerified(accessToken) {
   try {
-    return Boolean(userId) && localStorage.getItem(VERIFIED_SESSION_KEY) === String(userId);
+    removeLegacyBiometricData();
+    return sessionStorage.getItem(OPAQUE_SESSION_KEY) === await opaqueSessionDigest(accessToken);
   } catch {
     return false;
   }
@@ -55,6 +85,7 @@ export function isBiometricSessionVerified(userId) {
 export function clearBiometricSessionVerified() {
   try {
     localStorage.removeItem(VERIFIED_SESSION_KEY);
+    sessionStorage.removeItem(OPAQUE_SESSION_KEY);
   } catch {
     // A ausência do marcador fará o próximo acesso móvel voltar ao login.
   }

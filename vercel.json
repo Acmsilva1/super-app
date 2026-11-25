@@ -5,6 +5,10 @@
   "framework": null,
   "rewrites": [
     {
+      "source": "/api/cron-treinar-modelo",
+      "destination": "/api/apps?route=cron-treinar-modelo"
+    },
+    {
       "source": "/api/financeiro-simulador",
       "destination": "/api/financeiro?recurso=simulador"
     },
@@ -27,7 +31,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-44/GDrJogoPmFnY19bMo81OKbfNBFyeL2oN/fWNxGs8=' 'sha256-KWwvi4AdsTgwmODCQcclWamQTJ4BIwyLJBMOAJ/gAnQ=' https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.min.js; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; worker-src 'self'; trusted-types default dompurify; require-trusted-types-for 'script'"
         },
         {
           "key": "X-Content-Type-Options",

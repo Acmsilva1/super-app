@@ -1,5 +1,6 @@
 import { beforeEach,afterEach,describe,it,expect,vi } from 'vitest';
 const state=vi.hoisted(()=>({user:null,role:'',permission:false}));
+vi.mock('../../lib/actionRateLimit.js',()=>({consumeActionLimit:async()=>true}));
 vi.mock('../../lib/supabase.js',()=>({supabase:{
   auth:{getUser:async()=>({data:{user:state.user}}),admin:{getUserById:async()=>({data:{user:state.user}})}},
   from(table){return {select(){return this;},eq(){return this;},limit:async()=>({data:table==='app_user_roles'?(state.role?[{role:state.role}]:[]):(state.permission?[{can_access:true}]:[])})};},

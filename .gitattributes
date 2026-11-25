@@ -3,3 +3,4 @@
 *.yml text eol=lf
 Dockerfile text eol=lf
 .env.vps.example text eol=lf
+components/vendor/* text eol=lf -whitespace
