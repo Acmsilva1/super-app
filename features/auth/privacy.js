@@ -15,26 +15,61 @@ function element(tag, text, className) {
 }
 export function openPrivacyCenter() {
   const dialog = element('dialog', '', 'privacy-dialog');
-  const heading = element('h2', 'Privacidade e seus dados');
   dialog.setAttribute('aria-labelledby', 'privacy-title');
+  const header = element('header', '', 'privacy-dialog__header');
+  const titleGroup = element('div');
+  titleGroup.append(element('p', 'LGPD', 'privacy-dialog__eyebrow'));
+  const heading = element('h2', 'Privacidade e seus dados');
   heading.id = 'privacy-title';
-  dialog.append(heading);
-  for (const text of NOTICE) dialog.append(element('p', text));
-  const status = element('p');
-  status.setAttribute('role', 'status');
-  const exportButton = element('button', 'Exportar meus dados (JSON)');
-  const deleteButton = element('button', 'Excluir meus dados e acesso ao Super App');
-  const close = element('button', 'Fechar');
-  const passwordLabel = element('label', 'Senha atual (somente para excluir)');
+  titleGroup.append(heading);
+  const close = element('button', '×', 'privacy-dialog__close');
+  close.type = 'button';
+  close.setAttribute('aria-label', 'Fechar janela de privacidade');
+  header.append(titleGroup, close);
+  dialog.append(header);
+  dialog.append(element('p', 'Consulte o aviso completo ou escolha uma opção para seus dados.', 'privacy-dialog__intro'));
+
+  const details = element('details', '', 'privacy-dialog__details');
+  details.append(element('summary', 'Ver tratamento, direitos e retenção'));
+  const detailsBody = element('div', '', 'privacy-dialog__details-body');
+  for (const text of NOTICE) detailsBody.append(element('p', text));
+  detailsBody.append(element('p', 'Para exercer outros direitos ou pedir esclarecimentos, fale com o administrador que disponibilizou seu acesso.'));
+  details.append(detailsBody);
+  dialog.append(details);
+
+  const actions = element('div', '', 'privacy-dialog__actions');
+  const exportButton = element('button', 'Exportar meus dados', 'privacy-dialog__export');
+  exportButton.type = 'button';
+  const deleteButton = element('button', 'Excluir minha conta');
+  deleteButton.type = 'button';
+  actions.append(exportButton, deleteButton);
+
+  const deleteForm = element('section', '', 'privacy-dialog__delete-form');
+  deleteForm.hidden = true;
+  deleteForm.setAttribute('aria-label', 'Confirmação de exclusão da conta');
+  deleteForm.append(element('p', 'A exclusão é permanente. Informe sua senha e confirme para continuar.'));
+  const passwordLabel = element('label', 'Senha atual');
   const password = element('input');
   password.type = 'password'; password.autocomplete = 'current-password';
   passwordLabel.append(password);
-  const confirmationLabel = element('label', 'Digite EXCLUIR MINHA CONTA para confirmar a remoção dos dados e acesso ao Super App');
+  const confirmationLabel = element('label', 'Digite EXCLUIR MINHA CONTA para confirmar');
   const confirmation = element('input');
   confirmation.autocomplete = 'off'; confirmationLabel.append(confirmation);
-  dialog.append(exportButton, passwordLabel, confirmationLabel, deleteButton, status, close);
+  const confirmDelete = element('button', 'Confirmar exclusão', 'privacy-dialog__confirm-delete');
+  confirmDelete.type = 'button';
+  deleteForm.append(passwordLabel, confirmationLabel, confirmDelete);
+  const status = element('p', '', 'privacy-dialog__status');
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  dialog.append(actions, deleteForm, status);
+
   close.addEventListener('click', () => dialog.close());
-  dialog.addEventListener('close', () => { password.value = ''; dialog.remove(); });
+  dialog.addEventListener('close', () => { password.value = ''; confirmation.value = ''; dialog.remove(); });
+  deleteButton.addEventListener('click', () => {
+    deleteForm.hidden = false;
+    status.textContent = '';
+    password.focus();
+  });
   exportButton.addEventListener('click', async () => {
     exportButton.disabled = true; status.textContent = 'Preparando a exportação…';
     try {
@@ -48,9 +83,9 @@ export function openPrivacyCenter() {
     } catch (error) { status.textContent = error.message; }
     finally { exportButton.disabled = false; }
   });
-  deleteButton.addEventListener('click', async () => {
+  confirmDelete.addEventListener('click', async () => {
     if (confirmation.value !== 'EXCLUIR MINHA CONTA' || !password.value) { status.textContent = 'Preencha a senha atual e a confirmação de exclusão.'; return; }
-    deleteButton.disabled = true;
+    confirmDelete.disabled = true;
     try {
       const response = await fetch('/api/apps?route=privacy', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: password.value, confirmation: confirmation.value }) });
       password.value = '';
@@ -62,7 +97,7 @@ export function openPrivacyCenter() {
       document.getElementById('authLogoutBtn')?.click();
       status.textContent = 'Dados e acesso ao Super App excluídos.';
     } catch (error) { password.value = ''; status.textContent = error.message; }
-    finally { deleteButton.disabled = false; }
+    finally { confirmDelete.disabled = false; }
   });
   document.body.append(dialog);
   dialog.showModal();
