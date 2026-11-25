@@ -1076,6 +1076,47 @@
             color: #fecaca;
         }
 
+        .auth-biometric-loading {
+            position: fixed;
+            inset: 0;
+            z-index: 100001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            background: rgba(7, 20, 52, 0.35);
+            backdrop-filter: blur(2px);
+        }
+        .auth-biometric-loading__card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-sizing: border-box;
+            width: min(100%, 340px);
+            padding: 20px;
+            border: 1px solid #dce2eb;
+            border-radius: 16px;
+            background: #fff;
+            color: #0f172a;
+            box-shadow: 0 12px 34px rgba(7, 20, 52, 0.25);
+        }
+        .auth-biometric-loading__copy { display: grid; gap: 5px; }
+        .auth-biometric-loading__copy strong { font-size: 14px; }
+        .auth-biometric-loading__copy small { color: #64748b; font-size: 12px; line-height: 1.5; }
+        .auth-biometric-loading__spinner {
+            width: 28px;
+            height: 28px;
+            flex: 0 0 28px;
+            border: 3px solid #efd0d0;
+            border-top-color: #cc0000;
+            border-radius: 50%;
+            animation: auth-biometric-spin .75s linear infinite;
+        }
+        @keyframes auth-biometric-spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            .auth-biometric-loading__spinner { animation-duration: 1.8s; }
+        }
+
         .auth-consent {
             display: flex;
             align-items: flex-start;
@@ -7184,6 +7225,26 @@
                 return this.biometricModule;
             },
 
+            showBiometricLoading(isEnrollment) {
+                const overlay = document.createElement('div');
+                overlay.className = 'auth-biometric-loading';
+                overlay.setAttribute('role', 'status');
+                overlay.setAttribute('aria-live', 'polite');
+                overlay.setAttribute('aria-busy', 'true');
+                overlay.innerHTML = '<div class="auth-biometric-loading__card"><span class="auth-biometric-loading__spinner" aria-hidden="true"></span><span class="auth-biometric-loading__copy"><strong>Aguardando biometria</strong><small></small></span></div>';
+                overlay.querySelector('small').textContent = isEnrollment
+                    ? 'Conclua o cadastro da digital ou Face ID na janela do celular.'
+                    : 'Confirme a digital ou o Face ID na janela do celular.';
+                const shell = document.getElementById('authShell');
+                const wasInert = shell?.inert;
+                if (shell) shell.inert = true;
+                document.body.append(overlay);
+                return () => {
+                    overlay.remove();
+                    if (shell) shell.inert = wasInert;
+                };
+            },
+
             async requireBiometricAfterPassword() {
                 if (this.fixedMode || this.offlineMode) return;
                 const bio = await this.loadBiometricModule();
@@ -7194,6 +7255,8 @@
                 if (!await bio.supportsPlatformAuth()) {
                     throw Error('Configure a digital ou o Face ID neste celular para entrar no SUPERAPP.');
                 }
+                const dismissLoading = this.showBiometricLoading(!pref?.credentialId);
+                try {
                 if (pref?.credentialId) {
                     this.setMessage('Confirme a digital ou o Face ID para continuar...');
                     await bio.verifyBiometricFactor(token, pref.credentialId);
@@ -7202,6 +7265,9 @@
                 this.setMessage('Cadastre a digital ou o Face ID neste celular uma única vez...');
                 const result = await bio.enrollBiometric(token);
                 bio.writeBiometricPreference({ credentialId: result.credentialId });
+                } finally {
+                    dismissLoading();
+                }
             },
 
             createPasswordAuthClient() {
