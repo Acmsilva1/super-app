@@ -6,7 +6,7 @@ Na visão geral, abaixo do gráfico, crie uma regra com nome, conteúdo, cron e 
 
 1. Aplicar `migration/20261010_create_financeiro_alertas.sql` no SQL Editor do banco usado pelo app. O arquivo cria agenda com RLS e acesso exclusivo da API privilegiada. A migration não foi aplicada pelo Codex em banco real.
 2. Publicar os arquivos da aplicação. A rota fica em `/api/financeiro?recurso=alertas`, sem nova Function.
-3. Manter `SUPABASE_SERVICE_ROLE_KEY`, `SAUDE_ALERTS_OWNER_USER_ID`, `SAUDE_ALERTS_ENABLED=true`, `ALERTS_API_TOKEN` e a configuração já existente do gateway/bot somente no servidor. Não inserir tokens no frontend.
+3. Manter `SUPABASE_SERVICE_ROLE_KEY`, `SAUDE_ALERTS_OWNER_USER_ID`, `SAUDE_ALERTS_ENABLED=true`, `WHATSAPP_API_ORIGIN`, `WHATSAPP_INTEGRATION_TOKEN` e `WHATSAPP_FINANCE_PROFILE_ID` somente no servidor. Não inserir tokens no frontend.
 4. Manter o workflow `.github/workflows/saude-alertas.yml` ativo na branch padrão. Ele já chama o agendador conjunto de Saúde e Financeiro. Testar entrega real separadamente após publicar.
 
 A migration preserva os horários 13h/20h (débito/Pix) e 21h (fixas) da conta proprietária já usada no projeto. Caso `SAUDE_ALERTS_OWNER_USER_ID` tenha sido alterado, revisar o UUID da conta no trecho de carga inicial antes de aplicar. Regras adicionais pertencem ao usuário autenticado que as cria; apenas a conta vinculada ao chat do bot pode editá-las. O bot atual possui um único destinatário, não é um envio multiusuário.
@@ -26,6 +26,6 @@ O worker considera a ocorrência mais recente dos últimos 60 minutos, sem produ
 
 ## Modo local e reversão
 
-No modo mock, CRUD fica em memória, perde-se ao reiniciar o backend e não envia Telegram. Persistência real exige a migration e conexão real.
+No modo mock, CRUD fica em memória, perde-se ao reiniciar o backend e não envia mensagens. Persistência real exige a migration e conexão real.
 
 `migration/rollback/20261010_financeiro_alertas.sql` pausa as regras e revoga o acesso à tabela, preservando dados. Reimplantar também o código anterior do agendador para restaurar os três horários fixos. O código novo mantém o legado quando a tabela ainda não existe, facilitando o rollout; uma tabela existente sem regras ativas não provoca envios legados.

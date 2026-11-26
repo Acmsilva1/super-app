@@ -10,7 +10,7 @@ const TABLE_TITLES = {
   tb_financas: 'Registros financeiros', tb_despesas_fixas: 'Despesas fixas', tb_poupanca: 'Poupança', tb_poupanca_metas: 'Metas de poupança', tb_compras: 'Lista de compras',
   tb_financeiro_analises: 'Análises financeiras', tb_financeiro_features_mensais: 'Recursos financeiros mensais', tb_financeiro_analise_runs: 'Histórico de análises', tb_financeiro_modelo_estado: 'Planejamento financeiro', tb_financeiro_simulacoes: 'Simulações financeiras', tb_financeiro_alertas: 'Avisos financeiros', tb_financeiro_carne_pago: 'Carnês pagos',
   tb_saude_perfis: 'Perfil de saúde', tb_saude_perfil_medidas: 'Medidas corporais', tb_saude_dietas: 'Planos alimentares', tb_saude_agua_perfis: 'Perfil de hidratação', tb_saude_agua_metas: 'Metas de água', tb_saude_agua_logs: 'Histórico de hidratação', tb_saude_agua_checkins: 'Consumo de água', tb_saude_alertas_agenda: 'Agendamentos de avisos', tb_saude_alertas_envios: 'Avisos enviados', tb_saude_treinos: 'Treinos', tb_saude_treino_blocos: 'Etapas dos treinos', tb_saude_treino_exercicios: 'Exercícios',
-  tb_telegram_compras: 'Compras registradas pelo Telegram',
+  tb_telegram_compras: 'Compras registradas pela mensageria (WhatsApp)',
 };
 const FIELD_TITLES = { id: 'Código do registro', user_id: 'Conta vinculada', owner_id: 'Conta vinculada', created_by: 'Responsável pelo registro', created_at: 'Criado em', updated_at: 'Atualizado em' };
 function element(tag, text, className) {

@@ -18,8 +18,7 @@
     "doc:watch": "node \"C:/projetos e aplicativos/documentacao/scripts/doc-cli.cjs\" watch",
     "dev:mock": "node scripts/dev.js",
     "preview:local": "node scripts/preview-local.js",
-    "dev:real": "node scripts/dev.js --real",
-    "test:telegram": "node scripts/test-telegram.mjs --send"
+    "dev:real": "node scripts/dev.js --real"
   },
   "dependencies": {
     "@simplewebauthn/server": "^13.3.3",

@@ -22,4 +22,4 @@ Alertas antigos mantêm seus cron e mensagens até serem editados. Ao salvar a e
 
 Rollback: `migration/rollback/20261010_financeiro_alertas_secoes_horarios.sql`, junto com o código anterior. O rollback recusa remover horários enquanto existirem novos agendamentos: é preciso convertê-los explicitamente para o formato antigo antes. Não há descarte silencioso de regras.
 
-O gateway atual atende somente a conta proprietária configurada. Em modo local os alertas ficam em memória e nenhum Telegram é enviado.
+O gateway atual atende somente a conta proprietária configurada. Em modo local os alertas ficam em memória e nenhuma mensagem é enviada.

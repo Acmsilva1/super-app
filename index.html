@@ -7873,7 +7873,7 @@
                             <div id="adminTempSecret" class="profile-admin-temp-secret" hidden><strong>Senha temporária (exibida uma vez):</strong> <code id="adminTempSecretValue"></code><button type="button" id="adminTempSecretClose">Ocultar</button></div>
                             <p id="adminUsersMessage" role="status" class="profile-admin-message"></p>
                             <div id="adminUsersContent" class="profile-admin-table-wrap"></div>
-                            <div class="profile-admin-toolbar"><div><h4>Canais dos alertas</h4><p>Ligue ou desligue quem recebe os alertas de saúde e do financeiro. O teste de WhatsApp fica no painel da mensageria (um envio por destinatário).</p></div><div class="profile-admin-channels"><button type="button" class="profile-telegram-switch" id="adminAlertChannelTelegram" role="switch" aria-checked="false" aria-label="Telegram" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span class="profile-alert-channel__name">Telegram</span><span data-switch-label>Consultando…</span></button><button type="button" class="profile-telegram-switch" id="adminAlertChannelWhatsApp" role="switch" aria-checked="false" aria-label="WhatsApp" disabled><span class="profile-telegram-switch__track" aria-hidden="true"><span></span></span><span class="profile-alert-channel__name">WhatsApp</span><span data-switch-label>Consultando…</span></button></div></div>
+                            <div class="profile-admin-toolbar"><div><h4>Canais dos alertas</h4><p>Ligue ou desligue quem recebe os alertas de saúde e do financeiro. O teste de WhatsApp fica no painel da mensageria (um envio por destinatário).</p></div><div class="profile-admin-channels"><button type="button" class="profile-alert-switch" id="adminAlertChannelWhatsApp" role="switch" aria-checked="false" aria-label="WhatsApp" disabled><span class="profile-alert-switch__track" aria-hidden="true"><span></span></span><span class="profile-alert-channel__name">WhatsApp</span><span data-switch-label>Consultando…</span></button></div></div>
                             <p id="adminAlertChannelsMessage" role="status" aria-live="polite" class="profile-admin-message"></p>
                         </div>
                     </section>`;
@@ -7923,16 +7923,13 @@
                         background:var(--pa-input);color:var(--pa-ink);padding:.65rem .9rem;
                         font:700 .85rem 'Space Grotesk',sans-serif;cursor:pointer;
                     }
-                    .profile-admin-card .profile-telegram-test {flex:none;min-height:44px;border:0;border-radius:10px;background:#327746;color:#fff;padding:12px 18px;font:700 .88rem Arial,sans-serif;cursor:pointer;box-shadow:0 3px 8px #20463c24;}
-                    .profile-admin-card .profile-telegram-test:hover {background:#20463c;}
-                    .profile-admin-card .profile-telegram-test:disabled {opacity:.6;cursor:wait;}
-                    .profile-admin-card .profile-telegram-switch {display:flex;align-items:center;gap:10px;flex:none;min-height:44px;padding:8px 10px;background:transparent;border:1px solid var(--pa-border);border-radius:10px;color:var(--pa-ink);font:700 .88rem Arial,sans-serif;cursor:pointer;}
-                    .profile-telegram-switch__track {display:flex;align-items:center;width:46px;height:26px;padding:3px;border-radius:20px;background:#64748b;box-sizing:border-box;transition:background .15s;}
-                    .profile-telegram-switch__track span {width:20px;height:20px;border-radius:50%;background:white;transition:transform .15s;box-shadow:0 1px 3px #0003;}
-                    .profile-telegram-switch[aria-checked="true"] .profile-telegram-switch__track {background:#327746;}
-                    .profile-telegram-switch[aria-checked="true"] .profile-telegram-switch__track span {transform:translateX(20px);}
-                    .profile-telegram-switch:disabled {opacity:.6;cursor:wait;}
-                    .profile-telegram-test:focus-visible,.profile-telegram-switch:focus-visible {outline:3px solid #95c11f;outline-offset:3px;}
+                    .profile-admin-card .profile-alert-switch {display:flex;align-items:center;gap:10px;flex:none;min-height:44px;padding:8px 10px;background:transparent;border:1px solid var(--pa-border);border-radius:10px;color:var(--pa-ink);font:700 .88rem Arial,sans-serif;cursor:pointer;}
+                    .profile-alert-switch__track {display:flex;align-items:center;width:46px;height:26px;padding:3px;border-radius:20px;background:#64748b;box-sizing:border-box;transition:background .15s;}
+                    .profile-alert-switch__track span {width:20px;height:20px;border-radius:50%;background:white;transition:transform .15s;box-shadow:0 1px 3px #0003;}
+                    .profile-alert-switch[aria-checked="true"] .profile-alert-switch__track {background:#327746;}
+                    .profile-alert-switch[aria-checked="true"] .profile-alert-switch__track span {transform:translateX(20px);}
+                    .profile-alert-switch:disabled {opacity:.6;cursor:wait;}
+                    .profile-alert-switch:focus-visible {outline:3px solid #95c11f;outline-offset:3px;}
                     .profile-admin-channels{display:flex;flex-wrap:wrap;gap:.6rem;flex:none}
                     .profile-alert-channel__name{min-width:5.2rem;text-align:left}
                     .profile-admin-create{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:end;gap:.7rem;margin:1rem 0 0}
@@ -8001,7 +7998,7 @@
                         #profileAdminPane{padding:1rem}
                         .profile-admin-toolbar{align-items:stretch;flex-direction:column}
                         .profile-admin-channels{width:100%}
-                        .profile-admin-channels .profile-telegram-switch{flex:1}
+                        .profile-admin-channels .profile-alert-switch{flex:1}
                         .profile-admin-create{grid-template-columns:1fr}
                         .profile-admin-table{display:block;min-width:0}
                         .profile-admin-table thead{display:none}
@@ -8036,8 +8033,7 @@
                 modal.addEventListener('click', (event) => { if (event.target === modal) closeProfile(); });
                 document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closeProfile(); });
 
-                document.getElementById('adminAlertChannelTelegram')?.addEventListener('click', () => this.toggleAdminAlertChannel('telegram'));
-                document.getElementById('adminAlertChannelWhatsApp')?.addEventListener('click', () => this.toggleAdminAlertChannel('whatsapp'));
+                document.getElementById('adminAlertChannelWhatsApp')?.addEventListener('click', () => this.toggleAdminAlertChannel());
                 if (true) {
                     const createForm = document.getElementById('adminCreateUserForm');
                     createForm.hidden = false;
@@ -8065,73 +8061,58 @@
                     }
                 } catch (_error) {}
             }
-            setAdminAlertChannelState(channel, enabled) {
-                const button = document.getElementById(channel === 'whatsapp' ? 'adminAlertChannelWhatsApp' : 'adminAlertChannelTelegram');
+            setAdminAlertChannelState(enabled) {
+                const button = document.getElementById('adminAlertChannelWhatsApp');
                 if (!button) return;
-                const name = channel === 'whatsapp' ? 'WhatsApp' : 'Telegram';
                 button.setAttribute('aria-checked', enabled ? 'true' : 'false');
-                button.setAttribute('aria-label', `${name} ${enabled ? 'ligado' : 'desligado'}`);
+                button.setAttribute('aria-label', `WhatsApp ${enabled ? 'ligado' : 'desligado'}`);
                 button.querySelector('[data-switch-label]').textContent = enabled ? 'Ligado' : 'Desligado';
             }
             async loadAdminAlertChannels() {
-                const telegram = document.getElementById('adminAlertChannelTelegram');
                 const whatsapp = document.getElementById('adminAlertChannelWhatsApp');
                 const message = document.getElementById('adminAlertChannelsMessage');
-                if (!telegram || !whatsapp || !message) return;
-                telegram.disabled = true;
+                if (!whatsapp || !message) return;
                 whatsapp.disabled = true;
                 try {
                     const response = await fetch('/api/admin/usuarios?resource=alert_channels', { cache: 'no-store' });
                     const payload = await response.json();
-                    if (!response.ok || !payload.ok || typeof payload.telegram !== 'boolean' || typeof payload.whatsapp !== 'boolean') {
+                    if (!response.ok || !payload.ok || typeof payload.whatsapp !== 'boolean') {
                         throw new Error(payload.error || 'Não foi possível consultar os canais.');
                     }
-                    this.setAdminAlertChannelState('telegram', payload.telegram);
-                    this.setAdminAlertChannelState('whatsapp', payload.whatsapp);
-                    telegram.disabled = false;
+                    this.setAdminAlertChannelState(payload.whatsapp);
                     whatsapp.disabled = false;
                     message.textContent = '';
                 } catch (error) {
-                    telegram.querySelector('[data-switch-label]').textContent = 'Indisponível';
                     whatsapp.querySelector('[data-switch-label]').textContent = 'Indisponível';
                     message.textContent = error.message;
                 }
             }
-            async toggleAdminAlertChannel(channel) {
-                const telegram = document.getElementById('adminAlertChannelTelegram');
+            async toggleAdminAlertChannel() {
                 const whatsapp = document.getElementById('adminAlertChannelWhatsApp');
                 const message = document.getElementById('adminAlertChannelsMessage');
-                const button = channel === 'whatsapp' ? whatsapp : telegram;
-                if (!button || !telegram || !whatsapp || !message || button.disabled) return;
-                const previous = {
-                    telegram: telegram.getAttribute('aria-checked') === 'true',
-                    whatsapp: whatsapp.getAttribute('aria-checked') === 'true',
-                };
-                const next = { ...previous, [channel]: !previous[channel] };
-                telegram.disabled = true;
+                if (!whatsapp || !message || whatsapp.disabled) return;
+                const previous = whatsapp.getAttribute('aria-checked') === 'true';
+                const next = !previous;
                 whatsapp.disabled = true;
-                button.querySelector('[data-switch-label]').textContent = 'Salvando…';
+                whatsapp.querySelector('[data-switch-label]').textContent = 'Salvando…';
                 message.textContent = 'Salvando canais de alerta…';
                 try {
                     const response = await fetch('/api/admin/usuarios', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'set_alert_channels', telegram: next.telegram, whatsapp: next.whatsapp }),
+                        body: JSON.stringify({ action: 'set_alert_channels', whatsapp: next }),
                     });
                     const payload = await response.json();
-                    if (!response.ok || !payload.ok || payload.telegram !== next.telegram || payload.whatsapp !== next.whatsapp) {
+                    if (!response.ok || !payload.ok || payload.whatsapp !== next) {
                         throw new Error(payload.error || 'Não foi possível salvar os canais.');
                     }
-                    this.setAdminAlertChannelState('telegram', payload.telegram);
-                    this.setAdminAlertChannelState('whatsapp', payload.whatsapp);
-                    const summary = `Telegram ${payload.telegram ? 'ligado' : 'desligado'}. WhatsApp ${payload.whatsapp ? 'ligado' : 'desligado'}.`;
+                    this.setAdminAlertChannelState(payload.whatsapp);
+                    const summary = `WhatsApp ${payload.whatsapp ? 'ligado' : 'desligado'}.`;
                     message.textContent = summary;
                     showAppConfirmation(summary);
                 } catch (error) {
-                    this.setAdminAlertChannelState('telegram', previous.telegram);
-                    this.setAdminAlertChannelState('whatsapp', previous.whatsapp);
+                    this.setAdminAlertChannelState(previous);
                     message.textContent = error.message || 'Não foi possível salvar os canais.';
                 } finally {
-                    telegram.disabled = false;
                     whatsapp.disabled = false;
                 }
             }

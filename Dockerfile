@@ -1,13 +1,11 @@
 # Runtime contínuo: front/PWA estático + handlers /api/* servidos pelo Express (server.js).
-# Node serve o mesmo front/PWA; Python mantém o gateway /api/telegram-alert.
 FROM node:24-alpine
 
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
-    PORT=3000 \
-    TELEGRAM_ALERT_PORT=8091
+    PORT=3000
 
-RUN apk add --no-cache python3 wget
+RUN apk add --no-cache wget
 
 WORKDIR /app
 

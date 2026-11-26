@@ -6,13 +6,6 @@ import { enqueueWhatsAppAlert } from '../../../lib/whatsappAlertClient.js';
 import { readAlertChannels } from '../../../lib/alertChannelPreferences.js';
 
 const TIME_ZONE = 'America/Sao_Paulo';
-const SAFE_DELIVERY_ERRORS = new Set([
-  'telegram_token_invalid', 'telegram_chat_not_found', 'telegram_bot_blocked',
-  'telegram_start_required', 'telegram_recipient_is_bot', 'telegram_bot_no_permission',
-  'telegram_forbidden', 'telegram_rate_limited', 'telegram_bad_request',
-  'telegram_network_error', 'telegram_config_missing', 'telegram_send_failed',
-]);
-
 
 function saoPauloClock(value = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -34,65 +27,7 @@ async function readAlertConfig(deadline) {
   const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
   const client = getAlertServiceClient({deadline});
   const channels = await readAlertChannels(client);
-  let url = '';
-  let token = '';
-  if (channels.telegram) {
-    const configuredUrl = String(process.env.ALERTS_API_URL || '').trim();
-    url = configuredUrl;
-    token = String(process.env.ALERTS_API_TOKEN || '').trim();
-    if (!url || !token) return null;
-    const gateway = new URL(url);
-    if (gateway.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(gateway.hostname))) {
-      throw new Error('alerts_gateway_https_required');
-    }
-  }
-  return { ownerId, url, token, client, channels };
-}
-
-async function sendAlert(config, { eventType, title, message, dedupeKey,waterPrompt=null }) {
-  if (config.deadline && Date.now() + 22000 > config.deadline) throw new Error('alerts_time_budget');
-  const client = config.client;
-  const { error: claimError } = await client.from('tb_saude_alertas_envios').insert({
-    created_by: config.ownerId, dedupe_key: dedupeKey, status: 'sending',
-    ...(waterPrompt?{perfil_id:waterPrompt.profileId,data_local:waterPrompt.date}:{}),
-  });
-  if (claimError?.code === '23505') return false;
-  if (claimError) throw new Error('alerts_claim_failed');
-  try {
-    const headers = { 'Content-Type': 'application/json', 'X-Alert-Token': config.token };
-    const response = await fetch(config.url, {
-      method: 'POST', headers, redirect: 'error',
-      body: JSON.stringify({ source: 'superapp-node', event_type: eventType,
-        severity: 'info', title, message, dedupe_key: dedupeKey, occurred_at: new Date().toISOString(),
-        ...(waterPrompt?{water_checkin:{profile_id:waterPrompt.profileId,date:waterPrompt.date,time:waterPrompt.time}}:{}) }),
-      signal: AbortSignal.timeout(Math.max(1,Math.min(20000,(config.deadline || Date.now()+21000)-Date.now()-1000))),
-    });
-    let payload = null;
-    try { payload = await response.json(); } catch {}
-    if (!response.ok) {
-      const errorCode = SAFE_DELIVERY_ERRORS.has(payload?.error)
-        ? payload.error
-        : `gateway_http_${response.status}`;
-      throw Object.assign(new Error(errorCode), { code: errorCode });
-    }
-    if (!payload.ok || !Number.isSafeInteger(payload.telegram_message_id)) throw new Error('alerts_gateway_invalid_response');
-    const { error } = await client.from('tb_saude_alertas_envios')
-      .update({ status: 'sent', telegram_message_id: payload.telegram_message_id, updated_at: new Date().toISOString() })
-      .eq('created_by', config.ownerId).eq('dedupe_key', dedupeKey);
-    if (error) throw new Error('alerts_delivery_record_failed');
-    return true;
-  } catch (error) {
-    const errorCode = SAFE_DELIVERY_ERRORS.has(error?.code)
-      ? error.code
-      : /^gateway_http_[1-5][0-9]{2}$/.test(error?.code || '')
-        ? error.code
-        : ['alerts_gateway_invalid_response', 'alerts_delivery_record_failed'].includes(error?.message)
-          ? error.message
-          : 'delivery_error';
-    await client.from('tb_saude_alertas_envios').update({ status: 'uncertain', last_error: errorCode, updated_at: new Date().toISOString() })
-      .eq('created_by', config.ownerId).eq('dedupe_key', dedupeKey);
-    throw new Error('alerts_delivery_uncertain');
-  }
+  return { ownerId, client, channels };
 }
 
 async function loadAlertData(config, today) {
@@ -242,23 +177,16 @@ async function dispatchWaterForProfile(config, data, profile, date, time) {
   const report = waterProfileReport(profile, data.goals.get(String(profile.id)), data.logs.get(String(profile.id)), date, time);
   const title = `Progresso de agua - ${profile.nome}`;
   const message = formatWaterAlert(report);
-  const channels = config.channels || { telegram: true, whatsapp: true };
-  let sent = 0;
-  try {
-    if (channels.telegram) {
-      sent = Number(await sendAlert(config, { eventType: 'health.water_progress', title, message, dedupeKey: key,waterPrompt:report.meta_ml?{profileId:profile.id,date,time}:null }));
-    }
-    return sent;
-  } finally {
-    if (channels.whatsapp) {
-      await enqueueWhatsAppAlert({
-        eventType: 'health.water_progress', audience: String(profile.id), idempotencyKey: key, title, message,
-        waterPrompt: report.meta_ml ? createWhatsAppWaterPrompt({ profileId: profile.id, date, dedupeKey: key }) : null,
-      }, { deadline: config.deadline }).catch(() => {
-        console.error('[whatsapp] água isolada');
-      });
-    }
+  const channels = config.channels || { whatsapp: true };
+  if (channels.whatsapp) {
+    await enqueueWhatsAppAlert({
+      eventType: 'health.water_progress', audience: String(profile.id), idempotencyKey: key, title, message,
+      waterPrompt: report.meta_ml ? createWhatsAppWaterPrompt({ profileId: profile.id, date, dedupeKey: key }) : null,
+    }, { deadline: config.deadline }).catch(() => {
+      console.error('[whatsapp] água isolada');
+    });
   }
+  return 0;
 }
 
 export function buildDietAlertMessages(data, meal, date, time, { includeInactive = false } = {}) {
@@ -270,7 +198,7 @@ export function buildDietAlertMessages(data, meal, date, time, { includeInactive
       return formatDietAlert(dietProfileReport(profile, diet, meal, date, time, data.foods));
     });
   if (!blocks.length) return [];
-  // Keep every diet and item; long summaries continue in additional Telegram messages.
+  // Keep every diet and item; long summaries continue in additional messages.
   const characters = Array.from(blocks.join('\n\n────────────────\n\n'));
   const messages = [];
   let message = '';
@@ -283,17 +211,6 @@ export function buildDietAlertMessages(data, meal, date, time, { includeInactive
   }
   if (message) messages.push(message);
   return messages;
-}
-
-export async function previewAllDietAlerts(now = new Date()) {
-  const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
-  const { date, time } = saoPauloClock(now);
-  const data = await loadAlertData({ client: getAlertServiceClient() }, date);
-  return data.diets.flatMap(diet => {
-    const schedule = normalizeAlertSchedule(data.schedules.get(String(diet.perfil_id)));
-    const meal = schedule.dieta_horarios.find(entry => entry.horario >= time) || schedule.dieta_horarios[0];
-    return meal ? buildDietAlertMessages({ ...data, diets: [diet] }, meal, date, meal.horario, { includeInactive: true }) : [];
-  });
 }
 
 export async function previewWhatsAppHealthTests(now = new Date()) {
@@ -383,21 +300,10 @@ async function dispatchCurrentSlot(config, value, data) {
     for (const diet of data.diets) if (configuredBeforeSlot(diet) && diet.alerta_ativo !== false && scheduleFor(diet).dieta_ativa) {
       for (const meal of scheduleFor(diet).dieta_horarios) if (meal.horario === time) dueTypes.add(meal.tipo);
     }
-    const channels = config.channels || { telegram: true, whatsapp: true };
+    const channels = config.channels || { whatsapp: true };
     for (const type of dueTypes) {
       const meal = DIET_MEALS.find(entry => entry.tipo === type);
       const dueData = { ...data, diets: data.diets.filter(diet => configuredBeforeSlot(diet) && scheduleFor(diet).dieta_horarios.some(entry => entry.tipo === type && entry.horario === time)) };
-      const messages = buildDietAlertMessages(dueData, meal, date, time);
-      if (channels.telegram) {
-        for (const [index, message] of messages.entries()) {
-          try {
-            alertsSent += Number(await sendAlert(config, {
-              eventType: 'health.diet_menu', title: `Dietas · ${meal.titulo}`,
-              message, dedupeKey: `dietas:${date}:${time}:todas:${dueTypes.size > 1 ? `${type}:` : ''}${index + 1}`,
-            }));
-          } catch (error) { failures.push(error); }
-        }
-      }
       if (channels.whatsapp) await enqueueDietMenus(config, dueData, meal, date, time);
     }
   } catch (error) {
@@ -412,7 +318,7 @@ export async function runSaudeAlertSlot(now = new Date(), {deadline = Date.now()
   config.deadline = deadline;
   const { data: roles, error } = await config.client.from('app_user_roles').select('role').eq('user_id', config.ownerId);
   if (error || !roles?.some(row => ['owner', 'admin'].includes(row.role))) throw new Error('alerts_owner_invalid');
-  if (!config.channels.telegram && !config.channels.whatsapp) return { skipped: true, reason: 'channels_disabled', alerts_sent: 0 };
+  if (!config.channels.whatsapp) return { skipped: true, reason: 'channels_disabled', alerts_sent: 0 };
   const start = new Date(Math.floor(now.getTime() / 60000) * 60000);
   const failures = [];
   let alertsSent = 0;

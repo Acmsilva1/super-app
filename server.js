@@ -31,35 +31,6 @@ const NO_CACHE_FILES = new Set(['index.html', 'sw.js', 'app-version.json']);
 const IMMUTABLE_FILES = new Set(['icon-192.png', 'icon-512.png']);
 const CONSOLIDATED_ROUTES = new Set(['auth-config', 'statistics', 'roadmap', 'cron-treinar-modelo']);
 
-async function proxyTelegramAlert(req, res) {
-  const target = String(process.env.TELEGRAM_ALERT_INTERNAL_URL || 'http://127.0.0.1:8091/').replace(/\/?$/, '/');
-  const headers = { 'Content-Type': 'application/json' };
-  const alertToken = req.headers['x-alert-token'];
-  if (alertToken) headers['X-Alert-Token'] = alertToken;
-  let body;
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? {});
-  }
-  try {
-    const upstream = await fetch(target, {
-      method: req.method,
-      headers,
-      body,
-      redirect: 'error',
-      signal: AbortSignal.timeout(25000),
-    });
-    const text = await upstream.text();
-    res.status(upstream.status);
-    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
-    res.setHeader('Cache-Control', 'no-store');
-    return res.send(text);
-  } catch (err) {
-    console.error('[server] Gateway Telegram indisponível:', err?.message || err);
-    if (res.headersSent) return res.end();
-    return res.status(502).json({ ok: false, error: 'telegram_gateway_unavailable' });
-  }
-}
-
 function setStaticHeaders(res, filePath) {
   const name = path.basename(filePath);
   if (NO_CACHE_FILES.has(name)) {
@@ -150,10 +121,6 @@ export function createApp() {
     }
     if (!/^[a-z0-9-]+(\/[a-z0-9-]+)*$/i.test(endpoint)) {
       return res.status(404).json({ error: 'Rota de API nao encontrada.' });
-    }
-    // Gateway Python (`api/telegram-alert.py`) no loopback; não criar api/telegram-alert.js (sombrearia o proxy).
-    if (endpoint === 'telegram-alert') {
-      return proxyTelegramAlert(req, res);
     }
     const modulePath = path.join(__dirname, 'api', `${endpoint}.js`);
     if (!fs.existsSync(modulePath)) {

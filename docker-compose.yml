@@ -1,4 +1,4 @@
-# Super App na VPS (estáticos + /api/* + gateway Telegram Python).
+# Super App na VPS (estáticos + /api/*).
 # Persistência: Supabase cloud (não sobe Postgres local neste compose).
 # Mensageria WhatsApp já na mesma VPS: use URL HTTPS da mensageria (DuckDNS/TLS).
 # O código atual recusa WHATSAPP_API_ORIGIN em http:// (contrato do servidor).
@@ -41,7 +41,7 @@ services:
         limits:
           memory: 512m
     # Opcional: mesma rede Docker da mensageria (DNS interno). HTTPS público ainda é
-    # obrigatório em WHATSAPP_API_ORIGIN / ALERTS_API_URL pelo código atual.
+    # obrigatório em WHATSAPP_API_ORIGIN pelo código atual.
     # networks:
     #   - default
     #   - mensageria

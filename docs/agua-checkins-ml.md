@@ -2,14 +2,14 @@
 
 O app e o atalho da tela inicial oferecem sete gotas: 100, 200, 300, 400, 500 ml, 1 L e 2 L. Cada clique registra um consumo; os botões ficam bloqueados durante a gravação. Depois da confirmação, ficam disponíveis para o próximo consumo. A gota de progresso mostra consumo/meta e para visualmente em 100%; o volume registrado pode ultrapassar a meta. O campo de meta é definido pelo usuário (100 a 10000 ml); o valor inicial do formulário não é uma recomendação clínica.
 
-O bot pergunta o volume no lembrete de água. O usuário pode tocar no botão ou responder, por exemplo, `200 ml`, à mensagem correspondente. Cada lembrete permite um check-in. Depois da confirmação, os botões são removidos. Respostas escritas devem usar a opção Responder do Telegram na mensagem do lembrete; sem essa referência, o bot pede que o usuário responda ao lembrete escolhido. Isso identifica o perfil e mantém a mesma chave em caso de reenvio do webhook. Lembretes de dias anteriores não aceitam registros para hoje. A espera é persistida no banco, sem manter o cron ou um processo em execução. Ao reabrir o acompanhamento no app, os dados são consultados novamente para trazer o consumo registrado pelo bot.
+O bot pergunta o volume no lembrete de água. O usuário pode tocar no botão ou responder, por exemplo, `200 ml`, à mensagem correspondente. Cada lembrete permite um check-in. Depois da confirmação, os botões são removidos. Respostas escritas são tratadas pela mensageria do WhatsApp, que identifica o perfil pelo lembrete assinado e mantém a mesma chave em caso de reenvio. Lembretes de dias anteriores não aceitam registros para hoje. A espera é persistida no banco, sem manter o cron ou um processo em execução. Ao reabrir o acompanhamento no app, os dados são consultados novamente para trazer o consumo registrado pelo bot.
 
 ## Ativação
 
 1. Aplicar `migration/20261013_saude_agua_ml.sql` no SQL Editor do Supabase do projeto. Se já aplicou a versão anterior, reaplique o arquivo atualizado para liberar 1 L e 2 L.
 2. Publicar as alterações do backend, gateway Python e frontend pelo fluxo normal de deploy.
 3. Configurar novamente a meta de água de cada perfil em ml.
-4. Manter habilitados os alertas de água e o webhook do Telegram. O webhook já aceita mensagens e callbacks; não foi ativado ou alterado em produção neste trabalho.
+4. Manter habilitados os alertas de água e a integração com a mensageria do WhatsApp.
 
 O bot continua restrito à conta pessoal e ao chat configurados, como antes. Os perfis precisam pertencer ao proprietário configurado para os alertas. O app mantém a resolução do proprietário nas operações administrativas.
 

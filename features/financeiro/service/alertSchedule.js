@@ -23,7 +23,7 @@ export const FINANCIAL_ALERT_DESCRIPTIONS = {
   receitas: 'Total de receitas recebidas neste mês. Inclui carnê a partir de D-3 até pagar.',
   poupanca: 'Saldo acumulado e meta de poupança. Inclui carnê a partir de D-3 até pagar.',
   simulador: 'Metas salvas e data da última simulação. Inclui carnê a partir de D-3 até pagar.',
-  carne: 'Agenda diária no horário escolhido (não é a data do boleto). O Telegram só recebe a mensagem de D-3 do próximo vencimento em aberto até marcar como pago.',
+  carne: 'Agenda diária no horário escolhido (não é a data do boleto). O WhatsApp só recebe a mensagem de D-3 do próximo vencimento em aberto até marcar como pago.',
 };
 export const ALERT_TYPES = [...Object.keys(FINANCIAL_ALERT_SECTIONS), 'mensal', 'mensagem'];
 export function validateAlertTimes(times) {

@@ -428,7 +428,6 @@ O `.gitignore` cobre:
 - `node_modules/`, `dist/`, `build/`
 - `.env`, `.env.local`, `.env.*`, `api/.env.local`
 - logs e arquivos de sistema
-- scripts locais da mensageria Telegram
 - `.mensageria/`
 - `scratch/`
 

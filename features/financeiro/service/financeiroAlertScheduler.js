@@ -33,24 +33,12 @@ async function readConfig(deadline) {
   const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
   const client = getAlertServiceClient({deadline});
   const channels = await readAlertChannels(client);
-  let url = '';
-  let token = '';
-  if (channels.telegram) {
-    const configuredUrl = String(process.env.ALERTS_API_URL || '').trim();
-    url = configuredUrl;
-    token = String(process.env.ALERTS_API_TOKEN || '').trim();
-    if (!url || !token) return null;
-    const gateway = new URL(url);
-    if (gateway.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(gateway.hostname))) {
-      throw new Error('alerts_gateway_https_required');
-    }
-  }
-  return { ownerId, url, token, deadline, client, channels };
+  return { ownerId, deadline, client, channels };
 }
 
 async function sendDailySummary(config, date, slot, message, title = null) {
   if (config.deadline && Date.now()+22000 > config.deadline) throw new Error('alerts_time_budget');
-  const channels = config.channels || { telegram: true, whatsapp: true };
+  const channels = config.channels || { whatsapp: true };
   const dedupeKey = `financeiro:resumo-diario:${date}:${slot}`;
   const alertTitle = title || `Resumo financeiro - ${date.split('-').reverse().join('/')}`;
   const notifyWhatsApp = () => {
@@ -65,49 +53,8 @@ async function sendDailySummary(config, date, slot, message, title = null) {
       console.error('[whatsapp] financeiro isolado');
     });
   };
-  if (!channels.telegram) {
-    await notifyWhatsApp();
-    return false;
-  }
-  const { error: claimError } = await config.client.from('tb_saude_alertas_envios').insert({
-    created_by: config.ownerId, dedupe_key: dedupeKey, status: 'sending',
-  });
-  if (claimError?.code === '23505') {
-    await notifyWhatsApp();
-    return false;
-  }
-  if (claimError) throw new Error('financeiro_alerts_claim_failed');
-
-  try {
-    const headers = { 'Content-Type': 'application/json', 'X-Alert-Token': config.token };
-    const response = await fetch(config.url, {
-      method: 'POST', headers, redirect: 'error',
-      body: JSON.stringify({ source: 'superapp-node', event_type: 'financeiro.daily_summary', severity: 'info',
-        title: alertTitle, message,
-        dedupe_key: dedupeKey, occurred_at: new Date().toISOString() }),
-      signal: AbortSignal.timeout(Math.max(1,Math.min(20000,(config.deadline || Date.now()+21000)-Date.now()-1000))),
-    });
-    let payload = null;
-    try { payload = await response.json(); } catch {}
-    if (!response.ok || !payload?.ok || !Number.isSafeInteger(payload.telegram_message_id)) {
-      await config.client.from('tb_saude_alertas_envios').update({ status: 'uncertain', updated_at: new Date().toISOString() })
-        .eq('created_by', config.ownerId).eq('dedupe_key', dedupeKey);
-      throw new Error('financeiro_alerts_delivery_failed');
-    }
-    const { error } = await config.client.from('tb_saude_alertas_envios').update({
-      status: 'sent', telegram_message_id: payload.telegram_message_id, updated_at: new Date().toISOString(),
-    }).eq('created_by', config.ownerId).eq('dedupe_key', dedupeKey);
-    if (error) throw new Error('financeiro_alerts_delivery_record_failed');
-    return true;
-  } catch (error) {
-    if (error?.message !== 'financeiro_alerts_delivery_failed') {
-      await config.client.from('tb_saude_alertas_envios').update({ status: 'uncertain', updated_at: new Date().toISOString() })
-        .eq('created_by', config.ownerId).eq('dedupe_key', dedupeKey);
-    }
-    throw error;
-  } finally {
-    await notifyWhatsApp();
-  }
+  await notifyWhatsApp();
+  return false;
 }
 
 async function loadSummary(config, date, slot) {
@@ -144,21 +91,6 @@ async function loadSummary(config, date, slot) {
   ].join('\n');
 }
 
-export async function previewFinanceiroDailySummaries(now = new Date()) {
-  const { getAlertServiceClient } = await import('../../../lib/alertServiceClient.js');
-  const { date } = saoPauloClock(now);
-  const config = { client: getAlertServiceClient(), ownerId: process.env.SAUDE_ALERTS_OWNER_USER_ID };
-  if (!config.ownerId) throw new Error('financeiro_alerts_owner_invalid');
-  const [daily, fixed] = await Promise.all([
-    loadSummary(config, date, 'debitos-pix-20h'),
-    loadSummary(config, date, 'despesas-fixas-21h'),
-  ]);
-  return [
-    { event_type: 'financeiro.daily_summary', title: '[TESTE MANUAL] Financeiro · Débito/Pix (13h e 20h)', message: daily },
-    { event_type: 'financeiro.daily_summary', title: '[TESTE MANUAL] Financeiro · Despesas fixas (21h)', message: fixed },
-  ];
-}
-
 async function runLegacyFinanceiroSummary(now = new Date(), {deadline = Date.now()+45000} = {}) {
   const { date, time } = saoPauloClock(now);
   // The workflow polls every five minutes; persistent keys prevent duplicate summaries.
@@ -181,7 +113,7 @@ async function runLegacyFinanceiroSummary(now = new Date(), {deadline = Date.now
 export async function runFinanceiroDailySummary(now = new Date(), {deadline = Date.now()+45000} = {}) {
   const config = await readConfig(deadline);
   if (!config) return { skipped:true,reason:'disabled_or_missing_config' };
-  if (!config.channels.telegram && !config.channels.whatsapp) return { skipped:true,reason:'channels_disabled' };
+  if (!config.channels.whatsapp) return { skipped:true,reason:'channels_disabled' };
   const {data:rows,error} = await config.client.from('tb_financeiro_alertas')
     .select('id,nome,tipo,mensagem,cron,horarios,ativo,created_at,updated_at').eq('user_id',config.ownerId).eq('ativo',true).order('id').limit(51);
   // Compatibilidade durante o rollout: a migration habilita as regras persistidas.

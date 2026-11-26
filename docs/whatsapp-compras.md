@@ -11,7 +11,7 @@ A mensageria interpreta texto e áudio, apresenta os lançamentos e pede confirm
 - Worker: `SUPERAPP_API_ORIGIN` com a origem HTTPS canônica do Super App e `GROQ_API_KEY` somente no worker. O fluxo de captura e confirmação é documentado na mensageria.
 - Banco: reutiliza `tb_telegram_compras` e a função `telegram_confirm_purchase` das migrations existentes `20261006_telegram_compras.sql` e `20261011_telegram_compras_multiplas.sql`. Não há nova migration nesta implementação. A versão multilote precisa estar instalada para o registro de vários itens.
 
-O recurso utiliza a Function Financeiro existente; não adiciona um novo handler de API. Telegram e água mantêm os contratos anteriores.
+O recurso utiliza a Function Financeiro existente; não adiciona um novo handler de API. A água mantém o contrato anterior.
 
 ## Contrato servidor a servidor
 
@@ -51,7 +51,7 @@ Resposta 200:
 }
 ```
 
-A RPC confirma todo o lote na mesma transação. Cada UUID de rascunho usa um identificador negativo derivado de hash para não compartilhar os IDs positivos do Telegram, e `chat_id`/`sender_id` recebem prefixo `wa:`. O payload guarda os itens e um hash canônico do pedido; diferenças de método, quantidade, descrição, ordem ou data no mesmo UUID retornam conflito. Mesmo UUID já salvo retorna `duplicate:true` sem nova gravação, após revalidar a autorização atual. A identidade `wa:<remetente real>` impede que outra pessoa autorizada reutilize o mesmo UUID para recuperar ou alterar a compra. Um retry de pedido já salvo no dia anterior também pode recuperar o sucesso, desde que telefone, proprietário e conteúdo sejam os mesmos. Um pedido novo ou ainda pendente de outro dia é recusado. A mensageria deve preservar o UUID/conteúdo nas repetições após timeout. Não normalize `payment` de um UUID antigo de `debito`/`pix` para `debito_pix`: o hash original é preservado e essa troca no mesmo pedido retorna 409. Use `debito_pix` para novos UUIDs; pedidos pendentes/salvos antigos repetem exatamente os campos anteriores.
+A RPC confirma todo o lote na mesma transação. Cada UUID de rascunho usa um identificador negativo derivado de hash para não colidir com os IDs positivos do legado do Telegram, e `chat_id`/`sender_id` recebem prefixo `wa:`. O payload guarda os itens e um hash canônico do pedido; diferenças de método, quantidade, descrição, ordem ou data no mesmo UUID retornam conflito. Mesmo UUID já salvo retorna `duplicate:true` sem nova gravação, após revalidar a autorização atual. A identidade `wa:<remetente real>` impede que outra pessoa autorizada reutilize o mesmo UUID para recuperar ou alterar a compra. Um retry de pedido já salvo no dia anterior também pode recuperar o sucesso, desde que telefone, proprietário e conteúdo sejam os mesmos. Um pedido novo ou ainda pendente de outro dia é recusado. A mensageria deve preservar o UUID/conteúdo nas repetições após timeout. Não normalize `payment` de um UUID antigo de `debito`/`pix` para `debito_pix`: o hash original é preservado e essa troca no mesmo pedido retorna 409. Use `debito_pix` para novos UUIDs; pedidos pendentes/salvos antigos repetem exatamente os campos anteriores.
 
 Erros: 400 `invalid_request`; 401 `unauthorized`; 403 `sender_forbidden`/`owner_forbidden`; 405 `method_not_allowed`; 409 `request_conflict`/`purchase_cancelled`/`purchase_expired`; 410 `purchase_date_expired`; 413 `invalid_request`; 503 `purchase_unavailable`. Nunca mostrar confirmação de registro quando a resposta for erro ou ambígua.
 

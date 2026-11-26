@@ -36,7 +36,8 @@ describe('All local application modules',()=>{
     expect((await request(app).delete(`/api/fluxograma?id=${id}`)).status).toBe(200);
   });
   it('never triggers external notifications in mock mode',async()=>{
-    for(const endpoint of ['/api/saude-alertas-cron','/api/telegram-alert'])expect((await request(app).get(endpoint)).status).toBe(503);
+    expect((await request(app).get('/api/saude-alertas-cron')).status).toBe(503);
+    expect((await request(app).get('/api/telegram-alert')).status).toBe(404);
   });
   it('does not expose secrets or repository files through the backend',async()=>{
     for(const endpoint of ['/.env.local','/.env.telegram.local','/.git/config','/scripts/local-env.js'])expect((await request(app).get(endpoint)).status).toBe(404);

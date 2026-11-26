@@ -10,7 +10,6 @@ Premissa: **zero redesign**. O container serve os mesmos estáticos (HTML/CSS/JS
 | `lib/uiConfirmation.js` | Allowlist no server (único `lib/` do browser) |
 | APIs Node | Handlers em `api/**/*.js` (inclui `admin/usuarios`) |
 | Rotas consolidadas (`server.js`) | `financeiro-simulador` → financeiro; `auth-config`/`statistics`/`roadmap` → apps |
-| Gateway Telegram | `api/telegram-alert.py` no loopback + proxy em `/api/telegram-alert` (sem arquivo `.js` que sombrearia o proxy) |
 | Health | `GET /healthz` → `{ "ok": true }` |
 
 ## Build e run local (Docker)
@@ -51,10 +50,8 @@ Stack legado PostgREST (AUTH_MODE=fixed): `docker compose -f docker-compose.post
 | `CRON_SECRET` | ≥32 chars; `Authorization: Bearer …` nos crons |
 | `SAUDE_ALERTS_ENABLED` | `true` |
 | `SAUDE_ALERTS_OWNER_USER_ID` | UUID owner/admin |
-| `ALERTS_API_URL` | **HTTPS** público `…/api/telegram-alert` |
-| `ALERTS_API_TOKEN` | ≥32 chars; header `X-Alert-Token` |
-| `TELEGRAM_BOT_TOKEN` | Bot |
-| `TELEGRAM_CHAT_ID` | Chat destino |
+| `WHATSAPP_API_ORIGIN` | **HTTPS** da mensageria do WhatsApp |
+| `WHATSAPP_INTEGRATION_TOKEN` | Token de integração com a mensageria |
 
 ### WhatsApp / mensageria (mesma VPS)
 
@@ -75,8 +72,6 @@ Na mensageria, `SUPERAPP_API_ORIGIN` pode apontar para `https://seu-app.duckdns.
 
 | Variável | Uso |
 |----------|-----|
-| `TELEGRAM_WEBHOOK_SECRET` | Senão deriva do bot token |
-| `TELEGRAM_ALERT_PORT` / `TELEGRAM_ALERT_INTERNAL_URL` | Loopback do Python no container |
 | `BASIC_AUTH_*` | Camada HTTP extra (não substitui Supabase Auth) |
 | `SUPERAPP_PUBLISH` | Bind publish do compose |
 | `GIT_COMMIT` | Sufixo de cacheVersion no `version:sync` da imagem |
@@ -114,7 +109,7 @@ Opcional treino de modelo:
 
 - Auth: `lib/cronAuth.js` → `isCronAuthorized` (`Bearer` + `CRON_SECRET` ≥32).
 - Health do app: `GET /healthz` (sem secret; isento de Basic Auth se houver).
-- Teste manual: `GET /api/saude-alertas-cron?mode=telegram_test` com o mesmo Bearer (ou o botão admin).
+- Teste de envio: use o botão Testar de cada destinatário no painel da mensageria.
 - GitHub Actions (`saude-alertas.yml`): só `workflow_dispatch` de emergência → `https://super-app-go.duckdns.org` (sem schedule). O agendador real é o systemd timer.
 
 ## Deploy automático (GitHub Actions → VPS)
@@ -157,12 +152,11 @@ Com Basic Auth na frente, o cron deve chamar `127.0.0.1` **atrás** do proxy —
 3. `docker compose build && docker compose up -d` (primeiro sobe) ou disparar o workflow.
 4. Validar `curl http://127.0.0.1:3000/healthz` e login Supabase no browser.
 5. Configurar o timer systemd dos alertas com `CRON_SECRET`.
-6. DuckDNS + reverse proxy TLS → apontar `ALERTS_API_URL` e `WHATSAPP_API_ORIGIN` (HTTPS).
+6. DuckDNS + reverse proxy TLS → apontar `WHATSAPP_API_ORIGIN` (HTTPS).
 7. Na mensageria: `SUPERAPP_API_ORIGIN` para a URL canônica do Super App.
 
 ## Riscos / residual
 
-- **HTTPS obrigatório** para `ALERTS_API_URL` e `WHATSAPP_API_ORIGIN` em `NODE_ENV=production` — sem DuckDNS/TLS, alertas Telegram/WhatsApp falham.
-- Gateway Python sobe no mesmo container; se o Python cair, `/api/telegram-alert` responde 502 (Node e estáticos seguem).
-- Não criar `api/telegram-alert.js` no repo: sombrearia o proxy do gateway Python.
+- **HTTPS obrigatório** para `WHATSAPP_API_ORIGIN` — sem DuckDNS/TLS, os alertas do WhatsApp falham.
+- O Telegram foi descontinuado: não há mais gateway Python, webhook nem variáveis `TELEGRAM_*`/`ALERTS_API_*`.
 - Compose PostgREST legado separado; não é o caminho Supabase.

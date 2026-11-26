@@ -62,7 +62,7 @@ flowchart TD
 
     F[GitHub Actions - despertador] --> G[POST /api/notificar]
     G --> E
-    G --> H[Telegram]
+    G --> H[WhatsApp]
 
     I[GitHub Actions - analise do sistema] --> J[POST /api/system-analysis]
     J --> K[run-system-analysis.js]
@@ -78,7 +78,7 @@ flowchart TD
 1. O usuario acessa o frontend estatico/PWA.
 2. O frontend consulta endpoints em `api/` para listar apps, carregar dados e executar CRUD.
 3. Cada endpoint usa `lib/supabase.js` ou `createClient` com credenciais de ambiente para persistir/consultar dados no Supabase.
-4. O workflow `Despertador do Super App` executa `POST /api/notificar` a cada hora para enviar lembretes futuros ao Telegram.
+4. O workflow `Despertador do Super App` executa `POST /api/notificar` a cada hora para enviar lembretes futuros pela mensageria do WhatsApp.
 5. O workflow `Analise do Sistema` executa `POST /api/system-analysis` 3 vezes ao dia para medir disponibilidade e gravar snapshots no Supabase.
 6. O dashboard tecnico consome `GET /api/system-analysis-dashboard` para consolidar indicadores de saude, latencia, falhas criticas, alertas e sincronizacao de agenda.
 
@@ -102,7 +102,7 @@ flowchart TD
 | `/api/lista-compras` | `GET, POST, PATCH, DELETE` | `tb_lista_compras` | suporta toggle e reset global |
 | `/api/calendario` | `GET, POST, PATCH, DELETE` | `tb_calendario` | GET aceita `action=config`, `action=view` e `action=sync_status` |
 | `/api/fluxograma` | `GET, POST, PATCH, DELETE` | `tb_fluxograma_projetos` | persistencia de projetos |
-| `/api/notificar` | `POST` | `tb_calendario` | envia lembretes Telegram |
+| `/api/notificar` | `POST` | `tb_calendario` | envia lembretes pelo WhatsApp |
 
 O antigo modo Compras do Financeiro e a tabela `tb_compras` foram removidos. Isso nao altera a categoria `Compras` dos gastos variados nem o app separado `lista_compras`, persistido em `tb_lista_compras`.
 
@@ -119,7 +119,7 @@ O antigo modo Compras do Financeiro e a tabela `tb_compras` foram removidos. Iss
 - VPS com Docker (container `super-app`) para hospedagem do frontend e das APIs, com deploy automatico via GitHub Actions a cada push na `main`.
 - Supabase para persistencia e leitura analitica.
 - GitHub Actions para agendamentos externos.
-- Telegram Bot API para envio de notificacoes.
+- Mensageria do WhatsApp (`WHATSAPP_API_ORIGIN`) para envio de notificacoes.
 
 ### Bibliotecas
 
@@ -136,8 +136,8 @@ O antigo modo Compras do Financeiro e a tabela `tb_compras` foram removidos. Iss
 | `SYSTEM_ANALYSIS_TABLE` | tabela de snapshots operacionais |
 | `SYSTEM_ANALYSIS_DB_TABLE` | tabela usada no teste de conexao |
 | `REQUEST_TIMEOUT_MS` | timeout de health checks |
-| `TELEGRAM_TOKEN` | token do bot Telegram |
-| `TELEGRAM_CHAT_ID` | destino das notificacoes |
+| `WHATSAPP_API_ORIGIN` | origem HTTPS da mensageria do WhatsApp |
+| `WHATSAPP_INTEGRATION_TOKEN` | token de integracao com a mensageria |
 
 Observacao:
 - O arquivo `.env` nao e versionado neste repositorio.
@@ -190,7 +190,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 - `p99_latency_ms`
 - historico de snapshots
 - falhas por endpoint no ultimo snapshot
-- estado de alerta Telegram (falha/recuperacao)
+- estado de alerta de notificacao (falha/recuperacao)
 - diagnostico de sincronizacao agenda (`calendar_sync`)
 - volume por aplicacao/tabela
 
@@ -198,10 +198,10 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 
 - Credenciais de banco ficam em variaveis de ambiente, nao no codigo.
 - A funcao compartilhada [`lib/supabase.js`](/c:/super%20app/super-app-1/lib/supabase.js) falha rapidamente se secrets obrigatorios nao existirem.
-- `api/notificar` usa variaveis segregadas para Telegram.
-- O repositorio nao contem integracao com Instagram; o canal implementado para alertas e Telegram.
+- `api/notificar` usa variaveis segregadas para a mensageria do WhatsApp.
+- O repositorio nao contem integracao com Instagram; o canal implementado para alertas e o WhatsApp.
 - Dados sensiveis existem principalmente nos modulos de dados pessoais e financeiros, portanto logs e dumps devem evitar exposicao de payloads completos.
-- O envio de notificacoes usa flags (`telegram_sent`, `telegram_sent_at`) para evitar repeticao indevida.
+- O envio de notificacoes usa flags (flags de envio por notificacao) para evitar repeticao indevida.
 
 ## Riscos e Gaps Identificados
 

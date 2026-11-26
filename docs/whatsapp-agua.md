@@ -50,15 +50,15 @@ Corpo: `{ "water_prompt": { ... }, "amount_ml": 200 }`. Somente números inteiro
 }
 ```
 
-Um lembrete admite um registro, mesmo que enviado a vários destinatários. Repetir a mesma quantidade usa `wa-water:<dedupe_key>` e retorna `duplicate:true` sem somar novamente. Trocar a quantidade no mesmo lembrete retorna 409; use o app ou um novo lembrete para um novo consumo. Telegram e WhatsApp mantêm chaves de check-in distintas, como canais independentes.
+Um lembrete admite um registro, mesmo que enviado a vários destinatários. Repetir a mesma quantidade usa `wa-water:<dedupe_key>` e retorna `duplicate:true` sem somar novamente. Trocar a quantidade no mesmo lembrete retorna 409; use o app ou um novo lembrete para um novo consumo. O check-in usa chaves próprias do WhatsApp (`wa-water:`).
 
 Erros: 400 `invalid_request`/`invalid_prompt`; 401 `unauthorized`; 403 `profile_forbidden`; 405 `method_not_allowed`; 409 `water_request_conflict`/`water_goal_required`; 410 `water_prompt_expired`; 413 `invalid_request`; 503 `water_unavailable`. Reenvio após timeout deve preservar prompt e quantidade. Falha ou resposta ambígua não confirma registro no WhatsApp; o retry idempotente permite consultar o resultado.
 
-O dia é `America/Sao_Paulo`. Consumo pode ultrapassar a meta; `remaining_ml` para em zero. O recurso usa a Function Saúde existente e não adiciona novos handlers de API. Nenhuma alteração de frontend ou Telegram é necessária: o app lê os mesmos dados de água ao atualizar o acompanhamento.
+O dia é `America/Sao_Paulo`. Consumo pode ultrapassar a meta; `remaining_ml` para em zero. O recurso usa a Function Saúde existente e não adiciona novos handlers de API. Nenhuma alteração de frontend é necessária: o app lê os mesmos dados de água ao atualizar o acompanhamento.
 
 ## Verificação local
 
-`npx vitest run tests/services/whatsappWater.test.js tests/services/whatsappAlertClient.test.js tests/services/alertasSaude.test.js tests/services/telegramWater.test.js tests/database/saudeWaterMlSql.test.js --pool threads --maxWorkers 1`
+`npx vitest run tests/services/whatsappWater.test.js tests/services/whatsappAlertClient.test.js tests/services/alertasSaude.test.js tests/database/saudeWaterMlSql.test.js --pool threads --maxWorkers 1`
 
 Os testes cobrem emissão pelo scheduler, transporte assinado, dispatch da rota real, validação de token/perfil/quantidade/dia, resolução do proprietário, sucesso/duplicidade/conflito e RPC/migration/rollback em PostgreSQL embarcado. Mocks e PGlite não comprovam Supabase ou entrega e seleção reais no WhatsApp.
 
