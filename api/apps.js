@@ -3,14 +3,14 @@ import { getFixedUser, isFixedAuthMode } from '../lib/authMode.js';
 import { unsafeAuthEnvironment } from '../lib/authEnvironment.js';
 
 const ROADMAP = [
-  { step: '1', title: 'Shell único publicado na Vercel', description: 'Frontend estático/PWA em index.html com catálogo central de apps e consumo de APIs serverless.' },
+  { step: '1', title: 'Shell único publicado na VPS', description: 'Frontend estático/PWA em index.html com catálogo central de apps e consumo de APIs serverless.' },
   { step: '2', title: 'Domínios integrados ao Supabase', description: 'Despesas Fixas, Finanças, Lista de Compras, Saúde e Fluxograma persistem dados no Supabase.' },
-  { step: '3', title: 'Automação operacional', description: 'GitHub Actions acorda a Vercel para análise operacional agendada.' },
+  { step: '3', title: 'Automação operacional', description: 'Timer agendado na VPS dispara a análise operacional.' },
   { step: '4', title: 'Evolução contínua', description: 'Base está pronta para evolução incremental de módulos e melhorias de confiabilidade.' },
 ];
 
 /**
- * Lista de aplicacoes do Super App (usada pelo index.html no Vercel).
+ * Lista de aplicacoes do Super App (usada pelo index.html).
  * Cada app costuma ter uma API, exceto fluxograma (so front + localStorage).
  */
 export const APPS = [

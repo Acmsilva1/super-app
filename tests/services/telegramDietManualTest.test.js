@@ -8,7 +8,7 @@ vi.mock('../../features/financeiro/service/financeiroTelegramScheduler.js', () =
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe('Teste manual das dietas reais', () => {
-  it('interrompe antes do limite Vercel e informa entrega parcial', async () => {
+  it('interrompe antes do limite de tempo e informa entrega parcial', async () => {
     vi.resetModules();
     vi.stubEnv('NODE_ENV','development'); vi.stubEnv('OFFLINE_DEV','false');
     vi.stubEnv('TELEGRAM_BOT_TOKEN','fake');vi.stubEnv('TELEGRAM_CHAT_ID','fake');vi.stubEnv('ALERTS_API_TOKEN','x'.repeat(32));vi.stubEnv('ALERTS_API_URL','https://example.invalid/api/telegram-alert');

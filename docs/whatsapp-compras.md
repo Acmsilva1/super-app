@@ -11,7 +11,7 @@ A mensageria interpreta texto e áudio, apresenta os lançamentos e pede confirm
 - Worker: `SUPERAPP_API_ORIGIN` com a origem HTTPS canônica do Super App e `GROQ_API_KEY` somente no worker. O fluxo de captura e confirmação é documentado na mensageria.
 - Banco: reutiliza `tb_telegram_compras` e a função `telegram_confirm_purchase` das migrations existentes `20261006_telegram_compras.sql` e `20261011_telegram_compras_multiplas.sql`. Não há nova migration nesta implementação. A versão multilote precisa estar instalada para o registro de vários itens.
 
-O recurso utiliza a Function Financeiro existente; não adiciona uma décima terceira Function da Vercel. Telegram e água mantêm os contratos anteriores.
+O recurso utiliza a Function Financeiro existente; não adiciona um novo handler de API. Telegram e água mantêm os contratos anteriores.
 
 ## Contrato servidor a servidor
 

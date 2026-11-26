@@ -11,10 +11,10 @@ export function loadLocalEnv(file, env = process.env) {
   }
 }
 export function configureDevelopmentEnv(root, { real = false, env = process.env } = {}) {
-  if (env.VERCEL || env.NODE_ENV === 'production') throw new Error('Servidor de desenvolvimento proibido em produção.');
+  if (env.NODE_ENV === 'production') throw new Error('Servidor de desenvolvimento proibido em produção.');
   loadLocalEnv(path.join(root,'.env.local'),env);
   loadLocalEnv(path.join(root,'api','.env.local'),env);
-  if (env.VERCEL || env.NODE_ENV === 'production') throw new Error('Configuração local de produção não permitida.');
+  if (env.NODE_ENV === 'production') throw new Error('Configuração local de produção não permitida.');
   env.NODE_ENV = 'development'; env.OFFLINE_DEV = real ? 'false' : 'true';
   env.LOCAL_DATA_MODE = real ? 'real' : 'mock'; env.SAUDE_ALERTS_ENABLED = 'false';
   if (!real) {

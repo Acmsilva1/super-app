@@ -1,7 +1,7 @@
-# Super App na VPS — parity 1:1 com a Vercel (estáticos + /api/* + gateway Telegram Python).
+# Super App na VPS (estáticos + /api/* + gateway Telegram Python).
 # Persistência: Supabase cloud (não sobe Postgres local neste compose).
 # Mensageria WhatsApp já na mesma VPS: use URL HTTPS da mensageria (DuckDNS/TLS).
-# O código atual recusa WHATSAPP_API_ORIGIN em http:// (mesmo contrato da Vercel).
+# O código atual recusa WHATSAPP_API_ORIGIN em http:// (contrato do servidor).
 
 name: superapp
 

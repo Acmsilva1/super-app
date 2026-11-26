@@ -7,7 +7,7 @@ vi.mock('../../lib/supabase.js',()=>({supabase:{
 }}));
 import {requireUser} from '../../lib/auth.js';
 beforeEach(()=>{
-  vi.stubEnv('NODE_ENV','production');vi.stubEnv('VERCEL','1');vi.stubEnv('OFFLINE_DEV','false');vi.stubEnv('AUTH_MODE','supabase');vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY','fake-key');
+  vi.stubEnv('NODE_ENV','production');vi.stubEnv('OFFLINE_DEV','false');vi.stubEnv('AUTH_MODE','supabase');vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY','fake-key');
   state.user={id:'00000000-0000-4000-8000-000000000002',email:'mock@example.invalid'};state.role='';state.permission=false;
 });
 afterEach(()=>vi.unstubAllEnvs());

@@ -214,7 +214,7 @@ Seed de desenvolvimento: `scripts/seed-financeiro.sql`
 | `SUPABASE_ANON_KEY` | Cliente + RLS |
 | `SUPABASE_SERVICE_ROLE_KEY` | Bypass RLS (cron/admin) |
 
-Política: `.env` nunca commitado; definir na Vercel e localmente.
+Política: `.env` nunca commitado; definir no `.env` da VPS e localmente.
 
 ## Checkpoints
 

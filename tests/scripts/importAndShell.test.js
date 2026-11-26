@@ -1,16 +1,19 @@
 import fs from 'node:fs';
+import crypto from 'node:crypto';
+import crypto from 'node:crypto';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
 import {describe,it,expect} from 'vitest';
 import {CONTENT_SECURITY_POLICY} from '../../lib/securityHeaders.js';
-import budget from '../../scripts/check-function-budget.cjs';
+import request from 'supertest';
+import {createApp} from '../../server.js';
 describe('Carregamento da API e shell',()=>{
-  it('mantém Functions no limite Hobby e auxiliares fora de api',()=>{
-    expect(budget.functionEntries(process.cwd()).length).toBeLessThanOrEqual(12);
+  it('mantém auxiliares fora de api e rotas consolidadas no servidor',()=>{
     expect(fs.existsSync('api/financeiro-simulador.js')).toBe(false);
     expect(fs.existsSync('api/_financeiroShared.js')).toBe(false);
-    const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
-    expect(config.rewrites).toContainEqual({source:'/api/financeiro-simulador',destination:'/api/financeiro?recurso=simulador'});
+    const server=fs.readFileSync('server.js','utf8');
+    expect(server).toContain("requestedEndpoint === 'financeiro-simulador' ? 'financeiro'");
+    expect(server).toContain("new Set(['auth-config', 'statistics', 'roadmap', 'cron-treinar-modelo'])");
   });
   it('todos os modulos API carregam em processo isolado sem chamar handlers',()=>{
     const script="import fs from 'node:fs';import {pathToFileURL} from 'node:url';const files=fs.readdirSync('api',{recursive:true}).filter(f=>f.endsWith('.js'));for(const file of files)await import(pathToFileURL(process.cwd()+'/api/'+file));console.log(files.length);";
@@ -25,9 +28,27 @@ describe('Carregamento da API e shell',()=>{
     }
     expect(count).toBeGreaterThan(0);
   });
-  it('CSP do servidor e Vercel possuem o mesmo contrato',()=>{
-    const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
-    const policy=config.headers.find(row=>row.source==='/(.*)').headers.find(row=>row.key==='Content-Security-Policy');
-    expect(policy.value).toBe(CONTENT_SECURITY_POLICY);
+  it('servidor entrega CSP com hashes calculados do index.html e demais headers de segurança',async()=>{
+    const app=createApp();
+    for(const route of ['/','/sw.js','/manifest.json']){
+      const res=await request(app).get(route);
+      expect(res.status).toBe(200);
+      expect(res.headers['content-security-policy']).toBe(CONTENT_SECURITY_POLICY);
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
+      expect(res.headers['x-frame-options']).toBe('DENY');
+      expect(res.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+      expect(res.headers['permissions-policy']).toBe('camera=(), microphone=(), geolocation=()');
+    }
+    const html=fs.readFileSync('index.html','utf8').replace(/\r\n?/g,'\n');
+    const inline=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].filter(m=>m[1].trim());
+    expect(inline.length).toBeGreaterThan(0);
+    for(const m of inline)expect(CONTENT_SECURITY_POLICY).toContain("'sha256-"+crypto.createHash('sha256').update(m[1]).digest('base64')+"'");
+  });
+  it('servidor mantém cache e content-type do PWA',async()=>{
+    const app=createApp();
+    for(const route of ['/','/index.html','/sw.js','/app-version.json'])expect((await request(app).get(route)).headers['cache-control']).toBe('no-cache, no-store, must-revalidate');
+    expect((await request(app).get('/sw.js')).headers['content-type']).toContain('application/javascript');
+    expect((await request(app).get('/manifest.json')).headers['content-type']).toContain('application/manifest+json');
+    for(const icon of ['/icon-192.png','/icon-512.png'])expect((await request(app).get(icon)).headers['cache-control']).toBe('public, max-age=31536000, immutable');
   });
 });

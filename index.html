@@ -7271,7 +7271,7 @@
             async configureClient() {
                 if (this.client) return this.client;
                 const response = await this.originalFetch('/api/auth-config', { cache: 'no-store' });
-                if (!response.ok) throw new Error('Supabase Auth nao esta configurado na Vercel');
+                if (!response.ok) throw new Error('Supabase Auth nao esta configurado no servidor');
                 const config = await response.json();
                 this.authConfig = config;
                 if (config.authMode === 'fixed') {

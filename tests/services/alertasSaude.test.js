@@ -58,7 +58,7 @@ beforeEach(() => {
   vi.stubEnv('WHATSAPP_FINANCE_PROFILE_ID','');
 });
 
-describe('Vercel alerts', () => {
+describe('Alertas de Saúde', () => {
   it('denies cron calls when missing, wrong or short secrets', () => {
     vi.stubEnv('CRON_SECRET',''); expect(isCronAuthorized({headers:{}})).toBe(false);
     vi.stubEnv('CRON_SECRET','short'); expect(isCronAuthorized({headers:{authorization:'Bearer short'}})).toBe(false);

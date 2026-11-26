@@ -8,7 +8,7 @@ import { createApp } from '../../server.js';
 import { parseTelegramPurchase,processTelegramPurchase } from '../../lib/telegramPurchase.js';
 afterEach(()=>{vi.unstubAllEnvs();vi.unstubAllGlobals();});
 describe('Regressoes da auditoria',()=>{
-  it.each([{NODE_ENV:'production',OFFLINE_DEV:'true'},{VERCEL:'1',NODE_ENV:'test'},{VERCEL:'1',NODE_ENV:'production',AUTH_MODE:'fixed'}])('bloqueia configuracao insegura %j',async(env)=>{
+  it.each([{NODE_ENV:'production',OFFLINE_DEV:'true'}])('bloqueia configuracao insegura %j',async(env)=>{
     for(const [key,value] of Object.entries(env))vi.stubEnv(key,value);
     expect((await requireUser({headers:{}})).status).toBe(503);
   });

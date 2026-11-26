@@ -6,7 +6,7 @@ const root = path.resolve(import.meta.dirname, '../..');
 const bankTheme = fs.readFileSync(path.join(root, 'styles/bank-theme.css'), 'utf8');
 const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
-describe('bank-theme — janela do Saúde (Vercel)', () => {
+describe('bank-theme — janela do Saúde', () => {
   it('aplica estilos de header/título/botão/conteúdo só nos filhos corretos', () => {
     expect(bankTheme).toContain('#window-saude .window-header');
     expect(bankTheme).toContain('#window-saude .window-title');

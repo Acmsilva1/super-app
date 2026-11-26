@@ -23,8 +23,8 @@ const port=await new Promise((resolve,reject)=>{
 const results=[];
 try{
   for(const alert of [
-    {event_type:'health.water_progress',title:'[TESTE MANUAL] Água',message:'Mensagem de teste do retorno à Vercel. Perfil fictício: 3 de 8 doses. Não representa seus dados reais.'},
-    {event_type:'health.diet_menu',title:'[TESTE MANUAL] Dieta',message:'Mensagem de teste do retorno à Vercel. Refeição e calorias fictícias. Fluxo validado: Node → Python → Telegram.'},
+    {event_type:'health.water_progress',title:'[TESTE MANUAL] Água',message:'Mensagem de teste do SuperApp. Perfil fictício: 3 de 8 doses. Não representa seus dados reais.'},
+    {event_type:'health.diet_menu',title:'[TESTE MANUAL] Dieta',message:'Mensagem de teste do SuperApp. Refeição e calorias fictícias. Fluxo validado: Node → Python → Telegram.'},
   ]){
     const response=await fetch(`http://127.0.0.1:${port}/api/telegram-alert`,{
       method:'POST',headers:{'Content-Type':'application/json','X-Alert-Token':secret},

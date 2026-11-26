@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Dependências e Builds (NÃO sobem para o Git / Vercel)
+# Dependências e Builds (NÃO sobem para o Git)
 # ---------------------------------------------------------------------------
 node_modules/
 dist/
@@ -12,7 +12,7 @@ coverage/
 *.tsbuildinfo
 
 # ---------------------------------------------------------------------------
-# Variáveis de ambiente e Segredos Locais (NÃO sobem para o Git / Vercel)
+# Variáveis de ambiente e Segredos Locais (NÃO sobem para o Git)
 # ---------------------------------------------------------------------------
 .env
 .env.local

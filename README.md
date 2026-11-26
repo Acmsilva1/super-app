@@ -1,6 +1,6 @@
 # Super App
 
-Super App e uma aplicacao web estatica/PWA publicada na Vercel, com backend em funcoes serverless Node.js, persistencia no Supabase e automacoes agendadas pelo GitHub Actions para notificacoes e analise operacional.
+Super App e uma aplicacao web estatica/PWA publicada na VPS (https://super-app-go.duckdns.org), em um container Docker com servidor Express (`server.js`), backend em handlers Node.js (`api/`), persistencia no Supabase e alertas agendados por timers da VPS.
 
 **Documentacao de arquitetura e agentes:** [mudanca_arquitetura.md](mudanca_arquitetura.md), **[agents.md](agents.md)** (com **Checkpoint**).
 
@@ -25,7 +25,8 @@ super-app-1/
 |-- monitoring/system-analysis # rotina de health check e snapshot operacional
 |-- docs/                      # SQL e documentos auxiliares
 |-- .github/workflows/         # agendamentos externos
-|-- vercel.json                # configuracao de deploy/headers/rewrites
+|-- server.js                  # servidor Express: estaticos, headers, rotas /api e /healthz
+|-- Dockerfile / docker-compose.yml  # runtime na VPS
 ```
 
 ### Organizacao por dominio
@@ -55,7 +56,7 @@ Conclusao: a base atual atende parcialmente um modelo de modularizacao mais avan
 ```mermaid
 flowchart TD
     A[Usuario abre index.html] --> B[Frontend/PWA]
-    B --> C[APIs Vercel em /api]
+    B --> C[APIs Node em /api (Express na VPS)]
     C --> D[Modulos de dominio em features/]
     D --> E[Supabase]
 
@@ -115,7 +116,7 @@ O antigo modo Compras do Financeiro e a tabela `tb_compras` foram removidos. Iss
 
 ### Infraestrutura
 
-- Vercel para hospedagem do frontend e execucao de funcoes serverless.
+- VPS com Docker (container `super-app`) para hospedagem do frontend e das APIs, com deploy automatico via GitHub Actions a cada push na `main`.
 - Supabase para persistencia e leitura analitica.
 - GitHub Actions para agendamentos externos.
 - Telegram Bot API para envio de notificacoes.
@@ -141,18 +142,17 @@ O antigo modo Compras do Financeiro e a tabela `tb_compras` foram removidos. Iss
 Observacao:
 - O arquivo `.env` nao e versionado neste repositorio.
 - Em ambiente local, configure as variaveis no shell ou em um `.env` privado.
-- Em producao, configure via painel da Vercel.
+- Em producao, configure no `.env` da VPS (`/opt/super-app`).
 
 ## Deploy e Operacao
 
-### Vercel
+### VPS
 
-- URL oficial de producao: `https://super-app-zeta-virid.vercel.app/`
-- Build command: `npm run build`
-- Output directory: `.`
-- Framework: `null`
-- Rewrite: `/api/system-analysis` -> `/api/system-analysis-dashboard`
-- Headers customizados para `manifest.json`, `sw.js` e icones PWA
+- URL oficial de producao: `https://super-app-go.duckdns.org/`
+- Health check: `https://super-app-go.duckdns.org/healthz`
+- Deploy: push na `main` dispara o workflow `Deploy Super App` (GitHub Actions), que roda o deploy na VPS (`/opt/super-app`, `docker compose`).
+- Build: `npm run build` (sincroniza a versao do app e o cache do PWA)
+- Rotas consolidadas (`/api/auth-config`, `/api/statistics`, `/api/roadmap`, `/api/financeiro-simulador`) e headers de seguranca/cache (CSP com hashes calculados em runtime) ficam em `server.js`
 
 ### Jobs agendados
 
@@ -212,7 +212,7 @@ O monitoramento e persistido em `system_analysis_logs` por meio da rotina [`run-
 
 ## Ajustes Aplicados
 
-- `/api/auth-config`, `/api/statistics` e `/api/roadmap` preservam seus caminhos publicos e agora compartilham a funcao `/api/apps` por rewrites da Vercel.
+- `/api/auth-config`, `/api/statistics` e `/api/roadmap` preservam seus caminhos publicos e agora compartilham o handler `/api/apps` por roteamento no `server.js`.
 - Fluxograma atualizado com paleta fixa de 16 cores por selecao (nos, textos e conexoes), substituindo o seletor livre de cor.
 - O menu do Fluxograma passou a exibir preview da cor atual do item selecionado e da ultima cor usada.
 - Novas conexoes no Fluxograma agora usam a cor ativa da paleta, e o estado `activeColor` passou a ser persistido no payload do grafo para manter contexto entre sessoes.

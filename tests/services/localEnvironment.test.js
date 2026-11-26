@@ -8,8 +8,8 @@ describe('Local mock isolation',()=>{
     expect(env.SUPABASE_URL).toBe('http://127.0.0.1:3000');expect(env.SUPABASE_SERVICE_ROLE_KEY).toBeUndefined();
     expect(env.POSTGREST_TOKEN).toBeUndefined();expect(env.SAUDE_ALERTS_ENABLED).toBe('false');
   });
-  it('refuses a Vercel or production environment',()=>{
-    for(const env of [{VERCEL:'1'},{NODE_ENV:'production'}])expect(()=>configureDevelopmentEnv('missing-directory',{env})).toThrow();
+  it('refuses a production environment',()=>{
+    for(const env of [{NODE_ENV:'production'}])expect(()=>configureDevelopmentEnv('missing-directory',{env})).toThrow();
   });
   it('real mode must be explicitly selected',()=>{
     const env={SUPABASE_URL:'https://example.invalid',SUPABASE_SERVICE_ROLE_KEY:'private'};

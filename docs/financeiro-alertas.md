@@ -4,7 +4,7 @@ Na visão geral, abaixo do gráfico, crie uma regra com nome, conteúdo, cron e 
 
 ## Ativação
 
-1. Aplicar `migration/20261010_create_financeiro_alertas.sql` no SQL Editor do banco usado pela Vercel. O arquivo cria agenda com RLS e acesso exclusivo da API privilegiada. A migration não foi aplicada pelo Codex em banco real.
+1. Aplicar `migration/20261010_create_financeiro_alertas.sql` no SQL Editor do banco usado pelo app. O arquivo cria agenda com RLS e acesso exclusivo da API privilegiada. A migration não foi aplicada pelo Codex em banco real.
 2. Publicar os arquivos da aplicação. A rota fica em `/api/financeiro?recurso=alertas`, sem nova Function.
 3. Manter `SUPABASE_SERVICE_ROLE_KEY`, `SAUDE_ALERTS_OWNER_USER_ID`, `SAUDE_ALERTS_ENABLED=true`, `ALERTS_API_TOKEN` e a configuração já existente do gateway/bot somente no servidor. Não inserir tokens no frontend.
 4. Manter o workflow `.github/workflows/saude-alertas.yml` ativo na branch padrão. Ele já chama o agendador conjunto de Saúde e Financeiro. Testar entrega real separadamente após publicar.

@@ -8,7 +8,7 @@
     "start": "node server.js",
     "version:sync": "node scripts/sync-app-version.cjs",
     "predev": "node scripts/sync-app-version.cjs",
-    "build": "node scripts/check-function-budget.cjs && node scripts/sync-app-version.cjs && node scripts/sync-security-headers.mjs && echo Build complete",
+    "build": "node scripts/sync-app-version.cjs && echo Build complete",
     "test:security": "node scripts/check-security.mjs && node scripts/check-xss.mjs",
     "test": "npm run test:ux && vitest run --pool threads",
     "test:ux": "node scripts/ux-component-analyst.cjs --path index.html --path api --path features --path lib",

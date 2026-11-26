@@ -1,8 +1,8 @@
 # Super App - Documentacao Unica
 
-PWA pessoal com micro-apps de financas e produtividade. O projeto usa frontend vanilla, backend serverless em Node.js, Supabase PostgreSQL/Auth e deploy na Vercel.
+PWA pessoal com micro-apps de financas e produtividade. O projeto usa frontend vanilla, backend em Node.js (Express), Supabase PostgreSQL/Auth e deploy na VPS (Docker + GitHub Actions).
 
-Producao: `super-app-zeta-virid.vercel.app`
+Producao: `super-app-go.duckdns.org`
 
 ## 1. Visao Geral
 
@@ -14,10 +14,10 @@ Producao: `super-app-zeta-virid.vercel.app`
 | Graficos | ECharts 5 via CDN |
 | Animacoes | Motion 11 via CDN |
 | Icones/fontes | Font Awesome 6, Orbitron, Space Grotesk |
-| Backend | Vercel Functions, Node.js ES Modules |
+| Backend | Node.js ES Modules (Express, `server.js`) |
 | Banco | Supabase PostgreSQL + Supabase Auth |
 | Testes | Vitest, Supertest, script UX estatico |
-| Deploy | Vercel |
+| Deploy | VPS (Docker + GitHub Actions) |
 
 ### Estrutura
 
@@ -33,7 +33,7 @@ super-app/
 |   +-- documentacao.md
 +-- manifest.json
 +-- sw.js
-+-- vercel.json
++-- server.js
 ```
 
 ### Micro-apps
@@ -176,7 +176,7 @@ Essas chaves armazenam somente identificadores de navegacao. Nomes, medidas, ali
 
 | Area | Detalhe |
 |---|---|
-| Runtime | Node.js ES Modules em Vercel Functions |
+| Runtime | Node.js ES Modules (Express na VPS) |
 | Handlers | `api/` |
 | Dominio | `features/` |
 | Utilitarios | `lib/` |
@@ -425,7 +425,7 @@ Rollback estrutural: `migration/rollback/20260929_restore_financeiro_compras.sql
 
 O `.gitignore` cobre:
 
-- `node_modules/`, `dist/`, `build/`, `.vercel/`
+- `node_modules/`, `dist/`, `build/`
 - `.env`, `.env.local`, `.env.*`, `api/.env.local`
 - logs e arquivos de sistema
 - scripts locais da mensageria Telegram
@@ -486,7 +486,7 @@ npm test
 npm run build
 ```
 
-Para rodar com Supabase real, configure as variaveis de ambiente localmente ou na Vercel. Para dev offline, use `OFFLINE_DEV=true` quando o fluxo permitir mock local.
+Para rodar com Supabase real, configure as variaveis de ambiente localmente ou no `.env` da VPS. Para dev offline, use `OFFLINE_DEV=true` quando o fluxo permitir mock local.
 
 ## 7. Pendencias Tecnicas
 

@@ -1,6 +1,6 @@
-# Super App na VPS (Docker) — parity 1:1 com a Vercel
+# Super App na VPS (Docker)
 
-Premissa: **zero redesign**. O container serve os mesmos estáticos (HTML/CSS/JS/PWA/ícones/`sw.js`) e as mesmas rotas `/api/*` com o mesmo contrato. A Vercel permanece intacta; isto é só runtime/hospedagem.
+Premissa: **zero redesign**. O container serve os mesmos estáticos (HTML/CSS/JS/PWA/ícones/`sw.js`) e as mesmas rotas `/api/*` com o mesmo contrato. A hospedagem é exclusivamente a VPS (a antiga publicação na Vercel foi descontinuada).
 
 ## O que sobe no container
 
@@ -9,8 +9,8 @@ Premissa: **zero redesign**. O container serve os mesmos estáticos (HTML/CSS/JS
 | Front + PWA | `server.js` (Express) — `index.html`, `styles/`, `features/`, `components/`, `backgrounds/`, `sw.js`, `manifest.json`, ícones |
 | `lib/uiConfirmation.js` | Allowlist no server (único `lib/` do browser) |
 | APIs Node | Handlers em `api/**/*.js` (inclui `admin/usuarios`) |
-| Rewrites Vercel | `financeiro-simulador` → financeiro; `auth-config`/`statistics`/`roadmap` → apps |
-| Gateway Telegram | `api/telegram-alert.py` no loopback + proxy em `/api/telegram-alert` (sem arquivo `.js` que sombrearia a Function na Vercel) |
+| Rotas consolidadas (`server.js`) | `financeiro-simulador` → financeiro; `auth-config`/`statistics`/`roadmap` → apps |
+| Gateway Telegram | `api/telegram-alert.py` no loopback + proxy em `/api/telegram-alert` (sem arquivo `.js` que sombrearia o proxy) |
 | Health | `GET /healthz` → `{ "ok": true }` |
 
 ## Build e run local (Docker)
@@ -38,7 +38,7 @@ Stack legado PostgREST (AUTH_MODE=fixed): `docker compose -f docker-compose.post
 | `SUPABASE_URL` | Projeto Supabase |
 | `SUPABASE_ANON_KEY` | Login no browser via `/api/auth-config` |
 | `SUPABASE_SERVICE_ROLE_KEY` | APIs servidor, admin, alertas, callbacks |
-| `SUPABASE_SCHEMA` | Default `public` (igual produção Vercel) |
+| `SUPABASE_SCHEMA` | Default `public` (padrão da produção) |
 | `NODE_ENV` | `production` |
 | `HOST` | `0.0.0.0` no container |
 | `PORT` | `3000` |
@@ -80,11 +80,10 @@ Na mensageria, `SUPERAPP_API_ORIGIN` pode apontar para `https://seu-app.duckdns.
 | `BASIC_AUTH_*` | Camada HTTP extra (não substitui Supabase Auth) |
 | `SUPERAPP_PUBLISH` | Bind publish do compose |
 | `GIT_COMMIT` | Sufixo de cacheVersion no `version:sync` da imagem |
-| `VERCEL_*` | Só Vercel; omitir na VPS |
 
 ### Não usar na VPS produção
 
-`OFFLINE_DEV=true`, `AUTH_MODE=fixed` (a menos que use o compose PostgREST), `LOCAL_DATA_MODE`, `VERCEL_AUTOMATION_BYPASS_SECRET`.
+`OFFLINE_DEV=true`, `AUTH_MODE=fixed` (a menos que use o compose PostgREST), `LOCAL_DATA_MODE`.
 
 ## Crons na VPS
 
@@ -163,8 +162,7 @@ Com Basic Auth na frente, o cron deve chamar `127.0.0.1` **atrás** do proxy —
 
 ## Riscos / residual
 
-- **HTTPS obrigatório** para `ALERTS_API_URL` e `WHATSAPP_API_ORIGIN` em `NODE_ENV=production` — sem DuckDNS/TLS, alertas Telegram/WhatsApp falham (comportamento igual ao código Vercel).
+- **HTTPS obrigatório** para `ALERTS_API_URL` e `WHATSAPP_API_ORIGIN` em `NODE_ENV=production` — sem DuckDNS/TLS, alertas Telegram/WhatsApp falham.
 - Gateway Python sobe no mesmo container; se o Python cair, `/api/telegram-alert` responde 502 (Node e estáticos seguem).
-- Não criar `api/telegram-alert.js` no repo: sombrearia a Function Python na Vercel.
-- Conta Vercel pausada: sem deploy Vercel nesta adaptação.
+- Não criar `api/telegram-alert.js` no repo: sombrearia o proxy do gateway Python.
 - Compose PostgREST legado separado; não é o caminho Supabase.

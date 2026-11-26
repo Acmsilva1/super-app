@@ -4,7 +4,7 @@ Documentação dos endpoints serverless, bibliotecas compartilhadas, regras de d
 
 ## Visão geral
 
-- **Runtime:** Node.js ES Modules em Vercel Functions
+- **Runtime:** Node.js ES Modules (handlers em `api/`, servidos pelo Express em `server.js` na VPS)
 - **Pasta:** `api/` (handlers HTTP) + `features/` (services/models) + `lib/` (utilitários)
 - **Persistência:** Supabase via `lib/supabase.js`
 - **Auth:** Bearer token Supabase + roles em `app_user_roles` / `app_user_permissions`
@@ -156,8 +156,8 @@ A interface, o mock e a API antigos foram removidos. O novo modo será desenvolv
 
 ## Deploy e execução local
 
-- Config: `vercel.json` — `outputDirectory: "."`, headers PWA
-- Build: `npm run build` (no-op)
+- Config: `server.js` (headers de segurança/PWA, rotas consolidadas), `Dockerfile` e `docker-compose.yml`
+- Build: `npm run build` (sincroniza versão do app e cache do PWA)
 - Dev: `npm run dev` (`scripts/dev.js` — Express local simulando `/api/*`)
 - Testes: `npm test` (Vitest + Supertest)
 

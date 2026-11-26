@@ -1,6 +1,6 @@
 # Proteção do frontend
 
-A CSP de scripts permite somente arquivos da própria origem, o Motion em caminho/versionamento fixo e hashes dos scripts inline revisados. Eventos HTML inline e eval são bloqueados. `scripts/sync-security-headers.mjs` atualiza o contrato Vercel; na VPS os hashes são calculados do arquivo servido, normalizando quebras de linha.
+A CSP de scripts permite somente arquivos da própria origem, o Motion em caminho/versionamento fixo e hashes dos scripts inline revisados. Eventos HTML inline e eval são bloqueados. Na VPS (`lib/securityHeaders.js`, usado pelo `server.js`) os hashes são calculados do `index.html` servido, normalizando quebras de linha.
 
 DOMPurify 3.5.0 é servido localmente e carrega antes do aplicativo. `components/security-dom.js` sanitiza os pontos de inserção HTML (`innerHTML`, `outerHTML`, `insertAdjacentHTML`, fragments e ShadowRoot), bloqueia document.write e instala Trusted Types quando disponível. Não adicionar caminhos de inserção HTML que contornem essa camada. Novos componentes devem preferir textContent/createElement; não adicionar eventos como atributos HTML.
 

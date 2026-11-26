@@ -18,7 +18,7 @@ O modo de voz foi removido. Áudios recebem orientação para enviar texto; não
 
 1. Se ainda não existir a tabela, aplicar `migration/20261006_telegram_compras.sql`.
 2. Aplicar `migration/20261011_telegram_compras_multiplas.sql` **antes de publicar** o novo código. A função de confirmação aceita rascunhos individuais antigos e lotes novos. Bloqueia o rascunho durante a confirmação e grava todas as linhas em uma transação. Falhas desfazem o lote inteiro; repetir o clique não duplica lançamentos.
-3. Publicar o código na Vercel. Se o webhook já estiver cadastrado para a mesma URL, não é necessário recriá-lo. Caso ainda não esteja, habilitar Compras pelo Telegram no perfil administrador após publicar.
+3. Publicar o código na VPS (push na `main`). Se o webhook já estiver cadastrado para a mesma URL, não é necessário recriá-lo. Caso ainda não esteja, habilitar Compras pelo Telegram no perfil administrador após publicar.
 4. Validar no chat privado configurado, conferir o resumo e confirmar. Essa verificação real não foi executada pelo agente.
 
 Continuam necessárias as configurações de servidor `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SAUDE_ALERTS_OWNER_USER_ID` e Supabase service role. O segredo do webhook pode ser derivado por HMAC do token ou definido em `TELEGRAM_WEBHOOK_SECRET`; não reutilizar `CRON_SECRET`. Credenciais ficam somente no servidor.
@@ -31,4 +31,4 @@ Somente o chat privado autorizado e seu titular podem criar ou confirmar rascunh
 
 Rollback: republicar o código anterior e aplicar `migration/rollback/20261011_telegram_compras_multiplas.sql`. O rollback recusa voltar enquanto houver lotes pendentes válidos; confirme, cancele ou aguarde a expiração antes. Histórico e lançamentos confirmados são preservados.
 
-Esta alteração não modifica o cron dos alertas. Os testes locais usam mocks de transporte e PostgreSQL em memória; não comprovam execução na Vercel nem entrega real no Telegram.
+Esta alteração não modifica o cron dos alertas. Os testes locais usam mocks de transporte e PostgreSQL em memória; não comprovam execução na VPS nem entrega real no Telegram.

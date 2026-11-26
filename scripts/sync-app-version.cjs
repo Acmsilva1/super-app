@@ -2,7 +2,7 @@
  * Fonte única: package.json "version".
  * Gera app-version.json, lib/appVersion.js e atualiza CACHE_VERSION em sw.js.
  *
- * No deploy (Vercel), VERCEL_GIT_COMMIT_SHA diferencia builds com o mesmo semver.
+ * No deploy, GIT_COMMIT diferencia builds com o mesmo semver.
  * Local: timestamp do sync.
  */
 const fs = require('node:fs');
@@ -11,7 +11,7 @@ const path = require('node:path');
 const root = path.resolve(process.env.APP_VERSION_OUTPUT_ROOT || path.join(__dirname, '..'));
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const semver = String(pkg.version || '0.0.0').trim();
-const shortSha = String(process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT || '').slice(0, 7);
+const shortSha = String(process.env.GIT_COMMIT || '').slice(0, 7);
 const buildStamp = shortSha || new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
 const cacheVersion = `app-${semver}-${buildStamp}`;
 const displayVersion = `V.${semver}`;

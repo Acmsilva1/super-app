@@ -25,7 +25,7 @@ function loadEnvFile(fileName) {
 
 const PUBLIC_ROOT_FILES = new Set(['index.html', 'offline.html', 'sw.js', 'manifest.json', 'app-version.json']);
 const PUBLIC_DIRS = ['styles', 'features', 'components', 'backgrounds'];
-/** Único módulo de `lib/` consumido pelo browser (parity com Vercel estático, sem expor auth/service-role). */
+/** Único módulo de `lib/` consumido pelo browser (servido ao navegador, sem expor auth/service-role). */
 const CLIENT_LIB_FILES = new Set(['uiConfirmation.js']);
 const NO_CACHE_FILES = new Set(['index.html', 'sw.js', 'app-version.json']);
 const IMMUTABLE_FILES = new Set(['icon-192.png', 'icon-512.png']);
@@ -151,7 +151,7 @@ export function createApp() {
     if (!/^[a-z0-9-]+(\/[a-z0-9-]+)*$/i.test(endpoint)) {
       return res.status(404).json({ error: 'Rota de API nao encontrada.' });
     }
-    // Mesmo contrato Vercel (`api/telegram-alert.py`); sem criar api/telegram-alert.js (evita sombrear a Function Python na Vercel).
+    // Gateway Python (`api/telegram-alert.py`) no loopback; não criar api/telegram-alert.js (sombrearia o proxy).
     if (endpoint === 'telegram-alert') {
       return proxyTelegramAlert(req, res);
     }

@@ -140,7 +140,7 @@ it('água envia um check-in por ação e ignora outro clique enquanto aguarda a 
 });
 
 it('treino aparece em produção e importa a tela somente quando selecionado',async()=>{
-  vi.stubGlobal('location',{hostname:'app.vercel.app'});
+  vi.stubGlobal('location',{hostname:'app.example.com'});
   const fetch=vi.fn(async()=>({ok:true,json:async()=>({rows:[profile]})}));
   vi.stubGlobal('fetch',fetch);
   const el=container();await renderSaudeContent(el);

@@ -14,7 +14,7 @@ describe('sync-app-version', () => {
     try {
     execFileSync(process.execPath, [path.join(root, 'scripts/sync-app-version.cjs')], {
       cwd: root,
-      env: { ...process.env, VERCEL_GIT_COMMIT_SHA: 'abc1234deadbeef', APP_VERSION_OUTPUT_ROOT: outputRoot },
+      env: { ...process.env, GIT_COMMIT: 'abc1234deadbeef', APP_VERSION_OUTPUT_ROOT: outputRoot },
     });
     const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
     const manifest = JSON.parse(fs.readFileSync(path.join(outputRoot, 'app-version.json'), 'utf8'));

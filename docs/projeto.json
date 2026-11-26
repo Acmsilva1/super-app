@@ -5,14 +5,14 @@
   "typeSlug": "ARCHITECTURE",
   "title": "Super App",
   "slug": "projeto-004",
-  "summary": "PWA pessoal — Financeiro, Saúde, Lista de Compras e Fluxograma. Vercel + Supabase RLS.",
-  "tags": ["pwa", "supabase", "vercel", "financeiro", "personal"],
+  "summary": "PWA pessoal — Financeiro, Saúde, Lista de Compras e Fluxograma. VPS (Docker) + Supabase RLS.",
+  "tags": ["pwa", "supabase", "vps", "financeiro", "personal"],
   "content": {
     "architecture": {
-      "overview": "PWA pessoal (SUPERAPP) com micro-apps de produtividade e finanças. Shell index.html + service worker; backend Vercel Functions; Supabase Auth + RLS por user_id. Produção: super-app-zeta-virid.vercel.app.",
+      "overview": "PWA pessoal (SUPERAPP) com micro-apps de produtividade e finanças. Shell index.html + service worker; backend Node.js (Express) na VPS; Supabase Auth + RLS por user_id. Produção: super-app-go.duckdns.org.",
       "components": [
         { "name": "Shell PWA", "description": "index.html, manifest.json, sw.js — auth Supabase e roteamento interno." },
-        { "name": "API serverless", "description": "financeiro, saude, lista-compras e fluxograma; 12 entradas de Functions." },
+        { "name": "API serverless", "description": "financeiro, saude, lista-compras e fluxograma." },
         { "name": "Features/", "description": "Domínio: financeiro, saude, lista_compras e fluxograma." },
         { "name": "Lib/", "description": "supabase.js, auth.js roles, financeiroAnualCache.js." },
         { "name": "Supabase", "description": "tb_financas, tb_saude_*, tb_lista_compras, tb_fluxograma_projetos, app_user_roles + RLS." }
@@ -21,9 +21,9 @@
     },
     "stack": {
       "frontend": "HTML/CSS/JS PWA, ECharts",
-      "backend": "Vercel Functions Node ESM",
+      "backend": "Node ESM (Express, server.js)",
       "database": "Supabase PostgreSQL + Auth",
-      "infra": "Vercel vercel.json"
+      "infra": "VPS Docker (Dockerfile, docker-compose.yml)"
     },
     "paths": {
       "workspace": "C:\\projetos e aplicativos\\pessoal\\super app\\super-app-1",
@@ -32,17 +32,17 @@
     },
     "security": {
       "lgpd": "Dados financeiros e pessoais do usuário. RLS obrigatório por user_id.",
-      "credentials": "SUPABASE_URL, SUPABASE_ANON_KEY, SERVICE_ROLE e CRON_SECRET na Vercel.",
+      "credentials": "SUPABASE_URL, SUPABASE_ANON_KEY, SERVICE_ROLE e CRON_SECRET no .env da VPS.",
       "pendencias": ["Revisar exposição auth-config anon key no frontend"]
     },
     "deploy": {
-      "environment": "Vercel Production",
-      "steps": ["git push", "Vercel auto-deploy", "validar env vars"],
-      "healthCheck": "GET https://super-app-zeta-virid.vercel.app/api/apps"
+      "environment": "VPS Production",
+      "steps": ["git push na main", "GitHub Actions deploy na VPS", "validar /healthz"],
+      "healthCheck": "GET https://super-app-go.duckdns.org/healthz"
     },
     "checklist": {
       "tests": ["npm test", "npm run test:ux"],
-      "pendencias": ["Novo modo treino a desenvolver do zero, sem aumentar as entradas de Functions"],
+      "pendencias": ["Novo modo treino a desenvolver do zero, sem criar novos arquivos de handler desnecessários"],
       "checkpoint": "Treino legado removido do código e do setup local; migrations históricas preservadas — 2026-10-13"
     },
     "documentation": {
@@ -51,6 +51,6 @@
       "frontend": "docs/frontend.md",
       "database": "docs/db.md"
     },
-    "technologies": ["Vercel Functions", "Supabase", "PWA", "Vitest"]
+    "technologies": ["Node.js (Express)", "Supabase", "PWA", "Vitest"]
   }
 }

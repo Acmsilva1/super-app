@@ -10,7 +10,7 @@ Documentação do shell PWA, autenticação na UI, carregamento de módulos e co
 - **Animações:** Motion 11 (CDN)
 - **Fontes:** Orbitron + Space Grotesk; ícones Font Awesome 6
 
-Produção: `super-app-zeta-virid.vercel.app`
+Produção: `super-app-go.duckdns.org`
 
 ## Arquitetura do shell
 
@@ -32,7 +32,7 @@ O shell expõe métodos internos para:
 
 ### Service Worker (`sw.js`)
 
-Cache de assets estáticos para uso offline parcial. Headers configurados em `vercel.json` para `sw.js` e `manifest.json`.
+Cache de assets estáticos para uso offline parcial. Headers configurados em `server.js` para `sw.js` e `manifest.json`.
 
 ## Autenticação (UI)
 

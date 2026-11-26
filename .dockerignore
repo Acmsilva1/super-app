@@ -1,6 +1,5 @@
 .git
 .github
-.vercel
 node_modules
 npm-debug.log*
 yarn-debug.log*
@@ -30,6 +29,5 @@ db
 *.jpeg
 *.md
 dev-server.js
-vercel.json
 docker-compose*.yml
 Dockerfile

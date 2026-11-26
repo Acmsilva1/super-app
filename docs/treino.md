@@ -20,7 +20,7 @@ de configuração pendente; em produção não salva silenciosamente no navegado
 - O backend resolve o proprietário do perfil antes de chamar a RPC. Alterações pelo
   admin permanecem vinculadas ao proprietário, sem trocar a autoria.
 - Edição e exclusão usam `updated_at` para evitar sobrescrever outra sessão.
-- As funções SQL não representam novas Functions da Vercel. A rota usa `api/saude.js`.
+- As funções SQL não criam novos handlers de API. A rota usa `api/saude.js`.
 
 ## Reversão
 

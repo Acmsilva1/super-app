@@ -38,8 +38,7 @@ async function readAlertConfig(deadline) {
   let token = '';
   if (channels.telegram) {
     const configuredUrl = String(process.env.ALERTS_API_URL || '').trim();
-    const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-    url = configuredUrl || (deploymentHost ? `https://${deploymentHost}/api/telegram-alert` : '');
+    url = configuredUrl;
     token = String(process.env.ALERTS_API_TOKEN || '').trim();
     if (!url || !token) return null;
     const gateway = new URL(url);
@@ -61,7 +60,6 @@ async function sendAlert(config, { eventType, title, message, dedupeKey,waterPro
   if (claimError) throw new Error('alerts_claim_failed');
   try {
     const headers = { 'Content-Type': 'application/json', 'X-Alert-Token': config.token };
-    if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) headers['x-vercel-protection-bypass'] = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
     const response = await fetch(config.url, {
       method: 'POST', headers, redirect: 'error',
       body: JSON.stringify({ source: 'superapp-node', event_type: eventType,

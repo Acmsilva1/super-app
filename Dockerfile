@@ -1,4 +1,4 @@
-# Runtime contínuo 1:1 com o artefato estático + handlers /api/* da Vercel.
+# Runtime contínuo: front/PWA estático + handlers /api/* servidos pelo Express (server.js).
 # Node serve o mesmo front/PWA; Python mantém o gateway /api/telegram-alert.
 FROM node:24-alpine
 
