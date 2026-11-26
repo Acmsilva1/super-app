@@ -1,6 +1,6 @@
 const NOTICE = [
   'O Super App usa seus dados de cadastro e as informações que você registra, como dados de saúde, alimentação, água, treinos e finanças. Peso, medidas e composição corporal são informações de saúde. Informe apenas o necessário.',
-  'Sua digital ou Face ID é conferida pelo celular. O Super App não recebe nem guarda a imagem da sua digital.',
+  'O acesso é feito com e-mail e senha. A sessão permanece ativa por até 3 horas; depois disso é preciso entrar de novo.',
   'Seus dados ficam nos sistemas que mantêm o Super App. Se você ativar avisos, as informações necessárias podem ser enviadas pelo canal escolhido. O arquivo exportado reúne dados pessoais; guarde-o com cuidado.',
   'Você pode perguntar se guardamos seus dados, pedir uma cópia, corrigir informações erradas e saber com quem elas são compartilhadas. Também pode pedir para interromper um uso, quando isso for possível. Para solicitar a exclusão, fale com o administrador que criou seu acesso. Esse pedido não apaga o mesmo login usado em outros aplicativos.',
   'Mantemos os dados enquanto sua conta estiver em uso ou até o administrador concluir um pedido de exclusão. Os registros de saúde não são apagados automaticamente pelo tempo. Cópias de segurança podem manter alguns dados por um período; o administrador pode informar o prazo.',

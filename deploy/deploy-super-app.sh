@@ -66,25 +66,25 @@ if [[ "$BRANCH_NOW" != "main" || "$HEAD_NOW" != "$RESOLVED" ]]; then
   exit 1
 fi
 
-# Sanity dos artefatos de auth.
-if [[ ! -f features/auth/biometric.js ]]; then
-  echo "features/auth/biometric.js ausente após checkout — abortando." >&2
-  exit 1
-fi
+# Sanity dos artefatos de auth (somente e-mail/senha; biometria desativada).
 if grep -q 'forgotPasswordBtn' index.html; then
   echo "index.html ainda contém forgotPasswordBtn — abortando." >&2
   exit 1
 fi
-if ! grep -q 'requireBiometricAfterPassword' index.html; then
-  echo "index.html sem a etapa obrigatória de biometria após senha — abortando." >&2
+if grep -q 'requireBiometricAfterPassword' index.html; then
+  echo "index.html ainda exige biometria após senha — abortando." >&2
   exit 1
 fi
-if ! grep -q 'factor-verify' api/webauthn.js; then
-  echo "API sem verificação da biometria como segundo fator — abortando." >&2
+if [[ -f features/auth/biometric.js ]]; then
+  echo "features/auth/biometric.js ainda presente — abortando." >&2
   exit 1
 fi
-if grep -q "action === 'login-options'\|action === 'login'" api/webauthn.js; then
-  echo "API ainda permite autenticação direta só com biometria — abortando." >&2
+if ! grep -q 'SESSION_TTL_MS' index.html; then
+  echo "index.html sem SESSION_TTL_MS (sessão de 3h) — abortando." >&2
+  exit 1
+fi
+if [[ -f api/webauthn.js ]] && ! grep -q '410' api/webauthn.js; then
+  echo "api/webauthn.js deve responder 410 (biometria desativada) — abortando." >&2
   exit 1
 fi
 
@@ -122,8 +122,15 @@ if [[ "${forgot_count:-0}" != "0" ]]; then
   echo "Container ainda serve forgotPasswordBtn (count=${forgot_count})." >&2
   exit 1
 fi
-docker exec super-app test -f /app/features/auth/biometric.js \
-  || { echo "Container sem /app/features/auth/biometric.js." >&2; exit 1; }
+if docker exec super-app test -f /app/features/auth/biometric.js; then
+  echo "Container ainda contém /app/features/auth/biometric.js." >&2
+  exit 1
+fi
+bio_count="$(docker exec super-app sh -c 'grep -c requireBiometricAfterPassword /app/index.html || true')"
+if [[ "${bio_count:-0}" != "0" ]]; then
+  echo "Container ainda exige biometria (count=${bio_count})." >&2
+  exit 1
+fi
 
 curl -fsS -m 5 http://127.0.0.1:3000/healthz
 echo

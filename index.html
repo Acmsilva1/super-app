@@ -939,45 +939,6 @@
             gap: 0.35rem;
         }
 
-        .auth-biometric-toggle {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 12px;
-            align-items: start;
-            margin-top: 4px;
-            padding: 12px;
-            border: 1px solid rgba(148, 163, 184, 0.28);
-            border-radius: 12px;
-            background: rgba(2, 6, 23, 0.28);
-            cursor: pointer;
-        }
-        .auth-biometric-toggle input {
-            width: 18px;
-            height: 18px;
-            margin-top: 2px;
-            accent-color: #cc0000;
-        }
-        .auth-biometric-toggle strong {
-            display: block;
-            font-size: 13px;
-            font-weight: 700;
-            color: #f8fafc;
-        }
-        .auth-biometric-toggle small {
-            display: block;
-            margin-top: 4px;
-            color: #94a3b8;
-            font-size: 12px;
-            line-height: 1.35;
-        }
-        [data-theme="light"] .auth-biometric-toggle {
-            border-color: #dfe3ea;
-            background: #f7f8fa;
-        }
-        [data-theme="light"] .auth-biometric-toggle strong { color: #0f172a; }
-        [data-theme="light"] .auth-biometric-toggle small { color: #64748b; }
-        .auth-biometric-panel { display: grid; gap: 12px; }
-
         .auth-field label {
             font-weight: 800;
             color: #cbd5e1;
@@ -1077,47 +1038,6 @@
 
         .auth-message.error {
             color: #fecaca;
-        }
-
-        .auth-biometric-loading {
-            position: fixed;
-            inset: 0;
-            z-index: 100001;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px 16px;
-            background: rgba(7, 20, 52, 0.35);
-            backdrop-filter: blur(2px);
-        }
-        .auth-biometric-loading__card {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            box-sizing: border-box;
-            width: min(100%, 340px);
-            padding: 20px;
-            border: 1px solid #dce2eb;
-            border-radius: 16px;
-            background: #fff;
-            color: #0f172a;
-            box-shadow: 0 12px 34px rgba(7, 20, 52, 0.25);
-        }
-        .auth-biometric-loading__copy { display: grid; gap: 5px; }
-        .auth-biometric-loading__copy strong { font-size: 14px; }
-        .auth-biometric-loading__copy small { color: #64748b; font-size: 12px; line-height: 1.5; }
-        .auth-biometric-loading__spinner {
-            width: 28px;
-            height: 28px;
-            flex: 0 0 28px;
-            border: 3px solid #efd0d0;
-            border-top-color: #cc0000;
-            border-radius: 50%;
-            animation: auth-biometric-spin .75s linear infinite;
-        }
-        @keyframes auth-biometric-spin { to { transform: rotate(360deg); } }
-        @media (prefers-reduced-motion: reduce) {
-            .auth-biometric-loading__spinner { animation-duration: 1.8s; }
         }
 
         .auth-consent {
@@ -7067,7 +6987,6 @@
             </form>
 
             <!-- Compatibilidade com o helper de deploy anterior; permanece oculto e sem evento de login biométrico. -->
-            <div hidden aria-hidden="true"><button type="button" id="biometricUnlockBtn" disabled></button></div>
 
             <p id="authMessage" class="auth-message"></p>
             <button type="button" class="auth-secondary" data-privacy-open>Privacidade e seus dados</button>
@@ -7220,59 +7139,47 @@
             client: null,
             session: null,
             initialized: false,
-            biometricModule: null,
             authConfig: null,
             originalFetch: window.fetch.bind(window),
+            SESSION_TTL_MS: 3 * 60 * 60 * 1000,
+            SESSION_DEADLINE_KEY: 'superapp_session_deadline',
 
-            async loadBiometricModule() {
-                if (this.biometricModule) return this.biometricModule;
-                this.biometricModule = await import('/features/auth/biometric.js');
-                return this.biometricModule;
-            },
-
-            showBiometricLoading(isEnrollment) {
-                const overlay = document.createElement('div');
-                overlay.className = 'auth-biometric-loading';
-                overlay.setAttribute('role', 'status');
-                overlay.setAttribute('aria-live', 'polite');
-                overlay.setAttribute('aria-busy', 'true');
-                overlay.innerHTML = '<div class="auth-biometric-loading__card"><span class="auth-biometric-loading__spinner" aria-hidden="true"></span><span class="auth-biometric-loading__copy"><strong>Aguardando biometria</strong><small></small></span></div>';
-                overlay.querySelector('small').textContent = isEnrollment
-                    ? 'Conclua o cadastro da digital ou Face ID na janela do celular.'
-                    : 'Confirme a digital ou o Face ID na janela do celular.';
-                const shell = document.getElementById('authShell');
-                const wasInert = shell?.inert;
-                if (shell) shell.inert = true;
-                document.body.append(overlay);
-                return () => {
-                    overlay.remove();
-                    if (shell) shell.inert = wasInert;
-                };
-            },
-
-            async requireBiometricAfterPassword() {
-                if (this.fixedMode || this.offlineMode) return;
-                const bio = await this.loadBiometricModule();
-                const pref = bio.readBiometricPreference();
-                const token = this.session?.access_token;
-                if (!bio.isMobileDevice()) return;
-                if (!token) throw Error('A sessão expirou. Entre novamente.');
-                if (!await bio.supportsPlatformAuth()) {
-                    throw Error('Configure a digital ou o Face ID neste celular para entrar no SUPERAPP.');
-                }
-                const dismissLoading = this.showBiometricLoading(!pref?.credentialId);
+            readSessionDeadline() {
                 try {
-                if (pref?.credentialId) {
-                    this.setMessage('Confirme a digital ou o Face ID para continuar...');
-                    await bio.verifyBiometricFactor(token, pref.credentialId);
-                    return;
+                    const raw = localStorage.getItem(this.SESSION_DEADLINE_KEY);
+                    const value = Number(raw);
+                    return Number.isFinite(value) && value > 0 ? value : 0;
+                } catch {
+                    return 0;
                 }
-                this.setMessage('Cadastre a digital ou o Face ID neste celular uma única vez...');
-                const result = await bio.enrollBiometric(token);
-                bio.writeBiometricPreference({ credentialId: result.credentialId });
-                } finally {
-                    dismissLoading();
+            },
+
+            markSessionDeadline(fromMs = Date.now()) {
+                try {
+                    localStorage.setItem(this.SESSION_DEADLINE_KEY, String(fromMs + this.SESSION_TTL_MS));
+                } catch { /* private mode */ }
+            },
+
+            clearSessionDeadline() {
+                try { localStorage.removeItem(this.SESSION_DEADLINE_KEY); } catch { /* ignore */ }
+                try { localStorage.removeItem('superapp_biometric'); } catch { /* ignore */ }
+                try { localStorage.removeItem('superapp_biometric_verified_user'); } catch { /* ignore */ }
+                try { sessionStorage.removeItem('superapp_biometric_verified_session'); } catch { /* ignore */ }
+            },
+
+            async enforceSessionDeadline() {
+                if (this.fixedMode || this.offlineMode) return true;
+                const deadline = this.readSessionDeadline();
+                if (!deadline) {
+                    this.markSessionDeadline();
+                    return true;
                 }
+                if (Date.now() <= deadline) return true;
+                await this.client?.auth?.signOut?.({ scope: 'local' }).catch(() => {});
+                this.clearSessionDeadline();
+                this.session = null;
+                this.showGate('login', 'Sua sessão expirou. Entre novamente com e-mail e senha.');
+                return false;
             },
 
             createPasswordAuthClient() {
@@ -7407,19 +7314,12 @@
                     this.session = data?.session || null;
 
                     if (!this.session) {
+                        this.clearSessionDeadline();
                         this.showGate('login');
                         return false;
                     }
 
-                    if (!this.fixedMode && !this.offlineMode) {
-                        const bio = await this.loadBiometricModule();
-                        if (bio.isMobileDevice() && !await bio.isBiometricSessionVerified(this.session.access_token)) {
-                            await this.client.auth.signOut({ scope: 'local' }).catch(() => {});
-                            this.session = null;
-                            this.showGate('login', 'Entre com e-mail e senha e confirme a biometria neste celular.');
-                            return false;
-                        }
-                    }
+                    if (!(await this.enforceSessionDeadline())) return false;
 
                     this.showApp();
                     return true;
@@ -7432,6 +7332,11 @@
             bindEvents() {
                 if (this.initialized) return;
                 this.initialized = true;
+
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState !== 'visible' || !this.session) return;
+                    this.enforceSessionDeadline();
+                });
 
                 document.querySelectorAll('[data-auth-tab]').forEach((btn) => {
                     btn.addEventListener('click', () => this.setMode(btn.dataset.authTab));
@@ -7504,29 +7409,14 @@
                     });
                     if (error) return this.setMessage(this.formatAuthError(error), 'error');
                     this.session = signInData?.session || null;
-                    try {
-                        await this.requireBiometricAfterPassword();
-                        if (passwordClient !== this.client && this.session) {
-                            const { error: sessionError } = await this.client.auth.setSession({
-                                access_token: this.session.access_token,
-                                refresh_token: this.session.refresh_token,
-                            });
-                            if (sessionError) throw sessionError;
-                        }
-                        if (this.biometricModule?.isMobileDevice() && this.session?.user?.id) {
-                            await this.biometricModule.markBiometricSessionVerified(this.session.access_token);
-                        }
-                    } catch (bioError) {
-                        await (await import('/features/auth/privateClientData.js')).clearPrivateClientData();
-                        await passwordClient.auth.signOut({ scope: 'local' }).catch(() => {});
-                        await this.client.auth.signOut({ scope: 'local' }).catch(() => {});
-                        this.biometricModule?.clearBiometricSessionVerified();
-                        this.session = null;
-                        const passwordInput = document.getElementById('loginPassword');
-                        if (passwordInput) passwordInput.value = '';
-                        this.setMessage(bioError?.message || 'A biometria é obrigatória neste celular.', 'error');
-                        return;
+                    if (passwordClient !== this.client && this.session) {
+                        const { error: sessionError } = await this.client.auth.setSession({
+                            access_token: this.session.access_token,
+                            refresh_token: this.session.refresh_token,
+                        });
+                        if (sessionError) throw sessionError;
                     }
+                    this.markSessionDeadline();
                     window.location.replace(window.location.pathname);
                     } catch (error) {
                         this.setMessage(error?.message || 'Não foi possível entrar. Tente novamente.', 'error');
@@ -7545,7 +7435,7 @@
                         this.client = null;
                     }
                     await this.client?.auth?.signOut?.().catch(() => {});
-                    this.biometricModule?.clearBiometricSessionVerified();
+                    this.clearSessionDeadline();
                     window.location.replace(window.location.pathname);
                 });
             },

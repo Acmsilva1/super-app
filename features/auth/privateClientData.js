@@ -1,11 +1,17 @@
-/** Clear user-scoped health/diet/finance caches without removing the device credential. */
+/** Clear user-scoped health/diet/finance caches and leftover biometric markers. */
 export async function clearPrivateClientData() {
   for (const storeName of ['localStorage', 'sessionStorage']) {
     try {
       const store = globalThis[storeName];
       for (let i = store.length - 1; i >= 0; i--) {
         const key = store.key(i);
-        if (/^(superapp[:_](saude|home-diet|diet|financeiro|carne|ui_state)|offline_(token|user)|ritmo_saude_)/i.test(key || '') || key === 'superapp_biometric_verified_user' || key === 'superapp_biometric_verified_session') store.removeItem(key);
+        if (
+          /^(superapp[:_](saude|home-diet|diet|financeiro|carne|ui_state)|offline_(token|user)|ritmo_saude_)/i.test(key || '')
+          || key === 'superapp_biometric'
+          || key === 'superapp_biometric_verified_user'
+          || key === 'superapp_biometric_verified_session'
+          || key === 'superapp_session_deadline'
+        ) store.removeItem(key);
       }
     } catch { /* Browser can disable storage; continue clearing other stores. */ }
   }
