@@ -39,6 +39,7 @@
             width: 100%;
             min-height: 100%;
             overflow-x: hidden;
+            overflow-x: clip;
             -webkit-text-size-adjust: 100%;
             -ms-text-size-adjust: 100%;
         }
@@ -47,8 +48,10 @@
             width: 100%;
             min-width: 0;
             min-height: 100vh;
+            min-height: 100svh;
             min-height: 100dvh;
             overflow-x: hidden;
+            overflow-x: clip;
             font-family: 'Space Grotesk', sans-serif;
             background:
                 radial-gradient(1100px 780px at 50% 10%, rgba(34, 211, 238, 0.10), transparent 55%),
@@ -599,6 +602,7 @@
         header {
             background: linear-gradient(100deg, rgba(8, 23, 48, 0.94), rgba(5, 14, 30, 0.95));
             border-bottom: 1px solid rgba(56, 189, 248, 0.28);
+            -webkit-backdrop-filter: blur(14px);
             backdrop-filter: blur(14px);
             color: white;
             padding-top: max(1rem, env(safe-area-inset-top));
@@ -606,9 +610,14 @@
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
             box-shadow: var(--shadow-md);
+            position: -webkit-sticky;
             position: sticky;
             top: 0;
             z-index: 40;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
 
         .header-content {
@@ -7096,6 +7105,51 @@
             </div>
         </div>
     </header>
+    <script>
+        (function () {
+            var header = document.querySelector('body > header');
+            if (!header) return;
+            var pending = 0;
+            function repaintHeader() {
+                if (document.visibilityState === 'hidden') return;
+                header.style.display = 'none';
+                void header.offsetHeight;
+                header.style.display = '';
+                void header.offsetHeight;
+            }
+            function scheduleRepaint() {
+                if (pending) cancelAnimationFrame(pending);
+                pending = requestAnimationFrame(function () {
+                    pending = requestAnimationFrame(function () {
+                        pending = 0;
+                        repaintHeader();
+                    });
+                });
+            }
+            function burst() {
+                scheduleRepaint();
+                [150, 450, 1000, 2000].forEach(function (delay) {
+                    window.setTimeout(scheduleRepaint, delay);
+                });
+            }
+            document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible') burst();
+            });
+            window.addEventListener('pageshow', burst);
+            window.addEventListener('focus', scheduleRepaint);
+            window.addEventListener('resize', scheduleRepaint);
+            window.addEventListener('orientationchange', burst);
+            window.addEventListener('load', burst);
+            document.addEventListener('DOMContentLoaded', burst);
+            new MutationObserver(function () { scheduleRepaint(); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+            var splash = document.getElementById('appLaunchSplash');
+            if (splash) {
+                new MutationObserver(function (records, observer) {
+                    if (!document.body.contains(splash)) { observer.disconnect(); burst(); }
+                }).observe(document.body, { childList: true });
+            }
+        })();
+    </script>
 
     <!-- APPLICATIONS -->
     <section id="apps" class="apps-section home-shell">
