@@ -6970,6 +6970,10 @@
         </div>
     </div>
     <script>window.__superAppLaunchStartedAt = performance.now();</script>
+    <script type="module">
+        import * as FinanceiroPendenciaMes from './features/financeiro/pendenciaMes.js?v=2026-11-27-pendencia-v1';
+        window.__financeiroPendenciaMes = FinanceiroPendenciaMes;
+    </script>
     <main id="authShell" class="auth-shell" aria-live="polite">
         <section class="auth-card" aria-labelledby="authTitle">
             <div class="auth-brand">
@@ -8719,6 +8723,8 @@
 
             /** Nome do mês em português (ex.: 2026-11 → Novembro). */
             formatMesNome(mesAno) {
+                const mod = window.__financeiroPendenciaMes;
+                if (mod?.formatMesNome) return mod.formatMesNome(mesAno);
                 const s = String(mesAno || '');
                 const m = s.match(/^(\d{4})-(\d{2})$/);
                 if (!m) return s;
@@ -8728,6 +8734,8 @@
 
             /** Mês civil seguinte a `YYYY-MM`. */
             getMesAnoProximo(mesAno) {
+                const mod = window.__financeiroPendenciaMes;
+                if (mod?.getMesAnoProximo) return mod.getMesAnoProximo(mesAno, this.getMesAnoAtual());
                 const parts = String(mesAno || '').split('-').map(Number);
                 const y = parts[0];
                 const m = parts[1];
@@ -8738,18 +8746,23 @@
 
             /** Prefixo gravado na descrição da cópia de pendência mensal. */
             buildPendenciaMesDescricao(baseDescricao, origemMesAno) {
+                const mod = window.__financeiroPendenciaMes;
+                if (mod?.buildPendenciaMesDescricao) return mod.buildPendenciaMesDescricao(baseDescricao, origemMesAno);
                 const base = this.stripPendenciaMesPrefix(baseDescricao) || String(baseDescricao || '').trim() || 'Conta';
-                const mesNome = this.formatMesNome(origemMesAno);
-                return `[Pendência de ${mesNome}] ${base}`;
+                return `[Pendência de ${this.formatMesNome(origemMesAno)}] ${base}`;
             }
 
             stripPendenciaMesPrefix(descricao) {
+                const mod = window.__financeiroPendenciaMes;
+                if (mod?.stripPendenciaMesPrefix) return mod.stripPendenciaMesPrefix(descricao);
                 const raw = String(descricao || '').trim();
                 const m = raw.match(/^\[Pendência de ([^\]]+)\]\s*(.*)$/i);
                 return m ? String(m[2] || '').trim() : raw;
             }
 
             parsePendenciaMesDescricao(descricao) {
+                const mod = window.__financeiroPendenciaMes;
+                if (mod?.parsePendenciaMesDescricao) return mod.parsePendenciaMesDescricao(descricao);
                 const raw = String(descricao || '').trim();
                 const m = raw.match(/^\[Pendência de ([^\]]+)\]\s*(.*)$/i);
                 if (!m) return { isPendencia: false, mesNome: '', titulo: raw };
