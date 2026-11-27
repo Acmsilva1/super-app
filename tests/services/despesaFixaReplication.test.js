@@ -162,6 +162,25 @@ describe('selectContaFixaCarryForward', () => {
     expect(selectContaFixaCarryForward(prev, existing, '2027-01')).toEqual([]);
   });
 
+  it('nao duplica quando o mes alvo ja tem o mesmo nome com outro serie_id', () => {
+    const prev = [{
+      descricao: 'Internet',
+      valor: 79.9,
+      conta_fixa: true,
+      serie_id: 'serie-out',
+      created_at: '2026-10-01T12:00:00.000Z',
+    }];
+    const existing = [{
+      descricao: 'Internet',
+      valor: 79.9,
+      conta_fixa: true,
+      serie_id: 'serie-nov',
+      status: 'pago',
+      created_at: '2026-11-01T12:00:00.000Z',
+    }];
+    expect(selectContaFixaCarryForward(prev, existing, '2026-11')).toEqual([]);
+  });
+
   it('ignora parcelas ao carregar contas fixas do mes anterior', () => {
     const prev = [{
       descricao: 'Notebook',

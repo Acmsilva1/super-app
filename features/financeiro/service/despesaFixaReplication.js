@@ -269,32 +269,40 @@ export function serieEncerradaParaMes(row, targetMesAno) {
 }
 
 function contaFixaAlreadyInMonthLocal(existingRows, template) {
+  const rows = (existingRows || []).filter(isContaFixaRowLocal);
+  if (!rows.length) return false;
+
   const serieId = template?.serie_id ? String(template.serie_id) : '';
-  if (serieId) {
-    return (existingRows || []).some((row) => isContaFixaRowLocal(row) && String(row.serie_id || '') === serieId);
-  }
+  if (serieId && rows.some((row) => String(row.serie_id || '') === serieId)) return true;
+
+  // Mesmo nome no mês = já existe (serie_id pode divergir entre meses legados).
   const descNorm = normalizeSerieDescricaoLocal(template?.descricao);
-  return (existingRows || []).some((row) => isContaFixaRowLocal(row) && normalizeSerieDescricaoLocal(row.descricao) === descNorm);
+  if (!descNorm) return false;
+  return rows.some((row) => normalizeSerieDescricaoLocal(row.descricao) === descNorm);
 }
 
 /**
  * Seleciona contas fixas do mês anterior que devem nascer no mês alvo.
  * Cruza ano; não recria série com serie_encerrada_em <= alvo.
+ * Se o mês alvo já tem qualquer conta fixa com o mesmo nome (ou serie_id), não duplica.
  */
 export function selectContaFixaCarryForward(prevRows = [], existingMonthRows = [], targetMesAno) {
   if (!/^\d{4}-\d{2}$/.test(String(targetMesAno || ''))) return [];
+  const existingFixas = (existingMonthRows || []).filter(isContaFixaRowLocal);
   const toInsert = [];
   const seenKeys = new Set();
 
   for (const template of prevRows || []) {
     if (!isContaFixaRowLocal(template)) continue;
     if (serieEncerradaParaMes(template, targetMesAno)) continue;
-    if (contaFixaAlreadyInMonthLocal(existingMonthRows, template)) continue;
+    if (contaFixaAlreadyInMonthLocal(existingFixas, template)) continue;
 
     const serieId = template.serie_id ? String(template.serie_id) : '';
-    const key = serieId || `desc:${normalizeSerieDescricaoLocal(template.descricao)}`;
-    if (!key || key === 'desc:' || seenKeys.has(key)) continue;
+    const descKey = `desc:${normalizeSerieDescricaoLocal(template.descricao)}`;
+    const key = serieId ? `serie:${serieId}` : descKey;
+    if (!key || key === 'desc:' || seenKeys.has(key) || seenKeys.has(descKey)) continue;
     seenKeys.add(key);
+    seenKeys.add(descKey);
 
     toInsert.push({
       descricao: String(template.descricao || '').trim(),
