@@ -724,6 +724,13 @@ function imcTagClass(classification) {
   return 'fin-tag';
 }
 
+function imcTagLabel(classification) {
+  if (/referência varia por idade/i.test(classification || '')) {
+    return { text: 'Por idade', title: classification };
+  }
+  return { text: classification, title: classification };
+}
+
 function renderProfileDietSection(profile, state) {
   const rows = dietsForProfile(state, profile.id);
   const items = rows.length
@@ -1367,10 +1374,11 @@ function renderProfiles(container, state) {
   const rows = profiles.length
     ? profiles.map((profile) => {
       const { imc, classification } = profileImcInfo(profile);
+      const tag = classification ? imcTagLabel(classification) : null;
       return `<li><button type="button" class="fin-nav-row saude-profile-row" data-saude-action="open-profile-detail" data-saude-id="${escapeHtml(profile.id)}" aria-label="Abrir painel de ${escapeHtml(profile.nome)}">
         <span class="saude-profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
         <span class="fin-entry__main"><span class="fin-entry__title">${escapeHtml(profile.nome)}</span><span class="fin-entry__meta">${escapeHtml(profileIdentityLine(profile))}</span></span>
-        <span class="fin-entry__side"><span class="fin-entry__value">IMC ${formatarNumeroSaude(imc, 2)}</span>${classification ? `<span class="${imcTagClass(classification)}">${escapeHtml(classification)}</span>` : ''}</span>
+        <span class="fin-entry__side"><span class="fin-entry__value">IMC ${formatarNumeroSaude(imc, 2)}</span>${tag ? `<span class="${imcTagClass(classification)}" title="${escapeHtml(tag.title)}">${escapeHtml(tag.text)}</span>` : ''}</span>
         <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
       </button></li>`;
     }).join('')

@@ -26,17 +26,20 @@ export function cleanDietDisplayNote(value) {
 }
 
 export const DIET_NUTRITION_STYLES = `
-  .diet-food-details { min-width: 0; width: 100%; }
-  .diet-food-details summary { display: flex; align-items: center; justify-content: space-between; gap: .65rem; cursor: pointer; list-style: none; }
-  .diet-food-details summary::-webkit-details-marker { display: none; }
-  .diet-food-details summary > span { min-width: 0; overflow-wrap: anywhere; }
-  .diet-food-details summary:focus-visible { outline: 2px solid #95c11f; outline-offset: 3px; border-radius: .3rem; }
-  .diet-food-details summary > i { flex-shrink: 0; transition: transform .15s; }
-  .diet-food-details[open] summary > i { transform: rotate(90deg); }
-  .diet-food-details__body, .diet-nutrition-total { padding: .7rem; margin: .6rem 0; border: 1px solid rgba(148,163,184,.25); border-radius: .65rem; background: rgba(3,7,18,.3); font-size: .78rem; line-height: 1.6; overflow-wrap: anywhere; }
-  .diet-food-details__body p, .diet-nutrition-total p { margin: .25rem 0; }
-  .diet-food-details .diet-food-details__body { background: var(--bk-surface, #0f172a); color: var(--bk-ink, #e5eef5); border-color: var(--bk-line, #475569); }
-  .diet-food-details .diet-food-details__body p { color: inherit; font-size: .9rem; }
+  .diet-food-details { min-width: 0; width: 100%; border: 1px solid rgba(148,163,184,.18); border-radius: .75rem; background: rgba(15,23,42,.35); overflow: hidden; }
+  .diet-food-details + .diet-food-details { margin-top: .45rem; }
+  .diet-food-details summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem .85rem; cursor: pointer; list-style: none; }
+  .diet-food-details summary::-webkit-details-marker, .diet-food-details summary::marker { display: none; content: ''; }
+  .diet-food-details summary > span { min-width: 0; overflow-wrap: anywhere; font-size: .9rem; line-height: 1.35; }
+  .diet-food-details summary:focus-visible { outline: 2px solid #95c11f; outline-offset: -2px; }
+  .diet-food-details summary > i { flex-shrink: 0; width: 1.6rem; height: 1.6rem; display: grid; place-items: center; border-radius: .45rem; background: rgba(148,163,184,.14); color: #95c11f; font-size: .72rem; transition: transform .15s ease, background .15s ease; }
+  .diet-food-details[open] summary > i { transform: rotate(90deg); background: rgba(149,193,31,.18); }
+  .diet-food-details__body, .diet-nutrition-total { padding: .85rem; margin: 0; border: 0; border-top: 1px solid rgba(148,163,184,.16); border-radius: 0; background: rgba(3,7,18,.28); font-size: .8rem; line-height: 1.55; overflow-wrap: anywhere; }
+  .diet-nutrition-total { margin: .85rem 0 0; border: 1px solid rgba(148,163,184,.2); border-radius: .85rem; background: linear-gradient(145deg, rgba(50,119,70,.16), rgba(15,23,42,.55)); }
+  .diet-food-details__body p, .diet-nutrition-total p { margin: .3rem 0 0; }
+  .diet-nutrition-total > strong { display: block; font-size: .86rem; }
+  .diet-food-details .diet-food-details__body { background: rgba(3,7,18,.22); color: inherit; }
+  .diet-food-details .diet-food-details__body p { color: inherit; font-size: .84rem; }
   .diet-food-details .diet-food-details__body strong { color: inherit; font-weight: 750; }
   .diet-food-details__body small { color: #a7b6c9; }
 `;

@@ -1202,44 +1202,47 @@ html[data-theme] #window-saude .saude-diet-alert-switch[aria-checked="true"] .sa
     transform: translateX(14px);
 }
 html[data-theme] #window-saude .saude-profile-row .fin-entry__side {
-    max-width: 9.5rem;
-    margin-right: 0.25rem;
+    min-width: 5.5rem;
+    max-width: 7.25rem;
+    margin-right: 0.15rem;
 }
 html[data-theme] #window-saude .saude-profile-row .fin-tag {
     max-width: 100%;
-    white-space: normal;
-    text-align: right;
+    white-space: nowrap;
+    text-align: center;
     line-height: 1.2;
-}
-html[data-theme] #window-saude .saude-field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 html[data-theme] #window-saude .saude-editor {
     margin-bottom: 1rem;
-    padding: 1rem;
+    padding: 1.1rem;
     border: 1px solid var(--bk-line);
-    border-radius: 0.75rem;
-    background: var(--bk-surface);
-    box-shadow: none;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
 }
 html[data-theme] #window-saude .saude-editor__title {
-    margin: 0 0 0.85rem;
+    margin: 0 0 0.95rem;
     color: var(--bk-ink);
-    font-size: 1rem;
+    font-size: 1.05rem;
+    font-weight: 800;
 }
-html[data-theme] #window-saude .saude-profile-form__section {
-    color: var(--bk-muted);
-}
-html[data-theme] #window-saude .saude-diet-modal__header h3 { color: var(--bk-ink); }
-html[data-theme] #window-saude .saude-diet-modal__header p { color: var(--bk-muted); }
 html[data-theme] #window-saude .fin-empty {
     margin: 0;
     padding: 1rem;
     color: var(--bk-muted);
     text-align: center;
+}
+html[data-theme] #window-saude .fin-list {
+    box-shadow: 0 12px 28px rgba(8, 18, 36, 0.14);
+    border-color: rgba(226, 232, 240, 0.95);
+}
+html[data-theme] #window-saude .fin-nav-row {
+    padding: 1rem 1.05rem;
+}
+html[data-theme] #window-saude .fin-nav-row:hover {
+    background: linear-gradient(90deg, rgba(236, 0, 0, 0.04), transparent 70%);
 }
 html[data-theme] #window-saude .saude-page { max-width: none; }
 html[data-theme] #window-saude .saude-root :is(h2, h3, h4) { font-family: var(--bk-font); letter-spacing: 0; text-transform: none; }
@@ -1502,42 +1505,244 @@ html[data-theme] #window-saude .saude-weight-trend.is-animated .saude-weight-tre
     }
 }
 
-/* Modais e diálogos do Saúde */
+/* Modais e diálogos do Saúde — visual profissional */
 html[data-theme] #window-saude .saude-modal-backdrop,
 html[data-theme] #window-saude .saude-confirm-backdrop {
     align-items: center;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: none;
+    padding: max(0.75rem, env(safe-area-inset-top)) 0.75rem max(0.75rem, env(safe-area-inset-bottom));
+    background: rgba(7, 16, 32, 0.72);
+    backdrop-filter: blur(8px);
 }
 html[data-theme] #window-saude :is(.saude-diet-modal, .saude-water-modal, .saude-confirm-dialog) {
-    background: var(--bk-surface);
+    width: min(100%, 42rem);
+    max-height: min(92dvh, 54rem);
+    overflow: auto;
+    padding: 1.25rem 1.25rem 1.1rem;
+    background:
+        radial-gradient(circle at 12% 0%, rgba(236, 0, 0, 0.08), transparent 16rem),
+        linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
     color: var(--bk-ink);
-    border: 1px solid var(--bk-line);
-    border-radius: 0.75rem;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 1.15rem;
+    box-shadow:
+        0 28px 70px rgba(2, 12, 27, 0.38),
+        0 2px 0 rgba(255, 255, 255, 0.7) inset;
     font-family: var(--bk-font);
 }
+html[data-theme] #window-saude .saude-diet-modal--item { width: min(100%, 34rem); }
+html[data-theme] #window-saude .saude-diet-modal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0 0 1rem;
+    padding: 0 0 1rem;
+    border-bottom: 1px solid var(--bk-line);
+}
+html[data-theme] #window-saude .saude-diet-modal__header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--bk-ink);
+    line-height: 1.25;
+}
+html[data-theme] #window-saude .saude-diet-modal__header p {
+    margin: 0.35rem 0 0;
+    color: var(--bk-muted);
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+html[data-theme] #window-saude .saude-diet-modal__header .saude-icon-btn {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0.7rem;
+    background: var(--bk-bg);
+    border-color: var(--bk-line);
+    color: var(--bk-muted);
+    flex: 0 0 auto;
+}
+html[data-theme] #window-saude .saude-diet-modal > .saude-diet-alert-switch {
+    margin: 0 0 1rem;
+    width: fit-content;
+}
 html[data-theme] #window-saude .saude-water-modal.is-complete { border-color: var(--bk-pos); }
-html[data-theme] #window-saude .saude-field { background: var(--bk-surface); color: var(--bk-ink); border-color: var(--bk-line); border-radius: 0.45rem; }
-html[data-theme] #window-saude .saude-field::placeholder { color: var(--bk-muted); }
-html[data-theme] #window-saude .saude-field-group label { color: var(--bk-muted); }
-html[data-theme] #window-saude .saude-btn { background: transparent; color: var(--bk-ink); border-color: var(--bk-line); border-radius: 0.5rem; box-shadow: none; }
-html[data-theme] #window-saude .saude-btn:hover:not(:disabled) { background: var(--bk-bg); border-color: var(--bk-line); }
-html[data-theme] #window-saude .saude-btn--primary { background: var(--bk-primary); border-color: var(--bk-primary); color: var(--bk-primary-ink); }
-html[data-theme] #window-saude .saude-btn--primary:hover:not(:disabled) { background: var(--bk-primary-press); border-color: var(--bk-primary-press); }
-html[data-theme] #window-saude .saude-btn--danger { color: var(--bk-neg); border-color: var(--bk-neg); }
-html[data-theme] #window-saude .saude-btn--danger:hover:not(:disabled) { background: var(--bk-neg-soft); border-color: var(--bk-neg); }
-html[data-theme] #window-saude .saude-icon-btn { background: transparent; color: var(--bk-muted); border-color: var(--bk-line); }
-html[data-theme] #window-saude .saude-icon-btn:hover:not(:disabled) { background: var(--bk-bg); color: var(--bk-ink); border-color: var(--bk-line); }
+html[data-theme] #window-saude .saude-field {
+    background: #fff;
+    color: var(--bk-ink);
+    border: 1px solid #d7dee8;
+    border-radius: 0.7rem;
+    min-height: 2.85rem;
+    padding: 0.7rem 0.85rem;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+html[data-theme] #window-saude .saude-field:hover { border-color: #c4cedc; }
+html[data-theme] #window-saude .saude-field:focus {
+    outline: none;
+    border-color: rgba(236, 0, 0, 0.55);
+    box-shadow: 0 0 0 3px rgba(236, 0, 0, 0.12);
+}
+html[data-theme] #window-saude .saude-field::placeholder { color: #94a3b8; }
+html[data-theme] #window-saude .saude-field-group {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0 0 0.15rem;
+}
+html[data-theme] #window-saude .saude-field-group label {
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+html[data-theme] #window-saude .saude-profile-form__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.95rem 0.85rem;
+}
+html[data-theme] #window-saude .saude-profile-form__grid > .saude-field-group:first-child,
+html[data-theme] #window-saude .saude-profile-form__section {
+    grid-column: 1 / -1;
+}
+html[data-theme] #window-saude .saude-profile-form__section {
+    margin: 0.35rem 0 0;
+    padding: 0.7rem 0 0.15rem;
+    border-top: 1px solid var(--bk-line);
+    color: var(--bk-primary);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+html[data-theme] #window-saude .saude-btn {
+    min-height: 2.7rem;
+    padding: 0.65rem 1rem;
+    background: #fff;
+    color: var(--bk-ink);
+    border: 1px solid #d7dee8;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    font-weight: 700;
+}
+html[data-theme] #window-saude .saude-btn:hover:not(:disabled) {
+    background: var(--bk-bg);
+    border-color: #c4cedc;
+}
+html[data-theme] #window-saude .saude-btn--primary {
+    background: linear-gradient(180deg, #ff2a2a 0%, var(--bk-primary) 100%);
+    border-color: var(--bk-primary);
+    color: var(--bk-primary-ink);
+    box-shadow: 0 10px 22px rgba(236, 0, 0, 0.22);
+}
+html[data-theme] #window-saude .saude-btn--primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, var(--bk-primary) 0%, var(--bk-primary-press) 100%);
+    border-color: var(--bk-primary-press);
+}
+html[data-theme] #window-saude .saude-btn--danger {
+    color: var(--bk-neg);
+    border-color: rgba(220, 38, 38, 0.35);
+    background: #fff5f5;
+}
+html[data-theme] #window-saude .saude-btn--danger:hover:not(:disabled) {
+    background: var(--bk-neg-soft);
+    border-color: var(--bk-neg);
+}
+html[data-theme] #window-saude .saude-icon-btn {
+    background: #fff;
+    color: var(--bk-muted);
+    border: 1px solid #d7dee8;
+    border-radius: 0.7rem;
+}
+html[data-theme] #window-saude .saude-icon-btn:hover:not(:disabled) {
+    background: var(--bk-bg);
+    color: var(--bk-ink);
+    border-color: #c4cedc;
+}
 html[data-theme] #window-saude .saude-icon-btn--danger { color: var(--bk-neg); }
-html[data-theme] #window-saude :is(.saude-meal-card, .saude-diet-detail-meal) { background: var(--bk-bg); border-color: var(--bk-line); }
-html[data-theme] #window-saude .saude-meal-item { background: var(--bk-surface); border: 1px solid var(--bk-line); }
-html[data-theme] #window-saude .saude-diet-detail-meal h4 { color: var(--bk-ink); }
-html[data-theme] #window-saude :is(.saude-diet-detail-item, .saude-water-log) { border-color: var(--bk-line); }
-html[data-theme] #window-saude .saude-empty { background: var(--bk-surface); border-color: var(--bk-line); color: var(--bk-muted); }
-html[data-theme] #window-saude .saude-empty i { color: var(--bk-muted); }
-html[data-theme] #window-saude .saude-table-wrap { background: var(--bk-surface); border-color: var(--bk-line); box-shadow: none; }
-html[data-theme] #window-saude .saude-editor__actions { background: transparent; border-color: var(--bk-line); }
+html[data-theme] #window-saude .saude-diet-detail-meals {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0.25rem 0 0.35rem;
+}
+html[data-theme] #window-saude :is(.saude-meal-card, .saude-diet-detail-meal) {
+    padding: 0.95rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 0.95rem;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+html[data-theme] #window-saude .saude-meal-item {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+html[data-theme] #window-saude .saude-diet-detail-meal h4 {
+    margin: 0 0 0.7rem;
+    color: var(--bk-ink);
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+html[data-theme] #window-saude .saude-diet-detail-item {
+    border: 0;
+    padding: 0;
+}
+html[data-theme] #window-saude .saude-diet-detail-item + .saude-diet-detail-item { margin-top: 0.45rem; }
+html[data-theme] #window-saude .diet-food-details {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+html[data-theme] #window-saude .diet-food-details summary {
+    padding: 0.8rem 0.9rem;
+}
+html[data-theme] #window-saude .diet-food-details summary > i {
+    background: var(--bk-neg-soft);
+    color: var(--bk-primary);
+}
+html[data-theme] #window-saude .diet-food-details[open] summary > i {
+    background: rgba(236, 0, 0, 0.12);
+}
+html[data-theme] #window-saude .diet-food-details__body,
+html[data-theme] #window-saude .diet-nutrition-total {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: var(--bk-ink);
+}
+html[data-theme] #window-saude .diet-nutrition-total {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.95rem;
+    background: linear-gradient(135deg, #fff7f7 0%, #f8fafc 55%, #eef6ff 100%);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+html[data-theme] #window-saude .saude-water-log { border-color: var(--bk-line); }
+html[data-theme] #window-saude .saude-empty {
+    background: var(--bk-bg);
+    border: 1px dashed #cbd5e1;
+    border-radius: 0.95rem;
+    color: var(--bk-muted);
+    padding: 1.25rem;
+}
+html[data-theme] #window-saude .saude-empty i { color: var(--bk-primary); }
+html[data-theme] #window-saude .saude-table-wrap {
+    background: var(--bk-surface);
+    border-color: var(--bk-line);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+html[data-theme] #window-saude .saude-editor__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    margin-top: 1.15rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bk-line);
+    background: transparent;
+}
+html[data-theme] #window-saude .saude-editor__actions .saude-btn { min-width: 7.5rem; }
 html[data-theme] #window-saude .saude-confirm-dialog__icon { background: var(--bk-neg-soft); color: var(--bk-neg); }
 html[data-theme] #window-saude .saude-water-check { background: var(--bk-surface); border-color: var(--bk-line); color: var(--bk-muted); }
 html[data-theme] #window-saude .saude-water-check[aria-pressed="true"] { background: #0284c7; border-color: #0284c7; color: #ffffff; }
@@ -1546,8 +1751,23 @@ html[data-theme] #window-saude .saude-success-toast__icon { background: var(--bk
 html[data-theme] #window-saude .saude-success-toast p { color: var(--bk-muted); }
 html[data-theme] #window-saude .saude-success-toast__close { color: var(--bk-muted); }
 @media (max-width: 760px) {
-    html[data-theme] #window-saude .saude-water-modal { border-radius: 0.75rem; }
-    html[data-theme] #window-saude :is(.saude-diet-modal, .saude-editor) .saude-editor__actions { background: var(--bk-surface); }
+    html[data-theme] #window-saude .saude-water-modal,
+    html[data-theme] #window-saude .saude-diet-modal { border-radius: 1rem; }
+    html[data-theme] #window-saude .saude-profile-form__grid { grid-template-columns: 1fr; }
+    html[data-theme] #window-saude :is(.saude-diet-modal, .saude-editor) .saude-editor__actions {
+        position: sticky;
+        bottom: 0;
+        margin: 1rem -1.25rem -1.1rem;
+        padding: 0.85rem 1.25rem max(0.85rem, env(safe-area-inset-bottom));
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px);
+        border-top: 1px solid var(--bk-line);
+        z-index: 2;
+    }
+    html[data-theme] #window-saude .saude-editor__actions .saude-btn {
+        flex: 1 1 calc(50% - 0.65rem);
+        min-width: 0;
+    }
 }
 
 /* ---------- Lista de compras: lista livre estilo bloco de notas ---------- */

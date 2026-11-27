@@ -179,6 +179,8 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('function renderProfileDietSection(profile, state)');
     expect(source).toContain('class="saude-diet-item"');
     expect(source).toContain('function imcTagClass(classification)');
+    expect(source).toContain('function imcTagLabel(classification)');
+    expect(source).toContain("text: 'Por idade'");
     expect(source).toContain('class="saude-alert-diet-list"');
     expect(source).toContain('function renderAlertToggle(');
     expect(source).toContain('saude-alert-toggle__box');
