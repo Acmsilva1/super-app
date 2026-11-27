@@ -8717,6 +8717,49 @@
                 return `${m[2]}/${m[1]}`;
             }
 
+            /** Nome do mês em português (ex.: 2026-11 → Novembro). */
+            formatMesNome(mesAno) {
+                const s = String(mesAno || '');
+                const m = s.match(/^(\d{4})-(\d{2})$/);
+                if (!m) return s;
+                const nomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                return nomes[Number(m[2]) - 1] || s;
+            }
+
+            /** Mês civil seguinte a `YYYY-MM`. */
+            getMesAnoProximo(mesAno) {
+                const parts = String(mesAno || '').split('-').map(Number);
+                const y = parts[0];
+                const m = parts[1];
+                if (!y || !m || m < 1 || m > 12) return this.getMesAnoAtual();
+                const d = new Date(y, m, 1);
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            }
+
+            /** Prefixo gravado na descrição da cópia de pendência mensal. */
+            buildPendenciaMesDescricao(baseDescricao, origemMesAno) {
+                const base = this.stripPendenciaMesPrefix(baseDescricao) || String(baseDescricao || '').trim() || 'Conta';
+                const mesNome = this.formatMesNome(origemMesAno);
+                return `[Pendência de ${mesNome}] ${base}`;
+            }
+
+            stripPendenciaMesPrefix(descricao) {
+                const raw = String(descricao || '').trim();
+                const m = raw.match(/^\[Pendência de ([^\]]+)\]\s*(.*)$/i);
+                return m ? String(m[2] || '').trim() : raw;
+            }
+
+            parsePendenciaMesDescricao(descricao) {
+                const raw = String(descricao || '').trim();
+                const m = raw.match(/^\[Pendência de ([^\]]+)\]\s*(.*)$/i);
+                if (!m) return { isPendencia: false, mesNome: '', titulo: raw };
+                return {
+                    isPendencia: true,
+                    mesNome: String(m[1] || '').trim(),
+                    titulo: String(m[2] || '').trim() || raw,
+                };
+            }
+
             formatMoneyBr(value) {
                 return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
             }
@@ -9649,14 +9692,17 @@
                     const pa = Number(r.parcela_atual ?? 0);
                     const hasParcelas = Number.isFinite(pt) && Number.isFinite(pa) && pt > 0 && pa > 0 && pa <= pt;
                     const isContaFixa = r?.conta_fixa === true || String(r?.conta_fixa || '').toLowerCase() === 'true';
+                    const pendenciaOrigem = this.parsePendenciaMesDescricao(r.descricao);
+                    const titulo = pendenciaOrigem.isPendencia ? pendenciaOrigem.titulo : String(r.descricao || '');
                     const tags = [
                         hasParcelas ? `<span class="fin-tag">Parcela ${escapeHtml(String(pa))} de ${escapeHtml(String(pt))}</span>` : '',
                         !hasParcelas && isContaFixa ? '<span class="fin-tag">Conta fixa</span>' : '',
+                        pendenciaOrigem.isPendencia ? `<span class="fin-tag fin-tag--pos">Pendência de ${escapeHtml(pendenciaOrigem.mesNome)}</span>` : '',
                         pendenteMes ? '<span class="fin-tag fin-tag--neg">Pendente no mês</span>' : '',
                     ].join('');
                     return `<li class="fin-entry ${paid ? 'is-status-paid' : 'is-status-pending'}" data-finance-row-id="${escapeHtml(String(r.id ?? ''))}">
                         <div class="fin-entry__main">
-                            <span class="fin-entry__title" title="${escapeHtml(r.descricao || '')}">${escapeHtml(r.descricao || '')}</span>
+                            <span class="fin-entry__title" title="${escapeHtml(r.descricao || '')}">${escapeHtml(titulo)}</span>
                             <span class="fin-entry__meta">${tags}${rowActions(r, 'despesa_fixa', { pendingToggle: true })}</span>
                         </div>
                         <div class="fin-entry__side">
@@ -10606,7 +10652,19 @@
             }
 
             async submitFinanceiroTogglePendenteMes(id, pendenteMesAtual, el) {
-                const nextFlag = !pendenteMesAtual;
+                const nextFlag = !(pendenteMesAtual === true || pendenteMesAtual === 'true');
+                const mesAno = el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
+                const nextMesAno = this.getMesAnoProximo(mesAno);
+                let replicateNext = false;
+                if (nextFlag) {
+                    const mesNome = this.formatMesNome(mesAno);
+                    replicateNext = await this.showConfirm(
+                        'Replicar para o próximo mês?',
+                        `Deseja copiar esta conta para ${this.formatMesAnoLabel(nextMesAno)} como pendência de ${mesNome}?`,
+                        { confirmLabel: 'Sim', cancelLabel: 'Não' }
+                    );
+                }
+
                 el._financeiroPendingUpdates ||= new Set();
                 const operationKey = `fixa:${id}`;
                 if (el._financeiroPendingUpdates.has(operationKey)) return;
@@ -10615,6 +10673,8 @@
                     pendente_mes: nextFlag,
                     ...(nextFlag ? { status: 'pendente' } : {}),
                 });
+                const view = el._financeView || {};
+                const sourceItem = view.itemMap?.get(`despesa_fixa:${id}`) || null;
                 const operation = this.beginFinanceiroOperation({ kind: 'alterar_pendencia', section: 'data', label: 'Alterar pendência mensal' });
                 this.runFinanceiroBackgroundOperation({
                     operation,
@@ -10632,12 +10692,56 @@
                         },
                         errorMessage: 'Erro ao atualizar pendência do mês',
                     },
-                    onSuccess: () => el._financeiroPendingUpdates.delete(operationKey),
+                    onSuccess: async () => {
+                        el._financeiroPendingUpdates.delete(operationKey);
+                        if (!replicateNext || !sourceItem) return;
+                        try {
+                            await this.replicatePendenciaMesParaProximo(el, sourceItem, mesAno, nextMesAno);
+                        } catch (err) {
+                            await this.showAlert('Financeiro', err.message || 'Pendência marcada, mas não foi possível copiar para o próximo mês.');
+                        }
+                    },
                     onFailure: () => {
                         rollback?.();
                         el._financeiroPendingUpdates.delete(operationKey);
                     },
                 });
+            }
+
+            async replicatePendenciaMesParaProximo(el, sourceItem, origemMesAno, destinoMesAno) {
+                const valor = Number(sourceItem?.valor || 0);
+                if (!(valor > 0)) throw new Error('Valor inválido para replicar a pendência.');
+                const descricao = this.buildPendenciaMesDescricao(sourceItem?.descricao, origemMesAno);
+
+                // Evita segunda cópia se o próximo mês já tem a mesma pendência.
+                try {
+                    const res = await fetch(`/api/financeiro?mes_ano=${encodeURIComponent(destinoMesAno)}&secao=data`, { cache: 'no-store' });
+                    const data = await this.readApiJsonOrThrow(res, 'Falha ao conferir o próximo mês');
+                    const existing = data?.tabelas?.despesas_fixas || [];
+                    const already = existing.some((row) => String(row?.descricao || '').trim() === descricao);
+                    if (already) return;
+                } catch (_) { /* segue com a criação */ }
+
+                const createRes = await fetch('/api/financeiro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tipo_registro: 'despesa_fixa',
+                        descricao,
+                        valor,
+                        mes_ano: destinoMesAno,
+                        status: 'pendente',
+                        conta_fixa: false,
+                        parcelas: false,
+                        pendente_mes: false,
+                    }),
+                });
+                await this.readApiJsonOrThrow(createRes, 'Erro ao copiar pendência para o próximo mês');
+
+                // Se o usuário já estiver no mês destino, atualiza a lista.
+                if ((el.getAttribute('data-mes-ano') || '') === destinoMesAno) {
+                    await this.refreshFinanceiroSectionSilently(el, 'data');
+                }
             }
 
             async renderFluxogramaContent(el) {
