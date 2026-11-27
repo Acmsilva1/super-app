@@ -8463,7 +8463,7 @@
                     });
                 } catch (err) {
                     console.error(err);
-                    alert('Não foi possível abrir o registro rápido de água.');
+                    await this.showAlert('Água', 'Não foi possível abrir o registro rápido de água.');
                 }
             }
 
@@ -8479,7 +8479,7 @@
                     });
                 } catch (err) {
                     console.error(err);
-                    alert('Não foi possível abrir o atalho de dietas.');
+                    await this.showAlert('Dietas', 'Não foi possível abrir o atalho de dietas.');
                 }
             }
 
@@ -8491,7 +8491,7 @@
                     await mod.openHomeTrainingQuick({ launchSaude: (intent) => this.openSaudeAt(intent) });
                 } catch (err) {
                     console.error(err);
-                    alert('Não foi possível abrir o atalho de treino.');
+                    await this.showAlert('Treino', 'Não foi possível abrir o atalho de treino.');
                 }
             }
 
@@ -8650,6 +8650,32 @@
 
                     document.body.appendChild(overlay);
                     overlay.querySelector('.cancel').focus();
+                });
+            }
+            async showAlert(title, message, { confirmLabel = 'OK' } = {}) {
+                return new Promise((resolve) => {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'app-confirm-overlay';
+                    overlay.innerHTML = `
+                        <div class="app-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="app-alert-title" aria-describedby="app-alert-message">
+                            <h4 id="app-alert-title"><i class="fas fa-circle-info" style="color:#3b82f6" aria-hidden="true"></i> ${escapeHtml(title || 'Aviso')}</h4>
+                            <p id="app-alert-message" style="white-space:pre-wrap">${escapeHtml(message || '')}</p>
+                            <div class="app-confirm-actions">
+                                <button type="button" class="app-confirm-btn confirm">${escapeHtml(confirmLabel)}</button>
+                            </div>
+                        </div>
+                    `;
+                    const onKey = (e) => { if (e.key === 'Escape' || e.key === 'Enter') cleanup(); };
+                    const cleanup = () => {
+                        document.removeEventListener('keydown', onKey);
+                        overlay.remove();
+                        resolve();
+                    };
+                    overlay.querySelector('.confirm').onclick = cleanup;
+                    overlay.onclick = (e) => { if (e.target === overlay) cleanup(); };
+                    document.addEventListener('keydown', onKey);
+                    document.body.appendChild(overlay);
+                    overlay.querySelector('.confirm').focus();
                 });
             }
 
@@ -9914,7 +9940,7 @@
                         await this.loadMoreFinanceiroSection(el, btn.dataset.section);
                     } catch (error) {
                         btn.disabled = false;
-                        alert(error.message || 'Erro ao carregar mais registros.');
+                        await this.showAlert('Financeiro', error.message || 'Erro ao carregar mais registros.');
                     }
                 } else if (action === 'financeiro-import-fixas-prev-month') {
                     await this.importFinanceiroFixasFromPreviousMonth(el);
@@ -9930,8 +9956,8 @@
             }
 
             async submitFinanceiroMetaSave(el, { editId = 0, nomeMeta, dataInicio, valorMeta } = {}) {
-                if (!nomeMeta) { alert('Nome da meta é obrigatório'); return false; }
-                if (!(valorMeta > 0)) { alert('Valor da meta precisa ser maior que zero'); return false; }
+                if (!nomeMeta) { await this.showAlert('Poupança', 'Nome da meta é obrigatório'); return false; }
+                if (!(valorMeta > 0)) { await this.showAlert('Poupança', 'Valor da meta precisa ser maior que zero'); return false; }
                 const body = {
                     ...(editId > 0 ? { id: editId } : {}),
                     tipo_registro: 'meta_poupanca',
@@ -10087,9 +10113,9 @@
                 saveButton.onclick = async () => {
                     const valor = Number(overlay.querySelector('#poupanca-resgate-valor')?.value || 0);
                     const motivo = String(overlay.querySelector('#poupanca-resgate-motivo')?.value || '').trim();
-                    if (!(valor > 0)) { alert('Informe um valor de resgate maior que zero.'); return; }
-                    if (valor > saldo) { alert('O valor do resgate não pode superar o saldo disponível.'); return; }
-                    if (!motivo) { alert('Informe o motivo do resgate.'); return; }
+                    if (!(valor > 0)) { await this.showAlert('Poupança', 'Informe um valor de resgate maior que zero.'); return; }
+                    if (valor > saldo) { await this.showAlert('Poupança', 'O valor do resgate não pode superar o saldo disponível.'); return; }
+                    if (!motivo) { await this.showAlert('Poupança', 'Informe o motivo do resgate.'); return; }
 
                     saveButton.disabled = true;
                     saveButton.textContent = 'Resgatando...';
@@ -10108,7 +10134,7 @@
                         close();
                         await this.refreshAppContent('financeiro');
                     } catch (error) {
-                        alert(error.message || 'Erro ao realizar resgate');
+                        await this.showAlert('Poupança', error.message || 'Erro ao realizar resgate');
                         saveButton.disabled = false;
                         saveButton.textContent = 'Confirmar resgate';
                     }
@@ -10303,7 +10329,7 @@
                     if (tipoVal === 'despesa_fixa' || tipoVal === 'receita') {
                         const v = mesRefEl && mesRefEl.value ? mesRefEl.value.trim() : '';
                         if (!v || !/^\d{4}-\d{2}$/.test(v)) {
-                            alert(tipoVal === 'receita' ? 'Selecione o mes de competencia da receita.' : 'Selecione o mes de competencia da despesa fixa.');
+                            await this.showAlert('Financeiro', tipoVal === 'receita' ? 'Selecione o mes de competencia da receita.' : 'Selecione o mes de competencia da despesa fixa.');
                             return;
                         }
                         mesAnoPayload = v;
@@ -10311,12 +10337,12 @@
                     } else if (tipoVal === 'gasto_variado') {
                         const dataHoraRaw = String(overlay.querySelector('#financeiro-modal-data')?.value || '').trim();
                         if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(dataHoraRaw)) {
-                            alert('Informe a data e hora do lançamento.');
+                            await this.showAlert('Financeiro', 'Informe a data e hora do lançamento.');
                             return;
                         }
                         dataIso = this.getFinanceiroIsoFromDateTimeLocal(dataHoraRaw);
                         if (!dataIso) {
-                            alert('Data e hora inválidas.');
+                            await this.showAlert('Financeiro', 'Data e hora inválidas.');
                             return;
                         }
                         dataDate = dataHoraRaw.slice(0, 10);
@@ -10349,7 +10375,7 @@
                             const pa = parseInt(String(overlay.querySelector('#financeiro-modal-parcela-atual')?.value || ''), 10);
                             const pt = parseInt(String(overlay.querySelector('#financeiro-modal-parcela-total')?.value || ''), 10);
                             if (!Number.isFinite(pa) || !Number.isFinite(pt) || pa < 1 || pt < 1 || pa > pt) {
-                                alert('Informe parcela atual e total de parcelas (a atual não pode ser maior que o total).');
+                                await this.showAlert('Financeiro', 'Informe parcela atual e total de parcelas (a atual não pode ser maior que o total).');
                                 return;
                             }
                             payload.parcela_atual = pa;
@@ -10413,13 +10439,13 @@
                 const categoria = payload?.categoria || null;
                 const dataLanc = String(payload?.data_lancamento || '');
                 const mesAno = payload?.mesAno || el.getAttribute('data-mes-ano') || this.getMesAnoAtual();
-                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { alert('Tipo de registro inválido'); return false; }
-                if (tipoRegistro !== 'poupanca' && !descricao) { alert('Descrição é obrigatória'); return false; }
+                if (!['despesa_fixa', 'gasto_variado', 'receita', 'poupanca'].includes(tipoRegistro)) { await this.showAlert('Financeiro', 'Tipo de registro inválido'); return false; }
+                if (tipoRegistro !== 'poupanca' && !descricao) { await this.showAlert('Financeiro', 'Descrição é obrigatória'); return false; }
                 if (tipoRegistro !== 'despesa_fixa' && tipoRegistro !== 'poupanca') {
                     const [yy, mm] = mesAno.split('-').map(Number);
                     const [dy, dm] = dataLanc.split('-').map(Number);
                     if (dy !== yy || dm !== mm) {
-                        alert('A data do lançamento precisa estar dentro do mês selecionado.');
+                        await this.showAlert('Financeiro', 'A data do lançamento precisa estar dentro do mês selecionado.');
                         return false;
                     }
                 }
@@ -11004,12 +11030,12 @@
                     requestAnimationFrame(() => { el.scrollTop = previousScrollTop; });
                 } catch (err) {
                     console.error(err);
-                    alert(err.message || 'Erro ao carregar lista de compras');
+                    await this.showAlert('Lista de compras', err.message || 'Erro ao carregar lista de compras');
                 }
             }
             openListaAddModal(el, id = null) {
                 const row = id == null ? null : (el?._listaComprasRows || []).find(item => String(item.id) === String(id));
-                if (id != null && !row) { alert('Este item não está mais na lista. Atualize e tente novamente.'); return; }
+                if (id != null && !row) { void this.showAlert('Lista de compras', 'Este item não está mais na lista. Atualize e tente novamente.'); return; }
                 const categorias = Array.isArray(el?._listaComprasCategorias) && el._listaComprasCategorias.length
                     ? el._listaComprasCategorias
                     : this.getListaComprasCategorias();
@@ -11128,7 +11154,7 @@
                     showAppConfirmation('Item adicionado.');
                     return true;
                 } catch (e) {
-                    alert(e.message);
+                    await this.showAlert('Lista de compras', e.message || 'Erro ao adicionar item');
                     return false;
                 }
             }
@@ -11144,7 +11170,10 @@
                     } else await this.refreshListaComprasContent(el);
                     showAppConfirmation('Item atualizado.');
                     return true;
-                } catch (error) { alert(error.message || 'Erro ao editar item'); return false; }
+                } catch (error) {
+                    await this.showAlert('Lista de compras', error.message || 'Erro ao editar item');
+                    return false;
+                }
             }
             async submitListaReorder(orderedIds, el) {
                 if (!Array.isArray(orderedIds) || orderedIds.length < 2) return;
@@ -11168,7 +11197,7 @@
                 } catch (error) {
                     el._listaComprasRows = previous;
                     this.rerenderListaCompras(el);
-                    alert(error.message || 'Erro ao reordenar');
+                    await this.showAlert('Lista de compras', error.message || 'Erro ao reordenar');
                 }
             }
             async submitListaRenameItem(input, el) {
@@ -11187,7 +11216,7 @@
                     input.value = item;
                     showAppConfirmation('Item atualizado.');
                 } catch (e) {
-                    alert(e.message);
+                    await this.showAlert('Lista de compras', e.message || 'Erro ao renomear item');
                     input.value = original;
                 }
             }
@@ -11208,7 +11237,7 @@
                         });
                     }
                 } catch (e) {
-                    alert(e.message);
+                    await this.showAlert('Lista de compras', e.message || 'Erro ao atualizar item');
                     if (row) {
                         row.comprado = previous;
                         this.rerenderListaCompras(el, id);
@@ -11237,7 +11266,7 @@
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao excluir item'));
                     showAppConfirmation('Item excluído.');
                 } catch (e) {
-                    alert(e.message);
+                    await this.showAlert('Lista de compras', e.message || 'Erro ao excluir item');
                     if (el?.isConnected) {
                         el._listaComprasRows = [...(el._listaComprasRows || []), removed];
                         this.rerenderListaCompras(el);
@@ -11252,7 +11281,7 @@
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     await this.refreshListaComprasContent(el);
                     showAppConfirmation('Lista atualizada.');
-                } catch (e) { alert(e.message); }
+                } catch (e) { await this.showAlert('Lista de compras', e.message || 'Erro ao desmarcar itens'); }
             }
             async submitListaDeleteAll(el) {
                 await this.flushUndoToast();
@@ -11262,7 +11291,7 @@
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro'));
                     await this.refreshListaComprasContent(el);
                     showAppConfirmation('Lista atualizada.');
-                } catch (e) { alert(e.message); }
+                } catch (e) { await this.showAlert('Lista de compras', e.message || 'Erro ao apagar itens'); }
             }
 
             getBrazilDateIsoFrom(dateInput) {
@@ -11660,7 +11689,18 @@
             const message = isIos
                 ? 'Para instalar no iPhone:\n\n1. Abra no Safari\n2. Toque em Compartilhar\n3. Escolha "Adicionar a Tela de Inicio"\n4. Confirme em "Adicionar"'
                 : 'Para instalar como app:\n\n1. Toque no menu do navegador\n2. Escolha "Instalar app" ou "Adicionar a tela inicial"\n3. Confirme a instalacao';
-            alert(message);
+            if (window.superApp?.showAlert) {
+                void window.superApp.showAlert('Instalar app', message);
+                return;
+            }
+            const overlay = document.createElement('div');
+            overlay.className = 'app-confirm-overlay';
+            overlay.innerHTML = `<div class="app-confirm-modal" role="alertdialog" aria-modal="true"><h4>Instalar app</h4><p style="white-space:pre-wrap"></p><div class="app-confirm-actions"><button type="button" class="app-confirm-btn confirm">OK</button></div></div>`;
+            overlay.querySelector('p').textContent = message;
+            const close = () => overlay.remove();
+            overlay.querySelector('.confirm').onclick = close;
+            overlay.onclick = (e) => { if (e.target === overlay) close(); };
+            document.body.appendChild(overlay);
         }
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();

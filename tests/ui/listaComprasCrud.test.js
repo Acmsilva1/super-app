@@ -8,19 +8,19 @@ const modalMethod=method('openListaAddModal','submitListaAddItem');
 afterEach(()=>{vi.unstubAllGlobals();});
 it('edicao usa PATCH e atualiza o item somente apos sucesso',async()=>{
  const row={id:1,item:'Leite',quantidade:2,comprado:true,unidade_medida:'caixa',categoria:'Feira',posicao:1};
- const el={_listaComprasRows:[row]};vi.stubGlobal('showAppConfirmation',vi.fn());vi.stubGlobal('alert',vi.fn());
+ const el={_listaComprasRows:[row]};vi.stubGlobal('showAppConfirmation',vi.fn());
  vi.stubGlobal('fetch',vi.fn(async()=>({ok:true,json:async()=>({...row,item:'Leite integral',quantidade:4,categoria:'Gelados'})})));
- const app=new Function('return new class {'+editMethod+'};')();app.rerenderListaCompras=vi.fn();
+ const app=new Function('return new class {'+editMethod+'};')();app.rerenderListaCompras=vi.fn();app.showAlert=vi.fn();
  expect(await app.submitListaEditItem(1,'Leite integral',4,el,'Gelados')).toBe(true);
  expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({id:1,item:'Leite integral',quantidade:4,categoria:'Gelados'});
  expect(fetch.mock.calls[0][1].method).toBe('PATCH');expect(row).toMatchObject({item:'Leite integral',quantidade:4,comprado:true,unidade_medida:'caixa',categoria:'Gelados'});
  expect(app.rerenderListaCompras).toHaveBeenCalledOnce();
 });
 it('falha de salvamento preserva o item anterior e informa erro',async()=>{
- const row={id:1,item:'Leite',quantidade:2};vi.stubGlobal('alert',vi.fn());vi.stubGlobal('showAppConfirmation',vi.fn());vi.stubGlobal('fetch',vi.fn(async()=>({ok:false})));
- const app=new Function('return new class {'+editMethod+'};')();app.readApiErrorMessage=async()=> 'Sem permissao';app.rerenderListaCompras=vi.fn();
+ const row={id:1,item:'Leite',quantidade:2};vi.stubGlobal('showAppConfirmation',vi.fn());vi.stubGlobal('fetch',vi.fn(async()=>({ok:false})));
+ const app=new Function('return new class {'+editMethod+'};')();app.readApiErrorMessage=async()=> 'Sem permissao';app.rerenderListaCompras=vi.fn();app.showAlert=vi.fn();
  expect(await app.submitListaEditItem(1,'Outro',5,{_listaComprasRows:[row]},'Feira')).toBe(false);
- expect(row).toEqual({id:1,item:'Leite',quantidade:2});expect(alert).toHaveBeenCalledWith('Sem permissao');expect(showAppConfirmation).not.toHaveBeenCalled();
+ expect(row).toEqual({id:1,item:'Leite',quantidade:2});expect(app.showAlert).toHaveBeenCalledWith('Lista de compras','Sem permissao');expect(showAppConfirmation).not.toHaveBeenCalled();
 });
 function modal(){
  const fields={nome:{value:'',focus:vi.fn(),addEventListener:vi.fn()},qtd:{value:'',focus:vi.fn(),addEventListener:vi.fn()},categoria:{value:'',focus:vi.fn(),addEventListener:vi.fn()},error:{hidden:true},submit:{disabled:false,textContent:'Salvar'},cancel:{}};
