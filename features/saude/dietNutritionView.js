@@ -33,14 +33,17 @@ const NUTRITION_ISSUE_MESSAGES = {
 };
 
 export const DIET_NUTRITION_STYLES = `
-  .diet-food-card { min-width: 0; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .8rem .9rem; border: 1px solid rgba(148,163,184,.18); border-radius: .85rem; background: rgba(15,23,42,.45); color: inherit; font: inherit; text-align: left; cursor: pointer; box-shadow: 0 8px 18px rgba(0,0,0,.16); transition: transform .15s ease, border-color .15s ease, background .15s ease; }
+  .diet-food-card { min-width: 0; width: 100%; border: 1px solid rgba(148,163,184,.18); border-radius: .85rem; background: rgba(15,23,42,.45); color: inherit; font: inherit; text-align: left; overflow: hidden; box-shadow: 0 8px 18px rgba(0,0,0,.16); transition: border-color .15s ease, background .15s ease; }
   .diet-food-card + .diet-food-card { margin-top: .45rem; }
-  .diet-food-card:hover { transform: translateY(-1px); border-color: rgba(149,193,31,.42); background: rgba(22,34,56,.92); }
-  .diet-food-card:focus-visible { outline: 2px solid #95c11f; outline-offset: 2px; }
+  .diet-food-card:hover { border-color: rgba(149,193,31,.42); }
+  .diet-food-card > summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .8rem .9rem; cursor: pointer; list-style: none; }
+  .diet-food-card > summary::-webkit-details-marker, .diet-food-card > summary::marker { display: none; content: ''; }
+  .diet-food-card > summary:focus-visible { outline: 2px solid #95c11f; outline-offset: -2px; }
   .diet-food-card__copy { display: grid; gap: .18rem; min-width: 0; }
   .diet-food-card__copy strong { font-size: .92rem; line-height: 1.3; overflow-wrap: anywhere; }
   .diet-food-card__copy span { color: #9fb0c3; font-size: .8rem; overflow-wrap: anywhere; }
-  .diet-food-card > i { flex-shrink: 0; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: .5rem; background: rgba(149,193,31,.16); color: #95c11f; font-size: .75rem; }
+  .diet-food-card > summary > i { flex-shrink: 0; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: .5rem; background: rgba(149,193,31,.16); color: #95c11f; font-size: .75rem; transition: transform .15s ease; }
+  .diet-food-card[open] > summary > i { transform: rotate(90deg); }
   .diet-food-details { min-width: 0; width: 100%; border: 1px solid rgba(148,163,184,.18); border-radius: .75rem; background: rgba(15,23,42,.35); overflow: hidden; }
   .diet-food-details + .diet-food-details { margin-top: .45rem; }
   .diet-food-details summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem .85rem; cursor: pointer; list-style: none; }
@@ -50,6 +53,7 @@ export const DIET_NUTRITION_STYLES = `
   .diet-food-details summary > i { flex-shrink: 0; width: 1.6rem; height: 1.6rem; display: grid; place-items: center; border-radius: .45rem; background: rgba(148,163,184,.14); color: #95c11f; font-size: .72rem; transition: transform .15s ease, background .15s ease; }
   .diet-food-details[open] summary > i { transform: rotate(90deg); background: rgba(149,193,31,.18); }
   .diet-food-details__body, .diet-nutrition-total, .diet-food-preview-body { padding: .85rem; margin: 0; border: 0; border-top: 1px solid rgba(148,163,184,.16); border-radius: 0; background: rgba(3,7,18,.28); font-size: .8rem; line-height: 1.55; overflow-wrap: anywhere; }
+  .diet-food-card > .diet-food-details__body { color: inherit; }
   .diet-food-preview-body { border-top: 0; border-radius: .85rem; background: rgba(3,7,18,.22); }
   .diet-nutrition-total { margin: .85rem 0 0; border: 1px solid rgba(148,163,184,.2); border-radius: .85rem; background: linear-gradient(145deg, rgba(50,119,70,.16), rgba(15,23,42,.55)); }
   .diet-food-details__body p, .diet-nutrition-total p, .diet-food-preview-body p { margin: .3rem 0 0; }
@@ -72,16 +76,14 @@ export function renderDietFoodPreviewBody(item, foods = null) {
   return `<div class="diet-food-preview-body">${dietFoodPreviewContent(item, foods)}</div>`;
 }
 
-export function renderDietFoodCard(item, { mealType = '', itemIndex = null, foods = null } = {}) {
+export function renderDietFoodCard(item, { foods = null } = {}) {
   const food = foods ? matchFoodForDietItem(item, foods) : item.alimento;
   const nutrition = nutritionForDietItem(item, food ? [food] : []);
   const issue = dietItemNutritionIssue(item, food ? [food] : []);
   const summary = issue
     ? (NUTRITION_ISSUE_MESSAGES[issue] || 'Toque para ver detalhes')
     : `${number(nutrition.kcal)} kcal · P ${number(nutrition.proteina)} g · C ${number(nutrition.carboidrato)} g · G ${number(nutrition.gordura)} g`;
-  const mealAttr = mealType ? ` data-meal-type="${escape(mealType)}"` : '';
-  const indexAttr = itemIndex == null ? '' : ` data-item-index="${escape(itemIndex)}"`;
-  return `<button type="button" class="diet-food-card" data-saude-action="preview-diet-food"${mealAttr}${indexAttr} aria-label="Ver detalhes de ${escape(item.nome)}"><span class="diet-food-card__copy"><strong>${escape(item.nome)}</strong><span>${escape(item.quantidade)} · ${escape(summary)}</span></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>`;
+  return `<details class="diet-food-card"><summary><span class="diet-food-card__copy"><strong>${escape(item.nome)}</strong><span>${escape(item.quantidade)} · ${escape(summary)}</span></span><i class="fas fa-chevron-right" aria-hidden="true"></i></summary><div class="diet-food-details__body">${dietFoodPreviewContent(item, foods)}</div></details>`;
 }
 
 export function renderDietFoodDetails(item, foods = null) {

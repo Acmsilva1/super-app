@@ -31,9 +31,9 @@ html[data-theme] #saude-modal-portal {
 }
 
 html[data-theme] #window-saude .saude-root {
-  --bk-max: 1060px;
+  --bk-max: 820px;
   min-height: 100%;
-  background: linear-gradient(160deg, #f7fbf9 0%, #edf5f1 100%);
+  background: transparent;
 }
 html[data-theme] #window-saude .saude-root :is(h1, h2, h3, h4) {
   font-family: var(--bk-font);
@@ -46,6 +46,19 @@ html[data-theme] #window-saude .fin-footer {
   border-color: #d9e7e1;
   box-shadow: 0 4px 20px rgba(19, 54, 42, .06);
   backdrop-filter: blur(14px);
+}
+html[data-theme] #window-saude .fin-footer {
+  background: transparent;
+  border-top: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+html[data-theme] #window-saude .fin-footer__inner {
+  background: rgba(255, 255, 255, .97);
+  border: 1px solid #d9e7e1;
+  border-bottom: 0;
+  border-radius: .9rem .9rem 0 0;
+  box-shadow: 0 -6px 24px rgba(12, 38, 30, .12);
 }
 html[data-theme] #window-saude .fin-topbar__inner { min-height: 3.75rem; }
 html[data-theme] #window-saude .fin-topbar__title { font-size: 1.08rem; font-weight: 750; }
@@ -62,10 +75,15 @@ html[data-theme] #window-saude .fin-body__inner { min-width: 0; }
 html[data-theme] #window-saude .fin-section-label {
   margin-top: 1.35rem;
   margin-bottom: .55rem;
-  color: #466a5c;
-  text-shadow: none;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
   font-size: .72rem;
   letter-spacing: .09em;
+}
+html[data-theme] #window-saude .saude-page-header :is(h2, p),
+html[data-theme] #window-saude .saude-results {
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
 }
 html[data-theme] #window-saude .fin-list,
 html[data-theme] #window-saude .saude-profile-card,
@@ -82,6 +100,19 @@ html[data-theme] #window-saude .saude-alert-footer {
 html[data-theme] #window-saude .fin-list,
 html[data-theme] #window-saude .saude-profile-card { border-radius: 1.05rem; }
 html[data-theme] #window-saude .fin-list > li + li { border-top-color: #e7efeb; }
+html[data-theme] #window-saude .saude-measurement-timeline {
+  max-height: 50rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+html[data-theme] #window-saude .saude-measurement-timeline > .fin-entry {
+  box-sizing: border-box;
+  height: 5rem;
+}
+html[data-theme] #window-saude .saude-measurement-timeline:focus-visible {
+  outline: 3px solid rgba(8, 122, 98, .4);
+  outline-offset: 2px;
+}
 html[data-theme] #window-saude .fin-nav-row { min-height: 3.15rem; color: var(--saude-texto); }
 html[data-theme] #window-saude .fin-nav-row:hover { background: #f1f8f4; }
 html[data-theme] #window-saude .fin-nav-row__icon,
@@ -269,10 +300,16 @@ html[data-theme] #saude-modal-portal .diet-food-card:hover { background: #eef8f2
 html[data-theme] #saude-modal-portal .diet-food-card__copy span,
 html[data-theme] #saude-modal-portal .diet-food-details__body small,
 html[data-theme] #saude-modal-portal .diet-food-preview-body small { color: #557064; }
-html[data-theme] #saude-modal-portal .diet-food-card > i,
+html[data-theme] #saude-modal-portal .diet-food-card > summary > i,
 html[data-theme] #saude-modal-portal .diet-food-details summary > i {
   background: #e3f4eb;
   color: #087a62;
+}
+html[data-theme] #saude-modal-portal .diet-food-card[open] > summary > i { transform: rotate(90deg); }
+html[data-theme] #saude-modal-portal .diet-food-card .diet-food-details__body {
+  color: #16332d;
+  background: #f5faf7;
+  border-top: 1px solid #dce9e3;
 }
 html[data-theme] #saude-modal-portal .diet-food-details,
 html[data-theme] #saude-modal-portal .diet-food-details__body,

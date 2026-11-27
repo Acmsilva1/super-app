@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { renderDietFoodCard } from '../../features/saude/dietNutritionView.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const source = fs.readFileSync(path.join(root, 'features/saude/index.js'), 'utf8');
@@ -20,7 +21,7 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('.saude-table tr { display: grid;');
   });
 
-  it('usa refeições estruturadas, modal de item e cards clicáveis em Dietas', () => {
+  it('usa refeições estruturadas, modal de item e cards expansíveis em Dietas', () => {
     expect(source).toContain('DIET_MEALS');
     expect(source).toContain('data-saude-action="add-diet-item"');
     expect(source).toContain('data-diet-item-form');
@@ -34,11 +35,20 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('data-saude-action="edit-diet"');
     expect(source).toContain('data-saude-action="delete-diet"');
     expect(source).toContain('renderDietFoodCard(');
-    expect(source).toContain("action === 'preview-diet-food'");
-    expect(source).toContain('data-diet-food-preview-backdrop');
+    expect(source).not.toContain("action === 'preview-diet-food'");
+    expect(source).not.toContain('data-diet-food-preview-backdrop');
     expect(source).toContain("portal.id = 'saude-modal-portal'");
     expect(source).toContain('place-items: center');
     expect(source).not.toContain('name="dia_${number}_conteudo"');
+  });
+
+  it('expande os detalhes nutricionais no próprio cartão de alimento', () => {
+    const html = renderDietFoodCard({ nome: 'Ovo inteiro', quantidade: '2 unidades', observacao: 'Cozido' });
+    expect(html).toContain('<details class="diet-food-card">');
+    expect(html).toContain('<summary>');
+    expect(html).toContain('class="diet-food-details__body"');
+    expect(html).toContain('Cozido');
+    expect(html).not.toContain('data-saude-action="preview-diet-food"');
   });
 
   it('substitui confirmações nativas por um alertdialog visual em todo o módulo', () => {

@@ -8,7 +8,7 @@ import {
 import { calcularImc, calcularLarguraGraficoPeso, classificarImc, criarCurvaSuave, criarTendenciaPeso, formatarNumeroSaude } from './service/perfilSaudeService.js';
 import { countDietItems, createEmptyDietMeals, DIET_MEALS, normalizeDietMeals } from './service/dietasService.js';
 import { dietQuantity, matchFoodForDietItem, nutritionForDietItem } from './service/alimentosService.js';
-import { cleanDietDisplayNote, DIET_NUTRITION_STYLES, renderDietFoodCard, renderDietFoodPreviewBody, renderDietNutritionTotal } from './dietNutritionView.js';
+import { cleanDietDisplayNote, DIET_NUTRITION_STYLES, renderDietFoodCard, renderDietNutritionTotal } from './dietNutritionView.js';
 import { DEFAULT_ALERT_SCHEDULE, alertScheduleSection, alertScheduleChanged } from './service/alertScheduleConfig.js';
 import {
   deleteLocalWaterGoal,
@@ -104,9 +104,6 @@ function relocateSaudeModals(container) {
   const modals = [...container.querySelectorAll('.saude-modal-backdrop, .saude-confirm-backdrop')];
   for (const modal of modals) {
     if (modal.matches('[data-diet-modal-backdrop]') && modal.querySelector('.saude-diet-modal--item')) {
-      modal.classList.add('saude-modal-backdrop--stack');
-    }
-    if (modal.matches('[data-diet-food-preview-backdrop]')) {
       modal.classList.add('saude-modal-backdrop--stack');
     }
     portal.appendChild(modal);
@@ -1094,31 +1091,6 @@ function renderDietOverlay(state) {
   return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-detail-title"><div class="saude-diet-modal__header"><div><h3 id="diet-detail-title">${escapeHtml(diet.titulo)}</h3>${showProfileName ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;"><i class="fas fa-user"></i> ${escapeHtml(profile.nome)}</p>` : ''}${diet.meta_calorias ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;">Meta diária: ${escapeHtml(diet.meta_calorias)} kcal</p>` : ''}</div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${renderDietAlertSwitch(diet, state)}${renderDietDayNav(diet, state)}${mealContent}${renderDietNutritionTotal(displayedDiet, state.foodRows)}${cleanDietDisplayNote(diet.observacoes) ? `<div class="saude-diet-section"><h4>Observações</h4><p class="saude-diet-copy">${escapeHtml(cleanDietDisplayNote(diet.observacoes))}</p></div>` : ''}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--danger" data-saude-action="delete-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-trash"></i> Excluir</button><button type="button" class="saude-btn" data-saude-action="edit-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-pencil"></i> Editar</button><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-modal">Fechar</button></div></section></div>`;
 }
 
-function renderDietFoodPreviewOverlay(state) {
-  const item = state.dietFoodPreview;
-  if (!item) return '';
-  return `<div class="saude-modal-backdrop saude-modal-backdrop--stack" data-diet-food-preview-backdrop role="presentation"><section class="saude-diet-modal" data-diet-food-preview role="dialog" aria-modal="true" aria-labelledby="diet-food-preview-title"><div class="saude-diet-modal__header"><div><h3 id="diet-food-preview-title">${escapeHtml(item.nome)}</h3><p>${escapeHtml(item.quantidade || '')}</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-food-preview" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${renderDietFoodPreviewBody(item, state.foodRows)}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-food-preview">Fechar</button></div></section></div>`;
-}
-
-function resolveDietFoodPreviewItem(state, mealType, itemIndex) {
-  const index = Number(itemIndex);
-  if (!mealType || !Number.isInteger(index) || index < 0) return null;
-  if (state.dietEditorOpen && state.dietDraft) {
-    const meal = normalizeDietMeals(state.dietDraft.refeicoes).find((entry) => entry.tipo === mealType);
-    return meal?.itens?.[index] || null;
-  }
-  if (state.dietModal === 'detail') {
-    const diet = state.diets.find((row) => Number(row.id) === Number(state.dietSelectedId));
-    if (!diet) return null;
-    const displayed = diet.semanal
-      ? { refeicoes: diet.semana[state.dietDay || 0]?.refeicoes }
-      : diet;
-    const meal = normalizeDietMeals(displayed.refeicoes).find((entry) => entry.tipo === mealType);
-    return meal?.itens?.[index] || null;
-  }
-  return null;
-}
-
 function renderDietas(container, state) {
   const rows = state.diets || [];
   const profiles = state.profiles || [];
@@ -1174,7 +1146,7 @@ function renderDietas(container, state) {
     </div>
     ${state.notice && state.notice.type !== 'success' ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>` : ''}
     ${renderDietForm(state)}
-    ${content}${renderDietOverlay(state)}${renderDietFoodPreviewOverlay(state)}
+    ${content}${renderDietOverlay(state)}
   </section>`);
 }
 
@@ -1429,7 +1401,7 @@ function renderProfileTimeline(profile, state) {
       </li>`;
     }).join('')
     : '<li class="fin-empty">Nenhuma medição registrada.</li>';
-  return `<p class="fin-section-label">Linha do tempo · Peso e IMC · ${countLabel}</p><ul class="fin-list">${rows}</ul>`;
+  return `<p class="fin-section-label">Linha do tempo · Peso e IMC · ${countLabel}</p><ul class="fin-list saude-measurement-timeline" aria-label="Linha do tempo de peso e IMC${history.length > 10 ? ', lista rolável' : ''}"${history.length > 10 ? ' tabindex="0"' : ''}>${rows}</ul>`;
 }
 
 /** Linha do tempo de água: só dias já fechados (history da API), sem o log do dia corrente. */
@@ -1519,7 +1491,7 @@ function waterSummary(state) {
 }
 
 function renderProfileModals(state) {
-  return `${renderProfileForm(state)}${renderMeasurementForm(state)}${renderWeightForm(state)}${renderWaterModal(state)}${renderDietForm(state)}${renderDietOverlay(state)}${renderDietFoodPreviewOverlay(state)}`;
+  return `${renderProfileForm(state)}${renderMeasurementForm(state)}${renderWeightForm(state)}${renderWaterModal(state)}${renderDietForm(state)}${renderDietOverlay(state)}`;
 }
 
 function renderProfileHub(profile, state) {
@@ -2044,7 +2016,6 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
     dietModal: null,
     dietSelectedId: null,
     dietSelectedProfileId: null,
-    dietFoodPreview: null,
     dietItemMealType: null,
     dietItemEditingIndex: null,
     dietItemDraft: { nome: '', quantidade: '', calorias: null, alimento_id: null, observacao: '' },
@@ -2099,14 +2070,8 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
 
   const onClick = async (event) => {
     if (state.busy) return;
-    if (event.target.matches('[data-diet-food-preview-backdrop]') && state.dietFoodPreview) {
-      state.dietFoodPreview = null;
-      renderActiveSaudeView(container, state);
-      return;
-    }
     if (event.target.matches('[data-diet-modal-backdrop]') && state.dietModal) {
       state.dietModal = null;
-      state.dietFoodPreview = null;
       state.dietItemMealType = null;
       state.dietItemEditingIndex = null;
       renderActiveSaudeView(container, state);
@@ -2115,7 +2080,6 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
     if (event.target.matches('[data-diet-form-backdrop]') && state.dietEditorOpen) {
       state.dietEditorOpen = false;
       state.dietEditingId = null;
-      state.dietFoodPreview = null;
       renderActiveSaudeView(container, state);
       return;
     }
@@ -2618,24 +2582,11 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       const dietId = state.dietSelectedId;
       const mealType = state.dietItemMealType;
       state.dietModal = null;
-      state.dietFoodPreview = null;
       state.dietItemMealType = null;
       state.dietItemEditingIndex = null;
       renderActiveSaudeView(container, state);
       if (wasDetail) focusSaudeField(container, `[data-saude-action="view-diet"][data-saude-id="${dietId}"]`);
       else if (mealType) focusSaudeField(container, `[data-saude-action="add-diet-item"][data-meal-type="${mealType}"]`);
-      return;
-    }
-    if (action === 'preview-diet-food') {
-      const item = resolveDietFoodPreviewItem(state, actionElement.dataset.mealType, actionElement.dataset.itemIndex);
-      if (!item) return;
-      state.dietFoodPreview = { ...item };
-      renderActiveSaudeView(container, state);
-      return;
-    }
-    if (action === 'close-diet-food-preview') {
-      state.dietFoodPreview = null;
-      renderActiveSaudeView(container, state);
       return;
     }
     if (action === 'add-diet-item') {
@@ -2707,7 +2658,6 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       if (diet.semanal) state.dietDraft.refeicoes = normalizeDietMeals(diet.semana[0].refeicoes);
       if (diet.perfil_id) state.dietSelectedProfileId = Number(diet.perfil_id);
       state.dietModal = null;
-      state.dietFoodPreview = null;
       state.notice = null;
       renderActiveSaudeView(container, state);
       focusSaudeField(container, '#diet-titulo');
