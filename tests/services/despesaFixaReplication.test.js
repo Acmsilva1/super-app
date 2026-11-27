@@ -8,6 +8,8 @@ import {
   seriesDefinitionsFromYearRows,
   slotsNeededForMonth,
   rowMatchesReplicationSlot,
+  serieEncerradaParaMes,
+  selectContaFixaCarryForward,
 } from '../../features/financeiro/service/despesaFixaReplication.js';
 
 describe('buildReplicationSlotsFromStart', () => {
@@ -103,6 +105,75 @@ describe('seriesDefinitionsFromYearRows + slotsNeededForMonth', () => {
     }]);
   });
 
+});
+
+describe('selectContaFixaCarryForward', () => {
+  it('materializa contas fixas de dezembro para janeiro do ano seguinte', () => {
+    const prev = [{
+      descricao: 'Aluguel',
+      valor: 1500,
+      conta_fixa: true,
+      serie_id: 'serie-aluguel',
+      serie_encerrada_em: null,
+      created_at: '2026-12-05T15:00:00.000Z',
+    }];
+    const inserted = selectContaFixaCarryForward(prev, [], '2027-01');
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]).toMatchObject({
+      descricao: 'Aluguel',
+      valor: 1500,
+      status: 'pendente',
+      conta_fixa: true,
+      serie_id: 'serie-aluguel',
+      serie_encerrada_em: null,
+    });
+    expect(String(inserted[0].created_at).startsWith('2027-01')).toBe(true);
+  });
+
+  it('nao ressuscita serie encerrada no mes alvo ou antes', () => {
+    const prev = [{
+      descricao: 'Net',
+      valor: 100,
+      conta_fixa: true,
+      serie_id: 'serie-net',
+      serie_encerrada_em: '2026-11-01',
+      created_at: '2026-10-01T12:00:00.000Z',
+    }];
+    expect(serieEncerradaParaMes(prev[0], '2026-11')).toBe(true);
+    expect(selectContaFixaCarryForward(prev, [], '2026-11')).toEqual([]);
+    expect(selectContaFixaCarryForward(prev, [], '2027-01')).toEqual([]);
+  });
+
+  it('nao duplica se o mes alvo ja tem a serie', () => {
+    const prev = [{
+      descricao: 'Luz',
+      valor: 200,
+      conta_fixa: true,
+      serie_id: 'serie-luz',
+      created_at: '2026-12-01T12:00:00.000Z',
+    }];
+    const existing = [{
+      descricao: 'Luz',
+      valor: 200,
+      conta_fixa: true,
+      serie_id: 'serie-luz',
+      created_at: '2027-01-01T12:00:00.000Z',
+    }];
+    expect(selectContaFixaCarryForward(prev, existing, '2027-01')).toEqual([]);
+  });
+
+  it('ignora parcelas ao carregar contas fixas do mes anterior', () => {
+    const prev = [{
+      descricao: 'Notebook',
+      valor: 500,
+      conta_fixa: false,
+      parcela_atual: 3,
+      parcela_total: 5,
+      serie_id: 'serie-note',
+      created_at: '2026-12-01T12:00:00.000Z',
+    }];
+    expect(selectContaFixaCarryForward(prev, [], '2027-01')).toEqual([]);
+  });
 });
 
 describe('rowMatchesReplicationSlot', () => {

@@ -25,6 +25,8 @@ export {
   rowMatchesReplicationSlot,
   buildInsertPayloadFromSlot,
   createdAtForMesAno,
+  serieEncerradaParaMes,
+  selectContaFixaCarryForward,
 } from './service/despesaFixaReplication.js';
 
 export {

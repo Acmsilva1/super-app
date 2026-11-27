@@ -9057,6 +9057,16 @@
                         }
                         contentEl._financeScreenLoading = true;
                         this.renderFinanceiroContent(contentEl, { mes_ano: resolvedMesAno });
+                        // Continua contas fixas do mês anterior (ex.: dez→jan) antes de carregar a tela.
+                        if (sections.includes('data')) {
+                            try {
+                                await fetch('/api/financeiro', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ acao: 'materializar_despesas_fixas', mes_ano: resolvedMesAno }),
+                                });
+                            } catch (_) { /* materialização best-effort; GET segue mesmo se falhar */ }
+                        }
                         const responses = await Promise.all(sections.map(async (section) => {
                             const res = await fetch('/api/financeiro?mes_ano=' + encodeURIComponent(resolvedMesAno)
                                 + '&secao=' + encodeURIComponent(section), { cache: 'no-store' });
@@ -9736,7 +9746,7 @@
                 } else if (screen === 'fixas') {
                     const importHtml = despesasFixas.length === 0 ? `
                         <div class="fin-callout" role="region" aria-label="Preencher despesas fixas">
-                            <p>Este mês ainda não tem despesas fixas. Contas fixas e parcelas já lançadas no ano são replicadas automaticamente. Toque abaixo para preencher agora.</p>
+                            <p>Este mês ainda não tem despesas fixas. Ao abrir o mês, contas fixas ativas do mês anterior (inclusive na virada do ano) e parcelas do ano são preenchidas automaticamente. Toque abaixo para forçar agora.</p>
                             <button type="button" class="fin-btn fin-btn--ghost" data-action="financeiro-import-fixas-prev-month">Preencher mês automaticamente</button>
                         </div>` : '';
                     bodyHtml = `
@@ -10508,7 +10518,7 @@
                 const labelAtual = this.formatMesAnoLabel(mesAtual);
                 const okConfirm = await this.showConfirm(
                     'Preencher despesas fixas',
-                    `Contas fixas e parcelas já cadastradas no ano serão geradas para ${labelAtual}, com a parcela correta de cada mês. Deseja continuar?`
+                    `Contas fixas ativas do mês anterior e parcelas do ano serão geradas para ${labelAtual}. Séries encerradas não voltam. Deseja continuar?`
                 );
                 if (!okConfirm) return;
                 const button = el.querySelector('[data-action="financeiro-import-fixas-prev-month"]');

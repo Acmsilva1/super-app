@@ -604,7 +604,8 @@ describe('API do financeiro', () => {
       .send({ acao: 'materializar_despesas_fixas', mes_ano: '2026-07' });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ok: true, mes_ano: '2026-07' });
-    expect(track.tables).toEqual(['tb_despesas_fixas']);
+    expect(res.body).toEqual({ ok: true, mes_ano: '2026-07', criados: 0 });
+    expect(track.tables.length).toBeGreaterThanOrEqual(1);
+    expect(track.tables.every((table) => table === 'tb_despesas_fixas')).toBe(true);
   });
 });

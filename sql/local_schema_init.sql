@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS public.tb_despesas_fixas (
   conta_fixa BOOLEAN DEFAULT FALSE,
   parcela_atual INT,
   parcela_total INT,
-  serie_id UUID
+  serie_id UUID,
+  serie_encerrada_em DATE NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.tb_poupanca (

@@ -240,3 +240,75 @@ export function buildInsertPayloadFromSlot(series, slot, status = 'pendente') {
     created_at: createdAtForMesAno(slot.mes_ano, series.startCreatedAt || null),
   };
 }
+
+function normalizeSerieDescricaoLocal(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+function isParcelaRowLocal(row) {
+  const atual = Number(row?.parcela_atual);
+  const total = Number(row?.parcela_total);
+  return Number.isInteger(atual) && Number.isInteger(total) && atual >= 1 && total >= 1 && atual <= total;
+}
+
+function isContaFixaRowLocal(row) {
+  return (row?.conta_fixa === true || row?.conta_fixa === 'true') && !isParcelaRowLocal(row);
+}
+
+/** True se a série foi encerrada neste mês-alvo ou antes. */
+export function serieEncerradaParaMes(row, targetMesAno) {
+  const raw = String(row?.serie_encerrada_em || '').trim();
+  if (!raw) return false;
+  const encerradaMes = raw.length >= 7 ? raw.slice(0, 7) : '';
+  return /^\d{4}-\d{2}$/.test(encerradaMes) && String(targetMesAno) >= encerradaMes;
+}
+
+function contaFixaAlreadyInMonthLocal(existingRows, template) {
+  const serieId = template?.serie_id ? String(template.serie_id) : '';
+  if (serieId) {
+    return (existingRows || []).some((row) => isContaFixaRowLocal(row) && String(row.serie_id || '') === serieId);
+  }
+  const descNorm = normalizeSerieDescricaoLocal(template?.descricao);
+  return (existingRows || []).some((row) => isContaFixaRowLocal(row) && normalizeSerieDescricaoLocal(row.descricao) === descNorm);
+}
+
+/**
+ * Seleciona contas fixas do mês anterior que devem nascer no mês alvo.
+ * Cruza ano; não recria série com serie_encerrada_em <= alvo.
+ */
+export function selectContaFixaCarryForward(prevRows = [], existingMonthRows = [], targetMesAno) {
+  if (!/^\d{4}-\d{2}$/.test(String(targetMesAno || ''))) return [];
+  const toInsert = [];
+  const seenKeys = new Set();
+
+  for (const template of prevRows || []) {
+    if (!isContaFixaRowLocal(template)) continue;
+    if (serieEncerradaParaMes(template, targetMesAno)) continue;
+    if (contaFixaAlreadyInMonthLocal(existingMonthRows, template)) continue;
+
+    const serieId = template.serie_id ? String(template.serie_id) : '';
+    const key = serieId || `desc:${normalizeSerieDescricaoLocal(template.descricao)}`;
+    if (!key || key === 'desc:' || seenKeys.has(key)) continue;
+    seenKeys.add(key);
+
+    toInsert.push({
+      descricao: String(template.descricao || '').trim(),
+      valor: Number(template.valor || 0),
+      status: 'pendente',
+      pendente_mes: false,
+      conta_fixa: true,
+      parcela_atual: null,
+      parcela_total: null,
+      serie_id: serieId || null,
+      serie_encerrada_em: null,
+      created_at: createdAtForMesAno(targetMesAno, template.created_at || null),
+    });
+  }
+
+  return toInsert;
+}

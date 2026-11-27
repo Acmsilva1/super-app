@@ -84,8 +84,8 @@ export default async function handler(req, res) {
         if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(body.mes_ano || ''))) {
           return json(res, 400, { error: 'mes_ano invalido' });
         }
-        await garantirDespesasFixasMes(body.mes_ano, context);
-        return json(res, 200, { ok: true, mes_ano: body.mes_ano });
+        const result = await garantirDespesasFixasMes(body.mes_ano, context);
+        return json(res, 200, { ok: true, mes_ano: body.mes_ano, criados: Number(result?.criados || 0) });
       }
       const result = await criarRegistroFinanceiro(req, context);
       return json(res, result.status, result.data);
