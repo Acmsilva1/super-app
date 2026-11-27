@@ -40,10 +40,13 @@ describe('lista de compras — tags e confirmações', () => {
     });
     expect(htmlRow).toContain('class="lc-item__qty"');
     expect(htmlRow).toContain('>x2<');
-    expect(htmlRow).toContain('size="6"');
+    expect(htmlRow).toContain('<textarea class="lc-item__text"');
+    expect(htmlRow).toContain('class="lc-item__body"');
     expect(htmlRow).toContain('lc-item__meta lc-cat lc-cat--essencial');
     expect(htmlRow).toContain('>Essencial<');
     expect(css).toContain('gap: 0.2rem');
+    expect(css).toContain('white-space: pre-wrap');
+    expect(css).toContain('.lc-item__body');
     expect(css).toContain('.lc-cat--essencial');
     expect(css).toContain('--lc-cat-feira:');
   });

@@ -1304,6 +1304,7 @@ html[data-theme] #window-saude .training-prototype select {
     flex: 0 0 auto;
     width: 1.75rem;
     height: 2.25rem;
+    margin-top: 0.35rem;
     margin-left: -0.35rem;
     border: 0;
     border-radius: 0.4rem;
@@ -1354,23 +1355,37 @@ html[data-theme] #window-saude .training-prototype select {
 .lc-field__error { margin: -0.4rem 0 0.8rem; font-size: 0.82rem; color: var(--bk-neg); }
 .lc-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.55rem;
-    padding: 0 0.5rem 0 0.35rem;
+    padding: 0.15rem 0.5rem 0.15rem 0.35rem;
 }
-.lc-item__main {
+.lc-item__body {
     flex: 1;
     min-width: 0;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    gap: 0.25rem 0.45rem;
+}
+.lc-item__main {
+    flex: 1 1 10rem;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
     gap: 0.2rem;
 }
 .lc-item__text {
-    flex: 0 1 auto;
-    width: auto;
-    max-width: calc(100% - 2.75rem);
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    width: 100%;
     min-width: 0;
-    text-overflow: ellipsis;
+    max-width: 100%;
+    resize: none;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-wrap;
+    line-height: 1.3;
     border-radius: 0.35rem;
     field-sizing: content;
 }
@@ -1379,9 +1394,7 @@ html[data-theme] #window-saude .training-prototype select {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
-    max-width: 42%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin-top: 0.55rem;
     border: 1px solid var(--bk-line);
     border-radius: 999px;
     background: var(--bk-neg-soft);
@@ -1410,9 +1423,7 @@ html[data-theme] #window-saude .training-prototype select {
 .lc-item__meta.lc-cat {
     display: inline-flex;
     align-items: center;
-    max-width: 7.5rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    max-width: 100%;
     border: 1px solid var(--bk-line);
     border-radius: 999px;
     padding: 0.28rem 0.55rem;
@@ -1461,7 +1472,7 @@ html[data-theme] #window-saude .training-prototype select {
     justify-content: center;
 }
 .lc-item__del:hover { background: var(--bk-neg-soft); color: var(--bk-neg); }
-.lc-check { position: relative; flex: 0 0 auto; display: inline-flex; cursor: pointer; }
+.lc-check { position: relative; flex: 0 0 auto; display: inline-flex; margin-top: 0.55rem; cursor: pointer; }
 .lc-check__input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .lc-check__box {
     width: 1.25rem;
@@ -1502,17 +1513,41 @@ html[data-theme] #window-saude .training-prototype select {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
-/* ---------- Escala tipográfica mobile (todos os módulos) ---------- */
+/* Acao explicita para editar nome e quantidade da lista de compras. */
+.lc-item__edit { flex: 0 0 auto; width: 2.25rem; height: 2.75rem; margin-top: 0.1rem; padding: 0; border: 0; border-radius: .4rem; background: transparent; color: var(--bk-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.lc-item__edit:hover { background: var(--bk-bg); color: var(--bk-ink); }
+.lc-item__edit:focus-visible { outline: 2px solid var(--bk-focus); outline-offset: 2px; }
+.lc-item__del { margin-top: 0.35rem; }
+
+/* ---------- Escala tipográfica + lista de compras no mobile ---------- */
 @media (max-width: 600px) {
     html[data-theme] { font-size: 15px; }
     /* iOS dá zoom ao focar campos com fonte < 16px */
     html[data-theme] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) { font-size: 16px !important; }
+    .lc-shell .fin-body__inner {
+        padding-left: max(0.45rem, env(safe-area-inset-left));
+        padding-right: max(0.45rem, env(safe-area-inset-right));
+    }
+    .lc-item {
+        gap: 0.3rem;
+        padding: 0.35rem 0.15rem 0.35rem 0.1rem;
+    }
+    .lc-item__drag {
+        width: 1.4rem;
+        margin-left: 0;
+    }
+    .lc-item__body {
+        flex: 1 1 auto;
+        gap: 0.2rem 0.35rem;
+    }
+    .lc-item__main {
+        flex: 1 1 100%;
+    }
+    .lc-item__edit,
+    .lc-item__del {
+        width: 2rem;
+    }
 }
-
-/* Acao explicita para editar nome e quantidade da lista de compras. */
-.lc-item__edit { flex: 0 0 auto; width: 2.25rem; height: 2.75rem; padding: 0; border: 0; border-radius: .4rem; background: transparent; color: var(--bk-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
-.lc-item__edit:hover { background: var(--bk-bg); color: var(--bk-ink); }
-.lc-item__edit:focus-visible { outline: 2px solid var(--bk-focus); outline-offset: 2px; }
 
 /* ---------- Feedback de interacao ---------- */
 .home-app-row {
