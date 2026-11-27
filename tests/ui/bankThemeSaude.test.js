@@ -23,4 +23,13 @@ describe('bank-theme — janela do Saúde', () => {
     expect(indexHtml).toContain('aria-label="Voltar para a tela inicial"');
     expect(indexHtml).not.toContain('syncShellForOpenModules');
   });
+
+  it('padroniza dietas, agendadores e treino no tema bancário', () => {
+    expect(bankTheme).toContain('.saude-diet-item');
+    expect(bankTheme).toContain('.saude-diet-alert-switch');
+    expect(bankTheme).toContain('.saude-alert-panel');
+    expect(bankTheme).toContain('.saude-alert-diet-list');
+    expect(bankTheme).toContain('.training-prototype');
+    expect(bankTheme).toContain('--training-green: var(--bk-primary)');
+  });
 });

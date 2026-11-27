@@ -215,12 +215,21 @@ const SAUDE_STYLES = `
     .saude-meal-item__actions .saude-icon-btn { width: 2.15rem; height: 2.15rem; }
     .saude-meal-empty { margin: .7rem 0 0; color: var(--saude-texto-secundario); font-size: .76rem; }
     .saude-diet-modal { width: min(100%, 48rem); max-height: min(90dvh, 52rem); overflow: auto; padding: 1.1rem; border: 1px solid rgba(74, 164, 85, .42); border-radius: 1.1rem; background: radial-gradient(circle at 15% 0%, rgba(50, 119, 70, .16), transparent 18rem), #0f172a; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); }
-    .saude-diet-alert-switch{display:inline-flex;align-items:center;gap:.6rem;min-height:44px;padding:.45rem .8rem;border:1px solid var(--saude-frame);border-radius:.7rem;background:transparent;color:inherit;font:inherit;font-size:.8rem;cursor:pointer;margin:.35rem .7rem}
+    .saude-diet-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:.15rem}
+    .saude-diet-item .fin-nav-row{min-width:0}
+    .saude-diet-alert-switch{display:inline-flex;align-items:center;gap:.45rem;min-height:2.25rem;padding:.35rem .7rem;border:1px solid var(--saude-frame);border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:.72rem;font-weight:700;cursor:pointer;margin:0 .75rem 0 0;white-space:nowrap}
     .saude-diet-alert-switch:focus-visible{outline:2px solid var(--saude-lima);outline-offset:2px}.saude-diet-alert-switch:disabled{opacity:.55;cursor:wait}
-    .saude-diet-alert-track{width:36px;height:22px;position:relative;border-radius:20px;background:#64748b;flex-shrink:0}.saude-diet-alert-track::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:white;transition:transform .15s}
+    .saude-diet-alert-track{width:32px;height:18px;position:relative;border-radius:20px;background:#64748b;flex-shrink:0}.saude-diet-alert-track::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:white;transition:transform .15s}
     .saude-diet-alert-switch[aria-checked="true"] .saude-diet-alert-track{background:#327746}.saude-diet-alert-switch[aria-checked="true"] .saude-diet-alert-track::after{transform:translateX(14px)}
-    .saude-alert-time-row{display:flex;align-items:end;flex-wrap:wrap;gap:.5rem;margin:.75rem 0}.saude-alert-time-row label{flex:1;min-width:110px;font-size:.8rem}.saude-alert-time-row label:first-child{flex:2}.saude-alert-time-row .saude-field{width:100%}
-    .saude-diet-alert-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.4rem}
+    .saude-alert-time-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr) auto;align-items:end;gap:.65rem;margin:.85rem 0}
+    .saude-alert-time-row label{display:flex;flex-direction:column;gap:.35rem;min-width:0;font-size:.78rem;font-weight:600;color:var(--saude-texto-secundario)}
+    .saude-alert-time-row .saude-field{width:100%}
+    .saude-alert-time-row .saude-icon-btn{margin-bottom:.1rem}
+    .saude-alert-times{display:grid;gap:.15rem}
+    .saude-alert-diet-list{list-style:none;margin:.85rem 0 0;padding:0;display:grid;gap:.55rem}
+    .saude-diet-alert-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.55rem;padding:.7rem .85rem;border:1px solid var(--saude-frame);border-radius:.75rem;background:rgba(3,7,18,.22)}
+    .saude-diet-alert-row > span{min-width:0;flex:1;font-size:.88rem;font-weight:600;overflow-wrap:anywhere}
+    .saude-diet-alert-row .saude-diet-alert-switch{margin:0}
     .saude-diet-week-nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:1rem 0;padding:.65rem;border:1px solid rgba(74,164,85,.4);border-radius:.8rem;background:rgba(50,119,70,.12)}
     .saude-diet-week-nav div{text-align:center}.saude-diet-week-nav small{display:block;margin-top:.25rem;color:var(--saude-texto-secundario)}
     .saude-diet-type-options{display:grid;gap:.8rem}.saude-diet-type-options button{display:flex;flex-direction:column;align-items:flex-start;padding:1rem;white-space:normal;text-align:left}.saude-diet-type-options span{font-weight:400;margin-top:.3rem}
@@ -410,6 +419,10 @@ const SAUDE_STYLES = `
       .saude-diet-card { min-height: auto; padding: .85rem 1rem; }
       .saude-profile-form__grid { grid-template-columns: 1fr; }
       .saude-alert-meal-row { grid-template-columns: 1fr; gap: .4rem; }
+      .saude-alert-time-row { grid-template-columns: 1fr; }
+      .saude-alert-time-row .saude-icon-btn { justify-self: end; }
+      .saude-diet-item { grid-template-columns: 1fr; gap: 0; }
+      .saude-diet-item .saude-diet-alert-switch { margin: 0 1rem .85rem; justify-self: start; }
       .saude-profile-summary { grid-template-columns: 1fr 1fr; gap: .5rem; padding-inline: .85rem; }
       .saude-profile-summary--detail { padding-inline: 0; }
       .saude-profile-stat { padding: .6rem .55rem; }
@@ -695,10 +708,18 @@ function renderDietAlertSwitch(diet, state) {
   return `<button type="button" role="switch" aria-checked="${enabled}" aria-label="Alerta de ${escapeHtml(diet.titulo)}" class="saude-diet-alert-switch" data-saude-action="toggle-diet-alert" data-saude-id="${escapeHtml(diet.id)}"${state.busy ? ' disabled' : ''}><span class="saude-diet-alert-track" aria-hidden="true"></span><span>Alerta ${enabled ? 'Ligado' : 'Desligado'}</span></button>`;
 }
 
+function imcTagClass(classification) {
+  if (!classification) return 'fin-tag';
+  if (/sobrepeso|obesidade/i.test(classification)) return 'fin-tag fin-tag--neg';
+  if (/magreza|baixo/i.test(classification)) return 'fin-tag fin-tag--neg';
+  if (/normal|eutrof/i.test(classification)) return 'fin-tag fin-tag--pos';
+  return 'fin-tag';
+}
+
 function renderProfileDietSection(profile, state) {
   const rows = dietsForProfile(state, profile.id);
   const items = rows.length
-    ? rows.map((diet) => `<li><button type="button" class="fin-nav-row saude-diet-row" data-saude-action="view-diet" data-saude-id="${escapeHtml(diet.id)}" aria-label="Abrir ${escapeHtml(diet.titulo)}">
+    ? rows.map((diet) => `<li class="saude-diet-item"><button type="button" class="fin-nav-row saude-diet-row" data-saude-action="view-diet" data-saude-id="${escapeHtml(diet.id)}" aria-label="Abrir ${escapeHtml(diet.titulo)}">
         <i class="fas fa-utensils fin-nav-row__icon" aria-hidden="true"></i>
         <span class="fin-entry__main"><span class="fin-entry__title">${escapeHtml(diet.titulo)}</span><span class="fin-entry__meta">${diet.semanal ? 'Semanal · 7 dias' : `${countDietItems(diet.refeicoes)} itens`}</span></span>
         <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
@@ -1341,7 +1362,7 @@ function renderProfiles(container, state) {
       return `<li><button type="button" class="fin-nav-row saude-profile-row" data-saude-action="open-profile-detail" data-saude-id="${escapeHtml(profile.id)}" aria-label="Abrir painel de ${escapeHtml(profile.nome)}">
         <span class="saude-profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
         <span class="fin-entry__main"><span class="fin-entry__title">${escapeHtml(profile.nome)}</span><span class="fin-entry__meta">${escapeHtml(profileIdentityLine(profile))}</span></span>
-        <span class="fin-entry__side"><span class="fin-entry__value">IMC ${formatarNumeroSaude(imc, 2)}</span>${classification ? `<span class="fin-tag">${escapeHtml(classification)}</span>` : ''}</span>
+        <span class="fin-entry__side"><span class="fin-entry__value">IMC ${formatarNumeroSaude(imc, 2)}</span>${classification ? `<span class="${imcTagClass(classification)}">${escapeHtml(classification)}</span>` : ''}</span>
         <i class="fas fa-chevron-right fin-nav-row__chevron" aria-hidden="true"></i>
       </button></li>`;
     }).join('')
@@ -1490,12 +1511,13 @@ function renderProfileAlertSchedules(profile, state) {
     ? '<p class="saude-alert-help" role="status">Carregando agendamentos salvos...</p>'
     : '';
   return `${renderNotice(state)}<section class="saude-alert-panel" aria-labelledby="saude-alert-title">
-    <header class="saude-alert-panel__header"><span class="saude-alert-panel__icon"><i class="fas fa-bell"></i></span><div><h3 id="saude-alert-title">Agendadores deste perfil</h3><p>Configure quando este perfil recebe os avisos diários no WhatsApp.</p></div></header>
+    <header class="saude-alert-panel__header"><span class="saude-alert-panel__icon" aria-hidden="true"><i class="fas fa-bell"></i></span><div><h3 id="saude-alert-title">Agendadores deste perfil</h3><p>Configure quando este perfil recebe os avisos diários no WhatsApp.</p></div></header>
     ${loading}
     <form data-alert-schedule-form="agua" data-profile-id="${escapeHtml(profile.id)}">
       <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
         <legend><label><input type="checkbox" name="agua_ativo"${schedule.agua_ativo ? ' checked' : ''}> Alertas de água</label></legend>
-        <div class="saude-alert-time-row"><label>Horário de início<input type="time" class="saude-field" name="agua_inicio" value="${escapeHtml(schedule.agua_inicio)}" required></label><label>Horário de fim<input type="time" class="saude-field" name="agua_fim" value="${escapeHtml(schedule.agua_fim)}" required></label></div><p class="saude-alert-help">Repete a partir do início, dentro desta janela no mesmo dia. Horário de Brasília.</p>
+        <div class="saude-alert-time-row"><label>Horário de início<input type="time" class="saude-field" name="agua_inicio" value="${escapeHtml(schedule.agua_inicio)}" required></label><label>Horário de fim<input type="time" class="saude-field" name="agua_fim" value="${escapeHtml(schedule.agua_fim)}" required></label></div>
+        <p class="saude-alert-help">Repete a partir do início, dentro desta janela no mesmo dia. Horário de Brasília.</p>
         <label class="saude-alert-meal-row"><span>Intervalo entre alertas</span><select class="saude-field" name="agua_intervalo_horas">${Array.from({ length: 12 }, (_, index) => index + 1).map((hours) => `<option value="${hours}"${Number(schedule.agua_intervalo_horas) === hours ? ' selected' : ''}>A cada ${hours} ${hours === 1 ? 'hora' : 'horas'}</option>`).join('')}</select></label>
         ${saveButton('agua')}
       </fieldset>
@@ -1503,9 +1525,11 @@ function renderProfileAlertSchedules(profile, state) {
     <form data-alert-schedule-form="dieta" data-profile-id="${escapeHtml(profile.id)}">
       <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
         <legend><label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa ? ' checked' : ''}> Alertas de dietas deste perfil</label></legend>
-        <div class="saude-alert-times">${schedule.dieta_horarios.map((entry,index) => `<div class="saude-alert-time-row"><label>Refeição<select class="saude-field" name="dieta_refeicao">${DIET_MEALS.map(meal => `<option value="${meal.tipo}"${entry.tipo === meal.tipo ? ' selected' : ''}>${meal.titulo}</option>`).join('')}</select></label><label>Horário<input class="saude-field" type="time" name="dieta_horario" value="${escapeHtml(entry.horario)}" required></label><button type="button" class="saude-icon-btn" data-saude-action="remove-diet-alert-time" data-time-index="${index}" aria-label="Remover horário ${index+1}"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button type="button" class="saude-btn" data-saude-action="add-diet-alert-time"${schedule.dieta_horarios.length >= 12 ? ' disabled' : ''}><i class="fas fa-plus"></i> Adicionar horário</button><p class="saude-alert-help">Horário de Brasília. O bot usa estes horários após salvar.</p>
-        <ul>${dietList || '<li>Nenhuma dieta cadastrada neste perfil.</li>'}</ul>
-        <p class="saude-alert-help">Escolha abaixo quais dietas deseja receber. Desligar “Alertas de dietas deste perfil” pausa todos os envios.</p>
+        <div class="saude-alert-times">${schedule.dieta_horarios.map((entry,index) => `<div class="saude-alert-time-row"><label>Refeição<select class="saude-field" name="dieta_refeicao">${DIET_MEALS.map(meal => `<option value="${meal.tipo}"${entry.tipo === meal.tipo ? ' selected' : ''}>${meal.titulo}</option>`).join('')}</select></label><label>Horário<input class="saude-field" type="time" name="dieta_horario" value="${escapeHtml(entry.horario)}" required></label><button type="button" class="saude-icon-btn" data-saude-action="remove-diet-alert-time" data-time-index="${index}" aria-label="Remover horário ${index+1}"><i class="fas fa-trash"></i></button></div>`).join('')}</div>
+        <button type="button" class="saude-btn saude-alert-add-time" data-saude-action="add-diet-alert-time"${schedule.dieta_horarios.length >= 12 ? ' disabled' : ''}><i class="fas fa-plus"></i> Adicionar horário</button>
+        <p class="saude-alert-help">Horário de Brasília. O bot usa estes horários após salvar.</p>
+        <p class="saude-alert-help">Escolha quais dietas devem receber aviso. Desligar “Alertas de dietas deste perfil” pausa todos os envios.</p>
+        <ul class="saude-alert-diet-list">${dietList || '<li class="saude-alert-empty">Nenhuma dieta cadastrada neste perfil.</li>'}</ul>
         ${saveButton('dieta')}
       </fieldset>
       <p class="saude-alert-help">Os horários usam Brasília diariamente. A dieta pode ser avisada mesmo sem calorias preenchidas.</p>

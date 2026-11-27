@@ -177,6 +177,9 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('data-saude-action="open-water-tracker"');
     expect(source).toContain('saude-profile-modules');
     expect(source).toContain('function renderProfileDietSection(profile, state)');
+    expect(source).toContain('class="saude-diet-item"');
+    expect(source).toContain('function imcTagClass(classification)');
+    expect(source).toContain('class="saude-alert-diet-list"');
     expect(source).toContain('syncDietsForHealthProfile(state, healthProfile)');
     expect(source).toContain('data-saude-action="view-diet"');
     expect(source).toContain('renderDietForm(state)');
