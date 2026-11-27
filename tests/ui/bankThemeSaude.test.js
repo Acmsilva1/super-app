@@ -32,4 +32,13 @@ describe('bank-theme — janela do Saúde', () => {
     expect(bankTheme).toContain('.training-prototype');
     expect(bankTheme).toContain('--training-green: var(--bk-primary)');
   });
+
+  it('mantém o visual escuro do Saúde (estrutura fin-*, não limpeza Santander)', () => {
+    expect(bankTheme).toContain('Saúde: estrutura fin-* + visual escuro original');
+    expect(bankTheme).toContain('--saude-verde: #327746');
+    expect(bankTheme).toContain('--saude-lima: #95c11f');
+    expect(bankTheme).toContain('color-scheme: dark');
+    expect(bankTheme).toContain('#saude-modal-portal .saude-modal-backdrop');
+    expect(bankTheme).not.toContain('--bk-bg: #ffffff');
+  });
 });

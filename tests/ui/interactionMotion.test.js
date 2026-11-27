@@ -26,6 +26,6 @@ describe('feedback de interação', () => {
   });
 
   it('invalida a versão em cache do tema após alterar as animações', () => {
-    expect(indexHtml).toContain('bank-theme.css?v=2026-10-30-interaction-motion-v1');
+    expect(indexHtml).toContain('bank-theme.css?v=2026-11-27-saude-dark-restore-v1');
   });
 });

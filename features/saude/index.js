@@ -8,7 +8,7 @@ import {
 import { calcularImc, calcularLarguraGraficoPeso, classificarImc, criarCurvaSuave, criarTendenciaPeso, formatarNumeroSaude } from './service/perfilSaudeService.js';
 import { countDietItems, createEmptyDietMeals, DIET_MEALS, normalizeDietMeals } from './service/dietasService.js';
 import { dietQuantity, matchFoodForDietItem, nutritionForDietItem } from './service/alimentosService.js';
-import { cleanDietDisplayNote, DIET_NUTRITION_STYLES, renderDietFoodDetails, renderDietNutritionTotal } from './dietNutritionView.js';
+import { cleanDietDisplayNote, DIET_NUTRITION_STYLES, renderDietFoodCard, renderDietFoodPreviewBody, renderDietNutritionTotal } from './dietNutritionView.js';
 import { DEFAULT_ALERT_SCHEDULE, alertScheduleSection, alertScheduleChanged } from './service/alertScheduleConfig.js';
 import {
   deleteLocalWaterGoal,
@@ -61,10 +61,58 @@ function formatChartAxisDate(value) {
   return formatted.split(',')[0]?.trim() || formatted;
 }
 
+function getSaudeModalPortal() {
+  let portal = document.getElementById('saude-modal-portal');
+  if (!portal) {
+    portal = document.createElement('div');
+    portal.id = 'saude-modal-portal';
+    portal.setAttribute('data-saude-modal-portal', '');
+    document.body.appendChild(portal);
+  }
+  return portal;
+}
+
+function clearSaudeModalPortal() {
+  const portal = document.getElementById('saude-modal-portal');
+  if (portal) portal.replaceChildren();
+}
+
+function saudeQuery(container, selector) {
+  const portal = document.getElementById('saude-modal-portal');
+  return container.querySelector(selector) || portal?.querySelector(selector) || null;
+}
+
+function focusSaudeField(container, selector) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => saudeQuery(container, selector)?.focus());
+  });
+}
+
+function relocateSaudeModals(container) {
+  const portal = getSaudeModalPortal();
+  portal.replaceChildren();
+  const modals = [...container.querySelectorAll('.saude-modal-backdrop, .saude-confirm-backdrop')];
+  for (const modal of modals) {
+    if (modal.matches('[data-diet-modal-backdrop]') && modal.querySelector('.saude-diet-modal--item')) {
+      modal.classList.add('saude-modal-backdrop--stack');
+    }
+    if (modal.matches('[data-diet-food-preview-backdrop]')) {
+      modal.classList.add('saude-modal-backdrop--stack');
+    }
+    portal.appendChild(modal);
+  }
+  syncSaudeModalScrollLock(container);
+}
+
 function syncSaudeModalScrollLock(container) {
   const windowContent = container?.closest?.('.window-content');
+  const portal = document.getElementById('saude-modal-portal');
+  const modalOpen = Boolean(
+    container?.querySelector?.('.saude-modal-backdrop, .saude-confirm-backdrop')
+    || portal?.querySelector?.('.saude-modal-backdrop, .saude-confirm-backdrop'),
+  );
+  document.body.classList.toggle('saude-modal-open', modalOpen);
   if (!windowContent) return;
-  const modalOpen = container.querySelector('.saude-modal-backdrop, .saude-confirm-backdrop');
   if (modalOpen) {
     if (!windowContent.classList.contains('is-scroll-locked')) {
       windowContent.dataset.saudeScrollTop = String(windowContent.scrollTop);
@@ -345,8 +393,10 @@ const SAUDE_STYLES = `
     .saude-water-log span { color: var(--saude-texto-secundario); }
     .saude-water-log strong { color: var(--saude-texto); }
     .saude-water-modal__goal-actions { display: flex; justify-content: flex-end; margin-top: .85rem; }
-    .saude-modal-backdrop { position: fixed; inset: 0; z-index: 10020; display: grid; place-items: center; padding: 1rem; background: rgba(2, 6, 23, .78); backdrop-filter: blur(5px); animation: saude-water-fade .18s ease-out; }
-    .saude-confirm-backdrop { position: fixed; inset: 0; z-index: 10060; display: grid; place-items: center; padding: 1rem; background: rgba(2, 6, 23, .82); backdrop-filter: blur(7px); animation: saude-water-fade .18s ease-out; }
+    .saude-modal-backdrop { position: fixed; inset: 0; z-index: 10020; display: grid; place-items: center; align-content: center; padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); overflow: auto; overscroll-behavior: contain; background: rgba(2, 6, 23, .78); backdrop-filter: blur(8px); animation: saude-water-fade .18s ease-out; }
+    .saude-modal-backdrop--stack { z-index: 10040; background: rgba(2, 6, 23, .84); }
+    .saude-confirm-backdrop { position: fixed; inset: 0; z-index: 10060; display: grid; place-items: center; align-content: center; padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); overflow: auto; overscroll-behavior: contain; background: rgba(2, 6, 23, .82); backdrop-filter: blur(7px); animation: saude-water-fade .18s ease-out; }
+    body.saude-modal-open { overflow: hidden; }
     .saude-confirm-dialog { width: min(100%, 29rem); overflow: hidden; border: 1px solid rgba(195, 47, 38, .48); border-radius: 1.1rem; background: linear-gradient(145deg, #162238, #0f172a); box-shadow: 0 26px 80px rgba(0, 0, 0, .6); animation: saude-water-modal-in .22s cubic-bezier(.2,.8,.2,1); }
     .saude-confirm-dialog__body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .9rem; padding: 1.15rem; }
     .saude-confirm-dialog__icon { width: 3rem; height: 3rem; display: grid; place-items: center; border-radius: .9rem; background: rgba(195, 47, 38, .14); color: #fca5a5; font-size: 1.15rem; }
@@ -453,8 +503,9 @@ const SAUDE_STYLES = `
       .saude-section-title { font-size: .92rem; margin-top: 1.15rem; }
       .saude-profile-timeline { padding-inline: .85rem; }
       .saude-profile-timeline > summary { font-size: .78rem; line-height: 1.35; }
-      .saude-modal-backdrop { padding: max(.65rem, env(safe-area-inset-top)) .65rem max(.65rem, env(safe-area-inset-bottom)); align-items: flex-end; }
-      .saude-water-modal { width: 100%; max-height: min(92dvh, 52rem); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+      .saude-modal-backdrop, .saude-confirm-backdrop { padding: 0; place-items: stretch; align-content: stretch; }
+      .saude-diet-modal, .saude-water-modal, .saude-confirm-dialog { width: 100%; max-width: none; min-height: 100%; max-height: none; border-radius: 0; box-shadow: none; }
+      .saude-water-modal { width: 100%; max-height: none; }
       .saude-water-profiles { grid-template-columns: 1fr; }
       .saude-water-log { grid-template-columns: 1fr 1fr; }
       .saude-water-log time { grid-column: 1 / -1; }
@@ -555,7 +606,7 @@ function renderShell(container, content, {
     </main>
   `;
   syncSaudeFooterHeight(container);
-  requestAnimationFrame(() => syncSaudeModalScrollLock(container));
+  requestAnimationFrame(() => relocateSaudeModals(container));
 }
 
 function requestSaudeConfirmation(container, {
@@ -591,7 +642,7 @@ function requestSaudeConfirmation(container, {
       if (action === 'accept') finish(true);
     });
     document.addEventListener('keydown', onKeydown);
-    (container.querySelector('.saude-root') || container).append(backdrop);
+    getSaudeModalPortal().append(backdrop);
     requestAnimationFrame(() => {
       syncSaudeModalScrollLock(container);
       backdrop.querySelector('[data-saude-confirm="cancel"]')?.focus();
@@ -897,7 +948,7 @@ function dietDraftFromDiet(diet) {
 }
 
 function captureDietFormFields(container, state) {
-  const form = container.querySelector('[data-saude-diet-form]');
+  const form = saudeQuery(container, '[data-saude-diet-form]');
   if (!form) return;
   const values = new FormData(form);
   const perfilId = Number(values.get('perfil_id'));
@@ -912,7 +963,7 @@ function captureDietFormFields(container, state) {
 
 function renderDietMealEditor(meal, foods = []) {
   const items = meal.itens.length
-    ? `<div class="saude-meal-items">${meal.itens.map((item, index) => `<div class="saude-meal-item"><div style="min-width:0;flex:1">${renderDietFoodDetails(item, foods)}</div><div class="saude-meal-item__actions"><button type="button" class="saude-icon-btn" data-saude-action="edit-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Editar ${escapeHtml(item.nome)}"><i class="fas fa-pencil"></i></button><button type="button" class="saude-icon-btn saude-icon-btn--danger" data-saude-action="delete-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Excluir ${escapeHtml(item.nome)}"><i class="fas fa-trash"></i></button></div></div>`).join('')}</div>`
+    ? `<div class="saude-meal-items">${meal.itens.map((item, index) => `<div class="saude-meal-item"><div style="min-width:0;flex:1">${renderDietFoodCard(item, { mealType: meal.tipo, itemIndex: index, foods })}</div><div class="saude-meal-item__actions"><button type="button" class="saude-icon-btn" data-saude-action="edit-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Editar ${escapeHtml(item.nome)}"><i class="fas fa-pencil"></i></button><button type="button" class="saude-icon-btn saude-icon-btn--danger" data-saude-action="delete-diet-item" data-meal-type="${escapeHtml(meal.tipo)}" data-item-index="${index}" aria-label="Excluir ${escapeHtml(item.nome)}"><i class="fas fa-trash"></i></button></div></div>`).join('')}</div>`
     : '<p class="saude-meal-empty">Nenhum item adicionado.</p>';
   return `<section class="saude-meal-card" aria-labelledby="meal-${escapeHtml(meal.tipo)}"><div class="saude-meal-card__header"><h4 id="meal-${escapeHtml(meal.tipo)}">${escapeHtml(meal.titulo)}</h4><button type="button" class="saude-btn saude-meal-card__add" data-saude-action="add-diet-item" data-meal-type="${escapeHtml(meal.tipo)}"><i class="fas fa-plus"></i> Item</button></div>${items}</section>`;
 }
@@ -1014,9 +1065,34 @@ function renderDietOverlay(state) {
   const displayedDiet = diet.semanal ? { ...diet, semanal: false, refeicoes: diet.semana[state.dietDay || 0].refeicoes } : diet;
   const meals = normalizeDietMeals(displayedDiet.refeicoes).filter((meal) => meal.itens.length > 0);
   const mealContent = meals.length
-    ? `<div class="saude-diet-detail-meals">${meals.map((meal) => `<section class="saude-diet-detail-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item) => `<div class="saude-diet-detail-item">${renderDietFoodDetails(item, state.foodRows)}</div>`).join('')}</section>`).join('')}</div>`
+    ? `<div class="saude-diet-detail-meals">${meals.map((meal) => `<section class="saude-diet-detail-meal"><h4>${escapeHtml(meal.titulo)}</h4>${meal.itens.map((item, index) => `<div class="saude-diet-detail-item">${renderDietFoodCard(item, { mealType: meal.tipo, itemIndex: index, foods: state.foodRows })}</div>`).join('')}</section>`).join('')}</div>`
     : '<div class="saude-empty"><i class="fas fa-bowl-food"></i>Nenhum item cadastrado nesta dieta.</div>';
   return `<div class="saude-modal-backdrop" data-diet-modal-backdrop role="presentation"><section class="saude-diet-modal" role="dialog" aria-modal="true" aria-labelledby="diet-detail-title"><div class="saude-diet-modal__header"><div><h3 id="diet-detail-title">${escapeHtml(diet.titulo)}</h3>${showProfileName ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;"><i class="fas fa-user"></i> ${escapeHtml(profile.nome)}</p>` : ''}${diet.meta_calorias ? `<p style="margin:.25rem 0 0;color:var(--saude-lima);font-size:.82rem;font-weight:700;">Meta diária: ${escapeHtml(diet.meta_calorias)} kcal</p>` : ''}</div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-modal" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${renderDietAlertSwitch(diet, state)}${renderDietDayNav(diet, state)}${mealContent}${renderDietNutritionTotal(displayedDiet, state.foodRows)}${cleanDietDisplayNote(diet.observacoes) ? `<div class="saude-diet-section"><h4>Observações</h4><p class="saude-diet-copy">${escapeHtml(cleanDietDisplayNote(diet.observacoes))}</p></div>` : ''}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--danger" data-saude-action="delete-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-trash"></i> Excluir</button><button type="button" class="saude-btn" data-saude-action="edit-diet" data-saude-id="${escapeHtml(diet.id)}"><i class="fas fa-pencil"></i> Editar</button><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-modal">Fechar</button></div></section></div>`;
+}
+
+function renderDietFoodPreviewOverlay(state) {
+  const item = state.dietFoodPreview;
+  if (!item) return '';
+  return `<div class="saude-modal-backdrop saude-modal-backdrop--stack" data-diet-food-preview-backdrop role="presentation"><section class="saude-diet-modal" data-diet-food-preview role="dialog" aria-modal="true" aria-labelledby="diet-food-preview-title"><div class="saude-diet-modal__header"><div><h3 id="diet-food-preview-title">${escapeHtml(item.nome)}</h3><p>${escapeHtml(item.quantidade || '')}</p></div><button type="button" class="saude-icon-btn" data-saude-action="close-diet-food-preview" aria-label="Fechar"><i class="fas fa-xmark"></i></button></div>${renderDietFoodPreviewBody(item, state.foodRows)}<div class="saude-editor__actions"><button type="button" class="saude-btn saude-btn--primary" data-saude-action="close-diet-food-preview">Fechar</button></div></section></div>`;
+}
+
+function resolveDietFoodPreviewItem(state, mealType, itemIndex) {
+  const index = Number(itemIndex);
+  if (!mealType || !Number.isInteger(index) || index < 0) return null;
+  if (state.dietEditorOpen && state.dietDraft) {
+    const meal = normalizeDietMeals(state.dietDraft.refeicoes).find((entry) => entry.tipo === mealType);
+    return meal?.itens?.[index] || null;
+  }
+  if (state.dietModal === 'detail') {
+    const diet = state.diets.find((row) => Number(row.id) === Number(state.dietSelectedId));
+    if (!diet) return null;
+    const displayed = diet.semanal
+      ? { refeicoes: diet.semana[state.dietDay || 0]?.refeicoes }
+      : diet;
+    const meal = normalizeDietMeals(displayed.refeicoes).find((entry) => entry.tipo === mealType);
+    return meal?.itens?.[index] || null;
+  }
+  return null;
 }
 
 function renderDietas(container, state) {
@@ -1074,7 +1150,7 @@ function renderDietas(container, state) {
     </div>
     ${state.notice && state.notice.type !== 'success' ? `<div class="saude-notice${state.notice.type === 'error' ? ' saude-notice--error' : ''}" role="status">${escapeHtml(state.notice.text)}</div>` : ''}
     ${renderDietForm(state)}
-    ${content}${renderDietOverlay(state)}
+    ${content}${renderDietOverlay(state)}${renderDietFoodPreviewOverlay(state)}
   </section>`);
 }
 
@@ -1419,7 +1495,7 @@ function waterSummary(state) {
 }
 
 function renderProfileModals(state) {
-  return `${renderProfileForm(state)}${renderMeasurementForm(state)}${renderWeightForm(state)}${renderWaterModal(state)}${renderDietForm(state)}${renderDietOverlay(state)}`;
+  return `${renderProfileForm(state)}${renderMeasurementForm(state)}${renderWeightForm(state)}${renderWaterModal(state)}${renderDietForm(state)}${renderDietOverlay(state)}${renderDietFoodPreviewOverlay(state)}`;
 }
 
 function renderProfileHub(profile, state) {
@@ -1721,25 +1797,33 @@ function renderWaterModal(state) {
 }
 
 function unlockWaterDoseButtons(container) {
-  container?.querySelectorAll('[data-saude-action="add-water-ml"]').forEach((button) => {
+  for (const button of [
+    ...(container?.querySelectorAll?.('[data-saude-action="add-water-ml"]') || []),
+    ...(document.getElementById('saude-modal-portal')?.querySelectorAll('[data-saude-action="add-water-ml"]') || []),
+  ]) {
     button.disabled = false;
     button.removeAttribute('disabled');
-  });
+  }
 }
 
 function remountWaterTrackerModal(container, state) {
   if (state.waterModal !== 'tracker' || !state.waterConfig || !state.waterToday) return;
   const html = renderWaterModal(state);
   if (!html) return;
-  const existing = container.querySelector('[data-water-modal-backdrop]');
+  const existing = saudeQuery(container, '[data-water-modal-backdrop]');
   if (existing) existing.outerHTML = html;
 }
 
 function syncWaterTrackerDom(container, state, { skipWaterDrop = false } = {}) {
   if (!state.waterToday) return;
   const completed = state.waterToday.realizado_ml >= state.waterToday.meta_ml;
-  container.querySelectorAll('[data-saude-action="add-water-ml"]').forEach(button => { button.disabled = state.waterDoseSyncing; });
-  const modalStatus = container.querySelector('[data-water-modal-status]');
+  const portal = document.getElementById('saude-modal-portal');
+  const doseButtons = [
+    ...container.querySelectorAll('[data-saude-action="add-water-ml"]'),
+    ...(portal?.querySelectorAll('[data-saude-action="add-water-ml"]') || []),
+  ];
+  doseButtons.forEach((button) => { button.disabled = state.waterDoseSyncing; });
+  const modalStatus = saudeQuery(container, '[data-water-modal-status]');
   if (modalStatus) modalStatus.textContent = completed
     ? 'Meta do dia concluída! 💧'
     : `${state.waterToday.realizado_ml} de ${state.waterToday.meta_ml} ml hoje`;
@@ -1747,21 +1831,23 @@ function syncWaterTrackerDom(container, state, { skipWaterDrop = false } = {}) {
   if (cardStatus) cardStatus.textContent = `${state.waterToday.realizado_ml} de ${state.waterToday.meta_ml} ml hoje`;
   const progress = container.querySelector('[data-water-progress-fill]');
   if (progress) progress.style.width = `${Math.min(100,Math.round((state.waterToday.realizado_ml / state.waterToday.meta_ml) * 100))}%`;
-  container.querySelector('.saude-water-modal')?.classList.toggle('is-complete', completed);
+  saudeQuery(container, '.saude-water-modal')?.classList.toggle('is-complete', completed);
   container.querySelector('.saude-bank-water')?.classList.toggle('is-complete', completed);
   const footerValue = container.querySelector('[data-water-footer-value]');
   if (footerValue) footerValue.textContent = `${state.waterToday.realizado_ml}/${state.waterToday.meta_ml}`;
   if (!skipWaterDrop) {
-    refreshWaterVictoryPresentation(container, container, state.waterToday, state.waterProfileId);
+    const dropHost = saudeQuery(container, '.saude-water-modal') || container;
+    refreshWaterVictoryPresentation(dropHost, dropHost, state.waterToday, state.waterProfileId);
   }
 }
 
 function paintWaterTrackerUi(container, state, { animateFillFrom = null } = {}) {
   if (state.waterModal !== 'tracker' || !state.waterToday) return;
-  refreshWaterVictoryPresentation(container, container, state.waterToday, state.waterProfileId, { animateFillFrom })
+  const dropHost = saudeQuery(container, '.saude-water-modal') || container;
+  refreshWaterVictoryPresentation(dropHost, dropHost, state.waterToday, state.waterProfileId, { animateFillFrom })
     .then(() => {
       if (Number(state.waterToday.realizado_ml) < Number(state.waterToday.meta_ml)) {
-        ensureWaterDropMotion(container);
+        ensureWaterDropMotion(dropHost);
       }
     });
 }
@@ -1934,6 +2020,7 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
     dietModal: null,
     dietSelectedId: null,
     dietSelectedProfileId: null,
+    dietFoodPreview: null,
     dietItemMealType: null,
     dietItemEditingIndex: null,
     dietItemDraft: { nome: '', quantidade: '', calorias: null, alimento_id: null, observacao: '' },
@@ -1988,8 +2075,14 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
 
   const onClick = async (event) => {
     if (state.busy) return;
+    if (event.target.matches('[data-diet-food-preview-backdrop]') && state.dietFoodPreview) {
+      state.dietFoodPreview = null;
+      renderActiveSaudeView(container, state);
+      return;
+    }
     if (event.target.matches('[data-diet-modal-backdrop]') && state.dietModal) {
       state.dietModal = null;
+      state.dietFoodPreview = null;
       state.dietItemMealType = null;
       state.dietItemEditingIndex = null;
       renderActiveSaudeView(container, state);
@@ -1998,6 +2091,7 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
     if (event.target.matches('[data-diet-form-backdrop]') && state.dietEditorOpen) {
       state.dietEditorOpen = false;
       state.dietEditingId = null;
+      state.dietFoodPreview = null;
       renderActiveSaudeView(container, state);
       return;
     }
@@ -2072,7 +2166,7 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
         : { nome: '', meta_ml: 2000 };
       state.notice = null;
       renderActiveSaudeView(container, state);
-      requestAnimationFrame(() => container.querySelector('#water-name')?.focus());
+      focusSaudeField(container, '#water-name');
       return;
     }
     if (action === 'delete-water-goal' && state.waterConfig && !state.busy) {
@@ -2418,7 +2512,7 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       state.dietModal = null;
       state.notice = null;
       renderActiveSaudeView(container, state);
-      requestAnimationFrame(() => container.querySelector('#diet-titulo')?.focus());
+      focusSaudeField(container, '#diet-titulo');
       return;
     }
     if (action === 'diet-type-single' || action === 'diet-type-week') {
@@ -2487,8 +2581,21 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
     }
     if (action === 'close-diet-modal') {
       state.dietModal = null;
+      state.dietFoodPreview = null;
       state.dietItemMealType = null;
       state.dietItemEditingIndex = null;
+      renderActiveSaudeView(container, state);
+      return;
+    }
+    if (action === 'preview-diet-food') {
+      const item = resolveDietFoodPreviewItem(state, actionElement.dataset.mealType, actionElement.dataset.itemIndex);
+      if (!item) return;
+      state.dietFoodPreview = { ...item };
+      renderActiveSaudeView(container, state);
+      return;
+    }
+    if (action === 'close-diet-food-preview') {
+      state.dietFoodPreview = null;
       renderActiveSaudeView(container, state);
       return;
     }
@@ -2497,7 +2604,7 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       if (!state.dietDraft.titulo || !state.dietDraft.perfil_id) {
         state.notice = { type: 'error', text: 'Informe o nome da dieta e o perfil antes de adicionar alimentos.' };
         renderActiveSaudeView(container, state);
-        container.querySelector('#diet-titulo')?.focus();
+        focusSaudeField(container, '#diet-titulo');
         return;
       }
       state.dietItemError = null;
@@ -2509,7 +2616,7 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       state.dietItemDraft = { nome: '', quantidade: '', calorias: null, alimento_id: null, observacao: '' };
       state.dietModal = 'item';
       renderActiveSaudeView(container, state);
-      requestAnimationFrame(() => container.querySelector('#diet-item-name')?.focus());
+      focusSaudeField(container, '#diet-item-name');
       return;
     }
     if (action === 'edit-diet-item') {
@@ -2528,7 +2635,7 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       state.dietItemDraft = { ...item };
       state.dietModal = 'item';
       renderActiveSaudeView(container, state);
-      requestAnimationFrame(() => container.querySelector('#diet-item-name')?.focus());
+      focusSaudeField(container, '#diet-item-name');
       return;
     }
     if (action === 'delete-diet-item') {
@@ -2561,9 +2668,10 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       if (diet.semanal) state.dietDraft.refeicoes = normalizeDietMeals(diet.semana[0].refeicoes);
       if (diet.perfil_id) state.dietSelectedProfileId = Number(diet.perfil_id);
       state.dietModal = null;
+      state.dietFoodPreview = null;
       state.notice = null;
       renderActiveSaudeView(container, state);
-      requestAnimationFrame(() => container.querySelector('#diet-titulo')?.focus());
+      focusSaudeField(container, '#diet-titulo');
       return;
     }
     if (action === 'delete-diet') {
@@ -3013,7 +3121,7 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       captureDietItemFields(event.target.closest('form'), state);
       state.dietItemError = null;
       renderActiveSaudeView(container, state);
-      container.querySelector('#diet-item-quantity')?.focus();
+      focusSaudeField(container, '#diet-item-quantity');
       return;
     }
     const key = event.target.dataset.saudeFilter;
@@ -3030,10 +3138,15 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
     }
   };
 
+  const portal = getSaudeModalPortal();
   container.addEventListener('click', onClick);
   container.addEventListener('submit', onSubmit);
   container.addEventListener('input', onFilter);
   container.addEventListener('change', onFilter);
+  portal.addEventListener('click', onClick);
+  portal.addEventListener('submit', onSubmit);
+  portal.addEventListener('input', onFilter);
+  portal.addEventListener('change', onFilter);
   let viewportResizeTimer = null;
   const onViewportChange = () => {
     clearTimeout(viewportResizeTimer);
@@ -3078,6 +3191,12 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
     container.removeEventListener('submit', onSubmit);
     container.removeEventListener('input', onFilter);
     container.removeEventListener('change', onFilter);
+    portal.removeEventListener('click', onClick);
+    portal.removeEventListener('submit', onSubmit);
+    portal.removeEventListener('input', onFilter);
+    portal.removeEventListener('change', onFilter);
+    clearSaudeModalPortal();
+    document.body.classList.remove('saude-modal-open');
   };
 
   renderProfiles(container, state);

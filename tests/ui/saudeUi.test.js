@@ -33,6 +33,11 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('state.dietModal = \'detail\'');
     expect(source).toContain('data-saude-action="edit-diet"');
     expect(source).toContain('data-saude-action="delete-diet"');
+    expect(source).toContain('renderDietFoodCard(');
+    expect(source).toContain("action === 'preview-diet-food'");
+    expect(source).toContain('data-diet-food-preview-backdrop');
+    expect(source).toContain("portal.id = 'saude-modal-portal'");
+    expect(source).toContain('place-items: center');
     expect(source).not.toContain('name="dia_${number}_conteudo"');
   });
 
