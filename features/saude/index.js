@@ -91,6 +91,16 @@ function focusSaudeField(container, selector) {
 function relocateSaudeModals(container) {
   const portal = getSaudeModalPortal();
   portal.replaceChildren();
+  const shell = container.querySelector('.saude-root');
+  if (shell) {
+    const styles = getComputedStyle(shell);
+    for (const token of ['--saude-verde', '--saude-lima', '--saude-musgo', '--saude-grama', '--saude-frame', '--saude-superficie', '--saude-painel', '--saude-painel-elevado', '--saude-texto', '--saude-texto-secundario']) {
+      portal.style.setProperty(token, styles.getPropertyValue(token));
+    }
+    portal.style.color = styles.color;
+    portal.style.fontFamily = styles.fontFamily;
+    portal.style.colorScheme = styles.colorScheme;
+  }
   const modals = [...container.querySelectorAll('.saude-modal-backdrop, .saude-confirm-backdrop')];
   for (const modal of modals) {
     if (modal.matches('[data-diet-modal-backdrop]') && modal.querySelector('.saude-diet-modal--item')) {
@@ -102,6 +112,14 @@ function relocateSaudeModals(container) {
     portal.appendChild(modal);
   }
   syncSaudeModalScrollLock(container);
+  if (modals.length) {
+    requestAnimationFrame(() => {
+      const topModal = modals.at(-1);
+      if (portal.contains(topModal) && !topModal.contains(document.activeElement)) {
+        topModal.querySelector('input:not([type="hidden"]), select, textarea, button:not([disabled])')?.focus();
+      }
+    });
+  }
 }
 
 function syncSaudeModalScrollLock(container) {
@@ -138,7 +156,6 @@ function readSaudeCheckpoint() {
 }
 
 const SAUDE_STYLES = `
-  <style>
     ${DIET_NUTRITION_STYLES}
     .saude-root {
       --saude-verde: #327746;
@@ -546,8 +563,15 @@ const SAUDE_STYLES = `
       .saude-profile-summary { grid-template-columns: 1fr; }
       .saude-profile-summary--detail { grid-template-columns: 1fr 1fr; }
     }
-  </style>
 `;
+
+function ensureSaudeStyles() {
+  if (document.getElementById('saude-module-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'saude-module-styles';
+  style.textContent = SAUDE_STYLES;
+  document.head.appendChild(style);
+}
 
 function renderBackButton(action, label = 'Voltar', extraAttrs = '') {
   return `<button type="button" class="fin-back" data-saude-action="${action}"${extraAttrs} aria-label="${escapeHtml(label)}"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>`;
@@ -589,10 +613,10 @@ function renderShell(container, content, {
   footer = '',
   addButton = '',
 } = {}) {
+  ensureSaudeStyles();
   container._treinoCleanup?.();
   container._treinoCleanup = null;
   container.innerHTML = `
-    ${SAUDE_STYLES}
     <main class="saude-root fin-bank${loading ? ' saude-root--loading' : ''}">
       <div class="fin-topbar">
         <div class="fin-topbar__inner">
@@ -1368,7 +1392,7 @@ function renderWeightTrend(profile, { availableWidth = 0, animate = false } = {}
     </div>
     <div class="saude-weight-trend__viewport" id="weight-trend-chart" tabindex="0" aria-label="${escapeHtml(scrollHint)}">
       <svg class="saude-weight-trend__chart${mobileChart ? ' saude-weight-trend__chart--mobile' : ''}" width="${chartWidth}" height="${chartHeight}" style="min-width:${chartWidth}px" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-labelledby="weight-trend-title">
-        <defs><linearGradient id="saude-weight-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-opacity=".22"/><stop offset="1" stop-opacity="0"/></linearGradient></defs>
+        <defs><linearGradient id="saude-weight-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#327746" stop-opacity=".22"/><stop offset="1" stop-color="#327746" stop-opacity="0"/></linearGradient></defs>
         <line class="saude-weight-trend__grid" x1="${pad.left}" y1="${pad.top}" x2="${chartWidth - pad.right}" y2="${pad.top}"/>
         <line class="saude-weight-trend__grid" x1="${pad.left}" y1="${midY.toFixed(1)}" x2="${chartWidth - pad.right}" y2="${midY.toFixed(1)}"/>
         <line class="saude-weight-trend__grid saude-weight-trend__grid--base" x1="${pad.left}" y1="${baseY}" x2="${chartWidth - pad.right}" y2="${baseY}"/>
@@ -2339,15 +2363,19 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       state.notice = null;
       if (state.view === 'profile-detail') renderProfileDetail(container, state);
       else renderProfiles(container, state);
-      requestAnimationFrame(() => container.querySelector('#profile-nome')?.focus());
+      focusSaudeField(container, '#profile-nome');
       return;
     }
     if (action === 'cancel-profile-editor') {
+      const editingId = state.profileEditingId;
       state.profileEditorOpen = false;
       state.profileEditingId = null;
       state.profileDraft = blankProfileDraft();
       if (state.view === 'profile-detail') renderProfileDetail(container, state);
       else renderProfiles(container, state);
+      focusSaudeField(container, editingId
+        ? `[data-saude-action="edit-profile"][data-saude-id="${editingId}"]`
+        : '[data-saude-action="add-profile"]');
       return;
     }
     if (action === 'delete-profile') {
@@ -2403,7 +2431,7 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       state.notice = null;
       if (state.view === 'profile-detail') renderProfileDetail(container, state);
       else renderProfiles(container, state);
-      requestAnimationFrame(() => container.querySelector('#profile-nome')?.focus());
+      focusSaudeField(container, '#profile-nome');
       return;
     }
     if (action === 'adjust-weight') {
@@ -2416,14 +2444,16 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       state.weightDraft = { peso_kg: profile.peso_kg };
       state.notice = null;
       renderProfileDetail(container, state);
-      requestAnimationFrame(() => container.querySelector('#weight-value')?.select());
+      requestAnimationFrame(() => requestAnimationFrame(() => saudeQuery(container, '#weight-value')?.select()));
       return;
     }
     if (action === 'cancel-weight-editor') {
+      const profileId = state.weightProfileId;
       state.weightEditorOpen = false;
       state.weightProfileId = null;
       state.weightDraft = null;
       renderProfileDetail(container, state);
+      focusSaudeField(container, `[data-saude-action="adjust-weight"][data-saude-id="${profileId}"]`);
       return;
     }
     if (action === 'edit-measurement') {
@@ -2534,11 +2564,15 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       return;
     }
     if (action === 'cancel-diet-editor') {
+      const editingId = state.dietEditingId;
       state.dietTypeChoice = false;
       state.dietEditorOpen = false;
       state.dietEditingId = null;
       state.dietModal = null;
       renderActiveSaudeView(container, state);
+      focusSaudeField(container, editingId
+        ? `[data-saude-action="view-diet"][data-saude-id="${editingId}"]`
+        : '[data-saude-action="add-diet"]');
       return;
     }
     if (action === 'add-diet-alert-time' || action === 'remove-diet-alert-time') {
@@ -2580,11 +2614,16 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
       return;
     }
     if (action === 'close-diet-modal') {
+      const wasDetail = state.dietModal === 'detail';
+      const dietId = state.dietSelectedId;
+      const mealType = state.dietItemMealType;
       state.dietModal = null;
       state.dietFoodPreview = null;
       state.dietItemMealType = null;
       state.dietItemEditingIndex = null;
       renderActiveSaudeView(container, state);
+      if (wasDetail) focusSaudeField(container, `[data-saude-action="view-diet"][data-saude-id="${dietId}"]`);
+      else if (mealType) focusSaudeField(container, `[data-saude-action="add-diet-item"][data-meal-type="${mealType}"]`);
       return;
     }
     if (action === 'preview-diet-food') {
@@ -3147,6 +3186,32 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
   portal.addEventListener('submit', onSubmit);
   portal.addEventListener('input', onFilter);
   portal.addEventListener('change', onFilter);
+  const onModalKeydown = (event) => {
+    if (portal.querySelector('[role="alertdialog"]')) return;
+    const modal = [...portal.querySelectorAll('.saude-modal-backdrop')].at(-1);
+    if (!modal) return;
+    if (event.key === 'Escape') {
+      const close = modal.querySelector('.saude-icon-btn[data-saude-action], [data-saude-action="close-diet-modal"]');
+      if (close) {
+        event.preventDefault();
+        close.click();
+      }
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')];
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+  document.addEventListener('keydown', onModalKeydown);
   let viewportResizeTimer = null;
   const onViewportChange = () => {
     clearTimeout(viewportResizeTimer);
@@ -3195,6 +3260,7 @@ export async function renderSaudeContent(container, {intent=null} = {}) {
     portal.removeEventListener('submit', onSubmit);
     portal.removeEventListener('input', onFilter);
     portal.removeEventListener('change', onFilter);
+    document.removeEventListener('keydown', onModalKeydown);
     clearSaudeModalPortal();
     document.body.classList.remove('saude-modal-open');
   };

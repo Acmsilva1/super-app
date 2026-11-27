@@ -5,7 +5,17 @@ const escape=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&l
 const TYPE_ICONS={full_body:'fa-dumbbell',abc:'fa-layer-group',semanal:'fa-calendar-week'};
 const exerciseCount=row=>row.grupos.reduce((sum,item)=>sum+item.exercicios.length,0);
 const countLabel=(count,singular,plural)=>`${count} ${count===1?singular:plural}`;
+function ensureTrainingStyles(){
+ if(typeof document==='undefined')return;
+ if(document.querySelector('link[data-training-styles]'))return;
+ const link=document.createElement('link');
+ link.rel='stylesheet';
+ link.href=new URL('./styles.css?v=2026-11-27',import.meta.url).href;
+ link.dataset.trainingStyles='';
+ document.head.appendChild(link);
+}
 export function mountTrainingPrototype(root,{profile,confirm}){
+ ensureTrainingStyles();
  const local=isLocalTrainingStorageMode(),repository=createTrainingRepository(profile);
  let rows=[],selected=null,groupId=null,editor=null,exerciseEditor=null,error='',disposed=false,busy=false,loading=!local,loadFailed=false;
  if(local)try{rows=readTrainings(profile);}catch{error='Não foi possível carregar os treinos locais. Verifique o armazenamento do navegador.';loadFailed=true;}
@@ -34,55 +44,7 @@ export function mountTrainingPrototype(root,{profile,confirm}){
     <span class="training-card-link">Abrir treino <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
    </button><div class="training-card-footer">${button('edit','Editar',`data-id="${escape(row.id)}"`)}${button('delete','Excluir',`data-id="${escape(row.id)}"`)}</div>
   </section>`;
-  root.innerHTML=`<style>
-   .training-prototype .training-actions{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
-   .training-prototype .training-card{padding:1rem;border:1px solid #d1d3d4;border-radius:1rem;background:#fff;margin:.75rem 0}
-   .training-prototype .training-form{display:grid;gap:.7rem;margin:.75rem 0}
-   .training-prototype label{display:grid;gap:.35rem;font-size:.85rem}
-   .training-prototype input,.training-prototype select{width:100%;box-sizing:border-box;padding:.7rem;border:1px solid #bacbc1;border-radius:.6rem;background:#fff;color:#20463c;font:inherit}
-   .training-prototype h3{margin:0 0 .5rem}.training-prototype p{font-size:.85rem;line-height:1.5}
-   .training-prototype .training-tabs{display:flex;gap:.4rem;overflow-x:auto;padding:.6rem 0}
-   .training-prototype .training-tabs button{white-space:nowrap}.saude-root .training-prototype .training-tabs .saude-btn[aria-pressed="true"]{background:#327746!important;color:white!important;border-color:#327746!important}
-   .training-prototype > .saude-btn{background:white!important;color:#20463c!important;border-color:#bacbc1!important}
-   .training-prototype .training-exercise{display:flex;justify-content:space-between;gap:.75rem;align-items:center;padding:.8rem 0;border-bottom:1px solid #d1d3d4;overflow-wrap:anywhere}
-   .training-prototype .training-exercise strong{min-width:0}.training-prototype .training-error{color:#a02220}
-   .training-prototype .training-open{width:100%;text-align:left;border:0;background:transparent;color:inherit;cursor:pointer;font:inherit;padding:0}
-   .training-prototype .training-note{color:#4b6e61}
-   .training-prototype{--training-ink:#20463c;--training-muted:#4b6e61;--training-green:#327746;color:var(--training-ink)}
-   .training-prototype .training-card{border-color:#dce7df;box-shadow:0 4px 16px #102c2410;border-radius:1.15rem}
-   .training-prototype .training-hero{padding:1.35rem;background:linear-gradient(120deg,#fff 35%,#edf5ef);margin-bottom:1rem}
-   .training-prototype .training-hero-heading,.training-prototype .training-card-heading{display:flex;align-items:center;gap:.75rem}
-   .training-prototype .training-hero-heading>div{flex:1;min-width:0}
-   .training-prototype .training-hero h3{font-size:1.35rem;margin:0}.training-prototype .training-hero p{margin:.3rem 0;color:var(--training-muted)}
-   .training-prototype .training-type-icon{display:grid;place-items:center;width:2.8rem;height:2.8rem;flex:none;border-radius:.85rem;background:#e6f0e8;color:var(--training-green);font-size:1.15rem}
-   .training-prototype .training-type-badge{padding:.3rem .65rem;border-radius:99px;background:#f1f5f2;font-size:.72rem;font-weight:700;color:var(--training-muted)}
-   .training-prototype .training-card-arrow{margin-left:auto;color:#719184;font-size:.8rem}
-   .training-prototype .training-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85rem}
-   .training-prototype .training-workout{margin:0;padding:1.15rem;transition:box-shadow .18s,transform .18s}
-   .training-prototype .training-workout:hover{box-shadow:0 7px 24px #102c2424;transform:translateY(-2px)}
-   .training-prototype .training-workout h3{margin:1rem 0 .3rem;font-size:1.1rem;overflow-wrap:anywhere}
-   .training-prototype .training-card-count{margin:0 0 .8rem;color:var(--training-muted)}
-   .training-prototype .training-group-preview{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1rem}
-   .training-prototype .training-group-preview span{display:flex;gap:.45rem;align-items:center;padding:.3rem .5rem;background:#f3f7f3;border-radius:.4rem;font-size:.72rem}
-   .training-prototype .training-group-preview b{color:var(--training-green)}
-   .training-prototype .training-card-link{display:flex;align-items:center;justify-content:space-between;padding-top:.65rem;border-top:1px solid #e8eeea;color:var(--training-green);font-size:.82rem;font-weight:700}
-   .training-prototype .training-card-footer{display:flex;gap:.45rem;margin-top:.85rem}
-   .training-prototype .training-card-footer .saude-btn{font-size:.75rem!important;padding:.35rem .65rem!important;min-height:2rem!important}
-   .training-prototype .training-summary{display:flex;gap:1.3rem;border-top:1px solid #dce7df;margin-top:1rem;padding-top:.85rem;font-size:.78rem;color:var(--training-muted)}
-   .training-prototype .training-summary strong{font-size:1.05rem;color:var(--training-ink);margin-right:.3rem}
-   .training-prototype .training-note.training-card{padding:.55rem .85rem;font-size:.73rem;margin:0 0 .7rem;box-shadow:none}
-   .training-prototype .training-empty{text-align:center;padding:2rem 1rem}.training-prototype .training-empty .training-type-icon{margin:0 auto .85rem}
-   .training-prototype .saude-btn[data-training-action="new"],.training-prototype .training-form button[type="submit"]{background:var(--training-green)!important;border-color:var(--training-green)!important;color:white!important}
-   .training-prototype .training-open:focus-visible,.training-prototype .saude-btn:focus-visible{outline:3px solid #5c9470;outline-offset:3px}
-   .training-prototype .training-tabs{gap:.5rem;margin:.85rem 0;border-top:1px solid #e8eeea;border-bottom:1px solid #e8eeea;padding:.8rem 0}
-   .training-prototype .training-form{padding:1rem;background:#f3f7f3;border-radius:.85rem}
-   .training-prototype .training-exercise{border:1px solid #e3ebe6;border-radius:.75rem;margin:.5rem 0;padding:.85rem}
-   .training-prototype .training-exercise-name{display:flex;align-items:center;gap:.7rem;min-width:0}
-   .training-prototype .training-exercise-number{display:grid;place-items:center;flex:none;width:1.7rem;height:1.7rem;border-radius:.5rem;background:#edf4ef;color:var(--training-green);font-size:.75rem;font-weight:700}
-   @media(max-width:600px){.training-prototype .training-grid{grid-template-columns:1fr}.training-prototype .training-hero-heading{flex-wrap:wrap}.training-prototype .training-hero-heading>div{flex-basis:calc(100% - 4rem)}}
-   @media(prefers-reduced-motion:reduce){.training-prototype .training-workout{transition:none;transform:none}}
-   @media(max-width:450px){.training-prototype .training-exercise{align-items:flex-start;flex-direction:column}}
-  </style><div class="training-prototype">
+  root.innerHTML=`<div class="training-prototype">
    <p class="training-note training-card">${local?'Modo local · ':''}${escape(profile.nome)}${local?' · salvo neste navegador.':''}</p>
    ${loading?'<p class="training-card" role="status">Carregando treinos…</p>':''}
    ${busy?'<p class="training-card" role="status">Salvando treino…</p>':''}
