@@ -963,6 +963,8 @@ html[data-theme] #window-saude .saude-root {
 }
 html[data-theme="dark"] #window-saude .saude-root { color-scheme: dark; }
 html[data-theme] #window-saude .saude-alert-panel {
+    display: grid;
+    gap: 0.85rem;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -974,8 +976,11 @@ html[data-theme] #window-saude .saude-alert-panel__header {
     display: flex;
     align-items: flex-start;
     gap: 0.85rem;
-    margin: 0 0 0.85rem;
-    padding: 0.15rem 0.1rem 0.85rem;
+    margin: 0;
+    padding: 1rem;
+    border: 1px solid var(--bk-line);
+    border-radius: 0.75rem;
+    background: var(--bk-surface);
 }
 html[data-theme] #window-saude .saude-alert-panel__header h3 {
     margin: 0;
@@ -985,7 +990,7 @@ html[data-theme] #window-saude .saude-alert-panel__header h3 {
 }
 html[data-theme] #window-saude .saude-alert-panel__header p,
 html[data-theme] #window-saude .saude-alert-help {
-    margin: 0.3rem 0 0;
+    margin: 0.35rem 0 0;
     color: var(--bk-muted);
     font-size: 0.82rem;
     line-height: 1.45;
@@ -1002,28 +1007,63 @@ html[data-theme] #window-saude .saude-alert-panel__icon {
     font-size: 1rem;
 }
 html[data-theme] #window-saude .saude-alert-group {
-    margin: 0 0 0.85rem;
+    margin: 0;
     padding: 1rem;
     border: 1px solid var(--bk-line);
     border-radius: 0.75rem;
     background: var(--bk-surface);
 }
-html[data-theme] #window-saude .saude-alert-group legend {
-    padding: 0 0.25rem;
-    font-size: 0.95rem;
+html[data-theme] #window-saude .saude-alert-group__head {
+    margin: 0 0 0.9rem;
+    padding: 0 0 0.85rem;
+    border-bottom: 1px solid var(--bk-line);
+}
+html[data-theme] #window-saude .saude-alert-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin: 0;
+    cursor: pointer;
     font-weight: 700;
+    font-size: 0.98rem;
     color: var(--bk-ink);
 }
-html[data-theme] #window-saude .saude-alert-group legend label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-    cursor: pointer;
+html[data-theme] #window-saude .saude-alert-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
 }
-html[data-theme] #window-saude .saude-alert-group input[type="checkbox"] {
-    width: 1.1rem;
-    height: 1.1rem;
-    accent-color: var(--bk-primary);
+html[data-theme] #window-saude .saude-alert-toggle__box {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--bk-line);
+    border-radius: 0.35rem;
+    background: var(--bk-bg);
+}
+html[data-theme] #window-saude .saude-alert-toggle__box::before {
+    content: '';
+    width: 0.32rem;
+    height: 0.58rem;
+    border: solid transparent;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translateY(-1px);
+}
+html[data-theme] #window-saude .saude-alert-toggle input:checked + .saude-alert-toggle__box {
+    background: var(--bk-primary);
+    border-color: var(--bk-primary);
+}
+html[data-theme] #window-saude .saude-alert-toggle input:checked + .saude-alert-toggle__box::before {
+    border-color: var(--bk-primary-ink);
+}
+html[data-theme] #window-saude .saude-alert-toggle input:focus-visible + .saude-alert-toggle__box {
+    outline: 2px solid var(--bk-primary);
+    outline-offset: 2px;
 }
 html[data-theme] #window-saude .saude-alert-time-row {
     display: grid;
@@ -1031,6 +1071,9 @@ html[data-theme] #window-saude .saude-alert-time-row {
     align-items: end;
     gap: 0.65rem;
     margin: 0.85rem 0;
+}
+html[data-theme] #window-saude .saude-alert-time-row--pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 html[data-theme] #window-saude .saude-alert-time-row label {
     display: flex;
@@ -1050,7 +1093,22 @@ html[data-theme] #window-saude .saude-alert-meal-row {
     color: var(--bk-ink);
     font-size: 0.85rem;
 }
-html[data-theme] #window-saude .saude-alert-add-time { margin-top: 0.35rem; }
+html[data-theme] #window-saude .saude-alert-add-time { margin-top: 0.45rem; }
+html[data-theme] #window-saude .saude-alert-footer {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--bk-line);
+    border-radius: 0.75rem;
+    background: var(--bk-surface);
+    color: var(--bk-muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+html[data-theme] #window-saude .saude-alert-group .saude-editor__actions {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--bk-line);
+}
 html[data-theme] #window-saude .saude-alert-diet-list {
     list-style: none;
     margin: 0.85rem 0 0;

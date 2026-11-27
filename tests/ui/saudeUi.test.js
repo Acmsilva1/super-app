@@ -180,6 +180,10 @@ describe('UI mobile do módulo Saúde', () => {
     expect(source).toContain('class="saude-diet-item"');
     expect(source).toContain('function imcTagClass(classification)');
     expect(source).toContain('class="saude-alert-diet-list"');
+    expect(source).toContain('function renderAlertToggle(');
+    expect(source).toContain('saude-alert-toggle__box');
+    expect(source).toContain('saude-alert-footer');
+    expect(source).not.toContain('<legend><label><input type="checkbox" name="agua_ativo"');
     expect(source).toContain('syncDietsForHealthProfile(state, healthProfile)');
     expect(source).toContain('data-saude-action="view-diet"');
     expect(source).toContain('renderDietForm(state)');

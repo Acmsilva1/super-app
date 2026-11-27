@@ -303,19 +303,27 @@ const SAUDE_STYLES = `
     .saude-section-title { font-size: 1.05rem; font-weight: 700; margin: 1.5rem 0 .5rem; color: var(--saude-lima); display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
     .saude-profile-detail { display: flex; flex-direction: column; gap: .25rem; }
     .saude-profile-detail .saude-profile-timeline { padding-inline: 0; }
-    .saude-alert-panel { padding: 1rem; border: 1px solid rgba(74, 164, 85, .3); border-radius: 1rem; background: linear-gradient(145deg, rgba(22, 34, 56, .96), rgba(8, 16, 30, .98)); }
-    .saude-alert-panel__header { display: flex; align-items: center; gap: .85rem; margin-bottom: 1rem; }
+    .saude-alert-panel { display: grid; gap: .85rem; }
+    .saude-alert-panel__header { display: flex; align-items: flex-start; gap: .85rem; margin: 0; padding: 1rem; border: 1px solid rgba(74, 164, 85, .3); border-radius: 1rem; background: linear-gradient(145deg, rgba(22, 34, 56, .96), rgba(8, 16, 30, .98)); }
     .saude-alert-panel__header h3 { margin: 0; font-size: 1.05rem; }
-    .saude-alert-panel__header p, .saude-alert-help { margin: .25rem 0 0; color: var(--saude-texto-secundario); font-size: .82rem; line-height: 1.45; }
+    .saude-alert-panel__header p, .saude-alert-help { margin: .3rem 0 0; color: var(--saude-texto-secundario); font-size: .82rem; line-height: 1.45; }
     .saude-alert-panel__icon { width: 2.8rem; height: 2.8rem; display: grid; place-items: center; flex: 0 0 auto; border-radius: .85rem; background: rgba(74, 164, 85, .2); color: var(--saude-lima); font-size: 1.1rem; }
     [data-save-alert-schedule][hidden] { display: none !important; }
-    .saude-alert-group { min-width: 0; margin: .85rem 0; padding: .85rem; border: 1px solid rgba(148, 163, 184, .18); border-radius: .8rem; }
-    .saude-alert-group legend { padding: 0 .35rem; font-weight: 700; }
-    .saude-alert-group legend label { display: flex; align-items: center; gap: .5rem; cursor: pointer; }
-    .saude-alert-group input[type="checkbox"] { accent-color: var(--saude-lima); width: 1.1rem; height: 1.1rem; }
+    .saude-alert-group { min-width: 0; margin: 0; padding: 1rem; border: 1px solid rgba(148, 163, 184, .18); border-radius: 1rem; background: rgba(15, 23, 42, .55); }
+    .saude-alert-group__head { margin: 0 0 .85rem; padding: 0 0 .85rem; border-bottom: 1px solid rgba(148, 163, 184, .16); }
+    .saude-alert-toggle { display: flex; align-items: center; gap: .7rem; margin: 0; cursor: pointer; font-weight: 700; font-size: .98rem; color: var(--saude-texto); }
+    .saude-alert-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .saude-alert-toggle__box { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; display: grid; place-items: center; border: 2px solid rgba(148, 163, 184, .55); border-radius: .35rem; background: rgba(3, 7, 18, .35); transition: background .15s ease, border-color .15s ease; }
+    .saude-alert-toggle__box::before { content: ''; width: .32rem; height: .58rem; border: solid transparent; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-1px); }
+    .saude-alert-toggle input:checked + .saude-alert-toggle__box { background: var(--saude-verde); border-color: var(--saude-verde); }
+    .saude-alert-toggle input:checked + .saude-alert-toggle__box::before { border-color: #fff; }
+    .saude-alert-toggle input:focus-visible + .saude-alert-toggle__box { outline: 2px solid var(--saude-lima); outline-offset: 2px; }
+    .saude-alert-toggle__text { min-width: 0; line-height: 1.3; }
+    .saude-alert-time-row--pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .saude-alert-meal-row { display: grid; grid-template-columns: minmax(8rem, 1fr) minmax(9rem, 16rem); align-items: center; gap: .75rem; margin-top: .75rem; color: var(--saude-texto); font-size: .85rem; }
     .saude-alert-meal-row .saude-field { width: 100%; }
-    .saude-alert-group:disabled { opacity: .62; }
+    .saude-alert-group.is-disabled, .saude-alert-group:disabled { opacity: .62; }
+    .saude-alert-footer { margin: 0; padding: .85rem 1rem; border: 1px solid rgba(148, 163, 184, .18); border-radius: .85rem; background: rgba(15, 23, 42, .45); color: var(--saude-texto-secundario); font-size: .82rem; line-height: 1.45; }
     .saude-profile-form__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
     .saude-profile-form__section { grid-column: 1 / -1; margin: .25rem 0 0; color: var(--saude-lima); font-size: .78rem; font-weight: 700; text-transform: uppercase; }
     .saude-water-progress { height: .45rem; margin-top: .7rem; overflow: hidden; border-radius: 999px; background: rgba(148, 163, 184, .18); }
@@ -1495,16 +1503,21 @@ function syncAlertScheduleButtons(container, state) {
   }
 }
 
+function renderAlertToggle(name, checked, label) {
+  return `<label class="saude-alert-toggle"><input type="checkbox" name="${name}"${checked ? ' checked' : ''}><span class="saude-alert-toggle__box" aria-hidden="true"></span><span class="saude-alert-toggle__text">${label}</span></label>`;
+}
+
 function renderProfileAlertSchedules(profile, state) {
   if (state.alertScheduleLoading || state.alertScheduleError) {
     return `${renderNotice(state)}<section class="saude-alert-panel" aria-labelledby="saude-alert-title">
-      <h3 id="saude-alert-title">Agendadores deste perfil</h3>
-      <p class="saude-alert-help" role="status">${state.alertScheduleLoading ? 'Carregando agendamentos salvos...' : 'Os agendamentos salvos não foram carregados. Tente novamente antes de editar.'}</p>
+      <header class="saude-alert-panel__header"><span class="saude-alert-panel__icon" aria-hidden="true"><i class="fas fa-bell"></i></span><div><h3 id="saude-alert-title">Agendadores deste perfil</h3>
+      <p class="saude-alert-help" role="status">${state.alertScheduleLoading ? 'Carregando agendamentos salvos...' : 'Os agendamentos salvos não foram carregados. Tente novamente antes de editar.'}</p></div></header>
       ${state.alertScheduleError && !state.alertScheduleLoading ? '<button type="button" class="saude-btn" data-saude-action="profile-screen" data-screen="alertas">Tentar novamente</button>' : ''}
     </section>`;
   }
   const schedule = state.alertSchedule || DEFAULT_ALERT_SCHEDULE;
-  const saveButton = section => `<div class="saude-editor__actions"><button data-save-alert-schedule class="saude-btn saude-btn--primary" type="submit"${alertScheduleChanged(schedule, state.alertScheduleSaved, section) ? '' : ' hidden'}${state.busy || state.alertScheduleLoading ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar alertas de ${section === 'agua' ? 'água' : 'dieta'}</button></div>`;
+  const disabled = state.busy || state.alertScheduleLoading;
+  const saveButton = section => `<div class="saude-editor__actions"><button data-save-alert-schedule class="saude-btn saude-btn--primary" type="submit"${alertScheduleChanged(schedule, state.alertScheduleSaved, section) ? '' : ' hidden'}${disabled ? ' disabled' : ''}><i class="fas fa-check"></i> Salvar alertas de ${section === 'agua' ? 'água' : 'dieta'}</button></div>`;
   const diets = dietsForProfile(state, profile.id);
   const dietList = diets.map((diet) => `<li class="saude-diet-alert-row"><span>${escapeHtml(diet.titulo)}</span>${renderDietAlertSwitch(diet, state)}</li>`).join('');
   const loading = state.alertScheduleLoading
@@ -1514,26 +1527,26 @@ function renderProfileAlertSchedules(profile, state) {
     <header class="saude-alert-panel__header"><span class="saude-alert-panel__icon" aria-hidden="true"><i class="fas fa-bell"></i></span><div><h3 id="saude-alert-title">Agendadores deste perfil</h3><p>Configure quando este perfil recebe os avisos diários no WhatsApp.</p></div></header>
     ${loading}
     <form data-alert-schedule-form="agua" data-profile-id="${escapeHtml(profile.id)}">
-      <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
-        <legend><label><input type="checkbox" name="agua_ativo"${schedule.agua_ativo ? ' checked' : ''}> Alertas de água</label></legend>
-        <div class="saude-alert-time-row"><label>Horário de início<input type="time" class="saude-field" name="agua_inicio" value="${escapeHtml(schedule.agua_inicio)}" required></label><label>Horário de fim<input type="time" class="saude-field" name="agua_fim" value="${escapeHtml(schedule.agua_fim)}" required></label></div>
+      <section class="saude-alert-group${disabled ? ' is-disabled' : ''}"${disabled ? ' aria-disabled="true"' : ''}>
+        <div class="saude-alert-group__head">${renderAlertToggle('agua_ativo', schedule.agua_ativo, 'Alertas de água')}</div>
+        <div class="saude-alert-time-row saude-alert-time-row--pair"><label>Horário de início<input type="time" class="saude-field" name="agua_inicio" value="${escapeHtml(schedule.agua_inicio)}" required${disabled ? ' disabled' : ''}></label><label>Horário de fim<input type="time" class="saude-field" name="agua_fim" value="${escapeHtml(schedule.agua_fim)}" required${disabled ? ' disabled' : ''}></label></div>
         <p class="saude-alert-help">Repete a partir do início, dentro desta janela no mesmo dia. Horário de Brasília.</p>
-        <label class="saude-alert-meal-row"><span>Intervalo entre alertas</span><select class="saude-field" name="agua_intervalo_horas">${Array.from({ length: 12 }, (_, index) => index + 1).map((hours) => `<option value="${hours}"${Number(schedule.agua_intervalo_horas) === hours ? ' selected' : ''}>A cada ${hours} ${hours === 1 ? 'hora' : 'horas'}</option>`).join('')}</select></label>
+        <label class="saude-alert-meal-row"><span>Intervalo entre alertas</span><select class="saude-field" name="agua_intervalo_horas"${disabled ? ' disabled' : ''}>${Array.from({ length: 12 }, (_, index) => index + 1).map((hours) => `<option value="${hours}"${Number(schedule.agua_intervalo_horas) === hours ? ' selected' : ''}>A cada ${hours} ${hours === 1 ? 'hora' : 'horas'}</option>`).join('')}</select></label>
         ${saveButton('agua')}
-      </fieldset>
+      </section>
     </form>
     <form data-alert-schedule-form="dieta" data-profile-id="${escapeHtml(profile.id)}">
-      <fieldset class="saude-alert-group"${state.busy || state.alertScheduleLoading ? ' disabled' : ''}>
-        <legend><label><input type="checkbox" name="dieta_ativa"${schedule.dieta_ativa ? ' checked' : ''}> Alertas de dietas deste perfil</label></legend>
-        <div class="saude-alert-times">${schedule.dieta_horarios.map((entry,index) => `<div class="saude-alert-time-row"><label>Refeição<select class="saude-field" name="dieta_refeicao">${DIET_MEALS.map(meal => `<option value="${meal.tipo}"${entry.tipo === meal.tipo ? ' selected' : ''}>${meal.titulo}</option>`).join('')}</select></label><label>Horário<input class="saude-field" type="time" name="dieta_horario" value="${escapeHtml(entry.horario)}" required></label><button type="button" class="saude-icon-btn" data-saude-action="remove-diet-alert-time" data-time-index="${index}" aria-label="Remover horário ${index+1}"><i class="fas fa-trash"></i></button></div>`).join('')}</div>
-        <button type="button" class="saude-btn saude-alert-add-time" data-saude-action="add-diet-alert-time"${schedule.dieta_horarios.length >= 12 ? ' disabled' : ''}><i class="fas fa-plus"></i> Adicionar horário</button>
+      <section class="saude-alert-group${disabled ? ' is-disabled' : ''}"${disabled ? ' aria-disabled="true"' : ''}>
+        <div class="saude-alert-group__head">${renderAlertToggle('dieta_ativa', schedule.dieta_ativa, 'Alertas de dietas deste perfil')}</div>
+        <div class="saude-alert-times">${schedule.dieta_horarios.map((entry,index) => `<div class="saude-alert-time-row"><label>Refeição<select class="saude-field" name="dieta_refeicao"${disabled ? ' disabled' : ''}>${DIET_MEALS.map(meal => `<option value="${meal.tipo}"${entry.tipo === meal.tipo ? ' selected' : ''}>${meal.titulo}</option>`).join('')}</select></label><label>Horário<input class="saude-field" type="time" name="dieta_horario" value="${escapeHtml(entry.horario)}" required${disabled ? ' disabled' : ''}></label><button type="button" class="saude-icon-btn" data-saude-action="remove-diet-alert-time" data-time-index="${index}" aria-label="Remover horário ${index+1}"${disabled ? ' disabled' : ''}><i class="fas fa-trash"></i></button></div>`).join('')}</div>
+        <button type="button" class="saude-btn saude-alert-add-time" data-saude-action="add-diet-alert-time"${schedule.dieta_horarios.length >= 12 || disabled ? ' disabled' : ''}><i class="fas fa-plus"></i> Adicionar horário</button>
         <p class="saude-alert-help">Horário de Brasília. O bot usa estes horários após salvar.</p>
         <p class="saude-alert-help">Escolha quais dietas devem receber aviso. Desligar “Alertas de dietas deste perfil” pausa todos os envios.</p>
         <ul class="saude-alert-diet-list">${dietList || '<li class="saude-alert-empty">Nenhuma dieta cadastrada neste perfil.</li>'}</ul>
         ${saveButton('dieta')}
-      </fieldset>
-      <p class="saude-alert-help">Os horários usam Brasília diariamente. A dieta pode ser avisada mesmo sem calorias preenchidas.</p>
+      </section>
     </form>
+    <p class="saude-alert-footer">Os horários usam Brasília diariamente. A dieta pode ser avisada mesmo sem calorias preenchidas.</p>
   </section>`;
 }
 
