@@ -11773,26 +11773,54 @@
             });
         }
         if (!localDevelopmentHost) {
+            const SEEN_VERSION_KEY = 'superapp_seen_cache_version';
+            const JUST_UPDATED_KEY = 'superapp_just_updated';
             let pendingWorker = null;
-            let bootCacheVersion = null;
+            let latestCacheVersion = null;
             const banner = document.createElement('div');
             banner.className = 'pwa-update-banner hidden';
-            banner.innerHTML = '<div class="pwa-update-banner__text"><strong>Nova versão disponível</strong><span>Atualize a página para usar a versão mais recente do app.</span></div><button type="button">Atualizar agora</button>';
+            banner.setAttribute('role', 'status');
+            banner.innerHTML = '<div class="pwa-update-banner__text"><strong>Nova versão disponível</strong><span>Atualize para usar a versão mais recente do app.</span></div><button type="button">Atualizar agora</button>';
             document.body.appendChild(banner);
+
+            function readSeenVersion() {
+                try { return String(localStorage.getItem(SEEN_VERSION_KEY) || '').trim(); }
+                catch (_err) { return ''; }
+            }
+            function writeSeenVersion(version) {
+                try { localStorage.setItem(SEEN_VERSION_KEY, version); } catch (_err) { /* private mode */ }
+            }
+            function refreshPwaBadge() {
+                try { superApp.refreshNotificationBadge(); } catch (_err) { /* app ainda inicializando */ }
+            }
+
+            try {
+                if (sessionStorage.getItem(JUST_UPDATED_KEY) === '1') {
+                    sessionStorage.removeItem(JUST_UPDATED_KEY);
+                    showAppConfirmation('App atualizado.');
+                }
+            } catch (_err) { /* ignore */ }
+
             const btn = banner.querySelector('button');
             btn.addEventListener('click', () => {
-                if (pendingWorker) pendingWorker.postMessage({ type: 'SKIP_WAITING' });
-                else window.location.reload();
+                if (latestCacheVersion) writeSeenVersion(latestCacheVersion);
+                try { sessionStorage.setItem(JUST_UPDATED_KEY, '1'); } catch (_err) { /* ignore */ }
                 banner.classList.add('hidden');
                 window._superappPwaUpdatePending = false;
-                superApp.refreshNotificationBadge();
+                refreshPwaBadge();
+                if (pendingWorker) pendingWorker.postMessage({ type: 'SKIP_WAITING' });
+                else window.location.reload();
             });
 
             function showUpdateBanner(worker = null) {
                 if (worker) pendingWorker = worker;
+                if (!banner.classList.contains('hidden')) {
+                    refreshPwaBadge();
+                    return;
+                }
                 banner.classList.remove('hidden');
                 window._superappPwaUpdatePending = true;
-                superApp.refreshNotificationBadge();
+                refreshPwaBadge();
             }
 
             async function checkAppVersionUpdate() {
@@ -11802,39 +11830,52 @@
                     const data = await response.json();
                     const nextVersion = typeof data?.cacheVersion === 'string' ? data.cacheVersion.trim() : '';
                     if (!nextVersion) return;
-                    if (!bootCacheVersion) {
-                        bootCacheVersion = nextVersion;
-                        return;
+                    latestCacheVersion = nextVersion;
+                    let seen = readSeenVersion();
+                    if (!seen) {
+                        // Quem já tinha SW ativo usava o app antes deste detector: força o aviso uma vez.
+                        if (navigator.serviceWorker?.controller) {
+                            writeSeenVersion('__pending__');
+                            seen = '__pending__';
+                        } else {
+                            writeSeenVersion(nextVersion);
+                            return;
+                        }
                     }
-                    if (nextVersion !== bootCacheVersion) showUpdateBanner();
+                    if (seen !== nextVersion) showUpdateBanner();
                 } catch (_err) { /* ignora falhas transitórias */ }
             }
 
             checkAppVersionUpdate();
-            setInterval(checkAppVersionUpdate, 60 * 1000);
+            setInterval(checkAppVersionUpdate, 15 * 1000);
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') checkAppVersionUpdate();
             });
+            window.addEventListener('pageshow', () => { checkAppVersionUpdate(); });
+            window.addEventListener('focus', () => { checkAppVersionUpdate(); });
 
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
-                    reg.update().catch(() => {});
-                    if (reg.waiting && navigator.serviceWorker.controller) {
-                        showUpdateBanner(reg.waiting);
-                    }
-                    reg.addEventListener('updatefound', () => {
-                        const newWorker = reg.installing;
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                showUpdateBanner(newWorker);
+                    const trackWorker = (worker) => {
+                        if (!worker) return;
+                        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                            showUpdateBanner(worker);
+                        }
+                        worker.addEventListener('statechange', () => {
+                            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                                showUpdateBanner(worker);
                             }
                         });
-                    });
-                    setInterval(() => reg.update(), 60 * 1000);
+                    };
+                    reg.update().catch(() => {});
+                    if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg.waiting);
+                    trackWorker(reg.installing);
+                    reg.addEventListener('updatefound', () => trackWorker(reg.installing));
+                    setInterval(() => reg.update(), 15 * 1000);
                     document.addEventListener('visibilitychange', () => {
                         if (document.visibilityState === 'visible') reg.update();
                     });
-                });
+                }).catch(() => {});
                 navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
             }
         }
