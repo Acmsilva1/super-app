@@ -10829,6 +10829,16 @@
                 if (!filtro || filtro === 'todos') return [...(rows || [])];
                 return (rows || []).filter((row) => row?.categoria === filtro);
             }
+            getListaComprasCategoriaSlug(categoria) {
+                const map = {
+                    Limpeza: 'limpeza',
+                    Higiene: 'higiene',
+                    Feira: 'feira',
+                    Essencial: 'essencial',
+                    Gelados: 'gelados'
+                };
+                return map[String(categoria || '').trim()] || '';
+            }
             getListaComprasQtyTag(r) {
                 const qtd = Math.max(1, Number(r?.quantidade || 1));
                 const unidade = String(r?.unidade_medida || '').trim();
@@ -10843,9 +10853,13 @@
             renderListaComprasItemRow(r) {
                 const comprado = this.isListaComprasComprado(r?.comprado);
                 const id = escapeHtml(String(r?.id ?? ''));
-                const nome = escapeHtml(r?.item || '');
+                const nomeRaw = String(r?.item || '');
+                const nome = escapeHtml(nomeRaw);
+                const nomeSize = Math.max(4, Math.min(40, nomeRaw.length + 1));
                 const qtyTag = this.getListaComprasQtyTag(r);
                 const meta = this.getListaComprasItemMeta(r);
+                const catSlug = this.getListaComprasCategoriaSlug(r?.categoria);
+                const metaClass = catSlug ? ` lc-cat lc-cat--${catSlug}` : (meta ? ' lc-cat' : '');
                 return `<li class="lc-item${comprado ? ' is-done' : ''}" data-id="${id}" data-posicao="${escapeHtml(String(r?.posicao ?? ''))}">
                     <button type="button" class="lc-item__drag" data-lista-drag data-id="${id}" aria-label="Arrastar ${nome}" title="Arrastar para reordenar"><i class="fas fa-grip-vertical" aria-hidden="true"></i></button>
                     <label class="lc-check">
@@ -10853,10 +10867,10 @@
                         <span class="lc-check__box" aria-hidden="true"><i class="fas fa-check"></i></span>
                     </label>
                     <div class="lc-item__main">
-                        <input type="text" class="lc-item__text" data-lista-text data-id="${id}" value="${nome}" maxlength="120" autocomplete="off" enterkeyhint="done" aria-label="Editar ${nome}" />
+                        <input type="text" class="lc-item__text" data-lista-text data-id="${id}" value="${nome}" size="${nomeSize}" maxlength="120" autocomplete="off" enterkeyhint="done" aria-label="Editar ${nome}" />
                         ${qtyTag ? `<span class="lc-item__qty" title="Quantidade">${escapeHtml(qtyTag)}</span>` : ''}
                     </div>
-                    ${meta ? `<span class="lc-item__meta">${escapeHtml(meta)}</span>` : ''}
+                    ${meta ? `<span class="lc-item__meta${metaClass}">${escapeHtml(meta)}</span>` : ''}
                     <button type="button" class="lc-item__edit" data-lista-edit data-id="${id}" aria-label="Editar ${nome}" title="Editar item"><i class="fas fa-pen" aria-hidden="true"></i></button>
                     <button type="button" class="lc-item__del" data-lista-delete data-id="${id}" aria-label="Excluir ${nome}" title="Excluir"><i class="fas fa-xmark" aria-hidden="true"></i></button>
                 </li>`;
@@ -10891,7 +10905,11 @@
                                 <button type="button" class="fin-icon-btn lc-top-btn" data-lista-action="delete-all" aria-label="Apagar todos" title="Apagar todos"${rows.length ? '' : ' disabled'}><i class="fas fa-trash" aria-hidden="true"></i></button>
                             </div>
                             <div class="lc-filters" role="tablist" aria-label="Filtrar por categoria">
-                                ${filters.map((entry) => `<button type="button" role="tab" class="lc-filter${filtro === entry.id ? ' is-active' : ''}" data-lista-filter="${escapeHtml(entry.id)}" aria-selected="${filtro === entry.id}">${escapeHtml(entry.label)}</button>`).join('')}
+                                ${filters.map((entry) => {
+                                    const slug = entry.id === 'todos' ? '' : this.getListaComprasCategoriaSlug(entry.id);
+                                    const catClass = slug ? ` lc-filter--${slug}` : '';
+                                    return `<button type="button" role="tab" class="lc-filter${catClass}${filtro === entry.id ? ' is-active' : ''}" data-lista-filter="${escapeHtml(entry.id)}" aria-selected="${filtro === entry.id}">${escapeHtml(entry.label)}</button>`;
+                                }).join('')}
                             </div>
                         </div>
                         <div class="fin-body"><div class="fin-body__inner">
@@ -11007,6 +11025,11 @@
                     showAppConfirmation('Lista já está agrupada.');
                     return;
                 }
+                if (!(await this.showConfirm(
+                    'Agrupar itens',
+                    'Reorganizar a lista agrupando os itens por categoria?',
+                    { confirmLabel: 'Agrupar' }
+                ))) return;
                 if (await this.submitListaReorder(orderedIds, el)) {
                     showAppConfirmation('Itens agrupados por categoria.');
                 }
