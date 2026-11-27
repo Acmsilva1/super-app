@@ -15,6 +15,7 @@ export {
   ordenarPorCategoria,
   ordenarPorPosicao,
   filtrarPorCategoria,
+  agruparPorOrdemCategorias,
   calcularReordenacao,
   proximaPosicao,
   parseRowsSupabase,

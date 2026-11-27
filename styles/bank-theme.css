@@ -1172,6 +1172,27 @@ html[data-theme] #window-saude .training-prototype select {
 .lc-shell .lc-top-btn { color: var(--bk-muted); border-color: transparent; }
 .lc-shell .lc-top-btn:disabled { opacity: 0.35; cursor: default; }
 .lc-shell .fin-topbar { gap: 0.55rem; }
+.lc-shell .lc-action-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid var(--bk-line);
+    border-radius: 999px;
+    background: var(--bk-surface);
+    color: var(--bk-ink);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.35rem 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.lc-shell .lc-action-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+.lc-shell .lc-action-btn i { font-size: 0.72rem; opacity: 0.9; }
 .lc-filters {
     display: flex;
     gap: 0.4rem;
@@ -1201,8 +1222,6 @@ html[data-theme] #window-saude .training-prototype select {
 }
 .lc-list > li { min-height: 3rem; }
 .lc-item__text {
-    flex: 1;
-    min-width: 0;
     border: 0;
     background: transparent;
     color: var(--bk-ink);
@@ -1269,8 +1288,39 @@ html[data-theme] #window-saude .training-prototype select {
     gap: 0.55rem;
     padding: 0 0.5rem 0 0.35rem;
 }
-.lc-item__text { text-overflow: ellipsis; border-radius: 0.35rem; }
+.lc-item__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.lc-item__text { flex: 1 1 auto; min-width: 0; text-overflow: ellipsis; border-radius: 0.35rem; }
 .lc-item__text:focus { background: var(--bk-bg); padding-left: 0.4rem; padding-right: 0.4rem; }
+.lc-item__qty {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    max-width: 42%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 1px solid var(--bk-line);
+    border-radius: 999px;
+    background: var(--bk-neg-soft);
+    color: var(--bk-primary);
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    padding: 0.28rem 0.55rem;
+    white-space: nowrap;
+}
+.lc-item.is-done .lc-item__qty {
+    background: var(--bk-surface);
+    color: var(--bk-muted);
+    border-color: var(--bk-line);
+}
 .lc-item__meta { flex: 0 0 auto; color: var(--bk-muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .lc-item__del {
     flex: 0 0 auto;

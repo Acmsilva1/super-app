@@ -10829,20 +10829,22 @@
                 if (!filtro || filtro === 'todos') return [...(rows || [])];
                 return (rows || []).filter((row) => row?.categoria === filtro);
             }
-            getListaComprasItemMeta(r) {
-                const parts = [];
-                if (r?.categoria) parts.push(String(r.categoria));
+            getListaComprasQtyTag(r) {
                 const qtd = Math.max(1, Number(r?.quantidade || 1));
                 const unidade = String(r?.unidade_medida || '').trim();
-                if (qtd > 1 && unidade) parts.push(`${qtd} ${unidade}`);
-                else if (qtd > 1) parts.push(`x${qtd}`);
-                else if (unidade) parts.push(unidade);
-                return parts.join(' · ');
+                if (qtd > 1 && unidade) return `x${qtd} ${unidade}`;
+                if (qtd > 1) return `x${qtd}`;
+                if (unidade) return unidade;
+                return '';
+            }
+            getListaComprasItemMeta(r) {
+                return r?.categoria ? String(r.categoria) : '';
             }
             renderListaComprasItemRow(r) {
                 const comprado = this.isListaComprasComprado(r?.comprado);
                 const id = escapeHtml(String(r?.id ?? ''));
                 const nome = escapeHtml(r?.item || '');
+                const qtyTag = this.getListaComprasQtyTag(r);
                 const meta = this.getListaComprasItemMeta(r);
                 return `<li class="lc-item${comprado ? ' is-done' : ''}" data-id="${id}" data-posicao="${escapeHtml(String(r?.posicao ?? ''))}">
                     <button type="button" class="lc-item__drag" data-lista-drag data-id="${id}" aria-label="Arrastar ${nome}" title="Arrastar para reordenar"><i class="fas fa-grip-vertical" aria-hidden="true"></i></button>
@@ -10850,7 +10852,10 @@
                         <input type="checkbox" class="lc-check__input" data-lista-check data-id="${id}" ${comprado ? 'checked' : ''} aria-label="${comprado ? 'Desmarcar' : 'Marcar'} ${nome}" />
                         <span class="lc-check__box" aria-hidden="true"><i class="fas fa-check"></i></span>
                     </label>
-                    <input type="text" class="lc-item__text" data-lista-text data-id="${id}" value="${nome}" maxlength="120" autocomplete="off" enterkeyhint="done" aria-label="Editar ${nome}" />
+                    <div class="lc-item__main">
+                        <input type="text" class="lc-item__text" data-lista-text data-id="${id}" value="${nome}" maxlength="120" autocomplete="off" enterkeyhint="done" aria-label="Editar ${nome}" />
+                        ${qtyTag ? `<span class="lc-item__qty" title="Quantidade">${escapeHtml(qtyTag)}</span>` : ''}
+                    </div>
                     ${meta ? `<span class="lc-item__meta">${escapeHtml(meta)}</span>` : ''}
                     <button type="button" class="lc-item__edit" data-lista-edit data-id="${id}" aria-label="Editar ${nome}" title="Editar item"><i class="fas fa-pen" aria-hidden="true"></i></button>
                     <button type="button" class="lc-item__del" data-lista-delete data-id="${id}" aria-label="Excluir ${nome}" title="Excluir"><i class="fas fa-xmark" aria-hidden="true"></i></button>
@@ -10881,6 +10886,7 @@
                             <div class="fin-topbar__inner">
                                 <h2 class="fin-topbar__title">Lista de compras</h2>
                                 <button type="button" class="fin-topbar__add" data-lista-action="add" aria-label="Adicionar item" title="Adicionar item"><i class="fas fa-plus" aria-hidden="true"></i></button>
+                                <button type="button" class="lc-action-btn" data-lista-action="agrupar" aria-label="Agrupar por categoria" title="Agrupar itens da mesma categoria"${rows.length > 1 ? '' : ' disabled'}><i class="fas fa-layer-group" aria-hidden="true"></i><span>Agrupar</span></button>
                                 <button type="button" class="fin-icon-btn lc-top-btn" data-lista-action="reset" aria-label="Desmarcar tudo" title="Desmarcar tudo"${marcados.length ? '' : ' disabled'}><i class="fas fa-rotate-left" aria-hidden="true"></i></button>
                                 <button type="button" class="fin-icon-btn lc-top-btn" data-lista-action="delete-all" aria-label="Apagar todos" title="Apagar todos"${rows.length ? '' : ' disabled'}><i class="fas fa-trash" aria-hidden="true"></i></button>
                             </div>
@@ -10964,6 +10970,7 @@
                     }
                     const action = event.target.closest('[data-lista-action]')?.dataset.listaAction;
                     if (action === 'add') this.openListaAddModal(el);
+                    else if (action === 'agrupar') this.submitListaAgrupar(el);
                     else if (action === 'reset') this.submitListaResetChecks(el);
                     else if (action === 'delete-all') this.submitListaDeleteAll(el);
                     else if (action === 'toggle-done') {
@@ -10971,6 +10978,38 @@
                         this.rerenderListaCompras(el);
                     }
                 });
+            }
+            agruparListaComprasRows(rows, categorias) {
+                const ordem = Array.isArray(categorias) && categorias.length
+                    ? categorias
+                    : this.getListaComprasCategorias();
+                const sorted = this.sortListaComprasRows(rows);
+                const buckets = new Map(ordem.map((nome) => [nome, []]));
+                const semCategoria = [];
+                for (const row of sorted) {
+                    const categoria = row?.categoria;
+                    if (categoria && buckets.has(categoria)) buckets.get(categoria).push(row);
+                    else semCategoria.push(row);
+                }
+                return [...ordem.flatMap((nome) => buckets.get(nome) || []), ...semCategoria];
+            }
+            async submitListaAgrupar(el) {
+                const rows = Array.isArray(el?._listaComprasRows) ? el._listaComprasRows : [];
+                if (rows.length < 2) return;
+                const categorias = Array.isArray(el?._listaComprasCategorias) && el._listaComprasCategorias.length
+                    ? el._listaComprasCategorias
+                    : this.getListaComprasCategorias();
+                const agrupados = this.agruparListaComprasRows(rows, categorias);
+                const orderedIds = agrupados.map((row) => row.id);
+                const atual = this.sortListaComprasRows(rows).map((row) => String(row.id)).join(',');
+                const proxima = orderedIds.map((id) => String(id)).join(',');
+                if (atual === proxima) {
+                    showAppConfirmation('Lista já está agrupada.');
+                    return;
+                }
+                if (await this.submitListaReorder(orderedIds, el)) {
+                    showAppConfirmation('Itens agrupados por categoria.');
+                }
             }
             bindListaComprasDrag(el) {
                 if (el._listaDragBound) return;
@@ -11176,7 +11215,7 @@
                 }
             }
             async submitListaReorder(orderedIds, el) {
-                if (!Array.isArray(orderedIds) || orderedIds.length < 2) return;
+                if (!Array.isArray(orderedIds) || orderedIds.length < 2) return false;
                 const previous = (el?._listaComprasRows || []).map((row) => ({ ...row }));
                 const byId = new Map((el?._listaComprasRows || []).map((row) => [String(row.id), row]));
                 const moved = orderedIds.map((id) => byId.get(String(id))).filter(Boolean);
@@ -11194,10 +11233,12 @@
                     const data = await res.json().catch(() => null);
                     if (Array.isArray(data?.rows)) el._listaComprasRows = data.rows;
                     this.rerenderListaCompras(el);
+                    return true;
                 } catch (error) {
                     el._listaComprasRows = previous;
                     this.rerenderListaCompras(el);
                     await this.showAlert('Lista de compras', error.message || 'Erro ao reordenar');
+                    return false;
                 }
             }
             async submitListaRenameItem(input, el) {

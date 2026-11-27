@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  agruparPorOrdemCategorias,
   calcularReordenacao,
   contarComprados,
   contarPendentes,
@@ -61,5 +62,17 @@ describe('listaComprasService', () => {
       { id: 1, posicao: 5 },
     ]);
     expect(proximaPosicao(rows)).toBe(6);
+  });
+
+  it('agrupa pela ordem das categorias do filtro preservando ordem relativa', () => {
+    const rows = [
+      { id: 1, posicao: 1, categoria: 'Feira' },
+      { id: 2, posicao: 2, categoria: 'Limpeza' },
+      { id: 3, posicao: 3, categoria: null },
+      { id: 4, posicao: 4, categoria: 'Feira' },
+      { id: 5, posicao: 5, categoria: 'Higiene' },
+      { id: 6, posicao: 6, categoria: 'Gelados' },
+    ];
+    expect(agruparPorOrdemCategorias(rows).map((row) => row.id)).toEqual([2, 5, 1, 4, 6, 3]);
   });
 });

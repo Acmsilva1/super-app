@@ -86,6 +86,23 @@ export function filtrarPorCategoria(rows, filtro = CATEGORIA_FILTRO_TODOS) {
 }
 
 /**
+ * Agrupa itens pela ordem das categorias do filtro, preservando a ordem
+ * relativa dentro de cada categoria. Sem categoria fica no final.
+ */
+export function agruparPorOrdemCategorias(rows, categorias = CATEGORIAS_LISTA) {
+  const ordem = Array.isArray(categorias) && categorias.length ? categorias : CATEGORIAS_LISTA;
+  const sorted = ordenarPorPosicao(rows);
+  const buckets = new Map(ordem.map((nome) => [nome, []]));
+  const semCategoria = [];
+  for (const row of sorted) {
+    const categoria = row?.categoria;
+    if (categoria && buckets.has(categoria)) buckets.get(categoria).push(row);
+    else semCategoria.push(row);
+  }
+  return [...ordem.flatMap((nome) => buckets.get(nome) || []), ...semCategoria];
+}
+
+/**
  * Recalcula posições dos itens reordenados, reaproveitando os slots numéricos
  * que esses itens já ocupavam — assim a ordem dos demais permanece estável.
  */
