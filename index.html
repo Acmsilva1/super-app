@@ -6957,7 +6957,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-11-27-saude-dark-restore-v1">
+    <link rel="stylesheet" href="/styles/bank-theme.css?v=2026-11-27-lista-compras-categorias-v1">
     <link rel="stylesheet" href="/styles/saude-clinical.css?v=2026-11-27-v4">
 </head>
 <body class="view-apps">
@@ -10786,43 +10786,69 @@
                 }
                 return Boolean(val);
             }
+            getListaComprasCategorias() {
+                return ['Limpeza', 'Higiene', 'Feira', 'Essencial', 'Gelados'];
+            }
             sortListaComprasRows(rows) {
                 return [...(rows || [])].sort((a, b) => {
-                    const byDate = String(b?.created_at || '').localeCompare(String(a?.created_at || ''));
-                    return byDate || (Number(b?.id) || 0) - (Number(a?.id) || 0);
+                    const pa = Number(a?.posicao);
+                    const pb = Number(b?.posicao);
+                    const aPos = Number.isFinite(pa) ? pa : Number.MAX_SAFE_INTEGER;
+                    const bPos = Number.isFinite(pb) ? pb : Number.MAX_SAFE_INTEGER;
+                    if (aPos !== bPos) return aPos - bPos;
+                    return (Number(a?.id) || 0) - (Number(b?.id) || 0);
                 });
             }
+            filterListaComprasRows(rows, filtro) {
+                if (!filtro || filtro === 'todos') return [...(rows || [])];
+                return (rows || []).filter((row) => row?.categoria === filtro);
+            }
             getListaComprasItemMeta(r) {
+                const parts = [];
+                if (r?.categoria) parts.push(String(r.categoria));
                 const qtd = Math.max(1, Number(r?.quantidade || 1));
                 const unidade = String(r?.unidade_medida || '').trim();
-                if (qtd > 1 && unidade) return `${qtd} ${unidade}`;
-                if (qtd > 1) return `x${qtd}`;
-                return unidade;
+                if (qtd > 1 && unidade) parts.push(`${qtd} ${unidade}`);
+                else if (qtd > 1) parts.push(`x${qtd}`);
+                else if (unidade) parts.push(unidade);
+                return parts.join(' · ');
             }
             renderListaComprasItemRow(r) {
                 const comprado = this.isListaComprasComprado(r?.comprado);
                 const id = escapeHtml(String(r?.id ?? ''));
                 const nome = escapeHtml(r?.item || '');
                 const meta = this.getListaComprasItemMeta(r);
-                return `<li class="lc-item${comprado ? ' is-done' : ''}" data-id="${id}">
+                return `<li class="lc-item${comprado ? ' is-done' : ''}" data-id="${id}" data-posicao="${escapeHtml(String(r?.posicao ?? ''))}">
+                    <button type="button" class="lc-item__drag" data-lista-drag data-id="${id}" aria-label="Arrastar ${nome}" title="Arrastar para reordenar"><i class="fas fa-grip-vertical" aria-hidden="true"></i></button>
                     <label class="lc-check">
                         <input type="checkbox" class="lc-check__input" data-lista-check data-id="${id}" ${comprado ? 'checked' : ''} aria-label="${comprado ? 'Desmarcar' : 'Marcar'} ${nome}" />
                         <span class="lc-check__box" aria-hidden="true"><i class="fas fa-check"></i></span>
                     </label>
                     <input type="text" class="lc-item__text" data-lista-text data-id="${id}" value="${nome}" maxlength="120" autocomplete="off" enterkeyhint="done" aria-label="Editar ${nome}" />
                     ${meta ? `<span class="lc-item__meta">${escapeHtml(meta)}</span>` : ''}
-                    <button type="button" class="lc-item__edit" data-lista-edit data-id="${id}" aria-label="Editar ${nome}" title="Editar nome e quantidade"><i class="fas fa-pen" aria-hidden="true"></i></button>
+                    <button type="button" class="lc-item__edit" data-lista-edit data-id="${id}" aria-label="Editar ${nome}" title="Editar item"><i class="fas fa-pen" aria-hidden="true"></i></button>
                     <button type="button" class="lc-item__del" data-lista-delete data-id="${id}" aria-label="Excluir ${nome}" title="Excluir"><i class="fas fa-xmark" aria-hidden="true"></i></button>
                 </li>`;
             }
             renderListaComprasContent(el, data) {
                 const rows = Array.isArray(data?.rows) ? data.rows : (Array.isArray(data?.itens) ? data.itens : []);
                 el._listaComprasRows = rows;
-                const sorted = this.sortListaComprasRows(rows);
+                if (Array.isArray(data?.categorias) && data.categorias.length) el._listaComprasCategorias = data.categorias;
+                const categorias = Array.isArray(el._listaComprasCategorias) && el._listaComprasCategorias.length
+                    ? el._listaComprasCategorias
+                    : this.getListaComprasCategorias();
+                const filtro = el._listaComprasFilter || 'todos';
+                const sorted = this.filterListaComprasRows(this.sortListaComprasRows(rows), filtro);
                 const pendentes = sorted.filter((r) => !this.isListaComprasComprado(r?.comprado));
                 const marcados = sorted.filter((r) => this.isListaComprasComprado(r?.comprado));
                 const doneOpen = el._listaComprasDoneOpen !== false;
                 const doneLabel = `${marcados.length} ${marcados.length === 1 ? 'item marcado' : 'itens marcados'}`;
+                const filters = [{ id: 'todos', label: 'Todos' }, ...categorias.map((nome) => ({ id: nome, label: nome }))];
+                const emptyMessage = rows.length
+                    ? (filtro === 'todos'
+                        ? 'Tudo marcado. Toque em + para adicionar mais itens.'
+                        : `Nenhum item em ${filtro}.`)
+                    : 'Lista vazia. Toque em + no cabeçalho para adicionar um item.';
                 el.innerHTML = `
                     <div class="fin-bank lc-shell">
                         <div class="fin-topbar">
@@ -10832,17 +10858,19 @@
                                 <button type="button" class="fin-icon-btn lc-top-btn" data-lista-action="reset" aria-label="Desmarcar tudo" title="Desmarcar tudo"${marcados.length ? '' : ' disabled'}><i class="fas fa-rotate-left" aria-hidden="true"></i></button>
                                 <button type="button" class="fin-icon-btn lc-top-btn" data-lista-action="delete-all" aria-label="Apagar todos" title="Apagar todos"${rows.length ? '' : ' disabled'}><i class="fas fa-trash" aria-hidden="true"></i></button>
                             </div>
+                            <div class="lc-filters" role="tablist" aria-label="Filtrar por categoria">
+                                ${filters.map((entry) => `<button type="button" role="tab" class="lc-filter${filtro === entry.id ? ' is-active' : ''}" data-lista-filter="${escapeHtml(entry.id)}" aria-selected="${filtro === entry.id}">${escapeHtml(entry.label)}</button>`).join('')}
+                            </div>
                         </div>
                         <div class="fin-body"><div class="fin-body__inner">
-                            ${pendentes.length ? `<ul class="fin-list lc-list" aria-label="Itens pendentes">${pendentes.map((r) => this.renderListaComprasItemRow(r)).join('')}</ul>` : ''}
-                            ${rows.length ? '' : '<p class="lc-empty">Lista vazia. Toque em + no cabeçalho para adicionar um item.</p>'}
-                            ${rows.length && !pendentes.length ? '<p class="lc-empty">Tudo marcado. Toque em + para adicionar mais itens.</p>' : ''}
+                            ${pendentes.length ? `<ul class="fin-list lc-list" data-lista-sortable="pendentes" aria-label="Itens pendentes">${pendentes.map((r) => this.renderListaComprasItemRow(r)).join('')}</ul>` : ''}
+                            ${pendentes.length ? '' : `<p class="lc-empty">${escapeHtml(emptyMessage)}</p>`}
                             ${marcados.length ? `
                                 <button type="button" class="lc-done-toggle" data-lista-action="toggle-done" aria-expanded="${doneOpen}">
                                     <i class="fas fa-chevron-${doneOpen ? 'down' : 'right'}" aria-hidden="true"></i>
                                     <span>${doneLabel}</span>
                                 </button>
-                                ${doneOpen ? `<ul class="fin-list lc-list lc-list--done" aria-label="Itens marcados">${marcados.map((r) => this.renderListaComprasItemRow(r)).join('')}</ul>` : ''}` : ''}
+                                ${doneOpen ? `<ul class="fin-list lc-list lc-list--done" data-lista-sortable="marcados" aria-label="Itens marcados">${marcados.map((r) => this.renderListaComprasItemRow(r)).join('')}</ul>` : ''}` : ''}
                         </div></div>
                         <div class="fin-footer"><div class="fin-footer__inner"><div class="fin-footer__row">
                             <div class="fin-footer__item"><span class="fin-footer__label">Pendentes</span><span class="fin-footer__value">${pendentes.length}</span></div>
@@ -10862,6 +10890,7 @@
                     }
                 }
                 this.bindListaComprasEvents(el);
+                this.bindListaComprasDrag(el);
             }
             rerenderListaCompras(el, changedId = null) {
                 const previousScrollTop = el.scrollTop || 0;
@@ -10893,6 +10922,13 @@
                     }
                 });
                 el.addEventListener('click', (event) => {
+                    if (event.target.closest('[data-lista-drag]')) return;
+                    const filterBtn = event.target.closest('[data-lista-filter]');
+                    if (filterBtn) {
+                        el._listaComprasFilter = filterBtn.dataset.listaFilter || 'todos';
+                        this.rerenderListaCompras(el);
+                        return;
+                    }
                     const edit = event.target.closest('[data-lista-edit]');
                     if (edit) { this.openListaAddModal(el, edit.dataset.id); return; }
                     const del = event.target.closest('[data-lista-delete]');
@@ -10908,6 +10944,53 @@
                         el._listaComprasDoneOpen = el._listaComprasDoneOpen === false;
                         this.rerenderListaCompras(el);
                     }
+                });
+            }
+            bindListaComprasDrag(el) {
+                if (el._listaDragBound) return;
+                el._listaDragBound = true;
+                let drag = null;
+                const cleanup = () => {
+                    if (!drag) return;
+                    drag.item.classList.remove('is-dragging');
+                    drag.list.querySelectorAll('.lc-item.is-drop-target').forEach((node) => node.classList.remove('is-drop-target'));
+                    window.removeEventListener('pointermove', onMove);
+                    window.removeEventListener('pointerup', onUp);
+                    window.removeEventListener('pointercancel', onUp);
+                    drag = null;
+                };
+                const onMove = (event) => {
+                    if (!drag) return;
+                    event.preventDefault();
+                    const under = document.elementFromPoint(event.clientX, event.clientY);
+                    const target = under?.closest?.('.lc-item');
+                    drag.list.querySelectorAll('.lc-item.is-drop-target').forEach((node) => node.classList.remove('is-drop-target'));
+                    if (!target || target === drag.item || target.parentElement !== drag.list) return;
+                    target.classList.add('is-drop-target');
+                    const rect = target.getBoundingClientRect();
+                    const before = event.clientY < rect.top + rect.height / 2;
+                    drag.list.insertBefore(drag.item, before ? target : target.nextSibling);
+                };
+                const onUp = async () => {
+                    if (!drag) return;
+                    const list = drag.list;
+                    const orderedIds = [...list.querySelectorAll('.lc-item[data-id]')].map((node) => node.dataset.id);
+                    cleanup();
+                    await this.submitListaReorder(orderedIds, el);
+                };
+                el.addEventListener('pointerdown', (event) => {
+                    const handle = event.target.closest('[data-lista-drag]');
+                    if (!handle || !el.contains(handle)) return;
+                    const item = handle.closest('.lc-item');
+                    const list = item?.closest('[data-lista-sortable]');
+                    if (!item || !list) return;
+                    event.preventDefault();
+                    drag = { item, list };
+                    item.classList.add('is-dragging');
+                    handle.setPointerCapture?.(event.pointerId);
+                    window.addEventListener('pointermove', onMove, { passive: false });
+                    window.addEventListener('pointerup', onUp);
+                    window.addEventListener('pointercancel', onUp);
                 });
             }
             async refreshListaComprasContent(el) {
@@ -10927,6 +11010,9 @@
             openListaAddModal(el, id = null) {
                 const row = id == null ? null : (el?._listaComprasRows || []).find(item => String(item.id) === String(id));
                 if (id != null && !row) { alert('Este item não está mais na lista. Atualize e tente novamente.'); return; }
+                const categorias = Array.isArray(el?._listaComprasCategorias) && el._listaComprasCategorias.length
+                    ? el._listaComprasCategorias
+                    : this.getListaComprasCategorias();
                 document.querySelector('.lc-add-overlay')?.remove();
                 const overlay = document.createElement('div');
                 overlay.className = 'app-confirm-overlay lc-add-overlay';
@@ -10945,6 +11031,13 @@
                                 <button type="button" class="lc-qty__btn" data-qty-step="1" aria-label="Aumentar quantidade"><i class="fas fa-plus" aria-hidden="true"></i></button>
                             </div>
                         </div>
+                        <div class="lc-field">
+                            <label for="lc-add-categoria">Categoria</label>
+                            <select id="lc-add-categoria" name="categoria">
+                                <option value="">Sem categoria</option>
+                                ${categorias.map((nome) => `<option value="${escapeHtml(nome)}">${escapeHtml(nome)}</option>`).join('')}
+                            </select>
+                        </div>
                         <p class="lc-field__error" data-lc-add-error hidden>Informe o nome do item.</p>
                         <div class="app-confirm-actions">
                             <button type="button" class="app-confirm-btn cancel" data-lc-add-cancel>Cancelar</button>
@@ -10955,15 +11048,17 @@
                 const form = overlay.querySelector('form');
                 const nome = overlay.querySelector('#lc-add-nome');
                 const qtd = overlay.querySelector('#lc-add-qtd');
+                const categoria = overlay.querySelector('#lc-add-categoria');
                 const error = overlay.querySelector('[data-lc-add-error]');
                 nome.value = row?.item || '';
                 qtd.value = String(row?.quantidade ?? 1);
+                categoria.value = row?.categoria && categorias.includes(row.categoria) ? row.categoria : '';
                 const previousFocus = document.activeElement;
                 let saving = false;
                 const onKey = (e) => {
                     if (e.key === 'Escape') close();
                     if (e.key !== 'Tab') return;
-                    const controls = [...form.querySelectorAll('input, button')].filter(control => !control.disabled);
+                    const controls = [...form.querySelectorAll('input, select, button')].filter(control => !control.disabled);
                     if (!controls.length) { e.preventDefault(); return; }
                     const first = controls[0];
                     const last = controls[controls.length - 1];
@@ -11000,13 +11095,18 @@
                     if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 999) {
                         error.textContent = 'Informe uma quantidade inteira entre 1 e 999.'; error.hidden = false; qtd.focus(); return;
                     }
+                    const categoriaValue = categoria.value || null;
                     const submitBtn = form.querySelector('[type="submit"]');
                     saving = true;
-                    const controls = [...form.querySelectorAll('input, button')];
+                    const controls = [...form.querySelectorAll('input, select, button')];
                     controls.forEach(control => { control.disabled = true; });
                     submitBtn.textContent = 'Salvando…';
                     let ok;
-                    try { ok = row ? await this.submitListaEditItem(row.id, item, quantidade, el) : await this.submitListaAddItem(item, quantidade, el); }
+                    try {
+                        ok = row
+                            ? await this.submitListaEditItem(row.id, item, quantidade, el, categoriaValue)
+                            : await this.submitListaAddItem(item, quantidade, el, categoriaValue);
+                    }
                     finally { saving = false; controls.forEach(control => { control.disabled = false; }); submitBtn.textContent = 'Salvar'; }
                     if (ok) close();
                 });
@@ -11014,9 +11114,9 @@
                 document.body.appendChild(overlay);
                 nome.focus();
             }
-            async submitListaAddItem(item, quantidade, el) {
+            async submitListaAddItem(item, quantidade, el, categoria = null) {
                 try {
-                    const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade }) });
+                    const res = await fetch('/api/lista-compras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, quantidade, categoria }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao adicionar item'));
                     const created = await res.json().catch(() => null);
                     if (created?.id != null && Array.isArray(el?._listaComprasRows)) {
@@ -11032,9 +11132,9 @@
                     return false;
                 }
             }
-            async submitListaEditItem(id, item, quantidade, el) {
+            async submitListaEditItem(id, item, quantidade, el, categoria = null) {
                 try {
-                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, item, quantidade }) });
+                    const res = await fetch('/api/lista-compras', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, item, quantidade, categoria }) });
                     if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao editar item'));
                     const updated = await res.json();
                     const row = (el?._listaComprasRows || []).find(entry => String(entry.id) === String(id));
@@ -11045,6 +11145,31 @@
                     showAppConfirmation('Item atualizado.');
                     return true;
                 } catch (error) { alert(error.message || 'Erro ao editar item'); return false; }
+            }
+            async submitListaReorder(orderedIds, el) {
+                if (!Array.isArray(orderedIds) || orderedIds.length < 2) return;
+                const previous = (el?._listaComprasRows || []).map((row) => ({ ...row }));
+                const byId = new Map((el?._listaComprasRows || []).map((row) => [String(row.id), row]));
+                const moved = orderedIds.map((id) => byId.get(String(id))).filter(Boolean);
+                const slots = moved.map((row) => Number(row.posicao)).filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+                while (slots.length < moved.length) slots.push((slots[slots.length - 1] || 0) + 1);
+                moved.forEach((row, index) => { row.posicao = slots[index]; });
+                this.rerenderListaCompras(el);
+                try {
+                    const res = await fetch('/api/lista-compras', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reorder: orderedIds.map((id) => ({ id })) }),
+                    });
+                    if (!res.ok) throw new Error(await this.readApiErrorMessage(res, 'Erro ao reordenar'));
+                    const data = await res.json().catch(() => null);
+                    if (Array.isArray(data?.rows)) el._listaComprasRows = data.rows;
+                    this.rerenderListaCompras(el);
+                } catch (error) {
+                    el._listaComprasRows = previous;
+                    this.rerenderListaCompras(el);
+                    alert(error.message || 'Erro ao reordenar');
+                }
             }
             async submitListaRenameItem(input, el) {
                 const id = input.dataset.id;
@@ -11566,8 +11691,9 @@
                 registrations.forEach((registration) => registration.unregister());
             });
         }
-        if ('serviceWorker' in navigator && !localDevelopmentHost) {
+        if (!localDevelopmentHost) {
             let pendingWorker = null;
+            let bootCacheVersion = null;
             const banner = document.createElement('div');
             banner.className = 'pwa-update-banner hidden';
             banner.innerHTML = '<div class="pwa-update-banner__text"><strong>Nova versão disponível</strong><span>Atualize a página para usar a versão mais recente do app.</span></div><button type="button">Atualizar agora</button>';
@@ -11581,33 +11707,55 @@
                 superApp.refreshNotificationBadge();
             });
 
-            function showUpdateBanner(worker) {
-                pendingWorker = worker;
+            function showUpdateBanner(worker = null) {
+                if (worker) pendingWorker = worker;
                 banner.classList.remove('hidden');
                 window._superappPwaUpdatePending = true;
                 superApp.refreshNotificationBadge();
             }
 
-            navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
-                reg.update().catch(() => {});
-                if (reg.waiting && navigator.serviceWorker.controller) {
-                    showUpdateBanner(reg.waiting);
-                }
-                reg.addEventListener('updatefound', () => {
-                    const newWorker = reg.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            showUpdateBanner(newWorker);
-                        }
+            async function checkAppVersionUpdate() {
+                try {
+                    const response = await fetch('/app-version.json', { cache: 'no-store' });
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    const nextVersion = typeof data?.cacheVersion === 'string' ? data.cacheVersion.trim() : '';
+                    if (!nextVersion) return;
+                    if (!bootCacheVersion) {
+                        bootCacheVersion = nextVersion;
+                        return;
+                    }
+                    if (nextVersion !== bootCacheVersion) showUpdateBanner();
+                } catch (_err) { /* ignora falhas transitórias */ }
+            }
+
+            checkAppVersionUpdate();
+            setInterval(checkAppVersionUpdate, 60 * 1000);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') checkAppVersionUpdate();
+            });
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
+                    reg.update().catch(() => {});
+                    if (reg.waiting && navigator.serviceWorker.controller) {
+                        showUpdateBanner(reg.waiting);
+                    }
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                showUpdateBanner(newWorker);
+                            }
+                        });
+                    });
+                    setInterval(() => reg.update(), 60 * 1000);
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') reg.update();
                     });
                 });
-                // Verificar nova verso periodicamente e ao voltar para o app
-                setInterval(() => reg.update(), 60 * 1000);
-                document.addEventListener('visibilitychange', () => {
-                    if (document.visibilityState === 'visible') reg.update();
-                });
-            });
-            navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+                navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+            }
         }
     </script>
 </body>

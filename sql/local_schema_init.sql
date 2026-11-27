@@ -69,8 +69,10 @@ CREATE TABLE IF NOT EXISTS public.tb_lista_compras (
   user_id UUID,
   item TEXT NOT NULL,
   quantidade NUMERIC(10,2) DEFAULT 1,
+  unidade_medida TEXT,
   categoria TEXT,
-  comprado BOOLEAN NOT NULL DEFAULT FALSE
+  comprado BOOLEAN NOT NULL DEFAULT FALSE,
+  posicao INTEGER NOT NULL DEFAULT 0
 );
 
 -- 3. Fluxograma

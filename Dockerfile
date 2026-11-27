@@ -1,9 +1,11 @@
 # Runtime contínuo: front/PWA estático + handlers /api/* servidos pelo Express (server.js).
 FROM node:24-alpine
 
+ARG GIT_COMMIT=
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
-    PORT=3000
+    PORT=3000 \
+    GIT_COMMIT=$GIT_COMMIT
 
 RUN apk add --no-cache wget
 

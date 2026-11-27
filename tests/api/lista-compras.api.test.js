@@ -66,11 +66,16 @@ describe('edicao dos itens', () => {
       const app=createApp(listaComprasHandler);
       const created=await request(app).post('/api/test').send({item:'Leite',quantidade:2,unidade_medida:'caixas',comprado:true,categoria:'Feira'});
       expect(created.status).toBe(201);
-      const edited=await request(app).patch('/api/test').send({id:created.body.id,item:'Leite integral',quantidade:5});
+      expect(created.body).toMatchObject({categoria:'Feira',posicao:expect.any(Number)});
+      const edited=await request(app).patch('/api/test').send({id:created.body.id,item:'Leite integral',quantidade:5,categoria:'Gelados'});
       expect(edited.status).toBe(200);
-      expect(edited.body).toMatchObject({id:created.body.id,item:'Leite integral',quantidade:5,unidade_medida:'caixas',comprado:true,categoria:'Feira'});
+      expect(edited.body).toMatchObject({id:created.body.id,item:'Leite integral',quantidade:5,unidade_medida:'caixas',comprado:true,categoria:'Gelados'});
+      const reordered=await request(app).patch('/api/test').send({reorder:[{id:created.body.id},{id:1}]});
+      expect(reordered.status).toBe(200);
+      expect(reordered.body.updated).toBeGreaterThan(0);
       const list=await request(app).get('/api/test');
-      expect(list.body.rows.find(row=>row.id===created.body.id)).toMatchObject({item:'Leite integral',quantidade:5});
+      expect(list.body.categorias).toEqual(['Limpeza','Higiene','Feira','Essencial','Gelados']);
+      expect(list.body.rows.find(row=>row.id===created.body.id)).toMatchObject({item:'Leite integral',quantidade:5,categoria:'Gelados'});
       expect((await request(app).delete('/api/test').send({id:created.body.id})).status).toBe(200);
     } finally {vi.unstubAllEnvs();}
   });

@@ -98,6 +98,8 @@ chmod 600 .env
 chown root:root .env 2>/dev/null || true
 
 echo "=== docker compose ==="
+# GIT_COMMIT diferencia CACHE_VERSION do PWA a cada publish (banner "Nova versão disponível").
+export GIT_COMMIT="$RESOLVED"
 docker compose -f "$COMPOSE_FILE" up -d --build --force-recreate --remove-orphans
 docker compose -f "$COMPOSE_FILE" ps
 

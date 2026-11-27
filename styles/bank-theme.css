@@ -1171,6 +1171,34 @@ html[data-theme] #window-saude .training-prototype select {
 /* ---------- Lista de compras: lista livre estilo bloco de notas ---------- */
 .lc-shell .lc-top-btn { color: var(--bk-muted); border-color: transparent; }
 .lc-shell .lc-top-btn:disabled { opacity: 0.35; cursor: default; }
+.lc-shell .fin-topbar { gap: 0.55rem; }
+.lc-filters {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding: 0 0.15rem 0.15rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.lc-filters::-webkit-scrollbar { display: none; }
+.lc-filter {
+    flex: 0 0 auto;
+    border: 1px solid var(--bk-line);
+    border-radius: 999px;
+    background: var(--bk-surface);
+    color: var(--bk-muted);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.lc-filter.is-active {
+    border-color: var(--bk-primary);
+    background: var(--bk-neg-soft);
+    color: var(--bk-primary);
+}
 .lc-list > li { min-height: 3rem; }
 .lc-item__text {
     flex: 1;
@@ -1183,11 +1211,30 @@ html[data-theme] #window-saude .training-prototype select {
     padding: 0.55rem 0;
     outline: none;
 }
+.lc-item__drag {
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 2.25rem;
+    margin-left: -0.35rem;
+    border: 0;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: var(--bk-muted);
+    cursor: grab;
+    touch-action: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.lc-item__drag:active { cursor: grabbing; }
+.lc-item.is-dragging { opacity: 0.55; background: var(--bk-bg); }
+.lc-item.is-drop-target { box-shadow: inset 0 2px 0 var(--bk-primary); }
 .lc-add-modal { text-align: left; width: min(92vw, 380px); }
 .lc-add-modal h4 { margin: 0 0 1rem; }
 .lc-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
 .lc-field label { font-size: 0.82rem; font-weight: 600; color: var(--bk-muted); }
-.lc-field input {
+.lc-field input,
+.lc-field select {
     width: 100%;
     box-sizing: border-box;
     border: 1px solid var(--bk-line);
@@ -1198,7 +1245,8 @@ html[data-theme] #window-saude .training-prototype select {
     padding: 0.7rem 0.8rem;
     outline: none;
 }
-.lc-field input:focus { border-color: var(--bk-primary); box-shadow: 0 0 0 3px rgba(236, 0, 0, 0.12); }
+.lc-field input:focus,
+.lc-field select:focus { border-color: var(--bk-primary); box-shadow: 0 0 0 3px rgba(236, 0, 0, 0.12); }
 .lc-qty { display: flex; align-items: center; gap: 0.6rem; }
 .lc-qty input { flex: 1; text-align: center; -moz-appearance: textfield; }
 .lc-qty input::-webkit-outer-spin-button,
@@ -1218,8 +1266,8 @@ html[data-theme] #window-saude .training-prototype select {
 .lc-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0 0.5rem 0 1rem;
+    gap: 0.55rem;
+    padding: 0 0.5rem 0 0.35rem;
 }
 .lc-item__text { text-overflow: ellipsis; border-radius: 0.35rem; }
 .lc-item__text:focus { background: var(--bk-bg); padding-left: 0.4rem; padding-right: 0.4rem; }

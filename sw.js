@@ -2,7 +2,11 @@
  * Service Worker - SUPERAPP PWA
  * Incrementar CACHE_VERSION a cada deploy/commit para invalidar cache e forcar atualizacao.
  */
-const CACHE_VERSION = 'app-1.10.3-202611271250';
+<<<<<<< Updated upstream
+const CACHE_VERSION = 'app-1.10.3-202611271330';
+=======
+const CACHE_VERSION = 'app-1.10.3-202611271327';
+>>>>>>> Stashed changes
 const CACHE_NAME = 'superapp-' + CACHE_VERSION;
 
 const ESSENTIAL_ASSETS = [
@@ -15,11 +19,12 @@ const ESSENTIAL_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Não chama skipWaiting aqui: a UI mostra o banner "Nova versão disponível"
+  // e só ativa o worker quando o usuário toca em Atualizar agora.
   event.waitUntil(
     caches
       .open(CACHE_NAME)
       .then((cache) => Promise.allSettled(ESSENTIAL_ASSETS.map((url) => cache.add(url).catch(() => {}))))
-      .then(() => self.skipWaiting())
   );
 });
 

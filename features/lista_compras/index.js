@@ -1,6 +1,7 @@
 export {
   TABLE_NAME,
   CATEGORIAS_LISTA,
+  CATEGORIA_FILTRO_TODOS,
   ItemLista,
 } from './model/itemLista.js';
 export {
@@ -12,5 +13,9 @@ export {
   contarComprados,
   contarPendentes,
   ordenarPorCategoria,
+  ordenarPorPosicao,
+  filtrarPorCategoria,
+  calcularReordenacao,
+  proximaPosicao,
   parseRowsSupabase,
 } from './service/listaComprasService.js';
